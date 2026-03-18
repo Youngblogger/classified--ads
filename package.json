@@ -1,0 +1,41 @@
+{
+  "name": "classified-ads-marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "next dev -p 3000",
+    "dev:backend": "cd backend && php artisan serve --port=8000",
+    "dev:simple": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "start:prod": "npm run build && next start",
+    "clean": "rmdir /s /q .next 2>nul || true",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "axios": "^1.13.6",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.577.0",
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.6.0",
+    "recharts": "^3.8.0",
+    "socket.io-client": "^4.8.3",
+    "swr": "^2.4.1",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.2.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0"
+  }
+}
