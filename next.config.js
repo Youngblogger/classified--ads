@@ -1,10 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbo: {
-      resolveExtensions: ['.tsx', '.ts', '.jsx', '.js'],
-    },
-  },
   images: {
     remotePatterns: [
       {
@@ -14,19 +9,11 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '8000',
-        pathname: '/storage/**',
+        pathname: '/**',
       },
       {
         protocol: 'http',
-        hostname: 'localhost',
-        port: '8000',
-        pathname: '/ads/**',
-      },
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8000',
+        hostname: '127.0.0.1',
         pathname: '/**',
       },
     ],
@@ -37,6 +24,10 @@ const nextConfig = {
   },
   async rewrites() {
     return [
+      {
+        source: '/storage/:path*',
+        destination: 'http://localhost:8000/storage/:path*',
+      },
       {
         source: '/api/:path*',
         destination: 'http://localhost:8000/api/:path*',

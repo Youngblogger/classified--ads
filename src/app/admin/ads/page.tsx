@@ -71,7 +71,7 @@ export default function AdsPage() {
     try {
       setActionLoading(adId);
       await adminApi.approveAd(adId);
-      toast.success('Ad approved');
+      toast.success('Ad approved successfully! The ad is now live and visible to users.');
       fetchAds();
     } catch (error) {
       toast.error('Failed to approve ad');
@@ -135,9 +135,17 @@ export default function AdsPage() {
 
   const getImageUrl = (url: string | undefined): string => {
     if (!url) return '/placeholder.jpg';
-    if (url.startsWith('http')) return url;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
-    return `${baseUrl}/${url.replace(/^\/+/, '')}`;
+    
+    // If already a full URL, return it
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // Remove leading slash if present
+    const cleanUrl = url.replace(/^\/+/, '');
+    
+    // Use the storage rewrite for Laravel files
+    return `/storage/${cleanUrl}`;
   };
 
   return (

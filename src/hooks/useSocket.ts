@@ -117,6 +117,18 @@ export function useSocket({
     return onlineUsers.includes(checkUserId);
   }, [onlineUsers]);
 
+  const emitNotification = useCallback((userId: number, notification: any) => {
+    socketRef.current?.emit('notification', { userId, notification });
+  }, []);
+
+  const emitPaymentCompleted = useCallback((userId: number, payment: any) => {
+    socketRef.current?.emit('paymentCompleted', { userId, payment });
+  }, []);
+
+  const emitPromotionActivated = useCallback((userId: number, promotion: any) => {
+    socketRef.current?.emit('promotionActivated', { userId, promotion });
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -128,5 +140,8 @@ export function useSocket({
     stopTyping,
     markRead,
     isUserOnline,
+    emitNotification,
+    emitPaymentCompleted,
+    emitPromotionActivated,
   };
 }

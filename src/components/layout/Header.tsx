@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Search, MapPin, Bell, Heart, User, LogOut, Plus, Phone, MessageCircle, Check } from 'lucide-react';
+import { Menu, X, Search, MapPin, Bell, Heart, User, LogOut, Plus, Phone, MessageCircle, Check, Star, CreditCard, TrendingUp, Shield, AlertTriangle, ThumbsUp, ThumbsDown, Megaphone, Ban, Mail, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
 import useSWR from 'swr';
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
@@ -12,15 +13,86 @@ import { useSocket } from '@/hooks/useSocket';
 import SearchBar from '@/components/ui/SearchBar';
 import CategoryNav from '@/components/ui/CategoryNav';
 
+function getAvatarUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  let avatarUrl = url;
+  if (avatarUrl.startsWith('/storage/')) {
+    avatarUrl = `http://localhost:8000${avatarUrl}`;
+  }
+  return avatarUrl;
+}
+
+const NOTIFICATION_ICONS: Record<string, any> = {
+  ad_approved: ThumbsUp,
+  ad_rejected: ThumbsDown,
+  ad_deleted: AlertTriangle,
+  new_message: MessageCircle,
+  payment_received: CreditCard,
+  payment_approved: CreditCard,
+  payment_rejected: CreditCard,
+  promotion_activated: TrendingUp,
+  promotion_expired: TrendingUp,
+  account_verified: Shield,
+  account_suspended: AlertTriangle,
+  account_banned: Ban,
+  account_unsuspended: ThumbsUp,
+  new_review: Star,
+  review_received: Star,
+  report_received: FileText,
+  report_actioned: FileText,
+  admin_broadcast: Megaphone,
+  new_favorite: Heart,
+  system_notice: AlertTriangle,
+};
+
+const NOTIFICATION_COLORS: Record<string, string> = {
+  ad_approved: 'bg-green-100 text-green-600',
+  ad_rejected: 'bg-red-100 text-red-600',
+  ad_deleted: 'bg-red-100 text-red-600',
+  new_message: 'bg-blue-100 text-blue-600',
+  payment_received: 'bg-green-100 text-green-600',
+  payment_approved: 'bg-green-100 text-green-600',
+  payment_rejected: 'bg-red-100 text-red-600',
+  promotion_activated: 'bg-purple-100 text-purple-600',
+  promotion_expired: 'bg-gray-100 text-gray-600',
+  account_verified: 'bg-green-100 text-green-600',
+  account_suspended: 'bg-yellow-100 text-yellow-600',
+  account_banned: 'bg-red-100 text-red-600',
+  account_unsuspended: 'bg-green-100 text-green-600',
+  new_review: 'bg-yellow-100 text-yellow-600',
+  review_received: 'bg-yellow-100 text-yellow-600',
+  report_received: 'bg-blue-100 text-blue-600',
+  report_actioned: 'bg-blue-100 text-blue-600',
+  admin_broadcast: 'bg-purple-100 text-purple-600',
+  new_favorite: 'bg-red-100 text-red-600',
+  system_notice: 'bg-gray-100 text-gray-600',
+};
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const fetcher = (url: string) => fetch(url).then(r => r.json()).catch(() => null);
 
+function formatNotificationTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 export default function Header() {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout, updateAuth } = useAuthStore();
   const { isMobileMenuOpen, toggleMobileMenu, toggleLoginModal, toggleRegisterModal, toggleLocationModal } = useUIStore();
   const { selectedLocation, addNotification } = useGlobalStore();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
@@ -44,6 +116,29 @@ export default function Header() {
     setRecentNotifications(prev => [notification, ...prev].slice(0, 10));
     setUnreadCount(prev => prev + 1);
     addNotification(notification);
+    
+    const IconComponent = NOTIFICATION_ICONS[notification.type] || Bell;
+    toast.custom(
+      (t) => (
+        <div
+          className={`bg-white shadow-lg rounded-xl border border-gray-100 p-4 flex items-start gap-3 max-w-sm ${
+            t.visible ? 'animate-enter' : 'animate-leave'
+          }`}
+        >
+          <div className={`w-10 h-10 rounded-full ${NOTIFICATION_COLORS[notification.type] || 'bg-gray-100 text-gray-600'} flex items-center justify-center flex-shrink-0`}>
+            <IconComponent className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notification.message}</p>
+          </div>
+        </div>
+      ),
+      {
+        duration: 5000,
+        position: 'top-right',
+      }
+    );
   }, [addNotification]);
 
   const { socket } = useSocket({
@@ -70,6 +165,36 @@ export default function Header() {
       fetchRecentMessages();
     }
   }, [isAuthenticated]);
+
+  // Sync auth state from backend on mount
+  useEffect(() => {
+    setMounted(true);
+    const syncAuth = async () => {
+      const storedToken = localStorage.getItem('auth-storage');
+      if (storedToken) {
+        try {
+          const parsed = JSON.parse(storedToken);
+          const token = parsed.state?.token;
+          if (token) {
+            // Verify token is still valid and get fresh user data
+            const res = await api.get('/auth/me');
+            if (res.data) {
+              // Token is valid, update user data with fresh info including avatar
+              updateAuth({ 
+                user: { ...parsed.state.user, ...res.data }, 
+                token, 
+                isAuthenticated: true 
+              });
+            }
+          }
+        } catch (error) {
+          // Token invalid or expired - clear auth state
+          logout();
+        }
+      }
+    };
+    syncAuth();
+  }, [logout, updateAuth]);
 
   const fetchNotifications = async () => {
     try {
@@ -122,13 +247,67 @@ export default function Header() {
     if (!notif.read_at) {
       handleMarkAsRead(notif.id);
     }
-    if (notif.data?.ad_id) {
-      router.push(`/ad/${notif.data.ad_slug}`);
-    } else if (notif.data?.conversation_id) {
-      router.push(`/dashboard/messages?conversation=${notif.data.conversation_id}`);
-    } else {
-      // Navigate to notifications page for other notification types
-      router.push('/dashboard/notifications');
+    
+    // Handle different notification types
+    switch (notif.type) {
+      case 'ad_approved':
+      case 'ad_rejected':
+      case 'ad_deleted':
+        if (notif.data?.ad_slug) {
+          router.push(`/ad/${notif.data.ad_slug}`);
+        } else if (notif.data?.ad_id) {
+          router.push(`/ad/${notif.data.ad_id}`);
+        } else {
+          router.push('/dashboard/my-ads');
+        }
+        break;
+      case 'new_message':
+        if (notif.data?.conversation_id) {
+          router.push(`/dashboard/messages?conversation=${notif.data.conversation_id}`);
+        } else {
+          router.push('/dashboard/messages');
+        }
+        break;
+      case 'payment_received':
+      case 'payment_approved':
+      case 'payment_rejected':
+        router.push('/dashboard/payments');
+        break;
+      case 'promotion_activated':
+      case 'promotion_expired':
+        if (notif.data?.ad_id) {
+          router.push(`/dashboard/my-ads?highlight=${notif.data.ad_id}`);
+        } else {
+          router.push('/dashboard/promotions');
+        }
+        break;
+      case 'account_verified':
+      case 'account_suspended':
+      case 'account_banned':
+      case 'account_unsuspended':
+        router.push('/dashboard');
+        break;
+      case 'new_review':
+      case 'review_received':
+        if (notif.data?.ad_id) {
+          router.push(`/ad/${notif.data.ad_id}`);
+        } else {
+          router.push('/dashboard/reviews');
+        }
+        break;
+      case 'report_received':
+      case 'report_actioned':
+        router.push('/dashboard/reports');
+        break;
+      case 'new_favorite':
+        if (notif.data?.ad_slug) {
+          router.push(`/ad/${notif.data.ad_slug}`);
+        } else if (notif.data?.ad_id) {
+          router.push(`/ad/${notif.data.ad_id}`);
+        }
+        break;
+      default:
+        router.push('/dashboard/notifications');
     }
     setNotificationOpen(false);
   };
@@ -138,9 +317,29 @@ export default function Header() {
     setNotificationOpen(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Call backend logout
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.log('Backend logout failed, proceeding with local logout');
+    }
+    
+    // Clear local storage
+    localStorage.removeItem('auth-storage');
+    sessionStorage.clear();
+    
+    // Clear cookies
+    document.cookie.split(';').forEach((cookie) => {
+      const name = cookie.trim().split('=')[0];
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+    });
+    
+    // Clear store state
     logout();
-    router.push('/');
+    
+    // Full page reload to clear all state
+    window.location.href = '/';
   };
 
   return (
@@ -258,34 +457,43 @@ export default function Header() {
                                   Mark all as read
                                 </button>
                               </div>
-                              {recentNotifications.slice(0, 5).map((notif: any) => (
-                                <div 
-                                  key={notif.id}
-                                  onClick={() => handleNotificationClick(notif)}
-                                  className={`px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 cursor-pointer ${
-                                    !notif.read_at ? 'bg-blue-50' : ''
-                                  }`}
-                                >
-                                  <div className="flex items-start gap-3">
-                                    <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${!notif.read_at ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900">{notif.title}</p>
-                                      <p className="text-xs text-gray-500 mt-0.5 truncate">{notif.message}</p>
-                                      {notif.created_at && (
-                                        <p className="text-xs text-gray-400 mt-1">
-                                          {new Date(notif.created_at).toLocaleDateString()}
-                                        </p>
+                              {recentNotifications.slice(0, 5).map((notif: any) => {
+                                const IconComponent = NOTIFICATION_ICONS[notif.type] || Bell;
+                                const iconColor = NOTIFICATION_COLORS[notif.type] || 'bg-gray-100 text-gray-600';
+                                return (
+                                  <div 
+                                    key={notif.id}
+                                    onClick={() => handleNotificationClick(notif)}
+                                    className={`px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 cursor-pointer ${
+                                      !notif.read_at ? 'bg-blue-50' : ''
+                                    }`}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <div className={`w-10 h-10 rounded-full ${iconColor} flex items-center justify-center flex-shrink-0`}>
+                                        <IconComponent className="w-5 h-5" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-900">{notif.title}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>
+                                        {notif.created_at && (
+                                          <p className="text-xs text-gray-400 mt-1">
+                                            {formatNotificationTime(notif.created_at)}
+                                          </p>
+                                        )}
+                                      </div>
+                                      {!notif.read_at && (
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></div>
                                       )}
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </>
                           )}
                         </>
                       )}
 
-                      {activeTab === 'messages' && (
+                          {activeTab === 'messages' && (
                         <>
                           {recentMessages.length === 0 ? (
                             <div className="px-4 py-8 text-center text-gray-500">
@@ -299,21 +507,21 @@ export default function Header() {
                                 className="px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 cursor-pointer"
                               >
                                 <div className="flex items-start gap-3">
-                                  {conversation.user?.avatar ? (
+                                  {conversation.sender?.avatar || conversation.receiver?.avatar ? (
                                     <img 
-                                      src={(conversation.user as any).avatar_url || conversation.user.avatar} 
+                                      src={getAvatarUrl((conversation.sender || conversation.receiver)?.avatar_url || (conversation.sender || conversation.receiver)?.avatar)} 
                                       alt="" 
                                       className="w-10 h-10 rounded-full object-cover"
                                     />
                                   ) : (
-                                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                      <User className="w-5 h-5 text-gray-500" />
+                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                      <User className="w-5 h-5 text-blue-600" />
                                     </div>
                                   )}
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between">
                                       <p className="text-sm font-medium text-gray-900">
-                                        {conversation.user?.name || 'User'}
+                                        {conversation.sender?.name || conversation.receiver?.name || 'User'}
                                       </p>
                                       {conversation.unread_count > 0 && (
                                         <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
@@ -321,9 +529,19 @@ export default function Header() {
                                         </span>
                                       )}
                                     </div>
+                                    {conversation.ad && (
+                                      <p className="text-xs text-primary-600 truncate">
+                                        Re: {conversation.ad.title}
+                                      </p>
+                                    )}
                                     <p className="text-xs text-gray-500 mt-0.5 truncate">
-                                      {conversation.last_message?.substring(0, 50)}...
+                                      {conversation.last_message?.content || conversation.last_message?.substring(0, 50) || 'No messages yet'}
                                     </p>
+                                    {conversation.last_message_at && (
+                                      <p className="text-xs text-gray-400 mt-1">
+                                        {formatNotificationTime(conversation.last_message_at)}
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -358,34 +576,58 @@ export default function Header() {
             )}
 
             {/* Profile */}
-            {isAuthenticated ? (
+            {mounted && isAuthenticated ? (
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                  className="flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-xl transition-colors"
                 >
-                  {user?.avatar ? (
-                    <img 
-                      src={(user as any).avatar_url || user.avatar} 
-                      alt={user.name} 
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary-600" />
-                    </div>
-                  )}
+                  {/* Profile Avatar */}
+                  <div className="w-9 h-9 rounded-full overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0">
+                    {user?.google_avatar || user?.avatar || user?.avatar_url ? (
+                      <img 
+                        src={getAvatarUrl(user.google_avatar || user.avatar || user.avatar_url)} 
+                        alt={user.name || 'User'} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span className="text-primary-600 font-semibold text-sm">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    )}
+                  </div>
                 </button>
 
                 {isProfileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-dropdown border border-gray-100 py-2 animate-fade-in">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="font-medium text-dark">{user?.name}</p>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-gray-100 py-2 animate-fade-in z-50">
+                    {/* User Info */}
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-primary-100 flex items-center justify-center">
+                          {user?.google_avatar || user?.avatar || user?.avatar_url ? (
+                            <img 
+                              src={getAvatarUrl(user.google_avatar || user.avatar || user.avatar_url)} 
+                              alt={user.name || 'User'} 
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <span className="text-primary-600 font-bold text-lg">
+                              {user?.name?.charAt(0).toUpperCase() || 'U'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 truncate">{user?.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                        </div>
+                      </div>
                     </div>
                     <Link
                       href="/dashboard"
                       className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsProfileDropdownOpen(false)}
                     >
                       <User className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-dark">My Dashboard</span>
@@ -393,6 +635,7 @@ export default function Header() {
                     <Link
                       href="/dashboard/my-ads"
                       className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsProfileDropdownOpen(false)}
                     >
                       <Plus className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-dark">My Ads</span>
@@ -400,6 +643,7 @@ export default function Header() {
                     <Link
                       href="/dashboard/favorites"
                       className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsProfileDropdownOpen(false)}
                     >
                       <Heart className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-dark">Favorites</span>
@@ -407,10 +651,10 @@ export default function Header() {
                     <div className="border-t border-gray-100 mt-2 pt-2">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors w-full"
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors w-full text-left"
                       >
                         <LogOut className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-error">Logout</span>
+                        <span className="text-sm text-red-600">Logout</span>
                       </button>
                     </div>
                   </div>

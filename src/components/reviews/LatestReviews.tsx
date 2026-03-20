@@ -24,9 +24,10 @@ interface Review {
 interface LatestReviewsProps {
   adId: number;
   adSlug: string;
+  refreshKey?: number;
 }
 
-export default function LatestReviews({ adId, adSlug }: LatestReviewsProps) {
+export default function LatestReviews({ adId, adSlug, refreshKey = 0 }: LatestReviewsProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +35,7 @@ export default function LatestReviews({ adId, adSlug }: LatestReviewsProps) {
     const fetchReviews = async () => {
       try {
         const response = await axios.get(`${API_URL}/ads/${adId}/reviews/latest`);
-        setReviews(response.data);
+        setReviews(response.data?.data || response.data || []);
       } catch (error) {
         console.error('Error fetching latest reviews:', error);
       } finally {
@@ -43,14 +44,14 @@ export default function LatestReviews({ adId, adSlug }: LatestReviewsProps) {
     };
 
     fetchReviews();
-  }, [adId]);
+  }, [adId, refreshKey]);
 
   const handleReport = () => {
     // Refresh reviews after reporting
     const fetchReviews = async () => {
       try {
         const response = await axios.get(`${API_URL}/ads/${adId}/reviews/latest`);
-        setReviews(response.data);
+        setReviews(response.data?.data || response.data || []);
       } catch (error) {
         console.error('Error fetching latest reviews:', error);
       }

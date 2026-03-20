@@ -5,6 +5,17 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+function getAvatarUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  let avatarUrl = url;
+  if (avatarUrl.startsWith('/storage/')) {
+    avatarUrl = `http://localhost:8000${avatarUrl}`;
+  }
+  return avatarUrl;
+}
+
 // Icons as SVG components
 const DashboardIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -140,7 +151,7 @@ export default function DashboardLayout({
   }, []);
   
   // Get auth functions from store
-  const { user: authUser, logout, isAuthenticated } = useAuthStore();
+  const { user: authUser, logout, isAuthenticated, token } = useAuthStore();
 
   // Use auth user or fallback to mock data
   const user = authUser || {
@@ -149,9 +160,35 @@ export default function DashboardLayout({
   };
 
   // Handle logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.log('Backend logout failed, proceeding with local logout');
+    }
+    
+    // Clear local storage
+    localStorage.removeItem('auth-storage');
+    sessionStorage.clear();
+    
+    // Clear cookies
+    document.cookie.split(';').forEach((cookie) => {
+      const name = cookie.trim().split('=')[0];
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+    });
+    
+    // Clear store state
     logout();
-    router.push('/');
+    
+    // Full page reload
+    window.location.href = '/';
   };
 
   return (
@@ -254,7 +291,7 @@ export default function DashboardLayout({
                 >
                   {(user as any).avatar ? (
                     <img 
-                      src={(user as any).avatar_url || (user as any).avatar} 
+                      src={getAvatarUrl((user as any).avatar_url || (user as any).avatar)} 
                       alt={user.name} 
                       className="w-8 h-8 rounded-full object-cover"
                     />

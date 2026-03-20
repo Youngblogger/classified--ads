@@ -1,23 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { adminApi } from '@/lib/api';
-import { Type, Image, Save, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Type, Image, Save, RefreshCw, Eye, EyeOff, Upload, Trash2 } from 'lucide-react';
 
 interface WatermarkSettings {
   enabled: boolean;
   type: 'text' | 'logo';
   text: string;
-  logo_path: string | null;
+  logo_url: string | null;
+  text_color: string;
+  shadow_color: string;
+  shadow_opacity: number;
   position: 'bottom_right' | 'bottom_left' | 'top_right' | 'top_left' | 'center';
   opacity: number;
   font_size: number;
-  font_family: string;
+  font_family: string | null;
+  font_path: string | null;
   margin: number;
+  rotation: number;
   show_ad_id: boolean;
   apply_to_original: boolean;
   apply_to_medium: boolean;
   apply_to_thumbnail: boolean;
+  regenerate_all?: boolean;
 }
 
 const positionOptions = [
@@ -57,12 +63,17 @@ export default function WatermarkSettingsPage() {
     enabled: true,
     type: 'text',
     text: 'iList',
-    logo_path: null,
+    logo_url: null,
+    text_color: '#FFFFFF',
+    shadow_color: '#000000',
+    shadow_opacity: 50,
     position: 'bottom_right',
     opacity: 80,
     font_size: 36,
     font_family: 'arial',
+    font_path: null,
     margin: 20,
+    rotation: -45,
     show_ad_id: true,
     apply_to_original: true,
     apply_to_medium: true,
@@ -70,7 +81,10 @@ export default function WatermarkSettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [regenerateAll, setRegenerateAll] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -79,7 +93,7 @@ export default function WatermarkSettingsPage() {
   const fetchSettings = async () => {
     try {
       const response = await adminApi.getWatermarkSettings();
-      if (response.data && response.data.id) {
+      if (response.data) {
         setSettings(response.data);
       }
     } catch (error) {
@@ -93,12 +107,35 @@ export default function WatermarkSettingsPage() {
     setSaving(true);
     setMessage(null);
     try {
-      await adminApi.updateWatermarkSettings(settings);
+      const data = { ...settings };
+      if (regenerateAll) {
+        data.regenerate_all = true;
+      }
+      await adminApi.updateWatermarkSettings(data);
       setMessage({ type: 'success', text: 'Watermark settings saved successfully!' });
+      setRegenerateAll(false);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to save settings. Please try again.' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      const response = await adminApi.uploadWatermarkLogo(file);
+      if (response.data.logo_url) {
+        setSettings(prev => ({ ...prev, logo_url: response.data.logo_url }));
+        setMessage({ type: 'success', text: 'Logo uploaded successfully!' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to upload logo.' });
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -116,7 +153,6 @@ export default function WatermarkSettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary-100 rounded-lg">
@@ -135,9 +171,7 @@ export default function WatermarkSettingsPage() {
         </div>
       )}
 
-      {/* Main Settings */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Enable Watermark */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Watermark Control</h2>
           <label className="flex items-center justify-between cursor-pointer">
@@ -167,7 +201,6 @@ export default function WatermarkSettingsPage() {
           </p>
         </div>
 
-        {/* Watermark Type */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Watermark Type</h2>
           <div className="flex gap-4">
@@ -206,24 +239,120 @@ export default function WatermarkSettingsPage() {
           </div>
         </div>
 
-        {/* Text Watermark */}
         {settings.type === 'text' && (
+          <>
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Watermark Text</h2>
+              <input
+                type="text"
+                value={settings.text}
+                onChange={(e) => handleChange('text', e.target.value)}
+                placeholder="Enter watermark text"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                This text will appear on uploaded images
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Text Color</h2>
+              <div className="flex items-center gap-4">
+                <input
+                  type="color"
+                  value={settings.text_color}
+                  onChange={(e) => handleChange('text_color', e.target.value)}
+                  className="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={settings.text_color}
+                  onChange={(e) => handleChange('text_color', e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Shadow Color</h2>
+              <div className="flex items-center gap-4">
+                <input
+                  type="color"
+                  value={settings.shadow_color}
+                  onChange={(e) => handleChange('shadow_color', e.target.value)}
+                  className="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={settings.shadow_color}
+                  onChange={(e) => handleChange('shadow_color', e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Shadow Opacity: {settings.shadow_opacity}%</h2>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={settings.shadow_opacity}
+                onChange={(e) => handleChange('shadow_opacity', parseInt(e.target.value))}
+                className="w-full"
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                Controls the visibility of the shadow effect
+              </p>
+            </div>
+          </>
+        )}
+
+        {settings.type === 'logo' && (
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Watermark Text</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Watermark Logo</h2>
+            {settings.logo_url ? (
+              <div className="relative">
+                <img
+                  src={settings.logo_url}
+                  alt="Watermark logo"
+                  className="max-h-32 rounded-lg border border-gray-200"
+                />
+                <button
+                  onClick={() => {
+                    setSettings(prev => ({ ...prev, logo_url: null }));
+                  }}
+                  className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors"
+              >
+                <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-gray-600">Click to upload logo</p>
+                <p className="text-sm text-gray-400 mt-1">PNG, GIF, or WebP (max 5MB)</p>
+              </div>
+            )}
             <input
-              type="text"
-              value={settings.text}
-              onChange={(e) => handleChange('text', e.target.value)}
-              placeholder="Enter watermark text"
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/gif,image/webp"
+              onChange={handleLogoUpload}
+              className="hidden"
             />
-            <p className="text-sm text-gray-500 mt-2">
-              This text will appear on uploaded images
-            </p>
+            {uploadingLogo && (
+              <div className="mt-4 flex items-center gap-2 text-primary-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-600 border-t-transparent"></div>
+                <span>Uploading...</span>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Position */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Watermark Position</h2>
           <select
@@ -239,7 +368,6 @@ export default function WatermarkSettingsPage() {
           </select>
         </div>
 
-        {/* Opacity */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Opacity: {settings.opacity}%</h2>
           <input
@@ -256,53 +384,74 @@ export default function WatermarkSettingsPage() {
           </div>
         </div>
 
-        {/* Font Size */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Font Size: {settings.font_size}px</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Rotation: {settings.rotation}°</h2>
           <input
             type="range"
-            min="8"
-            max="72"
-            value={settings.font_size}
-            onChange={(e) => handleChange('font_size', parseInt(e.target.value))}
+            min="-180"
+            max="180"
+            value={settings.rotation}
+            onChange={(e) => handleChange('rotation', parseInt(e.target.value))}
             className="w-full"
           />
           <div className="flex justify-between text-sm text-gray-500 mt-2">
-            <span>Small</span>
-            <span>Large</span>
+            <span>-180°</span>
+            <span>0°</span>
+            <span>180°</span>
           </div>
-        </div>
-
-        {/* Font Family */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Font Family</h2>
-          <select
-            value={settings.font_family}
-            onChange={(e) => handleChange('font_family', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            style={{ fontFamily: fontFamilyOptions.find(f => f.value === settings.font_family)?.fontFamily }}
-          >
-            {fontFamilyOptions.map((option) => (
-              <option key={option.value} value={option.value} style={{ fontFamily: option.fontFamily }}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Preview:</p>
-            <p 
-              className="text-lg text-gray-900 truncate"
-              style={{ fontFamily: fontFamilyOptions.find(f => f.value === settings.font_family)?.fontFamily }}
-            >
-              {settings.text || 'iList.ng'}
-            </p>
-          </div>
-          <p className="text-sm text-gray-500 mt-2">
-            Select the font style for watermark text
+          <p className="text-sm text-gray-400 mt-2">
+            Default diagonal watermark is -45°
           </p>
         </div>
 
-        {/* Margin */}
+        {settings.type === 'text' && (
+          <>
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Font Size: {settings.font_size}px</h2>
+              <input
+                type="range"
+                min="8"
+                max="72"
+                value={settings.font_size}
+                onChange={(e) => handleChange('font_size', parseInt(e.target.value))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-sm text-gray-500 mt-2">
+                <span>Small</span>
+                <span>Large</span>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Font Family</h2>
+              <select
+                value={settings.font_family || 'arial'}
+                onChange={(e) => handleChange('font_family', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                style={{ fontFamily: fontFamilyOptions.find(f => f.value === settings.font_family)?.fontFamily }}
+              >
+                {fontFamilyOptions.map((option) => (
+                  <option key={option.value} value={option.value} style={{ fontFamily: option.fontFamily }}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Preview:</p>
+                <p 
+                  className="text-lg text-gray-900 truncate"
+                  style={{ fontFamily: fontFamilyOptions.find(f => f.value === settings.font_family)?.fontFamily }}
+                >
+                  {settings.text || 'iList.ng'}
+                </p>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Select the font style for watermark text
+              </p>
+            </div>
+          </>
+        )}
+
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Margin: {settings.margin}px</h2>
           <input
@@ -318,7 +467,6 @@ export default function WatermarkSettingsPage() {
           </p>
         </div>
 
-        {/* Show Ad ID */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Security Options</h2>
           <label className="flex items-center gap-3 cursor-pointer">
@@ -336,7 +484,6 @@ export default function WatermarkSettingsPage() {
         </div>
       </div>
 
-      {/* Image Sizes */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Apply Watermark To</h2>
         <div className="space-y-3">
@@ -370,7 +517,22 @@ export default function WatermarkSettingsPage() {
         </div>
       </div>
 
-      {/* Save Button */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Batch Operations</h2>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={regenerateAll}
+            onChange={(e) => setRegenerateAll(e.target.checked)}
+            className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+          <div>
+            <span className="font-medium text-gray-900">Regenerate all existing images</span>
+            <p className="text-sm text-gray-500">Re-apply watermark settings to all existing ad images</p>
+          </div>
+        </label>
+      </div>
+
       <div className="flex justify-end gap-4">
         <button
           onClick={fetchSettings}

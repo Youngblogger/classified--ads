@@ -10,29 +10,53 @@ export default function GoogleCallbackPage() {
   const searchParams = useSearchParams();
   const { login } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const userData = searchParams.get('user');
-    const errorParam = searchParams.get('error');
-    const message = searchParams.get('message');
+    const exchangeCodeForToken = async () => {
+      const code = searchParams.get('code');
+      const errorParam = searchParams.get('error');
+      const errorDescription = searchParams.get('error_description');
 
-    if (errorParam || message) {
-      setError(message || errorParam || 'Authentication failed');
-      return;
-    }
-
-    if (token && userData) {
-      try {
-        const user = JSON.parse(atob(userData));
-        login(user, token);
-        router.push('/dashboard');
-      } catch (e) {
-        setError('Failed to process authentication');
+      if (errorParam || errorDescription) {
+        setError(errorDescription || errorParam || 'Authentication failed');
+        setLoading(false);
+        return;
       }
-    } else {
-      setError('No authentication data received');
-    }
+
+      if (!code) {
+        setError('No authorization code received');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        const response = await fetch(`${apiUrl}/auth/google`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ code }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to authenticate with Google');
+        }
+
+        login(data.user, data.token);
+        router.push('/dashboard');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+        setError(errorMessage);
+        setLoading(false);
+      }
+    };
+
+    exchangeCodeForToken();
   }, [searchParams, login, router]);
 
   if (error) {

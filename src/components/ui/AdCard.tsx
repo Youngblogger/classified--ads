@@ -2,9 +2,23 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, MapPin, Eye, CheckCircle } from 'lucide-react';
+import { MapPin, Eye } from 'lucide-react';
 import { Ad } from '@/types';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+function getImageUrl(img: any): string {
+  let url = img.url || img.display_url || img.original_url || img.thumbnail_url || img.thumbnail || '';
+  if (url.startsWith('/storage/')) {
+    url = `/storage/${url.replace('/storage/', '')}`;
+  } else if (url.startsWith(API_URL + '/storage/')) {
+    url = `/storage/${url.replace(API_URL + '/storage/', '')}`;
+  } else if (url.startsWith('http://localhost:8000/storage/')) {
+    url = `/storage/${url.replace('http://localhost:8000/storage/', '')}`;
+  }
+  return url;
+}
 
 interface AdCardProps {
   ad: Ad;
@@ -12,23 +26,9 @@ interface AdCardProps {
   priority?: boolean;
 }
 
-function Watermark({ adId }: { adId: number }) {
-  return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary-600/90 text-white text-xs px-3 py-1.5 rounded-md flex items-center gap-1 backdrop-blur-sm">
-      <CheckCircle className="w-3 h-3" />
-      <span>Verified</span>
-    </div>
-  );
-}
-
-function isApprovedAd(ad: Ad): boolean {
-  // Show watermark for active/approved ads that are also verified
-  return (ad.status === 'active' || ad.status === 'approved') && ad.is_verified === true;
-}
-
 export default function AdCard({ ad, variant = 'default', priority = false }: AdCardProps) {
+  
   const primaryImage = ad.images.find(img => img.is_primary) || ad.images[0];
-  const showWatermark = isApprovedAd(ad);
 
   if (variant === 'horizontal') {
     return (
@@ -36,7 +36,7 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
         <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0">
           {primaryImage ? (
             <Image
-              src={primaryImage.url}
+              src={getImageUrl(primaryImage)}
               alt={ad.title}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
@@ -51,7 +51,6 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
           {ad.condition === 'new' && (
             <span className="absolute top-2 left-2 badge-success">New</span>
           )}
-          {showWatermark && <Watermark adId={ad.id} />}
         </div>
         <div className="flex-1 p-4">
           <div className="flex justify-between items-start">
@@ -61,12 +60,6 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
                 {formatPrice(ad.price, ad.currency)}
               </p>
             </div>
-            <button 
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              onClick={(e) => e.preventDefault()}
-            >
-              <Heart className={`w-5 h-5 ${ad.is_favorited ? 'fill-error text-error' : 'text-gray-400'}`} />
-            </button>
           </div>
           <div className="flex items-center gap-2 mt-2 text-gray-500 text-sm">
             <MapPin className="w-4 h-4" />
@@ -90,7 +83,7 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
         <div className="relative aspect-square">
           {primaryImage ? (
             <Image
-              src={primaryImage.url}
+              src={getImageUrl(primaryImage)}
               alt={ad.title}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
@@ -102,16 +95,9 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
               <span className="text-gray-400 text-sm">No Image</span>
             </div>
           )}
-          <button 
-            className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full hover:bg-white transition-colors"
-            onClick={(e) => e.preventDefault()}
-          >
-            <Heart className={`w-4 h-4 ${ad.is_favorited ? 'fill-error text-error' : 'text-gray-400'}`} />
-          </button>
           {ad.condition === 'new' && (
             <span className="absolute bottom-2 left-2 badge-success text-xs">New</span>
           )}
-          {showWatermark && <Watermark adId={ad.id} />}
         </div>
         <div className="p-3">
           <h3 className="font-medium text-dark text-sm line-clamp-1">{ad.title}</h3>
@@ -132,7 +118,7 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
       <div className="relative aspect-[4/3] overflow-hidden">
         {primaryImage ? (
           <Image
-            src={primaryImage.url}
+            src={getImageUrl(primaryImage)}
             alt={ad.title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
@@ -144,16 +130,9 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
             <span className="text-gray-400">No Image</span>
           </div>
         )}
-        <button 
-          className="absolute top-3 right-3 p-2 bg-white/90 rounded-full hover:bg-white transition-colors shadow-sm"
-          onClick={(e) => e.preventDefault()}
-        >
-          <Heart className={`w-4 h-4 ${ad.is_favorited ? 'fill-error text-error' : 'text-gray-400'}`} />
-        </button>
         {ad.condition === 'new' && (
           <span className="absolute top-3 left-3 badge-success">New</span>
         )}
-        {showWatermark && <Watermark adId={ad.id} />}
       </div>
       <div className="p-4">
         <h3 className="font-semibold text-dark line-clamp-2 group-hover:text-primary-600 transition-colors">

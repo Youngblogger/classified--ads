@@ -57,6 +57,7 @@ const navigation: NavItem[] = [
   { name: 'Broadcasts', href: '/admin/broadcasts', icon: Send },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
   { name: 'Watermark Settings', href: '/admin/watermark', icon: Type },
+  { name: 'Custom Fonts', href: '/admin/fonts', icon: FileText },
 ];
 
 interface AdminLayoutProps {
@@ -274,47 +275,37 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   const handleLogout = async () => {
-    console.log('Logout clicked, current token:', token);
-    
-    // Get token directly from cookie/localStorage to ensure we have it
-    const tokenFromCookie = getCookie('token');
-    console.log('Token from cookie:', tokenFromCookie ? 'present' : 'null');
-    
     try {
-      // Call logout API with explicit token
-      console.log('Calling logout API...');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/auth/logout`, {
+      const tokenFromCookie = getCookie('token');
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${tokenFromCookie || token}`,
           'Accept': 'application/json',
         },
       });
-      console.log('Logout API response:', response.status);
     } catch (e) {
       console.log('Logout API error:', e);
     }
-    
-    // Clear all storage
-    console.log('Clearing all auth data...');
     
     // Clear cookies
     deleteCookie('token');
     
     // Clear localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth-storage');
-      sessionStorage.clear();
-      // Also try to clear any remaining cookie
-      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    }
+    localStorage.removeItem('auth-storage');
+    sessionStorage.clear();
+    
+    // Clear all cookies
+    document.cookie.split(';').forEach((cookie) => {
+      const name = cookie.trim().split('=')[0];
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+    });
     
     // Call logout from store
     logout();
     
-    // Force reload
-    console.log('Redirecting...');
-    window.location.reload();
+    // Full page redirect
+    window.location.href = '/';
   };
 
   const admin = verifiedUser;

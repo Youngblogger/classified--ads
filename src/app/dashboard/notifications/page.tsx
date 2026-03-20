@@ -122,7 +122,7 @@ function NotificationsContent() {
 
   const markAsRead = async (id: number) => {
     try {
-      await api.put(`/notifications/${id}/read`);
+      await api.post(`/notifications/${id}/read`);
       setNotifications(prev => 
         prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)
       );
@@ -133,7 +133,7 @@ function NotificationsContent() {
 
   const markAllAsRead = async () => {
     try {
-      await api.put('/notifications/mark-all-read');
+      await api.post('/notifications/mark-all-read');
       setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
       toast.success('All notifications marked as read');
     } catch (error) {

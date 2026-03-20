@@ -146,6 +146,7 @@ export const locationsApi = {
 
 // Ads API
 export const adsApi = {
+  get: (id: number) => api.get(`/ads/${id}`),
   getAll: (params?: Record<string, any>) => api.get('/ads', { params }),
   getById: (id: number) => api.get(`/ads/${id}`),
   getBySlug: (slug: string) => api.get(`/ads/${slug}`),
@@ -171,15 +172,45 @@ export const favoritesApi = {
 export const messagesApi = {
   getConversations: () => api.get('/messages/conversations'),
   getMessages: (conversationId: number) => api.get(`/messages/${conversationId}`),
-  sendMessage: (conversationId: number, content: string, image?: File) => {
+  sendMessage: (conversationId: number, content: string, attachment?: File | Blob, messageType?: string) => {
     const formData = new FormData();
     formData.append('content', content);
-    if (image) formData.append('image', image);
+    if (attachment) {
+      formData.append('attachment', attachment);
+      formData.append('message_type', messageType || 'file');
+    }
     return api.post(`/messages/${conversationId}`, formData);
+  },
+  sendVoiceMessage: (conversationId: number, audioBlob: Blob, duration: number, onProgress?: (progress: number) => void) => {
+    const formData = new FormData();
+    formData.append('content', 'Voice message');
+    formData.append('attachment', audioBlob, `voice_${Date.now()}.webm`);
+    formData.append('message_type', 'voice');
+    formData.append('duration', duration.toString());
+    return api.post(`/messages/${conversationId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(progress);
+        }
+      },
+    });
+  },
+  sendMessageNew: (receiverId: number, adId: number | null, content: string, messageType?: string, attachment?: File | Blob, duration?: number) => {
+    const formData = new FormData();
+    formData.append('receiver_id', receiverId.toString());
+    if (adId) formData.append('ad_id', adId.toString());
+    formData.append('message', content);
+    if (messageType) formData.append('message_type', messageType);
+    if (attachment) formData.append('attachment', attachment);
+    if (duration) formData.append('duration', duration.toString());
+    return api.post('/messages', formData);
   },
   startConversation: (adId: number, content: string) => 
     api.post('/messages/start', { ad_id: adId, content }),
   markAsRead: (conversationId: number) => api.post(`/messages/${conversationId}/read`),
+  deleteMessage: (messageId: number) => api.delete(`/messages/message/${messageId}`),
 };
 
 // Reviews API
@@ -188,6 +219,9 @@ export const reviewsApi = {
   create: (data: { user_id: number; rating: number; comment: string; ad_id?: number }) =>
     api.post('/reviews', data),
   getMyReviews: () => api.get('/reviews/my-reviews'),
+  getAdReviews: (adId: number) => api.get(`/ads/${adId}/reviews`),
+  getAdReviewSummary: (adId: number) => api.get(`/ads/${adId}/reviews/summary`),
+  getAdLatestReviews: (adId: number) => api.get(`/ads/${adId}/reviews/latest`),
 };
 
 // Reports API
@@ -318,6 +352,32 @@ export const adminApi = {
   // Watermark
   getWatermarkSettings: () => api.get('/admin/watermark'),
   updateWatermarkSettings: (data: any) => api.put('/admin/watermark', data),
+  uploadWatermarkLogo: (file: File) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    return api.upload('/admin/watermark/logo', formData);
+  },
+
+  // Fonts
+  getFonts: () => api.get('/admin/fonts'),
+  uploadFont: (file: File, name: string) => {
+    const formData = new FormData();
+    formData.append('font', file);
+    formData.append('name', name);
+    return api.post('/admin/fonts', formData);
+  },
+  deleteFont: (id: number) => api.delete(`/admin/fonts/${id}`),
+  setDefaultFont: (id: number) => api.post(`/admin/fonts/${id}/default`),
+
+  // Ad Images
+  addAdImages: (adId: number, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('images[]', file));
+    return api.upload(`/ads/${adId}/images`, formData);
+  },
+  updateAdImage: (adId: number, imageId: number, data: { is_primary?: boolean; sort_order?: number }) =>
+    api.put(`/ads/${adId}/images/${imageId}`, data),
+  deleteAdImage: (adId: number, imageId: number) => api.delete(`/ads/${adId}/images/${imageId}`),
 
   // Analytics
   getAnalytics: (params?: Record<string, any>) => api.get('/admin/analytics', { params }),

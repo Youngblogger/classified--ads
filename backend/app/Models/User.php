@@ -7,11 +7,14 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
+
+    protected $appends = ['avatar_url'];
 
     /**
      * The attributes that are mass assignable.
@@ -22,6 +25,17 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'status',
+        'avatar',
+        'google_avatar',
+        'facebook_avatar',
+        'phone',
+        'location',
+        'verified',
+        'banned_at',
+        'suspended_at',
+        'ban_reason',
     ];
 
     /**
@@ -44,6 +58,58 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'verified' => 'boolean',
         ];
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(\App\Models\Notification::class);
+    }
+
+    public function favorites()
+    {
+        return $this->hasMany(\App\Models\Favorite::class);
+    }
+
+    public function ads()
+    {
+        return $this->hasMany(\App\Models\Ad::class);
+    }
+
+    public function givenReviews()
+    {
+        return $this->hasMany(\App\Models\Review::class, 'user_id');
+    }
+
+    public function receivedReviews()
+    {
+        return $this->hasMany(\App\Models\Review::class, 'target_user_id');
+    }
+
+    public function conversations()
+    {
+        return $this->hasMany(\App\Models\Conversation::class, 'sender_id')
+            ->orWhere('receiver_id', $this->id);
+    }
+
+    public function wallet()
+    {
+        return $this->hasOne(\App\Models\Wallet::class);
+    }
+
+    public function emailVerification()
+    {
+        return $this->hasOne(\App\Models\EmailVerification::class);
+    }
+
+    public function isEmailVerified(): bool
+    {
+        return $this->emailVerification && $this->emailVerification->is_verified;
+    }
+
+    public function getAvatarUrlAttribute()
+    {
+        return $this->avatar ?: $this->google_avatar ?: $this->facebook_avatar;
     }
 }

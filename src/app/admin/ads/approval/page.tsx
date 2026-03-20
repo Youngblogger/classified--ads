@@ -99,9 +99,17 @@ export default function AdsApprovalPage() {
 
   const getImageUrl = (url: string | undefined): string => {
     if (!url) return '/placeholder.jpg';
-    if (url.startsWith('http')) return url;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
-    return `${baseUrl}/${url.replace(/^\/+/, '')}`;
+    
+    // If already a full URL, return it
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // Remove leading slash if present
+    const cleanUrl = url.replace(/^\/+/, '');
+    
+    // Use the storage rewrite for Laravel files
+    return `/storage/${cleanUrl}`;
   };
 
   const fetchPendingAds = async () => {
@@ -121,7 +129,7 @@ export default function AdsApprovalPage() {
     try {
       setActionLoading(adId);
       await adminApi.approveAd(adId);
-      toast.success('Ad approved successfully');
+      toast.success('Ad approved successfully! The ad is now live and visible to users.');
       fetchPendingAds();
     } catch (error) {
       console.error('Failed to approve ad:', error);
@@ -135,7 +143,7 @@ export default function AdsApprovalPage() {
     try {
       setActionLoading(adId);
       await adminApi.rejectAd(adId);
-      toast.success('Ad rejected');
+      toast.success('Ad rejected. The seller has been notified.');
       fetchPendingAds();
     } catch (error) {
       console.error('Failed to reject ad:', error);
@@ -364,9 +372,11 @@ export default function AdsApprovalPage() {
                         Posted by {ad.user.name} • {formatDate(ad.created_at)}
                       </p>
                     </div>
-                    <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
-                      Pending
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+                        Pending Review
+                      </span>
+                    </div>
                   </div>
 
                   <p className="text-gray-600 mt-3 line-clamp-2">{ad.description}</p>

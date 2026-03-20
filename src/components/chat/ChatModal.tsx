@@ -1,29 +1,50 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Send, Paperclip, Image, MoreVertical, Phone, Video, Flag, UserPlus, UserMinus, Check, CheckCheck } from 'lucide-react';
+import { X, Mic, Square, Play, Pause, Trash2, ImageIcon } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { useSocket } from '@/hooks/useSocket';
-import { getAuthToken } from '@/lib/cookies';
-import axios from 'axios';
+import { messagesApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+
+function getImageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith('/storage/')) {
+    return `/storage/${url.replace('/storage/', '')}`;
+  } else if (url.startsWith(API_URL.replace('/api', '') + '/storage/')) {
+    return `/storage/${url.replace(API_URL.replace('/api', '') + '/storage/', '')}`;
+  } else if (url.startsWith('http://localhost:8000/storage/')) {
+    return `/storage/${url.replace('http://localhost:8000/storage/', '')}`;
+  }
+  return url;
+}
+
+const SendIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+  </svg>
+);
 
 interface Message {
   id: number;
   conversation_id: number;
   sender_id: number;
-  message: string;
-  message_type: string;
-  attachment_url: string | null;
-  is_read: boolean;
-  read_at: string | null;
+  content: string;
+  message_type?: string;
+  attachment_url?: string | null;
+  is_read?: boolean;
+  read_at?: string | null;
   created_at: string;
+  duration?: number;
+  status?: 'sending' | 'sent' | 'delivered' | 'seen';
   sender?: {
     id: number;
     name: string;
-    avatar: string | null;
+    avatar?: string | null;
+    google_avatar?: string | null;
+    avatar_url?: string | null;
   };
 }
 
@@ -50,67 +71,97 @@ export default function ChatModal({
 }: ChatModalProps) {
   const { user, isAuthenticated } = useAuthStore();
   const [conversationId, setConversationId] = useState<number | null>(initialConversationId || null);
+  const [conversationLoading, setConversationLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const [typingUsers, setTypingUsers] = useState<number[]>([]);
-  const [showActions, setShowActions] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const [playingAudioId, setPlayingAudioId] = useState<number | null>(null);
+  const [playbackProgress, setPlaybackProgress] = useState<{ [key: number]: number }>({});
+  const [playbackDuration, setPlaybackDuration] = useState<{ [key: number]: number }>({});
+  const [playbackSpeed, setPlaybackSpeed] = useState<{ [key: number]: number }>({});
+  const audioElementsRef = useRef<{ [key: number]: HTMLAudioElement }>({});
+
   const currentUserId = user?.id;
+  const MAX_RECORDING_DURATION = 60;
 
   const handleNewMessage = useCallback((message: Message) => {
-    if (message.conversation_id === conversationId) {
+    if (!message || !message.conversation_id) return;
+    if (conversationId && message.conversation_id === conversationId) {
       setMessages((prev) => [...prev, message]);
+      setIsTyping(false);
     }
   }, [conversationId]);
 
-  const handleStopTyping = useCallback((data: { conversationId: string; userId: number }) => {
-    if (parseInt(data.conversationId) === conversationId) {
-      setTypingUsers((prev) => prev.filter((id) => id !== data.userId));
+  const handleTyping = useCallback((data: { conversationId: string; userId: number }) => {
+    if (data.conversationId === conversationId?.toString() && data.userId !== currentUserId) {
+      setIsTyping(true);
+      if (typingTimeout) clearTimeout(typingTimeout);
+      const timeout = setTimeout(() => setIsTyping(false), 3000);
+      setTypingTimeout(timeout);
     }
-  }, [conversationId]);
+  }, [conversationId, currentUserId, typingTimeout]);
 
-  const handleTypingEvent = useCallback((data: { conversationId: string; userId: number }) => {
-    if (parseInt(data.conversationId) === conversationId && data.userId !== currentUserId) {
-      setTypingUsers((prev) => [...prev, data.userId]);
-    }
-  }, [conversationId, currentUserId]);
-
-  const { joinConversation, leaveConversation, sendMessage, sendTyping, stopTyping, isUserOnline } = useSocket({
+  const { joinConversation, leaveConversation, sendMessage, sendTyping } = useSocket({
     userId: currentUserId,
     onNewMessage: handleNewMessage,
-    onUserTyping: handleTypingEvent,
-    onUserOffline: handleStopTyping,
+    onUserTyping: handleTyping,
   });
 
-  // Create or get conversation
   useEffect(() => {
-    if (!isOpen || !isAuthenticated || !adId || !sellerId) return;
+    if (!isOpen || !isAuthenticated || !user || !adId || !sellerId) return;
+    
+    // Prevent messaging yourself
+    if (sellerId === user.id) {
+      console.warn('Cannot message yourself');
+      return;
+    }
 
     const initConversation = async () => {
+      // Don't reinitialize if we already have one
+      if (conversationId) return;
+      
+      setConversationLoading(true);
       try {
-        const token = getAuthToken();
-        const response = await axios.get(
-          `${API_URL}/messages/conversation/get-or-create?receiver_id=${sellerId}&ad_id=${adId}`,
-          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        console.log('Initializing conversation with seller:', sellerId, 'ad:', adId);
+        
+        // Use POST /messages endpoint which creates conversation and sends initial message
+        const response = await messagesApi.sendMessageNew(
+          sellerId,
+          adId,
+          'Hello, I am interested in your ad.'
         );
-        setConversationId(response.data.id);
-      } catch (error) {
+        console.log('Conversation initialized:', response.data);
+        setConversationId(response.data.conversation_id);
+      } catch (error: any) {
         console.error('Error creating conversation:', error);
+        console.error('Error response data:', error.response?.data);
+        console.error('Error status:', error.response?.status);
+        toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to start conversation');
+      } finally {
+        setConversationLoading(false);
       }
     };
 
-    if (!conversationId) {
-      initConversation();
-    }
-  }, [isOpen, isAuthenticated, adId, sellerId, conversationId]);
+    initConversation();
+  }, [isOpen, isAuthenticated, user, adId, sellerId, conversationId]);
 
-  // Join conversation room and fetch messages
   useEffect(() => {
     if (!conversationId || !isOpen) return;
 
@@ -122,22 +173,16 @@ export default function ChatModal({
     };
   }, [conversationId, isOpen, joinConversation, leaveConversation]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const fetchMessages = async () => {
     if (!conversationId) return;
-    
     setIsLoading(true);
     try {
-      const token = getAuthToken();
-      const response = await axios.get(
-        `${API_URL}/messages/${conversationId}`,
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-      );
-      setMessages(response.data);
+      const response = await messagesApi.getMessages(conversationId);
+      setMessages(response.data.data || response.data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -145,309 +190,577 @@ export default function ChatModal({
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !conversationId || isBlocked) return;
+  const startRecording = async () => {
+    try {
+      if (navigator.vibrate) navigator.vibrate(50);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        stream.getTracks().forEach(track => track.stop());
+        setRecordedBlob(blob);
+        setRecordedAudioUrl(URL.createObjectURL(blob));
+        setIsRecording(false);
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      };
+
+      mediaRecorder.start(100);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => {
+          if (prev >= MAX_RECORDING_DURATION) {
+            stopRecording();
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast.error('Please allow microphone access');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      if (navigator.vibrate) navigator.vibrate(50);
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const cancelRecording = () => {
+    if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
+    setRecordedBlob(null);
+    setRecordedAudioUrl(null);
+    setRecordingDuration(0);
+    setIsPlayingPreview(false);
+  };
+
+  const playPreview = () => {
+    if (!recordedAudioUrl) return;
+    if (isPlayingPreview && previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      setIsPlayingPreview(false);
+      return;
+    }
+    previewAudioRef.current = new Audio(recordedAudioUrl);
+    previewAudioRef.current.play();
+    setIsPlayingPreview(true);
+    previewAudioRef.current.onended = () => setIsPlayingPreview(false);
+  };
+
+  const sendVoiceNote = async () => {
+    if (!recordedBlob || !recordedAudioUrl) {
+      toast.error('No recording to send');
+      return;
+    }
+
+    // Keep a reference to the audio URL for the optimistic message
+    const audioUrlToSend = recordedAudioUrl;
+
+    const tempId = Date.now();
+    const optimisticMessage: Message = {
+      id: tempId,
+      conversation_id: conversationId || -1,
+      sender_id: currentUserId!,
+      content: 'Voice message',
+      message_type: 'voice',
+      attachment_url: audioUrlToSend,
+      status: 'sending',
+      created_at: new Date().toISOString(),
+      duration: recordingDuration,
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
+    
+    // Keep duration before clearing state
+    const durationToSend = recordingDuration;
+    
+    // Clear the recording state AFTER adding the optimistic message
+    setRecordedBlob(null);
+    setRecordedAudioUrl(null);
+    setRecordingDuration(0);
+    setIsPlayingPreview(false);
+    // Note: Don't revoke the URL yet - the optimistic message needs it
 
     try {
-      const token = getAuthToken();
-      const response = await axios.post(
-        `${API_URL}/messages`,
-        {
-          receiver_id: sellerId,
-          ad_id: adId,
-          message: newMessage.trim(),
-          message_type: 'text',
-        },
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      const response = await messagesApi.sendMessageNew(
+        sellerId,
+        adId,
+        'Voice message',
+        'voice',
+        recordedBlob,
+        durationToSend
       );
 
-      // Send via socket for real-time
+      // Now we can safely revoke the blob URL since the message is sent
+      URL.revokeObjectURL(audioUrlToSend);
+
+      // Update conversation ID if new
+      if (!conversationId && response.data.conversation_id) {
+        setConversationId(response.data.conversation_id);
+      }
+
+      // Debug log
+      console.log('Voice message response:', response.data);
+
+      setMessages(prev => prev.map(msg => msg.id === tempId ? { ...response.data, status: 'sent' } : msg));
+
+      const convIdForSocket = response.data.conversation_id?.toString() || conversationId?.toString() || '-1';
       sendMessage({
-        conversationId: conversationId.toString(),
+        conversationId: convIdForSocket,
         message: response.data,
         receiverId: sellerId,
         senderId: currentUserId!,
       });
-
-      setNewMessage('');
-      stopTyping({ conversationId: conversationId.toString(), userId: currentUserId! });
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (error: any) {
+      console.error('Error sending voice note:', error);
+      toast.error(error.response?.data?.message || 'Failed to send voice note');
+      // Revoke URL on error too
+      URL.revokeObjectURL(audioUrlToSend);
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !conversationId) return;
+  const playAudio = (msgId: number, url: string) => {
+    if (playingAudioId !== null && audioElementsRef.current[playingAudioId]) {
+      audioElementsRef.current[playingAudioId].pause();
+    }
 
-    const formData = new FormData();
-    formData.append('attachment', file);
-    formData.append('receiver_id', sellerId.toString());
-    formData.append('ad_id', adId.toString());
-    formData.append('message', 'Sent an attachment');
+    if (playingAudioId === msgId) {
+      setPlayingAudioId(null);
+      setPlaybackProgress(prev => ({ ...prev, [msgId]: 0 }));
+      return;
+    }
+
+    const audio = new Audio(url);
+    audioElementsRef.current[msgId] = audio;
+    setPlayingAudioId(msgId);
+
+    const speed = playbackSpeed[msgId] || 1;
+    audio.playbackRate = speed;
+
+    audio.onloadedmetadata = () => setPlaybackDuration(prev => ({ ...prev, [msgId]: audio.duration || 0 }));
+    audio.ontimeupdate = () => {
+      if (!audio.duration || isNaN(audio.duration)) return;
+      const progress = (audio.currentTime / audio.duration) * 100;
+      if (isNaN(progress) || !isFinite(progress)) return;
+      setPlaybackProgress(prev => ({ ...prev, [msgId]: progress }));
+    };
+    audio.onended = () => {
+      setPlayingAudioId(null);
+      setPlaybackProgress(prev => ({ ...prev, [msgId]: 0 }));
+    };
+    audio.onerror = () => {
+      setPlayingAudioId(null);
+      setPlaybackDuration(prev => ({ ...prev, [msgId]: 0 }));
+      toast.error('Failed to play audio');
+    };
+
+    audio.play().catch(err => {
+      console.error('Playback error:', err);
+      setPlayingAudioId(null);
+    });
+  };
+
+  const stopAudio = (msgId: number) => {
+    if (audioElementsRef.current[msgId]) {
+      audioElementsRef.current[msgId].pause();
+      audioElementsRef.current[msgId].currentTime = 0;
+      setPlayingAudioId(null);
+      setPlaybackProgress(prev => ({ ...prev, [msgId]: 0 }));
+    }
+  };
+
+  const seekAudio = (msgId: number, e: React.MouseEvent<HTMLDivElement>) => {
+    const audio = audioElementsRef.current[msgId];
+    const duration = playbackDuration[msgId];
+    if (!audio || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = x / rect.width;
+    audio.currentTime = percentage * duration;
+    setPlaybackProgress(prev => ({ ...prev, [msgId]: percentage * 100 }));
+  };
+
+  const cyclePlaybackSpeed = (msgId: number) => {
+    const speeds = [1, 1.5, 2];
+    const currentSpeed = playbackSpeed[msgId] || 1;
+    const currentIndex = speeds.indexOf(currentSpeed);
+    const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+    setPlaybackSpeed(prev => ({ ...prev, [msgId]: nextSpeed }));
+    if (audioElementsRef.current[msgId]) audioElementsRef.current[msgId].playbackRate = nextSpeed;
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
+    
+    // Prevent messaging yourself
+    if (sellerId === currentUserId) {
+      toast.error('Cannot message yourself');
+      return;
+    }
+
+    const tempId = Date.now();
+    const tempConversationId = conversationId || -1; // Temporary ID for optimistic message
+    
+    const optimisticMessage: Message = {
+      id: tempId,
+      conversation_id: tempConversationId,
+      sender_id: currentUserId!,
+      content: newMessage.trim(),
+      message_type: 'text',
+      status: 'sending',
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
+    setNewMessage('');
+
+    // Stop typing indicator
+    if (typingTimeout) clearTimeout(typingTimeout);
+    setIsTyping(false);
 
     try {
-      const token = getAuthToken();
-      const response = await axios.post(`${API_URL}/messages`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Use POST /messages which creates conversation and sends message
+      const response = await messagesApi.sendMessageNew(
+        sellerId,
+        adId,
+        newMessage.trim()
+      );
 
+      console.log('Message sent:', response.data);
+      
+      // Update conversation ID if this was a new conversation
+      if (!conversationId && response.data.conversation_id) {
+        setConversationId(response.data.conversation_id);
+      }
+
+      // Update message with real data
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId ? { ...response.data, status: 'sent' } : msg
+      ));
+
+      // Send socket notification
+      const convIdForSocket = response.data.conversation_id?.toString() || conversationId?.toString() || '-1';
       sendMessage({
-        conversationId: conversationId.toString(),
+        conversationId: convIdForSocket,
         message: response.data,
         receiverId: sellerId,
         senderId: currentUserId!,
       });
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      toast.error(error.response?.data?.message || 'Failed to send message');
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const response = await messagesApi.sendMessageNew(
+        sellerId,
+        adId,
+        'Sent an image',
+        'image',
+        file
+      );
+
+      // Update conversation ID if new
+      if (!conversationId && response.data.conversation_id) {
+        setConversationId(response.data.conversation_id);
+      }
+
+      setMessages(prev => [...prev, response.data]);
     } catch (error) {
       console.error('Error uploading file:', error);
+      toast.error('Failed to upload file');
     }
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleTyping = () => {
-    if (!conversationId || !currentUserId) return;
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
     
-    if (!isTyping) {
-      setIsTyping(true);
-      sendTyping({ conversationId: conversationId.toString(), userId: currentUserId });
+    // Send typing indicator
+    if (conversationId && currentUserId) {
+      sendTyping?.({ conversationId: conversationId.toString(), userId: currentUserId });
     }
-
-    clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-      stopTyping({ conversationId: conversationId.toString(), userId: currentUserId });
-    }, 2000);
-  };
-
-  const handleBlockUser = async () => {
-    try {
-      const token = getAuthToken();
-      await axios.post(`${API_URL}/messages/block/${sellerId}`, {}, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      setIsBlocked(true);
-      setShowActions(false);
-    } catch (error) {
-      console.error('Error blocking user:', error);
-    }
-  };
-
-  const handleReport = async () => {
-    if (!conversationId) return;
-    
-    const reason = prompt('Please provide a reason for reporting this conversation:');
-    if (!reason) return;
-
-    try {
-      const token = getAuthToken();
-      await axios.post(`${API_URL}/messages/report/${conversationId}`, { reason }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      alert('Conversation reported successfully');
-      setShowActions(false);
-    } catch (error) {
-      console.error('Error reporting conversation:', error);
-    }
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
   if (!isOpen) return null;
 
-  const isSellerOnline = isUserOnline(sellerId);
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg h-[90vh] md:h-[600px] flex flex-col max-h-[600px]">
+      <div className="bg-[#efeae2] rounded-2xl w-full max-w-lg h-[90vh] md:h-[600px] flex flex-col overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              {sellerAvatar ? (
-                <img src={sellerAvatar} alt={sellerName} className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500 font-medium">{sellerName[0]}</span>
-                </div>
-              )}
-              <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${isSellerOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-dark">{sellerName}</h3>
-              <p className="text-xs text-gray-500">{isSellerOnline ? 'Online' : 'Offline'}</p>
-            </div>
+        <div className="bg-[#f0f2f5] px-4 py-3 flex items-center gap-3 border-b border-[#d1d7db]">
+          <button onClick={onClose} className="p-1 hover:bg-[#d1d7db] rounded-full transition-colors">
+            <X className="w-6 h-6 text-[#54656f]" />
+          </button>
+          <div className="w-10 h-10 rounded-full bg-[#dcf8c6] overflow-hidden flex items-center justify-center">
+            {sellerAvatar ? (
+              <img src={sellerAvatar} alt={sellerName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[#54656f] font-medium">{sellerName[0]?.toUpperCase()}</span>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowActions(!showActions)}
-              className="p-2 hover:bg-gray-100 rounded-full"
-            >
-              <MoreVertical className="w-5 h-5 text-gray-500" />
-            </button>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
+          <div className="flex-1">
+            <h3 className="font-semibold text-[#111b21]">{sellerName}</h3>
+            <p className="text-xs text-[#667781]">Ad: {adTitle}</p>
           </div>
-        </div>
-
-        {/* Actions Dropdown */}
-        {showActions && (
-          <div className="absolute right-4 top-16 bg-white rounded-lg shadow-lg border py-2 z-10">
-            <button onClick={handleBlockUser} className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 w-full">
-              <UserMinus className="w-4 h-4" />
-              <span>Block User</span>
-            </button>
-            <button onClick={handleReport} className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 w-full text-red-500">
-              <Flag className="w-4 h-4" />
-              <span>Report</span>
-            </button>
-          </div>
-        )}
-
-        {/* Ad Reference */}
-        <div className="px-4 py-2 bg-gray-50 border-b">
-          <p className="text-sm text-gray-500">Discussing:</p>
-          <p className="font-medium text-dark truncate">{adTitle}</p>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[#00a884] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-[#667781]">
               <p>No messages yet</p>
               <p className="text-sm">Start the conversation!</p>
             </div>
           ) : (
             messages.map((msg) => {
               const isMe = msg.sender_id === currentUserId;
+              const senderAvatar = getImageUrl(msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar);
+
               return (
-                <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[70%] ${isMe ? 'order-2' : ''}`}>
-                    {msg.message_type === 'image' && msg.attachment_url && (
-                      <img src={msg.attachment_url} alt=" attachment" className="rounded-lg max-w-full" />
-                    )}
-                    {msg.message_type === 'file' && msg.attachment_url && (
-                      <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-gray-100 p-3 rounded-lg">
-                        <Paperclip className="w-4 h-4" />
-                        <span className="text-sm">Attachment</span>
-                      </a>
-                    )}
-                    {msg.message && (
-                      <div className={`px-4 py-2 rounded-2xl ${
-                        isMe 
-                          ? 'bg-primary-600 text-white rounded-br-sm' 
-                          : 'bg-gray-100 text-dark rounded-bl-sm'
-                      }`}>
-                        {msg.message}
-                      </div>
-                    )}
-                    <div className={`flex items-center gap-1 mt-1 text-xs text-gray-400 ${isMe ? 'justify-end' : ''}`}>
-                      <span>{formatTime(msg.created_at)}</span>
-                      {isMe && (
-                        <span>
-                          {msg.is_read ? <CheckCheck className="w-3 h-3 text-blue-500" /> : <Check className="w-3 h-3" />}
-                        </span>
+                <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+                  {!isMe && (
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                      {senderAvatar ? (
+                        <img src={senderAvatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-medium">
+                          {msg.sender?.name?.[0]?.toUpperCase() || 'U'}
+                        </div>
                       )}
                     </div>
-                  </div>
+                  )}
+
+                  {msg.message_type === 'voice' && msg.attachment_url ? (
+                    <div className={`max-w-[75%] px-3 py-2 rounded-2xl ${isMe ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm' : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200'}`}>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => playingAudioId === msg.id ? stopAudio(msg.id) : playAudio(msg.id, getImageUrl(msg.attachment_url) || '')}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center ${isMe ? 'bg-[#00a884] text-white' : 'bg-[#008069] text-white'}`}
+                        >
+                          {playingAudioId === msg.id ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                        </button>
+
+                        <div className="flex-1 flex items-center gap-[2px] h-10 cursor-pointer" onClick={(e) => seekAudio(msg.id, e)}>
+                          {[...Array(30)].map((_, i) => {
+                            const heights = [15, 30, 45, 60, 75, 90, 100, 90, 75, 60, 45, 30, 15, 25, 40, 55, 70, 85, 95, 80, 65, 50, 35, 20, 30, 45, 60, 75, 90, 70];
+                            const baseHeight = heights[i % heights.length];
+                            const progress = playbackProgress[msg.id] || 0;
+                            const barProgress = (i / 30) * 100;
+                            const isPlayed = barProgress <= progress;
+                            return (
+                              <div
+                                key={i}
+                                className={`w-1 rounded-full ${isPlayed ? (isMe ? 'bg-[#00a884]' : 'bg-[#008069]') : (isMe ? 'bg-[#9de9c8]' : 'bg-[#b0bec5]')}`}
+                                style={{ height: `${baseHeight}%` }}
+                              />
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          onClick={() => cyclePlaybackSpeed(msg.id)}
+                          className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${isMe ? 'text-[#00a884]' : 'text-[#008069]'}`}
+                        >
+                          {playbackSpeed[msg.id] || 1}x
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-1 text-[10px] text-[#667781]">
+                        <span>{(() => {
+                          const totalDuration = playbackDuration[msg.id] || msg.duration || 0;
+                          const progress = playbackProgress[msg.id] || 0;
+                          const remaining = totalDuration * (1 - progress / 100);
+                          const safeRemaining = isNaN(remaining) || !isFinite(remaining) ? 0 : Math.max(0, remaining);
+                          return formatDuration(Math.floor(safeRemaining));
+                        })()}</span>
+                        <span>{new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                        {isMe && <span className="text-[#53bdeb]">{msg.status === 'seen' ? '✓✓' : '✓'}</span>}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`max-w-[75%] px-3 py-2 rounded-2xl ${isMe ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm' : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200'}`}>
+                      {msg.message_type === 'image' && msg.attachment_url && (
+                        <img src={msg.attachment_url} alt="" className="rounded-lg max-w-full mb-2" />
+                      )}
+                      <p className="text-[15px] leading-[19px]">{msg.content}</p>
+                      <div className={`flex items-center gap-1 mt-0.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <span className={`text-[10px] ${isMe ? 'text-[#6ab383]' : 'text-gray-400'}`}>
+                          {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {isMe && <span className="text-[10px] text-[#53bdeb]">{msg.status === 'seen' ? '✓✓' : '✓'}</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {isMe && (
+                    <div className="w-8 h-8 rounded-full bg-[#dcf8c6] flex-shrink-0 overflow-hidden">
+                      {user?.avatar_url || user?.google_avatar ? (
+                        <img src={getImageUrl(user.avatar_url || user.google_avatar || '') || ''} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-[#00a884] font-medium">
+                          {user?.name?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })
           )}
-          
-          {/* Typing Indicator */}
-          {typingUsers.length > 0 && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 px-4 py-2 rounded-2xl rounded-bl-sm">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+
+          {/* Typing indicator */}
+          {isTyping && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                {sellerAvatar ? (
+                  <img src={sellerAvatar} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-medium">
+                    {sellerName[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
+              </div>
+              <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 border border-gray-200">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-[#00a884] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-[#00a884] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-[#00a884] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </div>
           )}
-          
+
+          {isRecording && (
+            <div className="flex justify-end">
+              <div className="flex items-center gap-3 px-4 py-3 bg-[#d9fdd0] rounded-2xl rounded-br-sm">
+                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-[#54656f] font-medium">{formatDuration(recordingDuration)}</span>
+                <div className="flex-1 h-1 bg-[#00a884] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#00a884]" style={{ width: `${(recordingDuration / MAX_RECORDING_DURATION) * 100}%` }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {recordedAudioUrl && !isRecording && (
+            <div className="flex justify-end">
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#dcf8c6] rounded-2xl rounded-br-sm border border-[#00a884]">
+                <button onClick={playPreview} className="w-8 h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center">
+                  {isPlayingPreview ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                </button>
+                <div className="flex-1">
+                  <p className="text-sm text-[#00a884] font-medium">Voice message</p>
+                  <p className="text-xs text-[#00a884]">{formatDuration(recordingDuration)}</p>
+                </div>
+                <button onClick={sendVoiceNote} className="w-8 h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977]">
+                  <SendIcon className="w-4 h-4" />
+                </button>
+                <button onClick={cancelRecording} className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Blocked State */}
-        {isBlocked && (
-          <div className="p-4 bg-red-50 text-red-600 text-center">
-            You have blocked this user. Unblock to send messages.
-          </div>
-        )}
-
         {/* Input */}
-        {!isBlocked && (
-          <div className="p-4 border-t">
-            <div className="flex items-center gap-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-                accept="image/*,audio/*,.pdf,.doc,.docx"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <Paperclip className="w-5 h-5 text-gray-500" />
-              </button>
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => {
-                  setNewMessage(e.target.value);
-                  handleTyping();
-                }}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Type a message..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
+        <div className="p-3 bg-[#f0f2f5] border-t border-[#d1d7db]">
+          <div className="flex items-end gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*"
+            />
+
+            <button onClick={() => fileInputRef.current?.click()} className="p-2.5 text-[#54656f] hover:bg-[#dfe5e7] rounded-full transition-colors">
+              <ImageIcon className="w-6 h-6" />
+            </button>
+
+            <div className="flex-1 bg-white rounded-[20px] px-4 py-2 flex items-center">
+              {isRecording ? (
+                <div className="flex items-center gap-3 w-full">
+                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-[#54656f] font-medium">{formatDuration(recordingDuration)}</span>
+                  <div className="flex-1 h-6 bg-[#dcf8c6] rounded-full overflow-hidden">
+                    <div className="h-full bg-[#00a884] transition-all" style={{ width: `${(recordingDuration / MAX_RECORDING_DURATION) * 100}%` }} />
+                  </div>
+                  <span className="text-[10px] text-gray-400">/{MAX_RECORDING_DURATION}s</span>
+                  <button onClick={cancelRecording} className="p-1 text-red-500 hover:bg-red-50 rounded-full">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={handleInputChange}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Message"
+                  className="flex-1 py-1 bg-transparent text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none"
+                />
+              )}
+            </div>
+
+            {newMessage.trim() ? (
               <button
                 onClick={handleSendMessage}
-                disabled={!newMessage.trim()}
-                className="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 disabled:opacity-50"
+                className="w-11 h-11 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977] transition-colors shadow-md"
               >
-                <Send className="w-5 h-5" />
+                <SendIcon className="w-5 h-5" />
               </button>
-            </div>
-            {/* Quick Reply Buttons */}
-            {messages.length === 0 && (
-              <div className="flex flex-wrap gap-2 mt-2 px-2">
-                <button
-                  onClick={() => setNewMessage("Is this still available?")}
-                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors"
-                >
-                  Is this still available?
-                </button>
-                <button
-                  onClick={() => setNewMessage("What is your last price?")}
-                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors"
-                >
-                  What is your last price?
-                </button>
-                <button
-                  onClick={() => setNewMessage("What condition is this item in?")}
-                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors"
-                >
-                  What condition is this item?
-                </button>
-              </div>
+            ) : (
+              <button
+                onMouseDown={startRecording}
+                onMouseUp={stopRecording}
+                onMouseLeave={isRecording ? stopRecording : undefined}
+                onTouchStart={startRecording}
+                onTouchEnd={stopRecording}
+                onTouchCancel={cancelRecording}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md ${
+                  isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-[#00a884] text-white hover:bg-[#009977]'
+                }`}
+              >
+                {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-5 h-5" />}
+              </button>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

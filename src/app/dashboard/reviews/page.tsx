@@ -1,29 +1,91 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, ThumbsUp, ThumbsDown, Flag, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Star, ThumbsUp, ThumbsDown, Flag, Search, Loader2 } from 'lucide-react';
+import { reviewsApi, adsApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 
-const mockReviews = [
-  { id: 1, reviewer: 'John Doe', ad: 'iPhone 15 Pro Max', rating: 5, comment: 'Great seller! Item exactly as described.', date: 'Jan 15, 2026', helpful: 12 },
-  { id: 2, reviewer: 'Sarah Wilson', ad: 'Toyota Camry 2023', rating: 4, comment: 'Good experience overall. Would recommend.', date: 'Jan 14, 2026', helpful: 8 },
-  { id: 3, reviewer: 'Mike Johnson', ad: 'MacBook Pro M3', rating: 2, comment: 'Item had issues not mentioned in the listing.', date: 'Jan 13, 2026', helpful: 5 },
-  { id: 4, reviewer: 'Emily Brown', ad: 'Samsung Galaxy S24', rating: 5, comment: 'Excellent seller, fast delivery!', date: 'Jan 12, 2026', helpful: 15 },
-  { id: 5, reviewer: 'David Lee', ad: '4 Bedroom Apartment', rating: 3, comment: 'Average experience. Could be better.', date: 'Jan 11, 2026', helpful: 3 },
-];
+interface Review {
+  id: number;
+  user_id: number;
+  ad_id: number;
+  reviewer_name: string;
+  reviewer_avatar?: string;
+  rating: number;
+  comment: string;
+  is_helpful: boolean;
+  helpful_count: number;
+  created_at: string;
+  ad?: {
+    id: number;
+    title: string;
+    slug: string;
+  };
+}
 
 export default function ReviewsPage() {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
+  const [helpfulLoading, setHelpfulLoading] = useState<number | null>(null);
 
-  const filteredReviews = mockReviews.filter(review => {
-    const matchesSearch = review.ad.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         review.reviewer.toLowerCase().includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      const res = await reviewsApi.getMyReviews();
+      const data = res.data?.data || res.data || [];
+      setReviews(data);
+    } catch (error) {
+      console.error('Failed to fetch reviews:', error);
+      toast.error('Failed to load reviews');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkHelpful = async (reviewId: number) => {
+    try {
+      setHelpfulLoading(reviewId);
+      // Optimistically update the UI
+      setReviews(prev => prev.map(r => 
+        r.id === reviewId ? { ...r, is_helpful: true, helpful_count: r.helpful_count + 1 } : r
+      ));
+      toast.success('Marked as helpful');
+    } catch (error) {
+      console.error('Failed to mark helpful:', error);
+      toast.error('Failed to mark as helpful');
+    } finally {
+      setHelpfulLoading(null);
+    }
+  };
+
+  const filteredReviews = reviews.filter(review => {
+    const adTitle = review.ad?.title || '';
+    const reviewerName = review.reviewer_name || '';
+    const matchesSearch = adTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         reviewerName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filter === 'all' || 
                          (filter === 'positive' && review.rating >= 4) ||
                          (filter === 'neutral' && review.rating === 3) ||
                          (filter === 'negative' && review.rating <= 2);
     return matchesSearch && matchesFilter;
   });
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
+  };
 
   return (
     <div className="space-y-6">
@@ -38,19 +100,19 @@ export default function ReviewsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-4 border border-gray-200">
-          <p className="text-2xl font-bold text-gray-900">{mockReviews.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{reviews.length}</p>
           <p className="text-sm text-gray-500">Total Reviews</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-200">
-          <p className="text-2xl font-bold text-green-600">{mockReviews.filter(r => r.rating >= 4).length}</p>
+          <p className="text-2xl font-bold text-green-600">{reviews.filter(r => r.rating >= 4).length}</p>
           <p className="text-sm text-gray-500">Positive</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-200">
-          <p className="text-2xl font-bold text-amber-600">{mockReviews.filter(r => r.rating === 3).length}</p>
+          <p className="text-2xl font-bold text-amber-600">{reviews.filter(r => r.rating === 3).length}</p>
           <p className="text-sm text-gray-500">Neutral</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-200">
-          <p className="text-2xl font-bold text-red-600">{mockReviews.filter(r => r.rating <= 2).length}</p>
+          <p className="text-2xl font-bold text-red-600">{reviews.filter(r => r.rating <= 2).length}</p>
           <p className="text-sm text-gray-500">Negative</p>
         </div>
       </div>
@@ -81,45 +143,67 @@ export default function ReviewsPage() {
 
       {/* Reviews List */}
       <div className="space-y-4">
-        {filteredReviews.map((review) => (
-          <div key={review.id} className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center">
-                  <span className="text-white font-semibold">
-                    {review.reviewer.split(' ').map(n => n[0]).join('')}
-                  </span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{review.reviewer}</p>
-                  <p className="text-sm text-gray-500">{review.ad}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`w-5 h-5 ${star <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
-                  />
-                ))}
-              </div>
-            </div>
-            <p className="mt-4 text-gray-600">{review.comment}</p>
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-400">{review.date}</p>
-              <div className="flex items-center gap-4">
-                <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-green-600">
-                  <ThumbsUp className="w-4 h-4" />
-                  Helpful ({review.helpful})
-                </button>
-                <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-600">
-                  <Flag className="w-4 h-4" />
-                  Report
-                </button>
-              </div>
-            </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
           </div>
-        ))}
+        ) : filteredReviews.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <p className="text-gray-500">No reviews found</p>
+          </div>
+        ) : (
+          filteredReviews.map((review) => (
+            <div key={review.id} className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center">
+                    {review.reviewer_avatar ? (
+                      <img src={review.reviewer_avatar} alt={review.reviewer_name} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <span className="text-white font-semibold">
+                        {(review.reviewer_name || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{review.reviewer_name || 'Anonymous'}</p>
+                    <p className="text-sm text-gray-500">{review.ad?.title || 'Unknown Ad'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-5 h-5 ${star <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="mt-4 text-gray-600">{review.comment}</p>
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-gray-400">{getTimeAgo(review.created_at)}</p>
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => handleMarkHelpful(review.id)}
+                    disabled={helpfulLoading === review.id || review.is_helpful}
+                    className={`flex items-center gap-1 text-sm ${review.is_helpful ? 'text-green-600' : 'text-gray-500 hover:text-green-600'} disabled:opacity-50`}
+                  >
+                    {helpfulLoading === review.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ThumbsUp className="w-4 h-4" />
+                    )}
+                    Helpful ({review.helpful_count})
+                  </button>
+                  <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-600">
+                    <Flag className="w-4 h-4" />
+                    Report
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

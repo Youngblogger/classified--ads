@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { adsApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 // Icons
 const EditIcon = ({ className }: { className?: string }) => (
@@ -80,6 +81,19 @@ export default function MyAdsPage() {
     const matchesSearch = ad.title?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
+
+  const handleDeleteAd = async (adId: number, adSlug: string) => {
+    if (!confirm('Are you sure you want to delete this ad?')) return;
+    
+    try {
+      await adsApi.delete(adId);
+      toast.success('Ad deleted successfully');
+      fetchAds();
+    } catch (error) {
+      console.error('Failed to delete ad:', error);
+      toast.error('Failed to delete ad');
+    }
+  };
 
   const getStatusCount = (status: StatusFilter) => {
     if (status === 'all') return ads.length;
@@ -191,7 +205,10 @@ export default function MyAdsPage() {
                     <StarIcon className="w-4 h-4" />
                     Promote
                   </button>
-                  <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                  <button 
+                    onClick={() => handleDeleteAd(ad.id, ad.slug)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  >
                     <TrashIcon className="w-4 h-4" />
                   </button>
                 </div>

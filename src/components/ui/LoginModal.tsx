@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, ClipboardEvent, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, ClipboardEvent, KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { X, Mail, Lock, Eye, EyeOff, Phone, Send, CheckCircle } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
@@ -13,7 +13,7 @@ export default function LoginModal() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | React.ReactNode>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   
@@ -203,6 +203,23 @@ export default function LoginModal() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.code === 'email_not_verified') {
+          // Show message with option to go to verification page
+          setError(
+            <span>
+              Please verify your email first.{' '}
+              <a 
+                href={`/auth/verify?email=${encodeURIComponent(data.email || email)}`} 
+                className="text-primary-600 font-medium hover:underline"
+              >
+                Verify now
+              </a>
+            </span>
+          );
+          setIsSubmitting(false);
+          setLoading(false);
+          return;
+        }
         throw new Error(data.message || data.login?.[0] || 'Login failed');
       }
 

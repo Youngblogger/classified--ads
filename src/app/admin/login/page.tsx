@@ -63,12 +63,20 @@ export default function AdminLoginPage() {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      console.error('Error response:', err.response);
-      const errors = err.response?.data?.errors as Record<string, string[]>;
-      const message = err.response?.data?.message 
-        || err.response?.data?.error 
-        || (errors && Object.keys(errors).length > 0 ? Object.values(errors)[0]?.[0] : 'Invalid credentials');
-      setError(message);
+      const errorCode = err.response?.data?.code;
+      const errorMessage = err.response?.data?.message;
+      
+      if (errorCode === 'email_not_verified') {
+        setError('Your email is not verified. Please check your inbox for the verification code.');
+      } else if (errorCode === 'account_banned') {
+        setError('Your account has been banned. Contact support for assistance.');
+      } else if (errorCode === 'account_suspended') {
+        setError('Your account has been suspended. Contact support for assistance.');
+      } else if (errorMessage?.includes('Invalid credentials') || errorMessage?.includes('incorrect')) {
+        setError('Incorrect email or password. Please try again.');
+      } else {
+        setError(errorMessage || 'Login failed. Please check your credentials and try again.');
+      }
     } finally {
       setLoading(false);
     }

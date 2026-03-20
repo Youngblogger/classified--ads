@@ -3,9 +3,11 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   avatar?: string;
   avatar_url?: string;
+  google_avatar?: string;
+  facebook_avatar?: string;
   location?: string;
   location_id?: number;
   created_at: string;

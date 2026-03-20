@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ReviewSummary from '@/components/reviews/ReviewSummary';
@@ -10,8 +11,9 @@ import WriteReviewModal from '@/components/reviews/WriteReviewModal';
 import RelatedAds from '@/components/ads/RelatedAds';
 import ChatModal from '@/components/chat/ChatModal';
 import ShareModal from '@/components/ui/ShareModal';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 import { Heart, Share2, Flag, MapPin, Eye, Clock, Phone, MessageCircle, ChevronLeft, ChevronRight, CheckCircle, User, Home, X, Check } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -19,8 +21,21 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
+import { getAuthToken } from '@/lib/cookies';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+function getImageUrl(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('/storage/')) {
+    return `/storage/${url.replace('/storage/', '')}`;
+  } else if (url.startsWith(API_URL.replace('/api', '') + '/storage/')) {
+    return `/storage/${url.replace(API_URL.replace('/api', '') + '/storage/', '')}`;
+  } else if (url.startsWith('http://localhost:8000/storage/')) {
+    return `/storage/${url.replace('http://localhost:8000/storage/', '')}`;
+  }
+  return url;
+}
 
 function WatermarkBadge({ adId }: { adId: number }) {
   return (
@@ -38,6 +53,7 @@ function isApprovedAd(ad: any): boolean {
 }
 
 export default function AdDetailPage({ params }: { params: { slug: string } }) {
+  const router = useRouter();
   const [ad, setAd] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +62,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -53,7 +70,13 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
   const [showWriteReview, setShowWriteReview] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  const [reportLoading, setReportLoading] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
+  const { isAuthenticated, user } = useAuthStore();
+  const { toggleLoginModal } = useUIStore();
+
+  const isOwnAd = user && ad && user.id === ad.user?.id;
 
   // Fetch ad from API
   useEffect(() => {
@@ -87,8 +110,10 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
         }
         const data = await response.json();
         console.log('[AdDetail] Received data:', data ? 'success' : 'empty');
-        setAd(data);
-        setIsFavorited(data.is_favorited || false);
+        // Handle both formats: { data: ad } or just { ad }
+        const adData = data.data || data;
+        setAd(adData);
+        setIsFavorited(adData.is_favorited || false);
       } catch (err: any) {
         console.error('[AdDetail] Error fetching ad:', err);
         if (err.name === 'AbortError') {
@@ -157,8 +182,47 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
     }
   };
 
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
+    if (!isAuthenticated) {
+      toggleLoginModal();
+      return;
+    }
+
+    if (favoriteLoading) return;
+    setFavoriteLoading(true);
+
+    const previousState = isFavorited;
     setIsFavorited(!isFavorited);
+
+    try {
+      const token = getAuthToken();
+      if (isFavorited) {
+        await fetch(`${API_URL}/favorites/${ad.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          }
+        });
+        toast.success('Removed from favorites');
+      } else {
+        await fetch(`${API_URL}/favorites`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ad_id: ad.id })
+        });
+        toast.success('Added to favorites');
+      }
+    } catch (err) {
+      setIsFavorited(previousState);
+      toast.error('Failed to update favorites');
+    } finally {
+      setFavoriteLoading(false);
+    }
   };
 
   const handleShare = async () => {
@@ -180,14 +244,50 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
     }
   };
 
-  const handleReport = () => {
-    if (reportReason) {
+  const handleReport = async () => {
+    if (!isAuthenticated) {
+      toggleLoginModal();
+      return;
+    }
+
+    if (!reportReason) {
+      toast.error('Please select a reason');
+      return;
+    }
+
+    setReportLoading(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/reports`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ad_id: ad.id,
+          reason: reportReason,
+          description: reportDescription
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit report');
+      }
+
       setReportSubmitted(true);
+      toast.success('Report submitted. Thank you for your feedback.');
       setTimeout(() => {
         setShowReportModal(false);
         setReportSubmitted(false);
         setReportReason('');
+        setReportDescription('');
       }, 2000);
+    } catch (err) {
+      toast.error('Failed to submit report. Please try again.');
+    } finally {
+      setReportLoading(false);
     }
   };
 
@@ -207,7 +307,10 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
     images: [],
   };
 
-  const currentImages = displayAd.images?.length > 0 ? displayAd.images : [
+  const currentImages = displayAd.images?.length > 0 ? displayAd.images.map((img: any) => ({
+    ...img,
+    url: getImageUrl(img.url || img.display_url || img.original_url || img.thumbnail_url || img.thumbnail || '')
+  })) : [
     { id: 1, url: 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=1200', is_primary: true, order: 1 }
   ];
 
@@ -383,61 +486,65 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
             <div className="space-y-4 lg:space-y-6">
               {/* Seller Card */}
               <div className="card p-4 lg:p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
-                    {(displayAd.user as any)?.avatar_url || displayAd.user?.avatar ? (
-                      <img src={(displayAd.user as any).avatar_url || displayAd.user?.avatar} alt={displayAd.user?.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-8 h-8 text-primary-600" />
-                    )}
+                <div className="flex flex-col items-center mb-4">
+                  <div className="relative">
+                    <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
+                      {displayAd.user?.avatar || displayAd.user?.google_avatar || displayAd.user?.facebook_avatar || displayAd.user?.avatar_url ? (
+                        <img 
+                          src={getImageUrl(displayAd.user?.avatar || displayAd.user?.google_avatar || displayAd.user?.facebook_avatar || displayAd.user?.avatar_url || '')} 
+                          alt={displayAd.user?.name || 'Seller'} 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <User className="w-10 h-10 text-primary-600" />
+                      )}
+                    </div>
+                    {displayAd.user?.verified === 1 || displayAd.user?.role === 'verified' ? (
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md">
+                        <CheckCircle className="w-5 h-5 text-success fill-white" />
+                      </div>
+                    ) : null}
                   </div>
-                  <div>
+                  <div className="text-center mt-2">
                     <h3 className="font-semibold text-dark">{displayAd.user?.name}</h3>
                     <p className="text-sm text-gray-500">
                       Member since {displayAd.user?.created_at 
                         ? new Date(displayAd.user.created_at).getFullYear().toString()
                         : 'N/A'}
                     </p>
-                    <span className="flex items-center gap-1 text-sm text-success">
-                      <CheckCircle className="w-4 h-4" />
-                      Verified
-                    </span>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <a
-                    href={isAuthenticated && showPhone ? `tel:${displayAd.user?.phone}` : '#'}
-                    onClick={(e) => {
+                  <button
+                    onClick={() => {
                       if (!isAuthenticated) {
-                        e.preventDefault();
-                        alert('Please login to view the phone number');
+                        toggleLoginModal();
                         return;
                       }
-                      if (!showPhone) {
-                        e.preventDefault();
-                        setShowPhone(true);
-                      }
+                      setShowPhone(true);
                     }}
-                    className={`btn-primary w-full flex items-center justify-center gap-2 ${!showPhone ? 'cursor-pointer' : ''}`}
+                    className="btn-primary w-full flex items-center justify-center gap-2"
                   >
                     <Phone className="w-5 h-5" />
-                    {isAuthenticated ? (showPhone ? displayAd.user?.phone : 'Show Phone Number') : 'Login to View Phone'}
-                  </a>
+                    {isAuthenticated ? (showPhone ? (displayAd.user?.phone || 'No phone provided') : 'Show Phone Number') : 'Login to View Phone'}
+                  </button>
                   <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          alert('Please login to chat with the seller');
-                          return;
-                        }
-                        setShowChatModal(true);
-                      }}
-                      className="btn-primary w-full flex items-center justify-center gap-2"
-                    >
-                      <MessageCircle className="w-5 h-5" />
-                      Chat Seller
-                    </button>
+                    {!isOwnAd && (
+                      <button
+                        onClick={() => {
+                          if (!isAuthenticated) {
+                            alert('Please login to chat with the seller');
+                            return;
+                          }
+                          setShowChatModal(true);
+                        }}
+                        className="btn-primary w-full flex items-center justify-center gap-2"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        Chat Seller
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         if (!isAuthenticated) {
@@ -491,7 +598,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                 adId={ad.id} 
                 onWriteReview={() => setShowWriteReview(true)} 
               />
-              <LatestReviews adId={ad.id} adSlug={ad.slug} />
+              <LatestReviews key={reviewsRefreshKey} adId={ad.id} adSlug={ad.slug} refreshKey={reviewsRefreshKey} />
             </div>
             <div className="mt-6">
               <RelatedAds currentAdId={ad.id} categoryId={ad.category_id} />
@@ -520,7 +627,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
               <div className="text-center py-8">
                 <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
                 <p className="text-lg font-semibold text-dark">Thank you for your report</p>
-                <p className="text-gray-500">We will review this ad shortly.</p>
+                <p className="text-gray-500">We will review this ad shortly. Our team will take appropriate action.</p>
               </div>
             ) : (
               <>
@@ -535,14 +642,23 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                   <option value="inappropriate">Inappropriate content</option>
                   <option value="scam">Suspected scam</option>
                   <option value="duplicate">Duplicate ad</option>
+                  <option value="wrong_category">Wrong category</option>
+                  <option value="fake">Fake listing</option>
                   <option value="other">Other</option>
                 </select>
+                <textarea
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  placeholder="Provide additional details (optional)"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none mb-4"
+                  rows={3}
+                />
                 <button
                   onClick={handleReport}
-                  className="btn-primary w-full"
-                  disabled={!reportReason}
+                  disabled={!reportReason || reportLoading}
+                  className="btn-primary w-full disabled:opacity-50"
                 >
-                  Submit Report
+                  {reportLoading ? 'Submitting...' : 'Submit Report'}
                 </button>
               </>
             )}
@@ -557,7 +673,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
           isOpen={showWriteReview}
           onClose={() => setShowWriteReview(false)}
           onSuccess={() => {
-            // Refresh reviews - the components will auto-refresh due to their useEffect
+            setReviewsRefreshKey(prev => prev + 1);
           }}
         />
       )}
@@ -571,7 +687,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
           adTitle={ad.title}
           sellerId={ad.user?.id}
           sellerName={ad.user?.name}
-          sellerAvatar={ad.user?.avatar}
+          sellerAvatar={getImageUrl(ad.user?.avatar_url || ad.user?.avatar || ad.user?.google_avatar || ad.user?.facebook_avatar)}
         />
       )}
 

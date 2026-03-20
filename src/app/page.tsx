@@ -16,19 +16,19 @@ export default function HomePage() {
   const { data: featuredData, isLoading: featuredLoading } = useSWR(
     `${API_URL}/ads/featured?limit=4`,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: [] }
+    { revalidateOnFocus: true, revalidateOnReconnect: true, fallbackData: [] }
   );
   
   const { data: recentData, isLoading: recentLoading } = useSWR(
     `${API_URL}/ads/recent?limit=4`,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: [] }
+    { revalidateOnFocus: true, revalidateOnReconnect: true, fallbackData: [] }
   );
   
   const { data: categoriesData, isLoading: categoriesLoading } = useSWR(
     `${API_URL}/categories`,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 300000, fallbackData: [] }
+    { revalidateOnFocus: true, revalidateOnReconnect: true, fallbackData: [] }
   );
 
   const featuredAds = featuredData?.data || featuredData || [];

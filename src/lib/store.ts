@@ -1,18 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, AuthState, Category, Location, Notification } from '@/types';
-import { getCookie, setCookie, deleteCookie } from './cookies';
+import { User, AuthState } from '@/types';
+import { setCookie } from './cookies';
 
 interface AuthStore extends AuthState {
   login: (user: User, token: string) => void;
   logout: () => void;
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
+  updateAuth: (data: Partial<AuthState>) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -24,20 +25,15 @@ export const useAuthStore = create<AuthStore>()(
       },
       
       logout: () => {
-        // Clear ALL possible storage locations
         if (typeof window !== 'undefined') {
-          // Clear cookies - try multiple approaches
-          const cookies = document.cookie.split(';');
-          for (let cookie of cookies) {
-            const cookieName = cookie.trim().split('=')[0];
-            document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
-            document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          }
+          // Clear all cookies
+          document.cookie.split(';').forEach((cookie) => {
+            const name = cookie.trim().split('=')[0];
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          });
           
-          // Clear localStorage completely
-          localStorage.clear();
-          
-          // Clear sessionStorage
+          // Clear localStorage auth data
+          localStorage.removeItem('auth-storage');
           sessionStorage.clear();
         }
         
@@ -47,21 +43,22 @@ export const useAuthStore = create<AuthStore>()(
       setUser: (user) => set({ user }),
       
       setLoading: (isLoading) => set({ isLoading }),
+      
+      updateAuth: (data) => set(data),
     }),
     {
       name: 'auth-storage',
       partialize: (state) => ({ 
         token: state.token, 
-        user: state.user ? {
-          ...state.user,
-          avatar: state.user.avatar,
-          avatar_url: state.user.avatar_url || state.user.avatar,
-        } : null, 
+        user: state.user,
         isAuthenticated: state.isAuthenticated 
       }),
     }
   )
 );
+
+// Export a function to get auth state directly
+export const getAuthState = () => useAuthStore.getState();
 
 // Global store for categories and locations
 interface NotificationItem {
@@ -75,18 +72,18 @@ interface NotificationItem {
 }
 
 interface GlobalStore {
-  categories: Category[];
-  locations: Location[];
+  categories: any[];
+  locations: any[];
   notifications: NotificationItem[];
   unreadNotifications: number;
-  selectedLocation: Location | null;
-  setCategories: (categories: Category[]) => void;
-  setLocations: (locations: Location[]) => void;
+  selectedLocation: any | null;
+  setCategories: (categories: any[]) => void;
+  setLocations: (locations: any[]) => void;
   setNotifications: (notifications: NotificationItem[]) => void;
   addNotification: (notification: NotificationItem) => void;
   setUnreadNotifications: (count: number) => void;
   incrementUnread: () => void;
-  setSelectedLocation: (location: Location | null) => void;
+  setSelectedLocation: (location: any | null) => void;
 }
 
 export const useGlobalStore = create<GlobalStore>()(

@@ -45,6 +45,16 @@ class DatabaseSeeder extends Seeder
             'name' => 'Demo User',
             'email' => 'demo@example.com',
             'password' => bcrypt('password'),
+            'role' => 'user',
+            'status' => 'active',
+        ]);
+
+        User::create([
+            'name' => 'Admin',
+            'email' => 'admin@ilist.com',
+            'password' => bcrypt('admin123'),
+            'role' => 'admin',
+            'status' => 'active',
         ]);
 
         $sampleAds = [

@@ -170,13 +170,14 @@ export default function ProfileSettingsPage() {
 
       // Update user with avatar_url if available
       const updatedUser = {
-        ...data,
-        avatar: data.avatar || data.avatar_url,
-        avatar_url: data.avatar_url || data.avatar
+        ...user,
+        ...data.user,
+        avatar: data.user?.avatar || data.user?.avatar_url || user?.avatar || avatarPreview,
+        avatar_url: data.user?.avatar_url || data.user?.avatar || user?.avatar_url || user?.avatar || avatarPreview
       };
       setUser(updatedUser);
-      if (data.avatar_url || data.avatar) {
-        setAvatarPreview(data.avatar_url || data.avatar);
+      if (data.user?.avatar_url || data.user?.avatar) {
+        setAvatarPreview(data.user.avatar_url || data.user.avatar);
       }
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
       setAvatarFile(null);
