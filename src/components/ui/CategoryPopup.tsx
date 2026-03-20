@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Category } from '@/types';
-import { categoriesApi } from '@/lib/api';
+import { categoriesApi } from '@/lib/api'; 
 
 interface CategoryPopupProps {
   isOpen: boolean;
