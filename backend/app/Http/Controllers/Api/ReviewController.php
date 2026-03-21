@@ -111,18 +111,26 @@ class ReviewController extends Controller
     public function adReviewSummary(Request $request, $adId)
     {
         $ad = Ad::findOrFail($adId);
-        
+
         $reviews = Review::where('ad_id', $adId)->get();
-        
+
+        $total = $reviews->count();
+        $average = $total > 0 ? round($reviews->avg('rating'), 1) : 0;
+
+        // Calculate distribution percentages
+        $calcPercent = function($count) use ($total) {
+            return $total > 0 ? round(($count / $total) * 100) : 0;
+        };
+
         $summary = [
-            'total' => $reviews->count(),
-            'average' => $reviews->count() > 0 ? round($reviews->avg('rating'), 1) : 0,
+            'average_rating' => $average,
+            'total_reviews' => $total,
             'distribution' => [
-                5 => $reviews->where('rating', 5)->count(),
-                4 => $reviews->where('rating', 4)->count(),
-                3 => $reviews->where('rating', 3)->count(),
-                2 => $reviews->where('rating', 2)->count(),
-                1 => $reviews->where('rating', 1)->count(),
+                5 => $calcPercent($reviews->where('rating', 5)->count()),
+                4 => $calcPercent($reviews->where('rating', 4)->count()),
+                3 => $calcPercent($reviews->where('rating', 3)->count()),
+                2 => $calcPercent($reviews->where('rating', 2)->count()),
+                1 => $calcPercent($reviews->where('rating', 1)->count()),
             ],
         ];
 
@@ -138,5 +146,41 @@ class ReviewController extends Controller
             ->get();
 
         return response()->json(['data' => $reviews]);
+    }
+
+    public function markHelpful(Request $request, $reviewId)
+    {
+        $review = Review::findOrFail($reviewId);
+
+        // Increment helpful count
+        $review->increment('helpful_count');
+
+        return response()->json([
+            'message' => 'Review marked as helpful',
+            'helpful_count' => $review->fresh()->helpful_count
+        ]);
+    }
+
+    public function reportReview(Request $request, $reviewId)
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        $review = Review::findOrFail($reviewId);
+
+        // Create a report for this review
+        $report = \App\Models\Report::create([
+            'user_id' => $request->user()->id,
+            'ad_id' => $review->ad_id,
+            'reason' => $validated['reason'],
+            'description' => 'Review Report: ' . $review->comment,
+            'status' => 'pending',
+        ]);
+
+        return response()->json([
+            'message' => 'Review reported successfully',
+            'report' => $report
+        ], 201);
     }
 }

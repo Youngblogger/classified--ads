@@ -89,6 +89,23 @@ export default function ReportsPage() {
     }
   };
 
+  const handleDeleteAd = async (reportId: number, adId: number) => {
+    if (!confirm('Are you sure you want to delete this ad? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      setActionLoading(reportId);
+      await adminApi.deleteAd(adId);
+      toast.success('Ad deleted successfully');
+      fetchReports();
+    } catch (error) {
+      console.error('Failed to delete ad:', error);
+      toast.error('Failed to delete ad');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const filteredReports = reports.filter(report => {
     const matchesSearch = (report.ad?.title || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
@@ -220,6 +237,14 @@ export default function ReportsPage() {
                       >
                         <XCircle className="w-4 h-4" />
                         Dismiss
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteAd(report.id, report.ad?.id)}
+                        disabled={actionLoading === report.id}
+                        className="flex items-center gap-1 px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete Ad
                       </button>
                     </>
                   )}

@@ -11,7 +11,7 @@ class Ad extends Model
     protected $fillable = [
         'user_id', 'category_id', 'location_id', 'title', 'slug', 'description',
         'price', 'currency', 'condition', 'status', 'is_featured', 'is_verified',
-        'views', 'phone', 'expires_at'
+        'views', 'phone', 'whatsapp', 'expires_at'
     ];
 
     protected $casts = ['is_featured' => 'boolean', 'is_verified' => 'boolean', 'price' => 'decimal:2'];

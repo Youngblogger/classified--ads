@@ -5,9 +5,11 @@ use App\Http\Controllers\Api\AdImageController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AuthOtpController;
+use App\Http\Controllers\Api\BroadcastController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\FontController;
+use App\Http\Controllers\Api\IconController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\WalletController;
@@ -22,7 +24,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('register');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::match(['get', 'post'], '/google', [AuthController::class, 'google']);
-    
+
     // OTP Verification routes
     Route::post('/register-otp', [AuthOtpController::class, 'register']);
     Route::post('/verify-otp', [AuthOtpController::class, 'verifyOtp']);
@@ -41,6 +43,7 @@ Route::prefix('auth')->middleware('auth:sanctum')->group(function () {
 
 Route::prefix('categories')->group(function () {
     Route::get('/', [CategoryController::class, 'index']);
+    Route::get('/all', [CategoryController::class, 'getAllCategories']);
     Route::get('/{slug}', [CategoryController::class, 'show']);
 });
 
@@ -49,40 +52,52 @@ Route::prefix('locations')->group(function () {
     Route::get('/{slug}', [LocationController::class, 'show']);
 });
 
+// Icons
+Route::prefix('icons')->group(function () {
+    Route::get('/', [IconController::class, 'getAll']);
+    Route::get('/search', [IconController::class, 'search']);
+    Route::get('/category/{category}', [IconController::class, 'getByCategory']);
+    Route::get('/custom', [IconController::class, 'listCustom']);
+    Route::post('/upload', [IconController::class, 'uploadCustom']);
+    Route::delete('/custom/{id}', [IconController::class, 'deleteCustom']);
+});
+
 Route::prefix('ads')->group(function () {
     Route::get('/', [AdController::class, 'index']);
     Route::get('/featured', [AdController::class, 'featured']);
     Route::get('/recent', [AdController::class, 'recent']);
+    // Public show route - must be last to catch any slug
     Route::get('/{slug}', [AdController::class, 'show']);
 });
 
+// Protected ad routes - define before wildcard to avoid route conflicts
 Route::middleware('auth:sanctum')->group(function () {
     // Reports
     Route::post('/reports', [ReportController::class, 'store']);
-    
-    // Ads
+
+    // Ads - protected routes (must be before /{slug} wildcard)
     Route::post('/ads', [AdController::class, 'store']);
     Route::put('/ads/{slug}', [AdController::class, 'update']);
     Route::delete('/ads/{slug}', [AdController::class, 'destroy']);
-    Route::get('/ads/my-ads', [AdController::class, 'myAds']);
-    
+    Route::get('/my-ads', [AdController::class, 'myAds']);
+
     Route::post('/ads/{adId}/images', [AdImageController::class, 'store']);
     Route::put('/ads/{adId}/images/{imageId}', [AdImageController::class, 'update']);
     Route::delete('/ads/{adId}/images/{imageId}', [AdImageController::class, 'destroy']);
-    
+
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/unread', [NotificationController::class, 'unread']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
-    
+
     // Favorites
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/favorites', [FavoriteController::class, 'store']);
     Route::delete('/favorites/{adId}', [FavoriteController::class, 'destroy']);
     Route::get('/favorites/check/{adId}', [FavoriteController::class, 'check']);
-    
+
     // Messages
     Route::get('/messages/conversations', [MessageController::class, 'conversations']);
     Route::get('/messages/conversation/get-or-create', [MessageController::class, 'getOrCreateConversation']);
@@ -92,18 +107,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/messages/start', [MessageController::class, 'startConversation']);
     Route::post('/messages/{conversationId}/read', [MessageController::class, 'markAsRead']);
     Route::delete('/messages/message/{messageId}', [MessageController::class, 'deleteMessage']);
-    
+
     // Reviews
     Route::get('/reviews/my-reviews', [ReviewController::class, 'myReviews']);
     Route::get('/reviews/user/{userId}', [ReviewController::class, 'userReviews']);
     Route::post('/reviews', [ReviewController::class, 'store']);
-    
+
     // Ad Reviews
     Route::post('/ads/{adId}/reviews', [ReviewController::class, 'storeAdReview']);
     Route::get('/ads/{adId}/reviews', [ReviewController::class, 'adReviews']);
     Route::get('/ads/{adId}/reviews/summary', [ReviewController::class, 'adReviewSummary']);
     Route::get('/ads/{adId}/reviews/latest', [ReviewController::class, 'adLatestReviews']);
-    
+
+    // Review Actions
+    Route::post('/reviews/{reviewId}/helpful', [ReviewController::class, 'markHelpful']);
+    Route::post('/reviews/{reviewId}/report', [ReviewController::class, 'reportReview']);
+
     // Wallet
     Route::get('/wallet', [WalletController::class, 'index']);
     Route::post('/wallet/fund', [WalletController::class, 'fund']);
@@ -116,6 +135,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::post('/ads/{id}/approve', [AdminController::class, 'approveAd']);
     Route::post('/ads/{id}/reject', [AdminController::class, 'rejectAd']);
     Route::delete('/ads/{id}', [AdminController::class, 'deleteAd']);
+    Route::post('/ads/bulk-delete', [AdminController::class, 'bulkDeleteAds']);
     Route::get('/users', [AdminController::class, 'users']);
     Route::put('/users/{id}', [AdminController::class, 'updateUser']);
     Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
@@ -134,6 +154,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::post('/reports/{id}/resolve', [AdminController::class, 'resolveReport']);
     Route::get('/analytics', [AdminController::class, 'analytics']);
     Route::get('/messages', [AdminController::class, 'messages']);
+    Route::get('/broadcasts', [BroadcastController::class, 'index']);
     Route::post('/broadcast', [AdminController::class, 'broadcast']);
     Route::get('/settings', [AdminController::class, 'settings']);
     Route::put('/settings', [AdminController::class, 'updateSettings']);

@@ -138,6 +138,46 @@ class MessageController extends Controller
             $file = $request->file('attachment');
             $messageType = $request->input('message_type', 'file');
             
+            // Validate audio files
+            if ($messageType === 'voice') {
+                $allowedExtensions = ['webm', 'mp4', 'mpeg', 'wav', 'ogg', 'm4a', 'aac', '3gp', ''];
+                $extension = strtolower($file->getClientOriginalExtension());
+                
+                // Check MIME type as primary validation
+                $mimeType = $file->getMimeType();
+                $allowedMimes = [
+                    'audio/webm', 'audio/webm;codecs=opus',
+                    'audio/mp4', 'audio/mpeg', 'audio/x-mpeg',
+                    'audio/wav', 'audio/x-wav',
+                    'audio/ogg', 'audio/ogg;codecs=opus',
+                    'audio/m4a', 'audio/x-m4a',
+                    'audio/aac', 'audio/x-aac',
+                    'audio/3gpp', 'audio/3gpp2'
+                ];
+                
+                // Allow if extension is in list OR MIME type is in list
+                $extensionValid = in_array($extension, $allowedExtensions);
+                $mimeValid = in_array($mimeType, $allowedMimes);
+                
+                // Also check if MIME type starts with audio/
+                $mimeIsAudio = str_starts_with($mimeType, 'audio/');
+                
+                if (!$extensionValid && !$mimeValid && !$mimeIsAudio) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid audio file type. Allowed: webm, mp4, m4a, wav, ogg, aac'
+                    ], 422);
+                }
+                
+                // Validate file size (max 5MB)
+                if ($file->getSize() > 5 * 1024 * 1024) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Audio file too large. Maximum size is 5MB'
+                    ], 422);
+                }
+            }
+            
             $folder = match($messageType) {
                 'voice' => 'voice',
                 'image' => 'images',
@@ -235,6 +275,46 @@ class MessageController extends Controller
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
             $messageType = $validated['message_type'] ?? 'file';
+            
+            // Validate audio files
+            if ($messageType === 'voice') {
+                $allowedExtensions = ['webm', 'mp4', 'mpeg', 'wav', 'ogg', 'm4a', 'aac', '3gp', ''];
+                $extension = strtolower($file->getClientOriginalExtension());
+                
+                // Check MIME type as primary validation
+                $mimeType = $file->getMimeType();
+                $allowedMimes = [
+                    'audio/webm', 'audio/webm;codecs=opus',
+                    'audio/mp4', 'audio/mpeg', 'audio/x-mpeg',
+                    'audio/wav', 'audio/x-wav',
+                    'audio/ogg', 'audio/ogg;codecs=opus',
+                    'audio/m4a', 'audio/x-m4a',
+                    'audio/aac', 'audio/x-aac',
+                    'audio/3gpp', 'audio/3gpp2'
+                ];
+                
+                // Allow if extension is in list OR MIME type is in list
+                $extensionValid = in_array($extension, $allowedExtensions);
+                $mimeValid = in_array($mimeType, $allowedMimes);
+                
+                // Also check if MIME type starts with audio/
+                $mimeIsAudio = str_starts_with($mimeType, 'audio/');
+                
+                if (!$extensionValid && !$mimeValid && !$mimeIsAudio) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid audio file type. Allowed: webm, mp4, m4a, wav, ogg, aac'
+                    ], 422);
+                }
+                
+                // Validate file size (max 5MB)
+                if ($file->getSize() > 5 * 1024 * 1024) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Audio file too large. Maximum size is 5MB'
+                    ], 422);
+                }
+            }
             
             // Determine folder based on message type
             $folder = match($messageType) {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Star, X } from 'lucide-react';
 import axios from 'axios';
 import { getAuthToken } from '@/lib/cookies';
+import { useAuthStore } from '@/lib/store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -20,6 +21,7 @@ export default function WriteReviewModal({ adId, isOpen, onClose, onSuccess }: W
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const { user } = useAuthStore();
 
   if (!isOpen) return null;
 
@@ -42,16 +44,22 @@ export default function WriteReviewModal({ adId, isOpen, onClose, onSuccess }: W
 
     try {
       const token = getAuthToken();
-      await axios.post(`${API_URL}/ads/${adId}/reviews`, 
-        { rating, comment: comment || undefined },
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      await axios.post(`${API_URL}/reviews`, 
+        { 
+          ad_id: adId,
+          user_id: user?.id,
+          rating, 
+          comment: comment || '' 
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       onSuccess();
       onClose();
       setRating(0);
       setComment('');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to submit review. Please try again.');
+      console.error('Review error:', err.response?.data);
+      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
 import { useSocket } from '@/hooks/useSocket';
 import SearchBar from '@/components/ui/SearchBar';
-import CategoryNav from '@/components/ui/CategoryNav';
 
 function getAvatarUrl(url: string | null | undefined): string {
   if (!url) return '';
@@ -711,8 +710,25 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Category Navigation */}
-      <CategoryNav categories={categories} />
+      {/* Browse Categories Navigation */}
+      <div className="border-t border-gray-100 bg-gray-50">
+        <div className="container-app py-2">
+          <div className="flex items-center gap-6 overflow-x-auto scrollbar-thin text-sm">
+            <Link href="/categories" className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 font-medium whitespace-nowrap">
+              <span className="text-primary-600">☰</span> All Categories
+            </Link>
+            {categories.slice(0, 10).map((category: any) => (
+              <Link 
+                key={category.id} 
+                href={`/ads?category=${category.slug}`}
+                className="text-gray-500 hover:text-primary-600 whitespace-nowrap transition-colors"
+              >
+                {category.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (

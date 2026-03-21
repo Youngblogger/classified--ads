@@ -10,17 +10,6 @@ use Illuminate\Http\Request;
 
 class BroadcastController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(function ($request, $next) {
-            $user = $request->user();
-            if (!$user || $user->role !== 'admin') {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-            return $next($request);
-        });
-    }
-
     public function index(Request $request)
     {
         $query = Broadcast::query();
@@ -49,10 +38,10 @@ class BroadcastController extends Controller
         ]);
 
         $broadcast = Broadcast::create([
-            'admin_id' => auth()->id(),
+            'created_by' => $request->user()->id,
             'title' => $validated['title'],
             'message' => $validated['message'],
-            'recipient_type' => $validated['recipient_type'],
+            'target' => $validated['recipient_type'],
             'status' => 'sent',
             'sent_at' => now(),
         ]);
@@ -65,7 +54,7 @@ class BroadcastController extends Controller
                 $query->where('role', 'admin');
                 break;
             case 'verified':
-                $query->where('email_verified_at', '!=', null);
+                $query->whereNotNull('email_verified_at');
                 break;
             case 'users':
                 $query->where('role', 'user');

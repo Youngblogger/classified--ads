@@ -93,6 +93,18 @@ class AdminController extends Controller
         return response()->json(['message' => 'Ad deleted']);
     }
 
+    public function bulkDeleteAds(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:ads,id'
+        ]);
+
+        Ad::whereIn('id', $validated['ids'])->delete();
+
+        return response()->json(['message' => 'Ads deleted successfully', 'count' => count($validated['ids'])]);
+    }
+
     // Users Management
     public function users(Request $request)
     {
@@ -353,22 +365,35 @@ class AdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'message' => 'required|string',
-            'type' => 'required|in:all,users,admins',
+            'recipient_type' => 'required|in:all,users,admins',
         ]);
 
-        // Create notification for all users
+        // Get users to notify
         $users = User::query();
-        if ($validated['type'] === 'admins') {
+        
+        if ($validated['recipient_type'] === 'admins') {
             $users->where('role', 'admin');
+        } elseif ($validated['recipient_type'] === 'users') {
+            $users->where('role', 'user');
         }
         
-        $count = $users->count();
+        $recipients = $users->get();
+        $count = 0;
         
-        // In a real app, you would dispatch jobs to create notifications
-        // For now, just return success
+        foreach ($recipients as $user) {
+            Notification::create([
+                'user_id' => $user->id,
+                'type' => 'broadcast',
+                'title' => $validated['title'],
+                'message' => $validated['message'],
+                'data' => ['broadcast' => true],
+            ]);
+            $count++;
+        }
         
         return response()->json([
-            'message' => 'Broadcast sent',
+            'success' => true,
+            'message' => 'Broadcast sent successfully',
             'recipients' => $count,
         ]);
     }

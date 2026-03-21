@@ -96,7 +96,7 @@ class OtpService
         if (!$this->verifyOtp($otp, $verification->otp_hash)) {
             $verification->incrementAttempts();
             $remainingAttempts = self::MAX_ATTEMPTS - $verification->attempts;
-            
+
             return [
                 'success' => false,
                 'error' => "Invalid OTP. {$remainingAttempts} attempts remaining.",
@@ -161,7 +161,14 @@ class OtpService
         if (config('app.debug')) {
             \Illuminate\Support\Facades\Log::info("OTP for {$user->email}: {$otp}");
         }
-        
-        Mail::to($user->email)->queue(new OtpVerificationMail($user, $otp));
+
+        try {
+            // Send email immediately instead of queueing
+            Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+            \Illuminate\Support\Facades\Log::info("Email sent successfully to {$user->email}");
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Email sending failed: " . $e->getMessage());
+            throw $e;
+        }
     }
 }

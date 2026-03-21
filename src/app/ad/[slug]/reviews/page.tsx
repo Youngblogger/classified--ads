@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Header from '@/components/layout/Header';
+import OLXHeader from '@/components/home/OLXHeader';
 import Footer from '@/components/layout/Footer';
 import ReviewCard from '@/components/reviews/ReviewCard';
 import WriteReviewModal from '@/components/reviews/WriteReviewModal';
@@ -117,7 +117,7 @@ export default function AdReviewsPage() {
   if (!adId) {
     return (
       <>
-        <Header />
+        <OLXHeader />
         <div className="container-app py-12 text-center">
           <p>Loading...</p>
         </div>
@@ -128,7 +128,7 @@ export default function AdReviewsPage() {
 
   return (
     <>
-      <Header />
+      <OLXHeader />
       <main className="container-app py-8">
         <div className="mb-6">
           <nav className="flex items-center gap-2 text-sm text-gray-500">

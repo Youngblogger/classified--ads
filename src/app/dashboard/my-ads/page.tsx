@@ -6,6 +6,35 @@ import Image from 'next/image';
 import { adsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+function getAdImageUrl(ad: any): string {
+  if (!ad) return '';
+  
+  // Check for ad.image (single image field)
+  if (ad.image) {
+    const img = ad.image;
+    if (typeof img === 'string') {
+      if (img.startsWith('http')) return img;
+      if (img.startsWith('/storage/')) return `${API_URL.replace('/api', '')}${img}`;
+      return `${API_URL.replace('/api', '')}/storage/${img}`;
+    }
+  }
+  
+  // Check for ad.images array
+  const imagesArray = Array.isArray(ad.images) ? ad.images : [];
+  const primaryImage = imagesArray.find((img: any) => img?.is_primary) || imagesArray[0];
+  if (primaryImage) {
+    const url = primaryImage.url || primaryImage.original_url || primaryImage.thumbnail_url || primaryImage.thumbnail || '';
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/storage/')) return `${API_URL.replace('/api', '')}${url}`;
+    return `${API_URL.replace('/api', '')}/storage/${url}`;
+  }
+  
+  return '';
+}
+
 // Icons
 const EditIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -163,12 +192,18 @@ export default function MyAdsPage() {
             >
               {/* Image */}
               <div className="relative aspect-square bg-gray-100">
-                <Image
-                  src={ad.image}
-                  alt={ad.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+                {getAdImageUrl(ad) ? (
+                  <Image
+                    src={getAdImageUrl(ad)}
+                    alt={ad.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                    <span className="text-4xl">📷</span>
+                  </div>
+                )}
                 <div className="absolute top-3 right-3">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig[ad.status as keyof typeof statusConfig].class}`}>
                     {statusConfig[ad.status as keyof typeof statusConfig].label}

@@ -9,6 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 interface ReviewSummaryProps {
   adId: number;
   onWriteReview: () => void;
+  refreshKey?: number;
 }
 
 interface ReviewSummary {
@@ -23,7 +24,7 @@ interface ReviewSummary {
   };
 }
 
-export default function ReviewSummary({ adId, onWriteReview }: ReviewSummaryProps) {
+export default function ReviewSummary({ adId, onWriteReview, refreshKey = 0 }: ReviewSummaryProps) {
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +41,7 @@ export default function ReviewSummary({ adId, onWriteReview }: ReviewSummaryProp
     };
 
     fetchSummary();
-  }, [adId]);
+  }, [adId, refreshKey]);
 
   if (loading) {
     return (

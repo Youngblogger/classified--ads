@@ -40,7 +40,7 @@ export interface Category {
 export interface Location {
   id: number;
   name: string;
-  slug: string;
+  slug?: string;
   parent_id?: number;
   children?: Location[];
 }
@@ -58,7 +58,7 @@ export interface Ad {
   views?: number;
   created_at: string;
   updated_at?: string;
-  user?: User;
+  user?: Partial<User>;
   category?: Category;
   location?: Location;
   images: AdImage[];
@@ -71,7 +71,7 @@ export interface AdImage {
   id: number;
   url: string;
   is_primary: boolean;
-  order: number;
+  order?: number;
 }
 
 export interface AdSpecification {

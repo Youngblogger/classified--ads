@@ -3,9 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
-import Header from '@/components/layout/Header';
+import OLXHeader from '@/components/home/OLXHeader';
 import Footer from '@/components/layout/Footer';
-import CategoryNav from '@/components/ui/CategoryNav';
 import AdCard from '@/components/ui/AdCard';
 import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
@@ -147,8 +146,7 @@ export default function AdsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
-      <CategoryNav categories={categories} />
+      <OLXHeader />
       
       <main className="flex-1 container-app py-8">
         {/* Search Header */}
@@ -187,11 +185,12 @@ export default function AdsPage() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Filters Sidebar */}
+          {/* Filters Sidebar - Sticky */}
           <div className={`
-            lg:w-64 space-y-6
+            lg:w-64 lg:flex-shrink-0
             ${showFilters ? 'block' : 'hidden lg:block'}
           `}>
+            <div className="lg:sticky lg:top-24 space-y-6">
             {/* Categories */}
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
@@ -284,6 +283,7 @@ export default function AdsPage() {
             >
               Clear All Filters
             </button>
+          </div>
           </div>
 
           {/* Results */}

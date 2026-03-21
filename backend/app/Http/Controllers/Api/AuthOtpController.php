@@ -44,7 +44,13 @@ class AuthOtpController extends Controller
         ]);
 
         $otpData = $this->otpService->createOrUpdateVerification($user);
-        $this->otpService->sendOtpEmail($user, $otpData['otp']);
+
+        try {
+            $this->otpService->sendOtpEmail($user, $otpData['otp']);
+        } catch (\Exception $e) {
+            // Log the error but don't fail registration
+            \Illuminate\Support\Facades\Log::error('Email send failed: ' . $e->getMessage());
+        }
 
         $response = [
             'success' => true,
@@ -164,14 +170,28 @@ class AuthOtpController extends Controller
         }
 
         $otpData = $this->otpService->createOrUpdateVerification($user);
-        $this->otpService->sendOtpEmail($user, $otpData['otp']);
 
-        return response()->json([
+        try {
+            $this->otpService->sendOtpEmail($user, $otpData['otp']);
+        } catch (\Exception $e) {
+            // Log the error but don't fail the request
+            \Illuminate\Support\Facades\Log::error('Email send failed: ' . $e->getMessage());
+        }
+
+        $response = [
             'success' => true,
             'message' => 'A new verification code has been sent to your email.',
             'expires_at' => $otpData['expires_at']->toIso8601String(),
             'cooldown_remaining' => 60,
-        ]);
+        ];
+
+        // Include OTP in response for development
+        if (config('app.debug')) {
+            $response['otp'] = $otpData['otp'];
+            $response['dev_note'] = 'OTP shown for development only. Check email in production.';
+        }
+
+        return response()->json($response);
     }
 
     public function checkStatus(Request $request): JsonResponse

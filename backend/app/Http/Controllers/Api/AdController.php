@@ -89,8 +89,8 @@ class AdController extends Controller
             'location_id' => 'required|exists:locations,id',
             'condition' => 'required|in:new,like_new,good,fair',
             'currency' => 'sometimes|string|size:3',
-            'images' => 'sometimes|array|max:6',
-            'images.*' => 'image|mimes:jpg,jpeg,png,webp,gif,heic,heif|max:5120',
+            'phone' => 'sometimes|string|max:30',
+            'whatsapp' => 'sometimes|string|max:30',
         ]);
 
         $data['slug'] = \Illuminate\Support\Str::slug($request->title) . '-' . time();
@@ -99,15 +99,24 @@ class AdController extends Controller
 
         $ad = Ad::create($data);
 
-        if ($request->hasFile('images')) {
+        // Handle images - Laravel receives 'images[]' as 'images' in FormData
+        $files = $request->file('images') ?: $request->file('images[]');
+        
+        Log::info('Image upload - files received: ' . ($files ? 'yes (' . count($files) . ')' : 'none'));
+        
+        if ($files) {
+            $files = is_array($files) ? $files : [$files];
             $imageService = new ImageProcessingService();
 
-            foreach ($request->file('images') as $index => $file) {
+            foreach ($files as $index => $file) {
                 try {
+                    // Validate first
                     $imageService->validateImage($file);
                     
+                    // Process image
                     $result = $imageService->processAdImage($file, $ad->id);
 
+                    // Create image record
                     AdImage::create([
                         'ad_id' => $ad->id,
                         'url' => $result['url'],
@@ -117,19 +126,16 @@ class AdController extends Controller
                         'is_primary' => $index === 0,
                         'sort_order' => $index,
                     ]);
+                    
+                    Log::info("Image {$index} saved successfully: " . $result['url']);
                 } catch (\Exception $e) {
-                    Log::error("Failed to process image {$index} for ad {$ad->id}: " . $e->getMessage());
+                    Log::error("Failed to process image {$index} for ad {$ad->id}: " . $e->getMessage() . " - File: " . ($file ? $file->getClientOriginalName() : 'null'));
                 }
             }
-
-            return response()->json([
-                'data' => $ad->load('images'),
-                'message' => 'Ad posted successfully! Pending approval from admin.',
-            ], 201);
         }
 
         return response()->json([
-            'data' => $ad, 
+            'data' => $ad->load('images'),
             'message' => 'Ad posted successfully! Pending approval from admin.'
         ], 201);
     }
@@ -150,6 +156,8 @@ class AdController extends Controller
             'location_id' => 'sometimes|exists:locations,id',
             'condition' => 'sometimes|in:new,like_new,good,fair',
             'status' => 'sometimes|in:active,inactive,pending,sold',
+            'phone' => 'sometimes|string|max:30',
+            'whatsapp' => 'sometimes|string|max:30',
         ]);
 
         if (isset($data['title'])) {

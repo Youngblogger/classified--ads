@@ -8,10 +8,23 @@ import {
   Trash2,
   Image as ImageIcon,
   GripVertical,
-  Loader2
+  Loader2,
+  FolderTree
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import IconPicker from '@/components/ui/IconPicker';
+
+const iconNames = [
+  'car', 'truck', 'bus', 'bike', 'house', 'building', 'laptop', 'tv', 'camera', 'watch',
+  'cpu', 'database', 'cloud', 'bed', 'table', 'lamp', 'shirt', 'dress', 'briefcase', 'backpack',
+  'graduation-cap', 'book', 'users', 'user', 'clock', 'star', 'target', 'medal',
+  'dog', 'cat', 'fish', 'bird', 'heart', 'trophy', 'football', 'basketball', 'tree',
+  'pill', 'brain', 'bank', 'dollar-sign', 'credit-card', 'wallet', 'chart-line',
+  'utensils', 'coffee', 'beer', 'wine', 'pizza', 'hamburger', 'cake', 'cookie',
+  'palette', 'image', 'video', 'music', 'code', 'terminal', 'tag', 'flag', 'bell',
+  'settings', 'lock', 'key', 'shield', 'zap', 'power', 'map-pin', 'globe', 'search'
+];
 
 interface Category {
   id: number;
@@ -33,6 +46,7 @@ export default function CategoriesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -158,8 +172,12 @@ export default function CategoriesPage() {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-2xl">
-                    {category.icon || '📁'}
+                  <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center">
+                    {category.icon ? (
+                      <span className="text-2xl">{category.icon}</span>
+                    ) : (
+                      <FolderTree className="w-7 h-7 text-gray-400" />
+                    )}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{category.name}</h3>
@@ -172,7 +190,7 @@ export default function CategoriesPage() {
               </div>
               
               <div className="mt-4 flex items-center justify-between text-sm">
-                <span className="text-gray-500">{category.subcategories_count || category.subcategories_count || 0} subcategories</span>
+                <span className="text-gray-500">{category.subcategories_count || 0} subcategories</span>
                 <span className="font-medium text-gray-900">{category.ads_count?.toLocaleString() || 0} ads</span>
               </div>
               
@@ -238,14 +256,24 @@ export default function CategoriesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Icon (Emoji)</label>
-                <input
-                  type="text"
-                  value={formData.icon}
-                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  placeholder="e.g., 🚗"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon (emoji)</label>
+                <button
+                  type="button"
+                  onClick={() => setShowIconPicker(true)}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 flex items-center gap-3 hover:bg-gray-50"
+                >
+                  {formData.icon ? (
+                    <>
+                      <span className="text-2xl">{formData.icon}</span>
+                      <span className="text-gray-700">{formData.icon}</span>
+                    </>
+                  ) : (
+                    <>
+                      <FolderTree className="w-5 h-5 text-gray-400" />
+                      <span className="text-gray-400">Choose an icon</span>
+                    </>
+                  )}
+                </button>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -286,6 +314,17 @@ export default function CategoriesPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {showIconPicker && (
+        <IconPicker
+          value={formData.icon}
+          onChange={(icon) => {
+            setFormData({ ...formData, icon });
+            setShowIconPicker(false);
+          }}
+          onClose={() => setShowIconPicker(false)}
+        />
       )}
     </div>
   );

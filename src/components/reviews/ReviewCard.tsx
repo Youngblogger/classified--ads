@@ -16,8 +16,8 @@ interface Review {
   };
   rating: number;
   comment: string;
-  is_verified: boolean;
-  helpful_count: number;
+  is_verified?: boolean;
+  helpful_count?: number;
   created_at: string;
 }
 
@@ -27,7 +27,7 @@ interface ReviewCardProps {
 }
 
 export default function ReviewCard({ review, onReport }: ReviewCardProps) {
-  const [helpfulCount, setHelpfulCount] = useState(review.helpful_count);
+  const [helpfulCount, setHelpfulCount] = useState(review.helpful_count ?? 0);
   const [hasVoted, setHasVoted] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');

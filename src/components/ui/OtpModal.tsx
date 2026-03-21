@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useRef, useEffect, KeyboardEvent, ClipboardEvent, ChangeEvent } from 'react';
-import { X, Phone, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Phone, Mail, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface OtpModalProps {
   isOpen: boolean;
   onClose: () => void;
-  phone: string;
+  phone?: string;
+  email?: string;
   onVerified: () => void;
 }
 
-export default function OtpModal({ isOpen, onClose, phone, onVerified }: OtpModalProps) {
+export default function OtpModal({ isOpen, onClose, phone = '', email = '', onVerified }: OtpModalProps) {
+  const isEmailVerification = !!email;
+  const targetValue = email || phone;
   const [otp, setOtp] = useState<string[]>(['', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -98,7 +101,8 @@ export default function OtpModal({ isOpen, onClose, phone, onVerified }: OtpModa
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          phone: phone,
+          email: isEmailVerification ? email : undefined,
+          phone: isEmailVerification ? undefined : phone,
           otp: code,
         }),
       });
@@ -138,7 +142,7 @@ export default function OtpModal({ isOpen, onClose, phone, onVerified }: OtpModa
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ email: isEmailVerification ? email : undefined, phone: isEmailVerification ? undefined : phone }),
       });
 
       const data = await response.json();
@@ -158,15 +162,15 @@ export default function OtpModal({ isOpen, onClose, phone, onVerified }: OtpModa
 
   if (!isOpen) return null;
 
-  const maskedPhone = phone.length > 4 
-    ? '*'.repeat(phone.length - 4) + phone.slice(-4)
-    : phone;
+  const maskedTarget = targetValue.length > 4 
+    ? '*'.repeat(targetValue.length - 4) + targetValue.slice(-4)
+    : targetValue;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-6 max-w-md w-full animate-scale-in">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-dark">Verify Phone</h2>
+          <h2 className="text-2xl font-bold text-dark">{isEmailVerification ? 'Verify Email' : 'Verify Phone'}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -187,12 +191,12 @@ export default function OtpModal({ isOpen, onClose, phone, onVerified }: OtpModa
           <>
             <div className="text-center mb-6">
               <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-6 h-6 text-primary-600" />
+                {isEmailVerification ? <Mail className="w-6 h-6 text-primary-600" /> : <Phone className="w-6 h-6 text-primary-600" />}
               </div>
               <p className="text-gray-600 mb-2">
                 Enter the 4-digit code sent to
               </p>
-              <p className="text-dark font-medium">{maskedPhone}</p>
+              <p className="text-dark font-medium">{maskedTarget}</p>
             </div>
 
             <div className="flex justify-center gap-2 mb-4">

@@ -1,23 +1,36 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { MapPin, Eye } from 'lucide-react';
 import { Ad } from '@/types';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
+import { useState } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 function getImageUrl(img: any): string {
-  let url = img.url || img.display_url || img.original_url || img.thumbnail_url || img.thumbnail || '';
-  if (url.startsWith('/storage/')) {
-    url = `/storage/${url.replace('/storage/', '')}`;
-  } else if (url.startsWith(API_URL + '/storage/')) {
-    url = `/storage/${url.replace(API_URL + '/storage/', '')}`;
-  } else if (url.startsWith('http://localhost:8000/storage/')) {
-    url = `/storage/${url.replace('http://localhost:8000/storage/', '')}`;
+  if (!img) return '';
+  
+  let url = '';
+  
+  if (typeof img === 'string') {
+    url = img;
+  } else if (typeof img === 'object') {
+    url = img.url || img.src || img.display_url || img.original_url || img.thumbnail_url || img.thumbnail || img.image || img.path || img.file || '';
   }
-  return url;
+  
+  if (!url) return '';
+  
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  const baseUrl = API_URL.replace('/api', '');
+  if (url.startsWith('/storage/')) {
+    return `${baseUrl}${url}`;
+  }
+  
+  return `${baseUrl}/storage/${url}`;
 }
 
 interface AdCardProps {
@@ -26,26 +39,32 @@ interface AdCardProps {
   priority?: boolean;
 }
 
-export default function AdCard({ ad, variant = 'default', priority = false }: AdCardProps) {
+export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
+  const [imgError, setImgError] = useState(false);
   
-  const primaryImage = ad.images.find(img => img.is_primary) || ad.images[0];
+  // Ensure images is always an array
+  const imagesArray = Array.isArray(ad.images) ? ad.images : [];
+  // Find primary image or use first available
+  let primaryImage = imagesArray.find(img => img?.is_primary);
+  if (!primaryImage && imagesArray.length > 0) {
+    primaryImage = imagesArray[0];
+  }
+  const imageUrl = primaryImage ? getImageUrl(primaryImage) : '';
 
   if (variant === 'horizontal') {
     return (
       <Link href={`/ad/${ad.slug}`} className="card card-hover flex flex-col sm:flex-row">
-        <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0">
-          {primaryImage ? (
-            <Image
-              src={getImageUrl(primaryImage)}
+        <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0 bg-gray-100">
+          {imageUrl && !imgError ? (
+            <img
+              src={imageUrl}
               alt={ad.title}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
-              className="object-cover"
-              priority={priority}
+              className="w-full h-full object-cover"
+              onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-              <span className="text-gray-400">No Image</span>
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+              <span className="text-4xl">📷</span>
             </div>
           )}
           {ad.condition === 'new' && (
@@ -63,7 +82,7 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
           </div>
           <div className="flex items-center gap-2 mt-2 text-gray-500 text-sm">
             <MapPin className="w-4 h-4" />
-            <span>{ad.location.name}</span>
+            <span>{ad.location?.name || 'N/A'}</span>
           </div>
           <div className="flex items-center justify-between mt-4 text-sm text-gray-500">
             <span>{formatRelativeTime(ad.created_at)}</span>
@@ -80,19 +99,17 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
   if (variant === 'compact') {
     return (
       <Link href={`/ad/${ad.slug}`} className="card card-hover">
-        <div className="relative aspect-square">
-          {primaryImage ? (
-            <Image
-              src={getImageUrl(primaryImage)}
+        <div className="relative aspect-square bg-gray-100">
+          {imageUrl && !imgError ? (
+            <img
+              src={imageUrl}
               alt={ad.title}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
-              className="object-cover"
-              priority={priority}
+              className="w-full h-full object-cover"
+              onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-              <span className="text-gray-400 text-sm">No Image</span>
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+              <span className="text-3xl">📷</span>
             </div>
           )}
           {ad.condition === 'new' && (
@@ -106,7 +123,7 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
           </p>
           <div className="flex items-center gap-1 mt-2 text-gray-400 text-xs">
             <MapPin className="w-3 h-3" />
-            <span className="truncate">{ad.location.name}</span>
+            <span className="truncate">{ad.location?.name || 'N/A'}</span>
           </div>
         </div>
       </Link>
@@ -115,19 +132,17 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
 
   return (
     <Link href={`/ad/${ad.slug}`} className="card card-hover group">
-      <div className="relative aspect-[4/3] overflow-hidden">
-        {primaryImage ? (
-          <Image
-            src={getImageUrl(primaryImage)}
+      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+        {imageUrl && !imgError ? (
+          <img
+            src={imageUrl}
             alt={ad.title}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            priority={priority}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <span className="text-gray-400">No Image</span>
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+            <span className="text-5xl">📷</span>
           </div>
         )}
         {ad.condition === 'new' && (
@@ -148,7 +163,7 @@ export default function AdCard({ ad, variant = 'default', priority = false }: Ad
         </p>
         <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
           <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">{ad.location.name}</span>
+          <span className="truncate">{ad.location?.name || 'N/A'}</span>
         </div>
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 text-sm text-gray-500">
           <span>{formatRelativeTime(ad.created_at)}</span>

@@ -16,7 +16,9 @@ import {
   MoreVertical,
   Grid,
   List,
-  Loader2
+  Loader2,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -45,6 +47,8 @@ export default function AdsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [selectedAds, setSelectedAds] = useState<number[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     fetchAds();
@@ -120,6 +124,39 @@ export default function AdsPage() {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedAds.length === filteredAds.length) {
+      setSelectedAds([]);
+    } else {
+      setSelectedAds(filteredAds.map(ad => ad.id));
+    }
+  };
+
+  const handleSelectAd = (adId: number) => {
+    setSelectedAds(prev => 
+      prev.includes(adId) 
+        ? prev.filter(id => id !== adId)
+        : [...prev, adId]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedAds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedAds.length} selected ad(s)?`)) return;
+    
+    try {
+      setBulkDeleting(true);
+      await adminApi.bulkDeleteAds(selectedAds);
+      toast.success(`${selectedAds.length} ad(s) deleted successfully`);
+      setSelectedAds([]);
+      fetchAds();
+    } catch (error) {
+      toast.error('Failed to delete selected ads');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const filteredAds = ads.filter(ad => {
     const matchesSearch = ad.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          ad.user?.name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -133,6 +170,8 @@ export default function AdsPage() {
     rejected: ads.filter(a => a.status === 'rejected').length,
   };
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  
   const getImageUrl = (url: string | undefined): string => {
     if (!url) return '/placeholder.jpg';
     
@@ -144,8 +183,9 @@ export default function AdsPage() {
     // Remove leading slash if present
     const cleanUrl = url.replace(/^\/+/, '');
     
-    // Use the storage rewrite for Laravel files
-    return `/storage/${cleanUrl}`;
+    // Use the API base URL
+    const API_BASE = API_URL.replace('/api', '');
+    return `${API_BASE}/storage/${cleanUrl}`;
   };
 
   return (
@@ -210,6 +250,18 @@ export default function AdsPage() {
             <Grid className="w-5 h-5 text-gray-600" />
           </button>
         </div>
+
+        {/* Delete Selected Button */}
+        {selectedAds.length > 0 && (
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Delete Selected ({selectedAds.length})</span>
+          </button>
+        )}
       </div>
 
       {/* Ads Table */}
@@ -218,6 +270,17 @@ export default function AdsPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 w-10">
+                  <button onClick={handleSelectAll} className="p-1 hover:bg-gray-200 rounded">
+                    {selectedAds.length > 0 && selectedAds.length === filteredAds.length ? (
+                      <CheckSquare className="w-5 h-5 text-sky-600" />
+                    ) : selectedAds.length > 0 ? (
+                      <CheckSquare className="w-5 h-5 text-sky-600" />
+                    ) : (
+                      <Square className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                </th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Ad</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Seller</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Status</th>
@@ -230,20 +293,29 @@ export default function AdsPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-sky-600" />
                     <p className="text-sm text-gray-500 mt-2">Loading ads...</p>
                   </td>
                 </tr>
               ) : filteredAds.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                     No ads found
                   </td>
                 </tr>
               ) : (
                 filteredAds.map((ad) => (
-                  <tr key={ad.id} className="hover:bg-gray-50">
+                  <tr key={ad.id} className={`hover:bg-gray-50 ${selectedAds.includes(ad.id) ? 'bg-sky-50' : ''}`}>
+                    <td className="px-4 py-4">
+                      <button onClick={() => handleSelectAd(ad.id)} className="p-1 hover:bg-gray-200 rounded">
+                        {selectedAds.includes(ad.id) ? (
+                          <CheckSquare className="w-5 h-5 text-sky-600" />
+                        ) : (
+                          <Square className="w-5 h-5 text-gray-400" />
+                        )}
+                      </button>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
@@ -257,7 +329,7 @@ export default function AdsPage() {
                         <div>
                           <p className="text-sm font-medium text-gray-900">{ad.title}</p>
                           <p className="text-sm text-gray-500">{ad.category?.name}</p>
-                          <p className="text-sm font-semibold text-sky-600">${ad.price?.toLocaleString()}</p>
+                          <p className="text-sm font-semibold text-sky-600">₦{ad.price?.toLocaleString()}</p>
                         </div>
                       </div>
                     </td>
@@ -362,6 +434,7 @@ export default function AdsPage() {
         <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
           <p className="text-sm text-gray-500">
             Showing {filteredAds.length} of {ads.length} ads
+            {selectedAds.length > 0 && ` (${selectedAds.length} selected)`}
           </p>
           <div className="flex items-center gap-2">
             <button className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>

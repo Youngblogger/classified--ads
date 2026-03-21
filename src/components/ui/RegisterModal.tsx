@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, Eye, EyeOff, Facebook, Chrome, User, Phone, CheckCircle } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import OtpModal from './OtpModal';
 
 export default function RegisterModal() {
+  const router = useRouter();
   const { isRegisterModalOpen, toggleRegisterModal, toggleLoginModal, closeAllModals } = useUIStore();
   const { login, setLoading } = useAuthStore();
   const [name, setName] = useState('');
@@ -65,7 +67,7 @@ export default function RegisterModal() {
       formData.append('password_confirmation', confirmPassword);
       if (phone) formData.append('phone', phone);
        
-      const response = await fetch(`${apiUrl}/auth/register`, {
+      const response = await fetch(`${apiUrl}/auth/register-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -85,21 +87,20 @@ export default function RegisterModal() {
         throw new Error(errorMessage);
       }
 
-      // If phone verification is required, show OTP modal
-      if (data.requires_verification && phone) {
-        // Store token temporarily
-        if (data.token) {
-          login(data.user, data.token);
-        }
-        setPendingPhone(phone);
+      // Registration successful - show OTP modal for email verification
+      if (data.success && data.user_id && data.email) {
+        setPendingPhone(data.email); // Using this to store the email for verification
         setShowOtpModal(true);
         return;
       }
 
-      // No phone verification needed - login directly
-      login(data.user, data.token);
-      closeAllModals();
-      resetForm();
+      // Fallback - login directly
+      if (data.user && data.token) {
+        login(data.user, data.token);
+        closeAllModals();
+        resetForm();
+        router.push('/');
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.';
       setError(errorMessage);
@@ -109,10 +110,14 @@ export default function RegisterModal() {
     }
   };
 
-  const handleOtpVerified = () => {
+  const handleOtpVerified = async () => {
     setShowOtpModal(false);
     closeAllModals();
     resetForm();
+    // After email verification, prompt user to login
+    router.push('/');
+    // Optionally open login modal
+    window.location.reload();
   };
 
   const resetForm = () => {
@@ -309,6 +314,7 @@ export default function RegisterModal() {
     {/* OTP Verification Modal */}
     <OtpModal
       isOpen={showOtpModal}
+      email={pendingPhone} // Using pendingPhone to store email
       onClose={() => {
         setShowOtpModal(false);
         closeAllModals();

@@ -13,7 +13,8 @@ import {
   Loader2,
   Filter,
   Save,
-  Clock
+  Clock,
+  Image as ImageIcon
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -97,6 +98,8 @@ export default function AdsApprovalPage() {
     }
   };
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  
   const getImageUrl = (url: string | undefined): string => {
     if (!url) return '/placeholder.jpg';
     
@@ -108,8 +111,9 @@ export default function AdsApprovalPage() {
     // Remove leading slash if present
     const cleanUrl = url.replace(/^\/+/, '');
     
-    // Use the storage rewrite for Laravel files
-    return `/storage/${cleanUrl}`;
+    // Use the API base URL
+    const API_BASE = API_URL.replace('/api', '');
+    return `${API_BASE}/storage/${cleanUrl}`;
   };
 
   const fetchPendingAds = async () => {
@@ -350,15 +354,25 @@ export default function AdsApprovalPage() {
                 {/* Ad Image */}
                 <div className="w-full lg:w-48 h-48 relative rounded-lg overflow-hidden bg-gray-100">
                   {ad.images && ad.images.length > 0 ? (
-                    <Image
-                      src={getImageUrl(ad.images[0].url)}
-                      alt={ad.title}
-                      fill
-                      className="object-cover"
-                    />
+                    <>
+                      <img
+                        src={getImageUrl(ad.images[0].url)}
+                        alt={ad.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 hidden">
+                        <ImageIcon className="w-8 h-8" />
+                        <span className="ml-2 text-sm">No Image</span>
+                      </div>
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      No Image
+                      <ImageIcon className="w-8 h-8" />
+                      <span className="ml-2 text-sm">No Image</span>
                     </div>
                   )}
                 </div>
@@ -384,7 +398,7 @@ export default function AdsApprovalPage() {
                   <div className="flex flex-wrap gap-4 mt-4">
                     <div>
                       <p className="text-xs text-gray-500">Price</p>
-                      <p className="font-semibold text-gray-900">${ad.price.toLocaleString()}</p>
+                      <p className="font-semibold text-gray-900">₦{ad.price.toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Category</p>

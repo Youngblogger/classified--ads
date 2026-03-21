@@ -548,6 +548,32 @@ export default function PaymentMethods({
                 <Lock className="w-3 h-3" />
                 Secured by Paystack
               </p>
+              
+              {/* Payment Logos */}
+              <div className="flex items-center justify-center gap-3 mt-3">
+                {/* Paystack */}
+                <div className="h-8 px-2 bg-white border border-gray-200 rounded flex items-center justify-center">
+                  <svg viewBox="0 0 80 24" className="h-4" fill="none">
+                    <rect width="80" height="24" rx="3" fill="#008535"/>
+                    <text x="8" y="16" fill="white" fontSize="8" fontWeight="bold" fontFamily="Arial">Paystack</text>
+                  </svg>
+                </div>
+                {/* Visa */}
+                <div className="h-8 px-2 bg-white border border-gray-200 rounded flex items-center justify-center">
+                  <svg viewBox="0 0 40 24" className="h-4">
+                    <rect width="40" height="24" rx="3" fill="#1A1F71"/>
+                    <text x="20" y="16" fill="white" fontSize="10" fontWeight="bold" fontFamily="Arial" textAnchor="middle">VISA</text>
+                  </svg>
+                </div>
+                {/* Mastercard */}
+                <div className="h-8 px-2 bg-white border border-gray-200 rounded flex items-center justify-center">
+                  <svg viewBox="0 0 32 24" className="h-4">
+                    <circle cx="12" cy="12" r="10" fill="#EB001B"/>
+                    <circle cx="20" cy="12" r="10" fill="#F79E1B"/>
+                    <path d="M16 5a10 10 0 000 14 10 10 0 000-14z" fill="#FF5F00"/>
+                  </svg>
+                </div>
+              </div>
             </div>
           )}
 

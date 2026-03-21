@@ -16,6 +16,7 @@ class Review extends Model
         'ad_id',
         'rating',
         'comment',
+        'helpful_count',
     ];
 
     protected $casts = [

@@ -48,6 +48,7 @@ export default function PostAdPage() {
     description: '',
     price: '',
     condition: 'new',
+    phone: '',
   });
   const [images, setImages] = useState<ImagePreview[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -365,10 +366,16 @@ export default function PostAdPage() {
       formDataToSend.append('category_id', formData.category);
       formDataToSend.append('location_id', selectedLocation?.id?.toString() || '');
       formDataToSend.append('condition', formData.condition);
+      if (formData.phone) {
+        formDataToSend.append('phone', formData.phone);
+      }
       
       images.forEach((img) => {
         formDataToSend.append('images[]', img.file);
       });
+
+      // Debug: log what's being sent
+      console.log('Submitting ad with', images.length, 'images');
 
       const response = await fetch(`${apiUrl}/ads`, {
         method: 'POST',
@@ -399,6 +406,7 @@ export default function PostAdPage() {
         description: '',
         price: '',
         condition: 'new',
+        phone: '',
       });
       setImages([]);
     } catch (error: any) {
@@ -460,6 +468,7 @@ export default function PostAdPage() {
           <input
             ref={fileInputRef}
             type="file"
+            name="images"
             accept="image/*"
             multiple
             onChange={handleImageSelect}
@@ -604,6 +613,22 @@ export default function PostAdPage() {
                   </label>
                 ))}
               </div>
+            </div>
+
+            {/* Phone Number */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Contact Phone <span className="text-gray-400">(optional)</span>
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="e.g. +234 801 234 5678"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-400">Buyers will see this when they click "Show Phone Number"</p>
             </div>
           </div>
         </div>

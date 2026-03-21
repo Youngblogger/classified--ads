@@ -157,7 +157,7 @@ export const adsApi = {
   update: (id: number, data: FormData) => api.post(`/ads/${id}`, data),
   delete: (id: number) => api.delete(`/ads/${id}`),
   incrementViews: (id: number) => api.post(`/ads/${id}/views`),
-  getMyAds: (params?: Record<string, any>) => api.get('/ads/my-ads', { params }),
+  getMyAds: (params?: Record<string, any>) => api.get('/my-ads', { params }),
 };
 
 // Favorites API
@@ -282,6 +282,7 @@ export const adminApi = {
   featureAd: (id: number) => api.post(`/admin/ads/${id}/feature`),
   promoteAd: (id: number) => api.post(`/admin/ads/${id}/promote`),
   deleteAd: (id: number) => api.delete(`/admin/ads/${id}`),
+  bulkDeleteAds: (ids: number[]) => api.post('/admin/ads/bulk-delete', { ids }),
   updateAd: (id: number, data: any) => api.put(`/admin/ads/${id}`, data),
 
   // Categories
@@ -341,7 +342,7 @@ export const adminApi = {
   getBroadcasts: (params?: Record<string, any>) => api.get('/admin/broadcasts', { params }),
   getBroadcast: (id: number) => api.get(`/admin/broadcasts/${id}`),
   createBroadcast: (data: { title: string; message: string; recipient_type: string }) => 
-    api.post('/admin/broadcasts', data),
+    api.post('/admin/broadcast', data),
   resendBroadcast: (id: number) => api.post(`/admin/broadcasts/${id}/resend`),
   deleteBroadcast: (id: number) => api.delete(`/admin/broadcasts/${id}`),
 

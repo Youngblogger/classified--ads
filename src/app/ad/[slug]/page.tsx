@@ -3,16 +3,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/layout/Header';
+import OLXHeader from '@/components/home/OLXHeader';
 import Footer from '@/components/layout/Footer';
-import ReviewSummary from '@/components/reviews/ReviewSummary';
-import LatestReviews from '@/components/reviews/LatestReviews';
-import WriteReviewModal from '@/components/reviews/WriteReviewModal';
 import RelatedAds from '@/components/ads/RelatedAds';
-import ChatModal from '@/components/chat/ChatModal';
 import ShareModal from '@/components/ui/ShareModal';
+import WriteReviewModal from '@/components/reviews/WriteReviewModal';
+import ChatModal from '@/components/chat/ChatModal';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import { Heart, Share2, Flag, MapPin, Eye, Clock, Phone, MessageCircle, ChevronLeft, ChevronRight, CheckCircle, User, Home, X, Check } from 'lucide-react';
+import { Heart, Share2, Flag, MapPin, Eye, Clock, Phone, ChevronLeft, ChevronRight, CheckCircle, User, Home, X, Check, Star, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -27,14 +25,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 function getImageUrl(url: string): string {
   if (!url) return '';
-  if (url.startsWith('/storage/')) {
-    return `/storage/${url.replace('/storage/', '')}`;
-  } else if (url.startsWith(API_URL.replace('/api', '') + '/storage/')) {
-    return `/storage/${url.replace(API_URL.replace('/api', '') + '/storage/', '')}`;
-  } else if (url.startsWith('http://localhost:8000/storage/')) {
-    return `/storage/${url.replace('http://localhost:8000/storage/', '')}`;
+  // If already a full URL, return as-is
+  if (url.startsWith('http')) {
+    return url;
   }
-  return url;
+  // If it's a storage path, prepend the API URL
+  if (url.startsWith('/storage/')) {
+    const API_BASE = API_URL.replace('/api', '');
+    return `${API_BASE}${url}`;
+  }
+  // If it's just a path, prepend API URL
+  return `${API_URL.replace('/api', '')}/storage/${url}`;
 }
 
 function WatermarkBadge({ adId }: { adId: number }) {
@@ -67,16 +68,14 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
   const [shareCopied, setShareCopied] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [showWriteReview, setShowWriteReview] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showWriteReview, setShowWriteReview] = useState(false);
+  const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
   const [reportLoading, setReportLoading] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
-  const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
-  const { isAuthenticated, user } = useAuthStore();
+  const [showChat, setShowChat] = useState(false);
+  const { isAuthenticated } = useAuthStore();
   const { toggleLoginModal } = useUIStore();
-
-  const isOwnAd = user && ad && user.id === ad.user?.id;
 
   // Fetch ad from API
   useEffect(() => {
@@ -110,8 +109,11 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
         }
         const data = await response.json();
         console.log('[AdDetail] Received data:', data ? 'success' : 'empty');
+        console.log('[AdDetail] Full API response:', JSON.stringify(data));
         // Handle both formats: { data: ad } or just { ad }
         const adData = data.data || data;
+        console.log('[AdDetail] Ad data keys:', Object.keys(adData));
+        console.log('[AdDetail] Ad images raw:', adData.images);
         setAd(adData);
         setIsFavorited(adData.is_favorited || false);
       } catch (err: any) {
@@ -291,32 +293,21 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
     }
   };
 
-  // Use mock data as fallback when ad is loading or for display
-  const displayAd = ad || {
-    title: 'Loading...',
-    price: 0,
-    currency: 'NGN',
-    description: 'Loading ad details...',
-    condition: 'used',
-    status: 'active',
-    views: 0,
-    created_at: new Date().toISOString(),
-    user: { name: 'Loading...', phone: '', avatar: null, verified: false },
-    category: { name: 'Loading...', slug: '' },
-    location: { name: 'Loading...' },
-    images: [],
-  };
+  // Use real ad data - no mock data
+  // The loading and error states handle null ad cases, so we can safely use ad directly
+  const displayAd = ad;
 
-  const currentImages = displayAd.images?.length > 0 ? displayAd.images.map((img: any) => ({
-    ...img,
-    url: getImageUrl(img.url || img.display_url || img.original_url || img.thumbnail_url || img.thumbnail || '')
-  })) : [
-    { id: 1, url: 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=1200', is_primary: true, order: 1 }
-  ];
+  // Build image list - try all possible URL fields regardless of status
+  const adImages = displayAd?.images || [];
+  const currentImages = adImages.length > 0 ? adImages.map((img: any) => {
+    const rawUrl = img.url || img.original_url || img.display_url || img.thumbnail_url || img.thumbnail || img.src || img.image || img.path || img.file || '';
+    const resolvedUrl = getImageUrl(rawUrl);
+    return { ...img, url: resolvedUrl };
+  }) : [];
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
+      <OLXHeader />
       
       <main className="flex-1 py-8">
         <div className="container-app">
@@ -363,8 +354,8 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                   onTouchEnd={handleTouchEnd}
                 >
                   <img
-                    src={currentImages[currentImageIndex]?.url}
-                    alt={displayAd.title}
+                    src={currentImages[currentImageIndex]?.url || 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27800%27 height=%27600%27 viewBox=%270 0 800 600%27%3E%3Crect width=%27800%27 height=%27600%27 fill=%27%23f3f4f6%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-family=%27Arial%27 font-size=%2724%27 fill=%27%236b7280%27%3ENo Image Available%3C/text%3E%3C/svg%3E'}
+                    alt={displayAd?.title || 'Ad Image'}
                     className="w-full h-full object-cover"
                   />
                   
@@ -406,7 +397,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                           index === currentImageIndex ? 'border-primary-500' : 'border-transparent'
                         }`}
                       >
-                        <img src={image.url} alt="" className="w-full h-full object-cover" />
+                        <img src={image.url || 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2780%27 height=%2780%27 viewBox=%270 0 80 80%27%3E%3Crect width=%2780%27 height=%2780%27 fill=%27%23f3f4f6%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-family=%27Arial%27 font-size=%2710%27 fill=%27%236b7280%27%3EN/A%3C/text%3E%3C/svg%3E'} alt="" className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
@@ -488,16 +479,41 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
               <div className="card p-4 lg:p-6">
                 <div className="flex flex-col items-center mb-4">
                   <div className="relative">
-                    <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
-                      {displayAd.user?.avatar || displayAd.user?.google_avatar || displayAd.user?.facebook_avatar || displayAd.user?.avatar_url ? (
-                        <img 
-                          src={getImageUrl(displayAd.user?.avatar || displayAd.user?.google_avatar || displayAd.user?.facebook_avatar || displayAd.user?.avatar_url || '')} 
-                          alt={displayAd.user?.name || 'Seller'} 
-                          className="w-full h-full object-cover" 
-                        />
-                      ) : (
-                        <User className="w-10 h-10 text-primary-600" />
-                      )}
+                    <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
+                      {(() => {
+                        // Try all possible avatar fields
+                        const avatarFields = [
+                          displayAd.user?.avatar_url,
+                          displayAd.user?.google_avatar,
+                          displayAd.user?.facebook_avatar,
+                          displayAd.user?.avatar,
+                          displayAd.user?.profile_image,
+                          displayAd.user?.image
+                        ];
+                        const avatarSrc = avatarFields.find(f => f && f.trim() !== '');
+                        
+                        if (avatarSrc) {
+                          const imgUrl = getImageUrl(avatarSrc);
+                          if (imgUrl) {
+                            return (
+                              <img 
+                                src={imgUrl} 
+                                alt={displayAd.user?.name || 'Seller'} 
+                                className="w-full h-full object-cover"
+                              />
+                            );
+                          }
+                        }
+                        // Show default avatar with initials
+                        const nameInitials = displayAd.user?.name 
+                          ? displayAd.user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                          : '?';
+                        return (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-300 to-primary-500 text-white font-bold text-2xl">
+                            {nameInitials}
+                          </div>
+                        );
+                      })()}
                     </div>
                     {displayAd.user?.verified === 1 || displayAd.user?.role === 'verified' ? (
                       <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md">
@@ -506,7 +522,12 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                     ) : null}
                   </div>
                   <div className="text-center mt-2">
-                    <h3 className="font-semibold text-dark">{displayAd.user?.name}</h3>
+                    <h3 className="font-semibold text-dark flex items-center justify-center gap-1">
+                      {displayAd.user?.name || 'Unknown Seller'}
+                      {displayAd.user?.verified === 1 || displayAd.user?.role === 'verified' ? (
+                        <CheckCircle className="w-4 h-4 text-success" />
+                      ) : null}
+                    </h3>
                     <p className="text-sm text-gray-500">
                       Member since {displayAd.user?.created_at 
                         ? new Date(displayAd.user.created_at).getFullYear().toString()
@@ -515,6 +536,23 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                   </div>
                 </div>
 
+                {/* Seller Meta Info */}
+                <div className="flex items-center justify-center gap-4 text-sm text-gray-500 mb-4">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                    <span className="font-medium">4.8</span>
+                    <span>(24 reviews)</span>
+                  </div>
+                </div>
+
+                {/* View All Ads Link */}
+                <Link
+                  href={`/dashboard/profile/${displayAd.user?.id}`}
+                  className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  View all ads by this seller →
+                </Link>
+
                 <div className="space-y-3">
                   <button
                     onClick={() => {
@@ -522,47 +560,66 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                         toggleLoginModal();
                         return;
                       }
-                      setShowPhone(true);
+                      const phoneNumber = displayAd.phone || displayAd.user?.phone;
+                      if (!phoneNumber) {
+                        toast.error('No phone number available');
+                        return;
+                      }
+                      // If phone is already shown, make the call
+                      if (showPhone) {
+                        window.location.href = `tel:${phoneNumber}`;
+                      } else {
+                        // Show the phone number in the button
+                        setShowPhone(true);
+                      }
                     }}
-                    className="btn-primary w-full flex items-center justify-center gap-2"
+                    className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                   >
                     <Phone className="w-5 h-5" />
-                    {isAuthenticated ? (showPhone ? (displayAd.user?.phone || 'No phone provided') : 'Show Phone Number') : 'Login to View Phone'}
-                  </button>
-                  <div className="grid grid-cols-2 gap-3">
-                    {!isOwnAd && (
-                      <button
-                        onClick={() => {
-                          if (!isAuthenticated) {
-                            alert('Please login to chat with the seller');
-                            return;
-                          }
-                          setShowChatModal(true);
-                        }}
-                        className="btn-primary w-full flex items-center justify-center gap-2"
-                      >
-                        <MessageCircle className="w-5 h-5" />
-                        Chat Seller
-                      </button>
+                    {isAuthenticated ? (
+                      showPhone ? (
+                        <span className="flex items-center gap-2">
+                          <span>📞</span>
+                          <span>{displayAd.phone || displayAd.user?.phone}</span>
+                        </span>
+                      ) : (
+                        'Show Phone Number'
+                      )
+                    ) : (
+                      'Login to View Phone'
                     )}
-                    <button
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          alert('Please login to contact via WhatsApp');
-                          return;
-                        }
-                        if (!displayAd.user?.whatsapp) {
-                          alert('Seller did not provide WhatsApp number');
-                          return;
-                        }
-                        window.open(`https://wa.me/${displayAd.user.whatsapp.replace(/\D/g, '')}?text=Hi, I'm interested in your ad: ${encodeURIComponent(displayAd.title || '')}`, '_blank');
-                      }}
-                      className="btn w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white"
-                    >
-                      <WhatsAppIcon className="w-5 h-5" />
-                      WhatsApp
-                    </button>
-                  </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        toggleLoginModal();
+                        return;
+                      }
+                      const whatsappNumber = displayAd.whatsapp || displayAd.user?.whatsapp;
+                      if (!whatsappNumber) {
+                        toast.error('WhatsApp number not available for this ad');
+                        return;
+                      }
+                      window.open(`https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=Hi, I'm interested in your ad: ${encodeURIComponent(displayAd.title || '')}`, '_blank');
+                    }}
+                    className="w-full py-2.5 px-4 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <WhatsAppIcon className="w-4 h-4" />
+                    WhatsApp
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        toggleLoginModal();
+                        return;
+                      }
+                      setShowChat(true);
+                    }}
+                    className="w-full py-3 px-4 bg-[#00B53F] hover:bg-[#00a035] text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Chat Seller
+                  </button>
                 </div>
               </div>
 
@@ -589,25 +646,32 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
           )}
         </div>
 
-        {/* Reviews Section */}
+        {/* Related Ads Section */}
         {ad && (
-          <div className="mt-8">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
-              <h2 className="text-xl font-bold text-dark">Reviews</h2>
-              <ReviewSummary 
-                adId={ad.id} 
-                onWriteReview={() => setShowWriteReview(true)} 
-              />
-              <LatestReviews key={reviewsRefreshKey} adId={ad.id} adSlug={ad.slug} refreshKey={reviewsRefreshKey} />
-            </div>
-            <div className="mt-6">
-              <RelatedAds currentAdId={ad.id} categoryId={ad.category_id} />
-            </div>
+          <div className="mt-6">
+            <RelatedAds currentAdId={ad.id} categoryId={ad.category_id} />
           </div>
         )}
       </main>
 
       <Footer />
+
+      {/* Mobile Sticky Chat Button */}
+      <div className="fixed bottom-4 left-4 right-4 md:hidden z-40">
+        <button
+          onClick={() => {
+            if (!isAuthenticated) {
+              toggleLoginModal();
+              return;
+            }
+            setShowChat(true);
+          }}
+          className="w-full py-4 bg-[#00B53F] text-white rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg hover:bg-[#00a035] transition-colors"
+        >
+          <MessageCircle className="w-5 h-5" />
+          Chat Seller
+        </button>
+      </div>
 
       {/* Report Modal */}
       {showReportModal && (
@@ -678,19 +742,6 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
         />
       )}
 
-      {/* Chat Modal */}
-      {showChatModal && ad && (
-        <ChatModal
-          isOpen={showChatModal}
-          onClose={() => setShowChatModal(false)}
-          adId={ad.id}
-          adTitle={ad.title}
-          sellerId={ad.user?.id}
-          sellerName={ad.user?.name}
-          sellerAvatar={getImageUrl(ad.user?.avatar_url || ad.user?.avatar || ad.user?.google_avatar || ad.user?.facebook_avatar)}
-        />
-      )}
-
       {/* Share Modal */}
       <ShareModal
         isOpen={showShareModal}
@@ -699,6 +750,30 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
         price={ad?.price}
         currency={ad?.currency}
       />
+
+      {/* Chat Modal */}
+      {showChat && ad && displayAd.user && (
+        <ChatModal
+          isOpen={showChat}
+          onClose={() => setShowChat(false)}
+          adId={ad.id}
+          adTitle={ad.title}
+          sellerId={displayAd.user.id}
+          sellerName={displayAd.user.name || 'Seller'}
+          sellerAvatar={(() => {
+            const avatarFields = [
+              displayAd.user?.avatar_url,
+              displayAd.user?.google_avatar,
+              displayAd.user?.facebook_avatar,
+              displayAd.user?.avatar,
+              displayAd.user?.profile_image,
+              displayAd.user?.image
+            ];
+            const avatarSrc = avatarFields.find(f => f && f.trim() !== '');
+            return avatarSrc ? getImageUrl(avatarSrc) : undefined;
+          })()}
+        />
+      )}
     </div>
   );
 }

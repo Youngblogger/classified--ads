@@ -46,10 +46,11 @@ const navigation: NavItem[] = [
   { name: 'Ad Approval Settings', href: '/admin/ads/approval', icon: CheckCircle },
   { name: 'Categories', href: '/admin/categories', icon: FolderTree },
   { name: 'Subcategories', href: '/admin/subcategories', icon: FolderTree },
+  { name: 'Reviews Management', href: '/admin/reviews', icon: Star },
   { name: 'Reports & Abuse', href: '/admin/reports', icon: Flag },
   { name: 'Messages', href: '/admin/messages', icon: MessageSquare },
   { name: 'Banners & Ads', href: '/admin/banners', icon: Image },
-  { name: 'Promotions', href: '/admin/promotions', icon: Star },
+  { name: 'Promotions', href: '/admin/promotions', icon: TrendingUp },
   { name: 'Wallets', href: '/admin/wallets', icon: Wallet },
   { name: 'Payments', href: '/admin/payments', icon: CreditCard },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
@@ -106,7 +107,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, []);
 
   // Skip auth check for login page - render without auth verification
-  const isLoginPage = pathname === '/admin/login';
+  const isLoginPage = pathname === '/admin-login';
 
   // Get token from store or directly from localStorage (for initial hydration)
   const getInitialToken = () => {
@@ -138,7 +139,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (!initialToken) {
       console.log('Layout: No token (initial check), redirecting to login');
       logout();
-      router.push('/admin/login');
+      router.push('/admin-login');
       return;
     }
     
@@ -152,7 +153,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         console.log('Layout: No token, redirecting to login');
         if (isMounted) {
           logout();
-          router.push('/admin/login');
+          router.push('/admin-login');
         }
         return;
       }
@@ -160,6 +161,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       try {
         const response = await api.get('/auth/me', { signal: controller.signal });
         console.log('Layout: Token is valid', response.data);
+        
+        // Ensure authChecked is set even if there's an error below
+        if (!isMounted) return;
         
         if (!isMounted) return;
         
@@ -176,14 +180,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         } else {
           console.log('Layout: User is not admin');
           logout();
-          router.push('/admin/login');
+          router.push('/admin-login');
         }
       } catch (err: any) {
-        if (!isMounted) return;
-        if (err.name === 'AbortError' || err.name === 'CanceledError') return;
+        console.log('Layout: Auth error:', err);
+        if (!isMounted) {
+          setAuthChecked(true);
+          return;
+        }
+        if (err.name === 'AbortError' || err.name === 'CanceledError') {
+          setAuthChecked(true);
+          return;
+        }
         console.log('Layout: Token is invalid, clearing auth');
         logout();
-        router.push('/admin/login');
+        router.push('/admin-login');
+        setAuthChecked(true);
       }
       
       if (isMounted) {

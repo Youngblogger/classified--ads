@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Icon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
@@ -23,5 +25,18 @@ class CategoryController extends Controller
     {
         $category = Category::where('slug', $slug)->firstOrFail();
         return response()->json(['data' => $category]);
+    }
+
+    public function getAllCategories()
+    {
+        $categories = Category::with(['parent', 'children'])
+            ->orderBy('sort_order')
+            ->get();
+
+        return response()->json([
+            'data' => $categories,
+            'icons' => Icon::getAllIcons(),
+            'iconCategories' => Icon::getIconCategories(),
+        ]);
     }
 }

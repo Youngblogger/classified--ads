@@ -139,9 +139,19 @@ export default function MessagesPage() {
 
   const handleNewMessage = useCallback((message: Message & { conversation_id: number }) => {
     if (!message || !message.conversation_id) return;
-    if (selectedConversation && message.conversation_id === selectedConversation.id) {
-      setMessages((prev) => [...prev, message]);
-    }
+    
+    // Check if message already exists in state to prevent duplicates
+    setMessages((prev) => {
+      const exists = prev.some(msg => msg.id === message.id || 
+        (msg.id === message.id && msg.message_type === message.message_type));
+      if (exists) return prev;
+      
+      if (selectedConversation && message.conversation_id === selectedConversation.id) {
+        return [...prev, message];
+      }
+      return prev;
+    });
+    
     setConversations((prev) => 
       prev.map(conv => 
         conv.id === message.conversation_id 

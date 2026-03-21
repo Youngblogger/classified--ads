@@ -2,10 +2,12 @@
 
 import React, { useState, useRef, useEffect, ClipboardEvent, KeyboardEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, Eye, EyeOff, Phone, Send, CheckCircle } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
 
 export default function LoginModal() {
+  const router = useRouter();
   const { isLoginModalOpen, toggleLoginModal, toggleRegisterModal, closeAllModals } = useUIStore();
   const { login, setLoading } = useAuthStore();
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
@@ -155,6 +157,7 @@ export default function LoginModal() {
       setOtpVerified(true);
       closeAllModals();
       resetForm();
+      router.push('/');
       
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid verification code';
@@ -224,8 +227,17 @@ export default function LoginModal() {
       }
 
       login(data.user, data.token);
+      // Save email to localStorage for auto-suggestions
+      if (typeof window !== 'undefined' && email) {
+        const usedEmails = JSON.parse(localStorage.getItem('used-emails') || '[]');
+        if (!usedEmails.includes(email)) {
+          usedEmails.push(email);
+          localStorage.setItem('used-emails', JSON.stringify(usedEmails.slice(-5))); // Keep last 5 emails
+        }
+      }
       closeAllModals();
       resetForm();
+      router.push('/');
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid credentials';
       setError(errorMessage);
@@ -356,7 +368,13 @@ export default function LoginModal() {
                     placeholder="Enter your email"
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     required
+                    list="email-suggestions"
                   />
+                  <datalist id="email-suggestions">
+                    {typeof window !== 'undefined' && JSON.parse(localStorage.getItem('used-emails') || '[]').map((e: string) => (
+                      <option key={e} value={e} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
 

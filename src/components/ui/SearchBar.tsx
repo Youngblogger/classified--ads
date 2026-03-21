@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Search, MapPin, X, ChevronDown, Loader2, 
-  Clock, TrendingUp, ArrowRight 
+  Clock, TrendingUp, ArrowRight, Navigation 
 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { api } from '@/lib/api';
@@ -255,12 +255,6 @@ export default function SearchBar({
         
         if (stateMatch) {
           setSelectedLocationId(stateMatch.id.charCodeAt(0));
-          // Update global store as well
-          setSelectedLocation({
-            id: stateMatch.id.charCodeAt(0),
-            name: stateMatch.name,
-            slug: stateMatch.slug,
-          });
         } else {
           alert('Could not determine your location in Nigeria. Please select manually.');
         }

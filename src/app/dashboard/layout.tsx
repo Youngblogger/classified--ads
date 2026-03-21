@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
+import OLXHeader from '@/components/home/OLXHeader';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -153,11 +154,9 @@ export default function DashboardLayout({
   // Get auth functions from store
   const { user: authUser, logout, isAuthenticated, token } = useAuthStore();
 
-  // Use auth user or fallback to mock data
-  const user = authUser || {
-    name: 'User',
-    email: 'user@example.com',
-  };
+  // Use auth user - no mock data
+  // If not authenticated, the page should redirect to login
+  const user = authUser;
 
   // Handle logout
   const handleLogout = async () => {

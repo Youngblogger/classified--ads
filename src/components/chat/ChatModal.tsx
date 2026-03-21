@@ -78,6 +78,7 @@ export default function ChatModal({
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -103,10 +104,18 @@ export default function ChatModal({
 
   const handleNewMessage = useCallback((message: Message) => {
     if (!message || !message.conversation_id) return;
-    if (conversationId && message.conversation_id === conversationId) {
-      setMessages((prev) => [...prev, message]);
-      setIsTyping(false);
-    }
+    
+    // Check if message already exists to prevent duplicates
+    setMessages((prev) => {
+      const exists = prev.some(msg => msg.id === message.id);
+      if (exists) return prev;
+      
+      if (conversationId && message.conversation_id === conversationId) {
+        return [...prev, message];
+      }
+      return prev;
+    });
+    setIsTyping(false);
   }, [conversationId]);
 
   const handleTyping = useCallback((data: { conversationId: string; userId: number }) => {
@@ -295,12 +304,22 @@ export default function ChatModal({
     // Note: Don't revoke the URL yet - the optimistic message needs it
 
     try {
+      // Create a proper File object with extension based on MIME type
+      let extension = 'webm';
+      const mimeType = recordedBlob.type;
+      if (mimeType.includes('mp4') || mimeType.includes('m4a')) {
+        extension = 'm4a';
+      } else if (mimeType.includes('wav')) {
+        extension = 'wav';
+      }
+      const audioFile = new File([recordedBlob], `voice_${Date.now()}.${extension}`, { type: mimeType });
+      
       const response = await messagesApi.sendMessageNew(
         sellerId,
         adId,
         'Voice message',
         'voice',
-        recordedBlob,
+        audioFile,
         durationToSend
       );
 
@@ -512,8 +531,8 @@ export default function ChatModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#efeae2] rounded-2xl w-full max-w-lg h-[90vh] md:h-[600px] flex flex-col overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4">
+      <div className="bg-[#efeae2] rounded-t-2xl md:rounded-2xl w-full h-screen md:h-[600px] md:max-w-lg flex flex-col overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="bg-[#f0f2f5] px-4 py-3 flex items-center gap-3 border-b border-[#d1d7db]">
           <button onClick={onClose} className="p-1 hover:bg-[#d1d7db] rounded-full transition-colors">
@@ -612,7 +631,7 @@ export default function ChatModal({
                   ) : (
                     <div className={`max-w-[75%] px-3 py-2 rounded-2xl ${isMe ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm' : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200'}`}>
                       {msg.message_type === 'image' && msg.attachment_url && (
-                        <img src={msg.attachment_url} alt="" className="rounded-lg max-w-full mb-2" />
+                        <img src={msg.attachment_url} alt="" className="rounded-lg w-[200px] object-cover mb-2 cursor-pointer hover:opacity-90 transition-opacity" />
                       )}
                       <p className="text-[15px] leading-[19px]">{msg.content}</p>
                       <div className={`flex items-center gap-1 mt-0.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
@@ -658,6 +677,7 @@ export default function ChatModal({
                   <div className="w-2 h-2 bg-[#00a884] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <div className="w-2 h-2 bg-[#00a884] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
+                <p className="text-xs text-[#667781] mt-1">Typing...</p>
               </div>
             </div>
           )}
@@ -697,6 +717,39 @@ export default function ChatModal({
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Quick Messages */}
+        <div className="px-3 py-2 bg-[#f0f2f5] border-t border-[#d1d7db]">
+          <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
+            <button
+              onClick={() => {
+                setNewMessage("Is this still available?");
+                inputRef?.current?.focus();
+              }}
+              className="flex-shrink-0 px-3 py-1.5 text-sm bg-white border border-[#00a884] text-[#00a884] rounded-full hover:bg-[#dcf8c6] transition-colors whitespace-nowrap"
+            >
+              Is this still available?
+            </button>
+            <button
+              onClick={() => {
+                setNewMessage("What is your last price?");
+                inputRef?.current?.focus();
+              }}
+              className="flex-shrink-0 px-3 py-1.5 text-sm bg-white border border-[#00a884] text-[#00a884] rounded-full hover:bg-[#dcf8c6] transition-colors whitespace-nowrap"
+            >
+              What is your last price?
+            </button>
+            <button
+              onClick={() => {
+                setNewMessage("Where is the exact location?");
+                inputRef?.current?.focus();
+              }}
+              className="flex-shrink-0 px-3 py-1.5 text-sm bg-white border border-[#00a884] text-[#00a884] rounded-full hover:bg-[#dcf8c6] transition-colors whitespace-nowrap"
+            >
+              Where is the exact location?
+            </button>
+          </div>
+        </div>
+
         {/* Input */}
         <div className="p-3 bg-[#f0f2f5] border-t border-[#d1d7db]">
           <div className="flex items-end gap-2">
@@ -728,6 +781,7 @@ export default function ChatModal({
               ) : (
                 <input
                   type="text"
+                  ref={inputRef}
                   value={newMessage}
                   onChange={handleInputChange}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}

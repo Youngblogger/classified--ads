@@ -231,11 +231,7 @@ export default function Footer() {
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`flex items-center gap-2 text-sm transition-colors ${
-                      social.highlighted 
-                        ? 'text-green-400 hover:text-green-300' 
-                        : 'text-gray-400 hover:text-white'
-                    }`}
+                    className="flex items-center gap-2 text-sm transition-colors text-gray-400 hover:text-white"
                   >
                     <Icon className="w-4 h-4" />
                     {social.label}
@@ -286,14 +282,27 @@ export default function Footer() {
               <div className="mt-6">
                 <p className="text-xs text-gray-500 mb-3">We accept:</p>
                 <div className="flex items-center gap-3">
-                  <div className="px-3 py-1.5 bg-white rounded-lg text-dark text-xs font-semibold">
-                    Paystack
+                  {/* Paystack */}
+                  <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
+                    <svg viewBox="0 0 100 30" className="h-6" fill="none">
+                      <rect width="100" height="30" rx="4" fill="#008535"/>
+                      <text x="10" y="20" fill="white" fontSize="10" fontWeight="bold" fontFamily="Arial">Paystack</text>
+                    </svg>
                   </div>
-                  <div className="px-3 py-1.5 bg-white/20 rounded-lg text-white text-xs font-semibold">
-                    Visa
+                  {/* Visa */}
+                  <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
+                    <svg viewBox="0 0 50 30" className="h-6">
+                      <rect width="50" height="30" rx="4" fill="#1A1F71"/>
+                      <text x="25" y="20" fill="white" fontSize="12" fontWeight="bold" fontFamily="Arial" textAnchor="middle">VISA</text>
+                    </svg>
                   </div>
-                  <div className="px-3 py-1.5 bg-white/20 rounded-lg text-white text-xs font-semibold">
-                    Mastercard
+                  {/* Mastercard */}
+                  <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
+                    <svg viewBox="0 0 40 30" className="h-6">
+                      <circle cx="15" cy="15" r="12" fill="#EB001B"/>
+                      <circle cx="25" cy="15" r="12" fill="#F79E1B"/>
+                      <path d="M20 6.5a12 12 0 000 17 12 12 0 000-17z" fill="#FF5F00"/>
+                    </svg>
                   </div>
                 </div>
               </div>
@@ -445,11 +454,7 @@ export default function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={social.label}
-                    className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ${
-                      social.highlighted
-                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                        : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
-                    }`}
+                    className="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white"
                   >
                     <Icon className="w-4 h-4" />
                   </a>
