@@ -80,6 +80,9 @@ export default function ChatModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Process seller avatar URL
+  const processedSellerAvatar = sellerAvatar ? getImageUrl(sellerAvatar) : null;
+
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -98,6 +101,7 @@ export default function ChatModal({
   const [playbackDuration, setPlaybackDuration] = useState<{ [key: number]: number }>({});
   const [playbackSpeed, setPlaybackSpeed] = useState<{ [key: number]: number }>({});
   const audioElementsRef = useRef<{ [key: number]: HTMLAudioElement }>({});
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const currentUserId = user?.id;
   const MAX_RECORDING_DURATION = 60;
@@ -539,8 +543,8 @@ export default function ChatModal({
             <X className="w-6 h-6 text-[#54656f]" />
           </button>
           <div className="w-10 h-10 rounded-full bg-[#dcf8c6] overflow-hidden flex items-center justify-center">
-            {sellerAvatar ? (
-              <img src={sellerAvatar} alt={sellerName} className="w-full h-full object-cover" />
+            {processedSellerAvatar ? (
+              <img src={processedSellerAvatar} alt={sellerName} className="w-full h-full object-cover" />
             ) : (
               <span className="text-[#54656f] font-medium">{sellerName[0]?.toUpperCase()}</span>
             )}
@@ -631,7 +635,12 @@ export default function ChatModal({
                   ) : (
                     <div className={`max-w-[75%] px-3 py-2 rounded-2xl ${isMe ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm' : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200'}`}>
                       {msg.message_type === 'image' && msg.attachment_url && (
-                        <img src={msg.attachment_url} alt="" className="rounded-lg w-[200px] object-cover mb-2 cursor-pointer hover:opacity-90 transition-opacity" />
+                        <img 
+                          src={msg.attachment_url} 
+                          alt="" 
+                          className="rounded-lg w-[200px] object-cover mb-2 cursor-pointer hover:opacity-90 transition-opacity" 
+                          onClick={() => msg.attachment_url && setPreviewImage(msg.attachment_url)}
+                        />
                       )}
                       <p className="text-[15px] leading-[19px]">{msg.content}</p>
                       <div className={`flex items-center gap-1 mt-0.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
@@ -663,8 +672,8 @@ export default function ChatModal({
           {isTyping && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
-                {sellerAvatar ? (
-                  <img src={sellerAvatar} alt="" className="w-full h-full object-cover" />
+                {processedSellerAvatar ? (
+                  <img src={processedSellerAvatar} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-medium">
                     {sellerName[0]?.toUpperCase() || 'U'}
@@ -816,6 +825,30 @@ export default function ChatModal({
           </div>
         </div>
       </div>
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors"
+            onClick={() => setPreviewImage(null)}
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+          
+          <div className="max-w-6xl max-h-[90vh] w-full h-full flex items-center justify-center">
+            <img 
+              src={previewImage} 
+              alt="Preview" 
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

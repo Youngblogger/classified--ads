@@ -342,22 +342,22 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#4B5320] shadow-sm pb-2.5">
       {/* Top Bar */}
-      <div className="bg-primary-600 text-white py-2 px-4">
+      <div className="bg-[#3a3f18] text-white py-2 px-4">
         <div className="container-app flex justify-between items-center text-sm">
           <div className="hidden md:flex items-center gap-4">
             <span>Buy & Sell locally on iList</span>
           </div>
           <div className="flex items-center gap-4 ml-auto">
-            <a href="tel:+234813371XXXX" className="hidden lg:flex items-center gap-1 hover:text-primary-100 transition-colors">
+            <a href="tel:+234813371XXXX" className="hidden lg:flex items-center gap-1 hover:text-gray-300 transition-colors">
               <Phone className="w-4 h-4" />
               <span>+234 813 371 XXXX</span>
             </a>
-            <Link href="/help" className="hover:text-primary-100 transition-colors">
+            <Link href="/help" className="hover:text-gray-300 transition-colors">
               Help
             </Link>
-            <Link href="/about" className="hover:text-primary-100 transition-colors">
+            <Link href="/about" className="hover:text-gray-300 transition-colors">
               About
             </Link>
           </div>
@@ -370,10 +370,10 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-xl">i</span>
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+                <span className="text-[#4B5320] font-bold text-xl">i</span>
               </div>
-              <span className="text-2xl font-display font-bold text-dark">iList</span>
+              <span className="text-2xl font-display font-bold text-white">iList</span>
             </div>
           </Link>
 
@@ -393,9 +393,9 @@ export default function Header() {
               <div className="relative" ref={notificationRef}>
                 <button 
                   onClick={() => setNotificationOpen(!notificationOpen)}
-                  className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors relative"
+                  className="p-2.5 hover:bg-white/10 rounded-xl transition-colors relative"
                 >
-                  <Bell className="w-5 h-5 text-gray-600" />
+                  <Bell className="w-5 h-5 text-white" />
                   {(unreadCount + unreadMessagesCount) > 0 && (
                     <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                       {(unreadCount + unreadMessagesCount) > 9 ? '9+' : (unreadCount + unreadMessagesCount)}
@@ -568,9 +568,9 @@ export default function Header() {
             {isAuthenticated && (
               <Link 
                 href="/dashboard/favorites"
-                className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors"
+                className="p-2.5 hover:bg-white/10 rounded-xl transition-colors"
               >
-                <Heart className="w-5 h-5 text-gray-600" />
+                <Heart className="w-5 h-5 text-white" />
               </Link>
             )}
 
@@ -579,10 +579,10 @@ export default function Header() {
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-xl transition-colors"
+                  className="flex items-center gap-2 p-1.5 hover:bg-white/10 rounded-xl transition-colors"
                 >
                   {/* Profile Avatar */}
-                  <div className="w-9 h-9 rounded-full overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center flex-shrink-0">
                     {user?.google_avatar || user?.avatar || user?.avatar_url ? (
                       <img 
                         src={getAvatarUrl(user.google_avatar || user.avatar || user.avatar_url)} 
@@ -591,7 +591,7 @@ export default function Header() {
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <span className="text-primary-600 font-semibold text-sm">
+                      <span className="text-[#4B5320] font-semibold text-sm">
                         {user?.name?.charAt(0).toUpperCase() || 'U'}
                       </span>
                     )}
@@ -603,7 +603,7 @@ export default function Header() {
                     {/* User Info */}
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-primary-100 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white flex items-center justify-center">
                           {user?.google_avatar || user?.avatar || user?.avatar_url ? (
                             <img 
                               src={getAvatarUrl(user.google_avatar || user.avatar || user.avatar_url)} 
@@ -612,7 +612,7 @@ export default function Header() {
                               referrerPolicy="no-referrer"
                             />
                           ) : (
-                            <span className="text-primary-600 font-bold text-lg">
+                            <span className="text-[#4B5320] font-bold text-lg">
                               {user?.name?.charAt(0).toUpperCase() || 'U'}
                             </span>
                           )}
@@ -661,16 +661,16 @@ export default function Header() {
               </div>
             ) : (
               <div className="hidden md:flex items-center gap-2">
-                <button
-                  onClick={toggleLoginModal}
-                  className="px-4 py-2 text-dark hover:bg-gray-100 rounded-xl font-medium transition-colors"
-                >
-                  Login
-                </button>
-                <button
-                  onClick={toggleRegisterModal}
-                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors"
-                >
+                    <button
+                      onClick={toggleLoginModal}
+                      className="px-4 py-2 text-white hover:bg-white/10 rounded-xl font-medium transition-colors"
+                    >
+                      Login
+                    </button>
+                    <button
+                      onClick={toggleRegisterModal}
+                      className="px-4 py-2 bg-white text-[#4B5320] hover:bg-gray-100 rounded-xl font-medium transition-colors"
+                    >
                   Register
                 </button>
               </div>
@@ -680,7 +680,7 @@ export default function Header() {
             {isAuthenticated ? (
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors"
+                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-white text-[#4B5320] hover:bg-gray-100 rounded-xl font-medium transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Post Ad
@@ -688,7 +688,7 @@ export default function Header() {
             ) : (
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors"
+                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-white text-[#4B5320] hover:bg-gray-100 rounded-xl font-medium transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Post Ad
@@ -698,12 +698,12 @@ export default function Header() {
             {/* Mobile Menu Toggle */}
             <button
               onClick={toggleMobileMenu}
-              className="md:hidden p-2.5 hover:bg-gray-100 rounded-xl transition-colors"
+              className="md:hidden p-2.5 hover:bg-white/10 rounded-xl transition-colors"
             >
               {isMobileMenuOpen ? (
-                <X className="w-6 h-6 text-dark" />
+                <X className="w-6 h-6 text-white" />
               ) : (
-                <Menu className="w-6 h-6 text-dark" />
+                <Menu className="w-6 h-6 text-white" />
               )}
             </button>
           </div>
@@ -711,17 +711,17 @@ export default function Header() {
       </div>
 
       {/* Browse Categories Navigation */}
-      <div className="border-t border-gray-100 bg-gray-50">
+      <div className="border-t border-white/20 bg-[#3d4220]">
         <div className="container-app py-2">
           <div className="flex items-center gap-6 overflow-x-auto scrollbar-thin text-sm">
-            <Link href="/categories" className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 font-medium whitespace-nowrap">
-              <span className="text-primary-600">☰</span> All Categories
+            <Link href="/categories" className="flex items-center gap-1.5 text-white hover:text-gray-200 font-medium whitespace-nowrap">
+              <span>☰</span> All Categories
             </Link>
             {categories.slice(0, 10).map((category: any) => (
               <Link 
                 key={category.id} 
                 href={`/ads?category=${category.slug}`}
-                className="text-gray-500 hover:text-primary-600 whitespace-nowrap transition-colors"
+                className="text-white/80 hover:text-white whitespace-nowrap transition-colors"
               >
                 {category.name}
               </Link>

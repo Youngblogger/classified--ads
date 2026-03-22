@@ -51,6 +51,7 @@ export interface Ad {
   title: string;
   slug: string;
   description?: string;
+  short_description?: string;
   price: number;
   currency: string;
   condition?: string;
@@ -155,7 +156,52 @@ export interface Review {
   reviewer: User;
   user: User;
   ad_id?: number;
+  ad?: { id: number; title: string; slug: string };
+  helpful_count?: number;
   created_at: string;
+}
+
+// Seller Review Types
+export interface SellerReview {
+  id: number;
+  rating: number;
+  comment: string;
+  user: User;
+  ad?: { id: number; title: string; slug: string };
+  helpful_count?: number;
+  created_at: string;
+}
+
+export interface SellerRatingSummary {
+  average_rating: number;
+  total_reviews: number;
+  distribution: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+  counts: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+}
+
+export interface SellerProfile {
+  seller: User;
+  rating: SellerRatingSummary;
+  ads_count: number;
+  member_since: string;
+}
+
+export interface CanReviewResponse {
+  allowed: boolean;
+  reason: string;
+  requires: string[];
 }
 
 // Report Types

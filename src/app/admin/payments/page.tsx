@@ -136,7 +136,7 @@ export default function PaymentsPage() {
               <DollarSign className="w-5 h-5 text-white/80" />
               <span className="text-white/80">Admin Balance</span>
             </div>
-            <p className="text-2xl font-bold">${Number(summary.admin_balance || 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold">₦{Number(summary.admin_balance || 0).toLocaleString()}</p>
           </div>
 
           <div className="bg-white rounded-xl p-6 border border-gray-200">
@@ -144,7 +144,7 @@ export default function PaymentsPage() {
               <CheckCircle className="w-5 h-5 text-green-600" />
               <span className="text-gray-500">Total Revenue</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">${Number(summary.total_revenue || 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900">₦{Number(summary.total_revenue || 0).toLocaleString()}</p>
           </div>
 
           <div className="bg-white rounded-xl p-6 border border-gray-200">
@@ -160,7 +160,7 @@ export default function PaymentsPage() {
               <DollarSign className="w-5 h-5 text-purple-600" />
               <span className="text-gray-500">User Wallet Funds</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">${Number(summary.total_user_balance || 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900">₦{Number(summary.total_user_balance || 0).toLocaleString()}</p>
           </div>
         </div>
       )}
@@ -236,7 +236,7 @@ export default function PaymentsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm font-bold text-gray-900">
-                        ${Number(payment.amount || 0).toLocaleString()}
+                        ₦{Number(payment.amount || 0).toLocaleString()}
                       </p>
                       <p className="text-xs text-gray-500">{payment.currency}</p>
                     </td>

@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { MapPin, Heart } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import axios from 'axios';
 import { formatPrice } from '@/lib/utils';
 
@@ -142,15 +141,6 @@ export default function RelatedAds({ currentAdId, categoryId }: RelatedAdsProps)
                 alt={ad.title}
                 className="w-full h-full object-cover"
               />
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  // Handle favorite
-                }}
-                className="absolute top-2 right-2 p-2 bg-white/90 rounded-full shadow-md hover:bg-white transition-colors"
-              >
-                <Heart className="w-4 h-4 text-gray-400 hover:text-red-500" />
-              </button>
               <span className={`absolute top-2 left-2 px-2 py-1 text-xs font-medium rounded-md ${
                 ad.condition === 'new' 
                   ? 'bg-green-100 text-green-700' 

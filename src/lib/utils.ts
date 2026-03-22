@@ -7,13 +7,9 @@ export function cn(...inputs: ClassValue[]) {
 export function formatPrice(price: number | string, currency: string = 'NGN'): string {
   const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
   
-  // Always show in Naira regardless of database currency
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(numericPrice);
+  if (isNaN(numericPrice)) return '₦0';
+  
+  return '₦' + numericPrice.toLocaleString('en-NG');
 }
 
 export function formatDate(date: string | Date): string {

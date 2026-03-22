@@ -157,7 +157,7 @@ export default function WalletsPage() {
               <p className="text-white/80 text-sm mt-1">All payments are collected here</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold">${Number(adminWallet.balance || 0).toLocaleString()}</p>
+              <p className="text-3xl font-bold">₦{Number(adminWallet.balance || 0).toLocaleString()}</p>
               <p className="text-white/80 text-sm">Available Balance</p>
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function WalletsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Balance</p>
-              <p className="text-2xl font-bold text-gray-900">${totalBalance.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">₦{totalBalance.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
               <DollarSign className="w-6 h-6 text-green-600" />
@@ -180,7 +180,7 @@ export default function WalletsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Pending Balance</p>
-              <p className="text-2xl font-bold text-gray-900">${totalPending.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">₦{totalPending.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-amber-100 rounded-lg">
               <Clock className="w-6 h-6 text-amber-600" />

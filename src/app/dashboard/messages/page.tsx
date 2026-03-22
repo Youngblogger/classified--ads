@@ -1073,7 +1073,7 @@ export default function MessagesPage() {
                       <div
                         key={i}
                         className="w-1 bg-[#00a884] rounded-full animate-pulse"
-                        style={{ height: `${Math.random() * 16 + 4}px`, animationDelay: `${i * 50}ms` }}
+                        style={{ height: `${8 + (i % 5) * 2}px`, animationDelay: `${i * 50}ms` }}
                       />
                     ))}
                   </div>

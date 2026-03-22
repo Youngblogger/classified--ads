@@ -27,6 +27,12 @@ export default function LoginModal() {
   const [countdown, setCountdown] = useState(0);
   
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [usedEmails, setUsedEmails] = useState<string[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('used-emails');
+    if (saved) setUsedEmails(JSON.parse(saved));
+  }, []);
 
   // Countdown timer
   useEffect(() => {
@@ -371,7 +377,7 @@ export default function LoginModal() {
                     list="email-suggestions"
                   />
                   <datalist id="email-suggestions">
-                    {typeof window !== 'undefined' && JSON.parse(localStorage.getItem('used-emails') || '[]').map((e: string) => (
+                    {usedEmails.map((e: string) => (
                       <option key={e} value={e} />
                     ))}
                   </datalist>

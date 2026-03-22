@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Eye } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
-import { formatPrice, formatRelativeTime } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import { useState } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -84,13 +84,6 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
             <MapPin className="w-4 h-4" />
             <span>{ad.location?.name || 'N/A'}</span>
           </div>
-          <div className="flex items-center justify-between mt-4 text-sm text-gray-500">
-            <span>{formatRelativeTime(ad.created_at)}</span>
-            <span className="flex items-center gap-1">
-              <Eye className="w-4 h-4" />
-              {ad.views}
-            </span>
-          </div>
         </div>
       </Link>
     );
@@ -153,9 +146,9 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
         <h3 className="font-semibold text-dark line-clamp-2 group-hover:text-primary-600 transition-colors">
           {ad.title}
         </h3>
-        {ad.description && (
+        {(ad.short_description || ad.description) && (
           <p className="text-gray-500 text-sm mt-1 line-clamp-2">
-            {ad.description}
+            {ad.short_description || ad.description}
           </p>
         )}
         <p className="text-xl font-bold text-primary-600 mt-2">
@@ -164,13 +157,6 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
         <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
           <MapPin className="w-4 h-4 flex-shrink-0" />
           <span className="truncate">{ad.location?.name || 'N/A'}</span>
-        </div>
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 text-sm text-gray-500">
-          <span>{formatRelativeTime(ad.created_at)}</span>
-          <span className="flex items-center gap-1">
-            <Eye className="w-4 h-4" />
-            {ad.views}
-          </span>
         </div>
       </div>
     </Link>

@@ -16,7 +16,9 @@ use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\SellerReviewController;
 use App\Http\Controllers\Api\WatermarkController;
+use App\Http\Controllers\Api\SearchController;
 use Illuminate\Support\Facades\Route;
 
 // Public auth routes
@@ -61,6 +63,12 @@ Route::prefix('icons')->group(function () {
     Route::post('/upload', [IconController::class, 'uploadCustom']);
     Route::delete('/custom/{id}', [IconController::class, 'deleteCustom']);
 });
+
+// Search routes
+Route::get('/search', [SearchController::class, 'search']);
+Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
+Route::get('/search/trending', [SearchController::class, 'trending']);
+Route::get('/search/recent', [SearchController::class, 'recentSearches']);
 
 Route::prefix('ads')->group(function () {
     Route::get('/', [AdController::class, 'index']);
@@ -122,6 +130,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // Review Actions
     Route::post('/reviews/{reviewId}/helpful', [ReviewController::class, 'markHelpful']);
     Route::post('/reviews/{reviewId}/report', [ReviewController::class, 'reportReview']);
+
+    // Seller Reviews (for sellers, not ads)
+    Route::get('/sellers/{sellerId}/reviews', [SellerReviewController::class, 'index']);
+    Route::get('/sellers/{sellerId}/reviews/latest', [SellerReviewController::class, 'latestReviews']);
+    Route::get('/sellers/{sellerId}/rating', [SellerReviewController::class, 'ratingSummary']);
+    Route::get('/sellers/{sellerId}/profile', [SellerReviewController::class, 'sellerProfile']);
+    Route::get('/sellers/{sellerId}/can-review', [SellerReviewController::class, 'canReview']);
+    Route::get('/sellers/{sellerId}/my-review', [SellerReviewController::class, 'userReview']);
+    Route::post('/sellers/{sellerId}/reviews', [SellerReviewController::class, 'store']);
+    Route::put('/seller-reviews/{reviewId}', [SellerReviewController::class, 'update']);
+    Route::delete('/seller-reviews/{reviewId}', [SellerReviewController::class, 'destroy']);
+    Route::post('/seller-reviews/{reviewId}/helpful', [SellerReviewController::class, 'markHelpful']);
+    Route::post('/seller-reviews/{reviewId}/report', [SellerReviewController::class, 'reportReview']);
 
     // Wallet
     Route::get('/wallet', [WalletController::class, 'index']);

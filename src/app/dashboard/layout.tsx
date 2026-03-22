@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import OLXHeader from '@/components/home/OLXHeader';
+import Header from '@/components/home/Header';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -288,15 +288,15 @@ export default function DashboardLayout({
                   className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-100"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                 >
-                  {(user as any).avatar ? (
+                  {user && (user as any).avatar ? (
                     <img 
                       src={getAvatarUrl((user as any).avatar_url || (user as any).avatar)} 
-                      alt={user.name} 
+                      alt={(user as any).name} 
                       className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                      <span className="text-primary-700 text-sm font-semibold">{user.name?.charAt(0) || 'U'}</span>
+                      <span className="text-primary-700 text-sm font-semibold">{user ? (user as any).name?.charAt(0) : 'U'}</span>
                     </div>
                   )}
                 </button>
@@ -305,8 +305,8 @@ export default function DashboardLayout({
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                      <p className="text-xs text-gray-500">{user.email}</p>
+                      <p className="text-sm font-medium text-gray-900">{user ? (user as any).name : 'User'}</p>
+                      <p className="text-xs text-gray-500">{user ? (user as any).email : ''}</p>
                     </div>
                     <Link
                       href="/dashboard/profile"

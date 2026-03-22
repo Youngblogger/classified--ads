@@ -286,7 +286,7 @@ export default function PromotionsPage() {
                   )}
                   
                   <div className="flex items-baseline gap-1 mb-4">
-                    <span className="text-2xl font-bold text-gray-900">${plan.price}</span>
+                    <span className="text-2xl font-bold text-gray-900">₦{plan.price?.toLocaleString()}</span>
                     <span className="text-sm text-gray-500">/ {plan.duration_days} days</span>
                   </div>
                   
@@ -393,7 +393,7 @@ export default function PromotionsPage() {
                     
                     <div className="mt-4 flex items-center justify-between">
                       <div>
-                        <p className="text-lg font-bold text-gray-900">${promo.price}</p>
+                        <p className="text-lg font-bold text-gray-900">₦{promo.price?.toLocaleString()}</p>
                         <p className="text-xs text-gray-500">{promo.duration} days</p>
                       </div>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import OLXHeader from '@/components/home/OLXHeader';
+import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import ReviewCard from '@/components/reviews/ReviewCard';
 import WriteReviewModal from '@/components/reviews/WriteReviewModal';
@@ -52,6 +52,7 @@ export default function AdReviewsPage() {
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [showWriteReview, setShowWriteReview] = useState(false);
   const [adId, setAdId] = useState<number | null>(null);
+  const [sellerInfo, setSellerInfo] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
     fetchAdId();
@@ -67,7 +68,11 @@ export default function AdReviewsPage() {
   const fetchAdId = async () => {
     try {
       const response = await axios.get(`${API_URL}/ads/${slug}`);
-      setAdId(response.data.id);
+      const adData = response.data.data || response.data;
+      setAdId(adData.id);
+      if (adData.user) {
+        setSellerInfo({ id: adData.user.id, name: adData.user.name });
+      }
     } catch (error) {
       console.error('Error fetching ad:', error);
     }
@@ -117,7 +122,7 @@ export default function AdReviewsPage() {
   if (!adId) {
     return (
       <>
-        <OLXHeader />
+        <Header />
         <div className="container-app py-12 text-center">
           <p>Loading...</p>
         </div>
@@ -128,7 +133,7 @@ export default function AdReviewsPage() {
 
   return (
     <>
-      <OLXHeader />
+      <Header />
       <main className="container-app py-8">
         <div className="mb-6">
           <nav className="flex items-center gap-2 text-sm text-gray-500">
@@ -316,9 +321,10 @@ export default function AdReviewsPage() {
       <Footer />
 
       {/* Write Review Modal */}
-      {showWriteReview && adId && (
+      {showWriteReview && sellerInfo && (
         <WriteReviewModal
-          adId={adId}
+          sellerId={sellerInfo.id}
+          sellerName={sellerInfo.name}
           isOpen={showWriteReview}
           onClose={() => setShowWriteReview(false)}
           onSuccess={() => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import OLXHeader from '@/components/home/OLXHeader';
+import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import { Upload, X, MapPin, Tag, FileText, Check, ChevronRight, Loader2 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
@@ -169,7 +169,7 @@ export default function EditAdPage() {
   if (loadingData || isLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
-        <OLXHeader />
+        <Header />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
@@ -181,7 +181,7 @@ export default function EditAdPage() {
   if (adNotFound) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
-        <OLXHeader />
+        <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Ad Not Found</h2>
@@ -198,7 +198,7 @@ export default function EditAdPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <OLXHeader />
+      <Header />
       
       <main className="flex-1 py-8">
         <div className="container-app">

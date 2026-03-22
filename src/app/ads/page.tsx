@@ -1,16 +1,28 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
-import OLXHeader from '@/components/home/OLXHeader';
+import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import AdCard from '@/components/ui/AdCard';
-import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal, MapPin, Loader2 } from 'lucide-react';
 import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const fetcher = (url: string) => fetch(url).then(r => r.json()).catch(() => null);
+const fetcher = async (url: string) => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      if (response.status === 404) return { data: [], meta: {} };
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Fetch error:', error);
+    return { data: [], meta: {} };
+  }
+};
 
 interface Ad {
   id: number;
@@ -39,19 +51,21 @@ interface Category {
 
 type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'popular';
 
-export default function AdsPage() {
+function AdsPageContent() {
   const searchParams = useSearchParams();
   
   // URL params
   const query = searchParams.get('q') || '';
   const categorySlug = searchParams.get('category') || '';
   const locationSlug = searchParams.get('location') || '';
+  const lgaParam = searchParams.get('lga') || '';
   const page = parseInt(searchParams.get('page') || '1');
 
   // Local state
-  const [localQuery, setLocalQuery] = useState(query);
+  const [localQuery, setLocalQuery] = useState(query || '');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
+  const [selectedLocationSlug, setSelectedLocationSlug] = useState<string>(locationSlug);
+  const [selectedLGA, setSelectedLGA] = useState<string>(lgaParam);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
@@ -63,29 +77,41 @@ export default function AdsPage() {
   const { data: categoriesData } = useSWR(
     `${API_URL}/categories`,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 300000, fallbackData: [] }
+    { revalidateOnFocus: false, dedupingInterval: 300000, fallbackData: [], shouldRetryOnError: false }
   );
   
   const categories: Category[] = categoriesData?.data || categoriesData || [];
 
-  // Build query params
+  // Build query params for search API
   const buildQueryParams = useMemo(() => {
     const params = new URLSearchParams();
     if (localQuery) params.set('q', localQuery);
-    if (selectedCategoryId) params.set('category', selectedCategoryId.toString());
-    if (selectedLocationId) params.set('location', selectedLocationId.toString());
-    if (priceMin) params.set('price_min', priceMin);
-    if (priceMax) params.set('price_max', priceMax);
+    if (selectedCategoryId) params.set('category_id', selectedCategoryId.toString());
+    if (selectedLocationSlug) params.set('location', selectedLocationSlug);
+    if (selectedLGA) params.set('lga', selectedLGA);
+    if (priceMin) params.set('min_price', priceMin);
+    if (priceMax) params.set('max_price', priceMax);
     if (condition) params.set('condition', condition);
-    params.set('sort', sortBy);
+    
+    // Sort mapping
+    const sortMapping: Record<SortOption, { sort_by: string; sort_order: string }> = {
+      'newest': { sort_by: 'created_at', sort_order: 'desc' },
+      'price_asc': { sort_by: 'price', sort_order: 'asc' },
+      'price_desc': { sort_by: 'price', sort_order: 'desc' },
+      'popular': { sort_by: 'views', sort_order: 'desc' },
+    };
+    const sortConfig = sortMapping[sortBy];
+    params.set('sort_by', sortConfig.sort_by);
+    params.set('sort_order', sortConfig.sort_order);
+    
     params.set('page', page.toString());
     return params.toString();
-  }, [localQuery, selectedCategoryId, selectedLocationId, priceMin, priceMax, condition, sortBy, page]);
+  }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMin, priceMax, condition, sortBy, page]);
 
   const { data: adsData, isLoading, error } = useSWR(
-    `${API_URL}/ads?${buildQueryParams}`,
+    `${API_URL}/search?${buildQueryParams}`,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: { data: [], meta: {} } }
+    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: { data: [], meta: {} }, shouldRetryOnError: false }
   );
 
   const ads: Ad[] = adsData?.data || adsData || [];
@@ -109,13 +135,16 @@ export default function AdsPage() {
     }
   }, [categorySlug, categories]);
 
-  // Find location by slug
+  // Sync location from URL
   useEffect(() => {
-    if (locationSlug) {
-      const loc = nigeriaLocations.find(l => l.slug === locationSlug);
-      if (loc) setSelectedLocationId(loc.id.charCodeAt(0));
-    }
-  }, [locationSlug]);
+    setSelectedLocationSlug(locationSlug);
+    setSelectedLGA(lgaParam);
+  }, [locationSlug, lgaParam]);
+
+  // Sync localQuery from URL
+  useEffect(() => {
+    setLocalQuery(query || '');
+  }, [query]);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -124,9 +153,11 @@ export default function AdsPage() {
       const cat = categories.find(c => c.id === selectedCategoryId);
       if (cat) params.set('category', cat.slug);
     }
-    if (selectedLocationId) {
-      const loc = nigeriaLocations.find(l => l.id.charCodeAt(0) === selectedLocationId);
-      if (loc) params.set('location', loc.slug);
+    if (selectedLocationSlug) {
+      params.set('location', selectedLocationSlug);
+    }
+    if (selectedLGA) {
+      params.set('lga', selectedLGA);
     }
     window.history.pushState({}, '', `/ads?${params.toString()}`);
   };
@@ -134,7 +165,8 @@ export default function AdsPage() {
   const clearFilters = () => {
     setLocalQuery('');
     setSelectedCategoryId(null);
-    setSelectedLocationId(null);
+    setSelectedLocationSlug('');
+    setSelectedLGA('');
     setPriceMin('');
     setPriceMax('');
     setCondition('');
@@ -146,11 +178,11 @@ export default function AdsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <OLXHeader />
+      <Header />
       
-      <main className="flex-1 container-app py-8">
+      <main className="flex-1 w-full px-4 py-6 md:px-6 lg:px-8">
         {/* Search Header */}
-        <div className="bg-white rounded-xl p-4 mb-6 shadow-sm">
+        <div className="max-w-7xl mx-auto bg-white rounded-xl p-4 md:p-6 lg:p-8 mb-6 shadow-sm">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Input */}
             <div className="flex-1 relative">
@@ -184,7 +216,7 @@ export default function AdsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
           {/* Filters Sidebar - Sticky */}
           <div className={`
             lg:w-64 lg:flex-shrink-0
@@ -222,17 +254,36 @@ export default function AdsPage() {
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Location</h3>
               <select
-                value={selectedLocationId || ''}
-                onChange={(e) => setSelectedLocationId(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                value={selectedLocationSlug}
+                onChange={(e) => {
+                  setSelectedLocationSlug(e.target.value);
+                  setSelectedLGA('');
+                }}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg mb-2"
               >
                 <option value="">All Nigeria</option>
                 {nigeriaLocations.map((state) => (
-                  <option key={state.id} value={state.id.charCodeAt(0)}>
+                  <option key={state.id} value={state.slug}>
                     {state.name}
                   </option>
                 ))}
               </select>
+              
+              {/* LGA Dropdown */}
+              {selectedLocationSlug && nigeriaLocations.find(l => l.slug === selectedLocationSlug)?.lgas && (
+                <select
+                  value={selectedLGA}
+                  onChange={(e) => setSelectedLGA(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                >
+                  <option value="">All LGAs in {nigeriaLocations.find(l => l.slug === selectedLocationSlug)?.name}</option>
+                  {nigeriaLocations.find(l => l.slug === selectedLocationSlug)?.lgas?.map((lga) => (
+                    <option key={lga} value={lga}>
+                      {lga}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Price Range */}
@@ -289,7 +340,7 @@ export default function AdsPage() {
           {/* Results */}
           <div className="flex-1">
             {/* Results Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
                   {localQuery ? `Results for "${localQuery}"` : 'All Ads'}
@@ -330,9 +381,33 @@ export default function AdsPage() {
               </div>
             </div>
 
+            {/* Active Filters */}
+            {(query || locationSlug || lgaParam) && (
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <span className="text-sm text-gray-500">Active filters:</span>
+                {query && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-600 rounded-full text-sm">
+                    "{query}"
+                    <button onClick={() => { setLocalQuery(''); handleSearch(); }} className="hover:text-primary-800">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {locationSlug && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-600 rounded-full text-sm">
+                    {nigeriaLocations.find(l => l.slug === locationSlug)?.name || locationSlug}
+                    {lgaParam && ` - ${lgaParam}`}
+                    <button onClick={() => { setSelectedLocationSlug(''); setSelectedLGA(''); handleSearch(); }} className="hover:text-primary-800">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Ads Grid/List */}
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
                 {[...Array(12)].map((_, i) => (
                   <div key={i} className="bg-white rounded-xl h-64 animate-pulse" />
                 ))}
@@ -340,7 +415,7 @@ export default function AdsPage() {
             ) : ads.length > 0 ? (
               <div className={`
                 ${viewMode === 'grid' 
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' 
+                  ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6' 
                   : 'flex flex-col gap-4'}
               `}>
                 {ads.map((ad) => (
@@ -393,5 +468,17 @@ export default function AdsPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function AdsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    }>
+      <AdsPageContent />
+    </Suspense>
   );
 }

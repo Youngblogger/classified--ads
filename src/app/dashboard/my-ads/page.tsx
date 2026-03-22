@@ -214,15 +214,18 @@ export default function MyAdsPage() {
               {/* Content */}
               <div className="p-4">
                 <h3 className="font-semibold text-gray-900 mb-2 line-clamp-1">{ad.title}</h3>
+                {ad.short_description && (
+                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">{ad.short_description}</p>
+                )}
                 <p className="text-xl font-bold text-primary-600 mb-3">
-                  ${ad.price.toLocaleString()}
+                  ₦{typeof ad.price === 'number' ? ad.price.toLocaleString() : parseFloat(ad.price || 0).toLocaleString()}
                 </p>
 
                 {/* Stats */}
                 <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                   <div className="flex items-center gap-1">
                     <EyeIcon className="w-4 h-4" />
-                    <span>{ad.views} views</span>
+                    <span>{ad.views || 0} views</span>
                   </div>
                   <span>{ad.created_at}</span>
                 </div>
@@ -230,16 +233,20 @@ export default function MyAdsPage() {
                 {/* Actions */}
                 <div className="flex items-center gap-2">
                   <Link
+                    href={`/ad/${ad.slug}`}
+                    target="_blank"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                    Preview
+                  </Link>
+                  <Link
                     href={`/ad/edit/${ad.id}`}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
                   >
                     <EditIcon className="w-4 h-4" />
                     Edit
                   </Link>
-                  <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-yellow-50 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-100 transition-colors">
-                    <StarIcon className="w-4 h-4" />
-                    Promote
-                  </button>
                   <button 
                     onClick={() => handleDeleteAd(ad.id, ad.slug)}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"

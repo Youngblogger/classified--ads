@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Copy, Check } from 'lucide-react';
 
 interface ShareModalProps {
@@ -56,10 +56,13 @@ const MailIcon = ({ className }: { className?: string }) => (
 
 export default function ShareModal({ isOpen, onClose, title, price, currency }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
+  const [url, setUrl] = useState('');
+
+  useEffect(() => {
+    setUrl(window.location.href);
+  }, []);
 
   if (!isOpen) return null;
-
-  const url = typeof window !== 'undefined' ? window.location.href : '';
   const text = price 
     ? `Check out this "${title}" for ${currency || '₦'}${price}`
     : `Check out this "${title}"`;

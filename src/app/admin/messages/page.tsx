@@ -345,7 +345,7 @@ export default function MessagesPage() {
                         </span>
                       )}
                       {conv.ad?.price && (
-                        <span className="text-xs font-medium text-sky-600">${conv.ad.price}</span>
+                        <span className="text-xs font-medium text-sky-600">₦{conv.ad.price?.toLocaleString()}</span>
                       )}
                     </div>
                   </div>
@@ -386,7 +386,7 @@ export default function MessagesPage() {
                     </h3>
                     <p className="text-sm text-gray-500">
                       {selectedConvData?.ad_title || selectedConvData?.ad?.title || 'Unknown Ad'}
-                      {selectedConvData?.ad?.price && ` - $${selectedConvData.ad.price}`}
+                      {selectedConvData?.ad?.price && ` - ₦${selectedConvData.ad.price?.toLocaleString()}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

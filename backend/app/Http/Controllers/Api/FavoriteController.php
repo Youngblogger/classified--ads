@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Favorite;
 use App\Models\Ad;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class FavoriteController extends Controller
@@ -40,6 +41,12 @@ class FavoriteController extends Controller
             'user_id' => $user->id,
             'ad_id' => $validated['ad_id'],
         ]);
+
+        // Send notification to ad owner
+        $ad = Ad::with('user')->find($validated['ad_id']);
+        if ($ad && $ad->user_id !== $user->id) {
+            NotificationService::newFavorite($ad, $user);
+        }
 
         return response()->json(['message' => 'Added to favorites', 'favorite' => $favorite], 201);
     }

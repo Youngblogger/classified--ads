@@ -224,6 +224,24 @@ export const reviewsApi = {
   getAdLatestReviews: (adId: number) => api.get(`/ads/${adId}/reviews/latest`),
 };
 
+// Seller Reviews API
+export const sellerReviewsApi = {
+  getReviews: (sellerId: number, params?: { rating?: number; sort?: string; page?: number }) =>
+    api.get(`/sellers/${sellerId}/reviews`, { params }),
+  getLatestReviews: (sellerId: number) => api.get(`/sellers/${sellerId}/reviews/latest`),
+  getRatingSummary: (sellerId: number) => api.get(`/sellers/${sellerId}/rating`),
+  getSellerProfile: (sellerId: number) => api.get(`/sellers/${sellerId}/profile`),
+  canReview: (sellerId: number) => api.get(`/sellers/${sellerId}/can-review`),
+  getMyReview: (sellerId: number) => api.get(`/sellers/${sellerId}/my-review`),
+  submitReview: (sellerId: number, data: { rating: number; comment?: string; ad_id?: number }) =>
+    api.post(`/sellers/${sellerId}/reviews`, data),
+  updateReview: (reviewId: number, data: { rating: number; comment?: string }) =>
+    api.put(`/seller-reviews/${reviewId}`, data),
+  deleteReview: (reviewId: number) => api.delete(`/seller-reviews/${reviewId}`),
+  markHelpful: (reviewId: number) => api.post(`/seller-reviews/${reviewId}/helpful`),
+  reportReview: (reviewId: number, reason: string) => api.post(`/seller-reviews/${reviewId}/report`, { reason }),
+};
+
 // Reports API
 export const reportsApi = {
   create: (data: { ad_id: number; reason: string; description: string }) =>

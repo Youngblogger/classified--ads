@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import OLXHeader from '@/components/home/OLXHeader';
+import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, GripVertical, Loader2, Phone, MessageCircle, MapPinned } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -245,7 +245,7 @@ export default function PostAdPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <OLXHeader />
+      <Header />
       
       <main className="flex-1 py-8">
         <div className="container-app">
