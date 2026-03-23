@@ -60,7 +60,7 @@ export default function Footer() {
   const serviceLinks = [
     { label: 'Post Ad', href: '/post-ad' },
     { label: 'Promote Ad', href: '/promote' },
-    { label: 'Pricing Plans', href: '/pricing' },
+    { label: 'Premium Plans', href: '/subscription' },
     { label: 'Business Accounts', href: '/business' },
   ];
 

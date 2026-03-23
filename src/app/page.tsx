@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus, ChevronRight, Heart } from 'lucide-react';
+import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus, ChevronRight, Heart, Check, X, Building2 } from 'lucide-react';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
@@ -335,6 +335,182 @@ export default function HomePage() {
                 </Link>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Premium Subscription Section */}
+        <section className="py-16 bg-slate-900 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }} />
+          </div>
+          
+          <div className="container-app relative">
+            <div className="text-center mb-12">
+              <span className="inline-block px-4 py-1.5 bg-amber-500/20 text-amber-400 text-sm font-medium rounded-full mb-4">
+                Premium Plans
+              </span>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4">
+                Unlock Your Business Potential
+              </h2>
+              <p className="text-slate-400 max-w-2xl mx-auto">
+                Get more visibility, faster sales, and premium features with our seller subscription plans
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {/* Basic Plan */}
+              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-2">Basic</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white">₦2,500</span>
+                    <span className="text-slate-400">/month</span>
+                  </div>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    Up to 10 active ads
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    Basic ad visibility
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    Email support
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-500">
+                    <X className="w-4 h-4" />
+                    Featured listings
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-500">
+                    <X className="w-4 h-4" />
+                    Priority support
+                  </li>
+                </ul>
+                <Link
+                  href="/subscription?plan=basic"
+                  className="w-full py-3 px-4 border-2 border-slate-600 text-white rounded-xl font-medium hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                >
+                  Get Started
+                </Link>
+              </div>
+
+              {/* Professional Plan */}
+              <div className="bg-gradient-to-b from-amber-500/10 to-slate-800/50 border-2 border-amber-500/50 rounded-2xl p-6 relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="px-3 py-1 bg-amber-500 text-slate-900 text-xs font-semibold rounded-full">
+                    MOST POPULAR
+                  </span>
+                </div>
+                <div className="mb-6 pt-2">
+                  <h3 className="text-lg font-semibold text-white mb-2">Professional</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white">₦5,000</span>
+                    <span className="text-slate-400">/month</span>
+                  </div>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-amber-500" />
+                    Up to 50 active ads
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-amber-500" />
+                    2x ad visibility boost
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-amber-500" />
+                    5 featured listings/month
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-amber-500" />
+                    Priority email support
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-amber-500" />
+                    Analytics dashboard
+                  </li>
+                </ul>
+                <Link
+                  href="/subscription?plan=professional"
+                  className="w-full py-3 px-4 bg-amber-500 text-slate-900 rounded-xl font-semibold hover:bg-amber-400 transition-all flex items-center justify-center gap-2"
+                >
+                  <Star className="w-4 h-4" />
+                  Subscribe Now
+                </Link>
+              </div>
+
+              {/* Enterprise Plan */}
+              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-2">Enterprise</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white">₦15,000</span>
+                    <span className="text-slate-400">/month</span>
+                  </div>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    Unlimited active ads
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    5x ad visibility boost
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    Unlimited featured ads
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    24/7 phone support
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    Custom analytics
+                  </li>
+                </ul>
+                <Link
+                  href="/subscription?plan=enterprise"
+                  className="w-full py-3 px-4 border-2 border-slate-600 text-white rounded-xl font-medium hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                >
+                  Contact Sales
+                </Link>
+              </div>
+            </div>
+
+            {/* Payment Methods */}
+            <div className="mt-10 pt-8 border-t border-slate-700">
+              <p className="text-center text-slate-500 text-sm mb-4">
+                Secure payment powered by
+              </p>
+              <div className="flex items-center justify-center gap-4">
+                {/* VISA */}
+                <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
+                  <svg viewBox="0 0 50 30" className="h-6">
+                    <rect width="50" height="30" rx="4" fill="#1A1F71"/>
+                    <text x="25" y="20" fill="white" fontSize="12" fontWeight="bold" fontFamily="Arial" textAnchor="middle">VISA</text>
+                  </svg>
+                </div>
+                {/* Mastercard */}
+                <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
+                  <svg viewBox="0 0 40 30" className="h-6">
+                    <circle cx="15" cy="15" r="12" fill="#EB001B"/>
+                    <circle cx="25" cy="15" r="12" fill="#F79E1B"/>
+                    <path d="M20 7a12 12 0 000 16 12 12 0 000-16z" fill="#FF5F00"/>
+                  </svg>
+                </div>
+                {/* Bank Transfer */}
+                <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-slate-700" />
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
