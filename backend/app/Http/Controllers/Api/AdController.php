@@ -91,13 +91,22 @@ class AdController extends Controller
             'currency' => 'sometimes|string|size:3',
             'phone' => 'sometimes|string|max:30',
             'whatsapp' => 'sometimes|string|max:30',
+            'lga' => 'sometimes|string|max:100',
         ]);
 
         $data['slug'] = \Illuminate\Support\Str::slug($request->title) . '-' . time();
         $data['user_id'] = $request->user()->id;
         $data['status'] = 'pending';
+        
+        // Save LGA separately if provided
+        $lga = $request->input('lga');
+        unset($data['lga']);
 
         $ad = Ad::create($data);
+        
+        if ($lga) {
+            $ad->update(['lga' => $lga]);
+        }
 
         // Handle images - Laravel receives 'images[]' as 'images' in FormData
         $files = $request->file('images') ?: $request->file('images[]');

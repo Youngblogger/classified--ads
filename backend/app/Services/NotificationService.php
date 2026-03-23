@@ -92,37 +92,6 @@ class NotificationService
             ]);
     }
 
-    // Payment Notifications
-    public static function paymentReceived($payment)
-    {
-        return self::send($payment->user_id, 'payment_received', 'Payment Received', 
-            "Your payment of ₦{$payment->amount} has been processed successfully.", [
-                'payment_id' => $payment->id,
-                'amount' => $payment->amount
-            ]);
-    }
-
-    public static function paymentApproved($payment)
-    {
-        return self::send($payment->user_id, 'payment_approved', 'Payment Confirmed ✓', 
-            "Your payment of ₦{$payment->amount} has been confirmed and your {$payment->type} is now active.", [
-                'payment_id' => $payment->id,
-                'amount' => $payment->amount,
-                'type' => $payment->type
-            ]);
-    }
-
-    public static function paymentRejected($payment, $reason = null)
-    {
-        $reasonText = $reason ?: 'Your payment could not be processed.';
-        return self::send($payment->user_id, 'payment_rejected', 'Payment Failed', 
-            "Your payment of ₦{$payment->amount} was declined. Reason: {$reasonText}", [
-                'payment_id' => $payment->id,
-                'amount' => $payment->amount,
-                'reason' => $reasonText
-            ]);
-    }
-
     // Promotion Notifications
     public static function promotionActivated($promotion)
     {

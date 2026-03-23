@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus, ChevronRight } from 'lucide-react';
+import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus, ChevronRight, Heart } from 'lucide-react';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
@@ -37,45 +37,68 @@ function AdCardWithImage({ ad }: { ad: any }) {
     primaryImage = imagesArray[0];
   }
   const imageUrl = primaryImage ? getImageUrl(primaryImage) : '';
+  const imageCount = imagesArray.length;
   
   return (
-    <Link href={`/ad/${ad.slug}`} className="card card-hover group">
-      <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+    <Link href={`/ad/${ad.slug}`} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+      <div className="relative aspect-square overflow-hidden">
         {imageUrl && !imgError ? (
           <img
             src={imageUrl}
             alt={ad.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             onError={() => setImgError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-            <div className="text-center">
-              <ImageIcon className="w-12 h-12 text-slate-300 mx-auto" />
-              <p className="text-xs text-slate-400 mt-2">No Image</p>
-            </div>
+            <ImageIcon className="w-16 h-16 text-slate-300" />
           </div>
         )}
+        
         {ad.condition === 'new' && (
-          <span className="absolute top-3 left-3 bg-emerald-500 text-white text-xs px-2 py-0.5 rounded">New</span>
+          <span className="absolute top-3 left-3 bg-emerald-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
+            New
+          </span>
         )}
+        
+        {ad.is_featured && (
+          <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
+            Featured
+          </span>
+        )}
+        
+        {imageCount > 1 && (
+          <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+            <ImageIcon className="w-3 h-3" />
+            {imageCount}
+          </div>
+        )}
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
+      
       <div className="p-4">
-        <h3 className="font-semibold text-slate-900 line-clamp-2 group-hover:text-primary-600 transition-colors">
-          {ad.title}
-        </h3>
-        {(ad.short_description || ad.description) && (
-          <p className="text-sm text-slate-500 mt-1 line-clamp-2">
-            {ad.short_description || ad.description}
-          </p>
-        )}
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-semibold text-slate-900 line-clamp-2 group-hover:text-primary-600 transition-colors text-base">
+            {ad.title}
+          </h3>
+        </div>
+        
         <p className="text-xl font-bold text-primary-600 mt-2">
           {formatPrice(ad.price, ad.currency)}
         </p>
-        <div className="flex items-center gap-2 mt-3 text-slate-500 text-sm">
-          <MapPin className="w-4 h-4 flex-shrink-0" />
+        
+        <div className="flex items-center gap-1.5 mt-3 text-slate-500 text-sm">
+          <MapPin className="w-4 h-4 flex-shrink-0 text-slate-400" />
           <span className="truncate">{ad.location?.name || 'N/A'}</span>
         </div>
+        
+        {ad.created_at && (
+          <div className="flex items-center gap-1.5 mt-2 text-slate-400 text-xs">
+            <Eye className="w-3.5 h-3.5" />
+            <span>{formatRelativeTime(ad.created_at)}</span>
+          </div>
+        )}
       </div>
     </Link>
   );
@@ -264,35 +287,6 @@ export default function HomePage() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-        </section>
-
-        {/* Featured Categories */}
-        <section className="py-12 bg-white">
-          <div className="container-app">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="section-title">Browse Categories</h2>
-                <p className="text-slate-600 mt-1">Find what you're looking for</p>
-              </div>
-              <Link href="/ads" className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium">
-                View All <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-              {FEATURED_CATEGORIES.map((category, index) => (
-                <Link
-                  key={index}
-                  href={`/ads?category=${category.name.toLowerCase().replace(/ /g, '-')}`}
-                  className="flex flex-col items-center p-6 bg-slate-50 rounded-2xl hover:bg-primary-50 hover:shadow-md transition-all duration-300 group"
-                >
-                  <span className="text-4xl mb-3 group-hover:scale-110 transition-transform">{category.icon}</span>
-                  <p className="font-medium text-slate-900 text-center mb-1">{category.name}</p>
-                  <p className="text-xs text-slate-500">{category.count} ads</p>
-                </Link>
-              ))}
             </div>
           </div>
         </section>

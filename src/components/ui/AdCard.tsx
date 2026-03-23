@@ -51,6 +51,18 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
   }
   const imageUrl = primaryImage ? getImageUrl(primaryImage) : '';
 
+  const getConditionBadge = () => {
+    if (!ad.condition) return null;
+    const badgeClasses = ad.condition === 'new' ? 'bg-green-500 text-white' :
+                         ad.condition === 'like_new' ? 'bg-blue-500 text-white' :
+                         ad.condition === 'good' ? 'bg-yellow-500 text-white' :
+                         'bg-orange-500 text-white';
+    const label = ad.condition === 'new' ? 'New' :
+                  ad.condition === 'like_new' ? 'Like New' :
+                  ad.condition === 'good' ? 'Good' : 'Fair';
+    return <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClasses}`}>{label}</span>;
+  };
+
   if (variant === 'horizontal') {
     return (
       <Link href={`/ad/${ad.slug}`} className="card card-hover flex flex-col sm:flex-row">
@@ -67,9 +79,7 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
               <span className="text-4xl">📷</span>
             </div>
           )}
-          {ad.condition === 'new' && (
-            <span className="absolute top-2 left-2 badge-success">New</span>
-          )}
+          {getConditionBadge()}
         </div>
         <div className="flex-1 p-4">
           <div className="flex justify-between items-start">
@@ -105,9 +115,7 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
               <span className="text-3xl">📷</span>
             </div>
           )}
-          {ad.condition === 'new' && (
-            <span className="absolute bottom-2 left-2 badge-success text-xs">New</span>
-          )}
+          {getConditionBadge()}
         </div>
         <div className="p-3">
           <h3 className="font-medium text-dark text-sm line-clamp-1">{ad.title}</h3>
@@ -138,9 +146,7 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
             <span className="text-5xl">📷</span>
           </div>
         )}
-        {ad.condition === 'new' && (
-          <span className="absolute top-3 left-3 badge-success">New</span>
-        )}
+        {getConditionBadge()}
       </div>
       <div className="p-4">
         <h3 className="font-semibold text-dark line-clamp-2 group-hover:text-primary-600 transition-colors">

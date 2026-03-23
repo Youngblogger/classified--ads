@@ -8,7 +8,6 @@ import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 import PromotionPackages from '@/components/promotion/PromotionPackages';
 import PaymentMethods from '@/components/promotion/PaymentMethods';
-import PaystackCheckout from '@/components/promotion/PaystackCheckout';
 import BankTransferDetails from '@/components/promotion/BankTransferDetails';
 import PaymentStatus from '@/components/promotion/PaymentStatus';
 
@@ -234,17 +233,6 @@ export default function PromoteAdPage() {
                 status="failed"
                 message={error || 'Payment failed. Please try again.'}
                 onTryAgain={handleTryAgain}
-              />
-            )}
-
-            {step === 'processing' && paymentMethod === 'card' && paymentData && (
-              <PaystackCheckout
-                reference={paymentReference}
-                authorizationUrl={paymentData.authorization_url}
-                amount={selectedPlan?.price || 0}
-                email={user?.email || ''}
-                onSuccess={handleCardPaymentSuccess}
-                onClose={() => setStep('payment')}
               />
             )}
 

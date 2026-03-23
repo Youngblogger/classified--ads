@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/home/Header';
@@ -54,7 +54,8 @@ function isApprovedAd(ad: any): boolean {
   return (ad?.status === 'active' || ad?.status === 'approved') && ad?.is_verified === true;
 }
 
-export default function AdDetailPage({ params }: { params: { slug: string } }) {
+export default function AdDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
   const router = useRouter();
   const [ad, setAd] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,8 +84,8 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
   // Fetch ad from API
   useEffect(() => {
     const fetchAd = async () => {
-      console.log('[AdDetail] Starting fetch for slug:', params.slug);
-      console.log('[AdDetail] API URL:', `${API_URL}/ads/${params.slug}`);
+      console.log('[AdDetail] Starting fetch for slug:', slug);
+      console.log('[AdDetail] API URL:', `${API_URL}/ads/${slug}`);
       setIsLoading(true);
       setError(null);
       
@@ -96,7 +97,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
         }, 15000); // Increased timeout to 15 seconds
 
         console.log('[AdDetail] Making fetch request...');
-        const response = await fetch(`${API_URL}/ads/${params.slug}`, { 
+        const response = await fetch(`${API_URL}/ads/${slug}`, { 
           signal: controller.signal,
           headers: {
             'Accept': 'application/json',
@@ -134,7 +135,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
     };
     
     fetchAd();
-  }, [params.slug]);
+  }, [slug]);
 
   // Fetch seller rating
   const fetchSellerRating = () => {
@@ -396,7 +397,18 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                   )}
 
                   {/* Condition Badge */}
-                  <span className="absolute top-4 left-4 badge-success">Used</span>
+                  {displayAd.condition && (
+                    <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold ${
+                      displayAd.condition === 'new' ? 'bg-green-500 text-white' :
+                      displayAd.condition === 'like_new' ? 'bg-blue-500 text-white' :
+                      displayAd.condition === 'good' ? 'bg-yellow-500 text-white' :
+                      'bg-orange-500 text-white'
+                    }`}>
+                      {displayAd.condition === 'new' ? 'New' :
+                       displayAd.condition === 'like_new' ? 'Like New' :
+                       displayAd.condition === 'good' ? 'Good' : 'Fair'}
+                    </span>
+                  )}
                   
                   {/* Watermark for approved ads */}
                   {isApprovedAd(displayAd) && displayAd.id && (

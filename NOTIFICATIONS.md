@@ -79,8 +79,7 @@ The bell notification system is fully configured and operational in your marketp
 3. **ReviewController** - New reviews
 4. **ReportController** - Report actions
 5. **PromotionController** - Promotion activation
-6. **PaymentController** - Payment approval/rejection
-7. **FavoriteController** - New favorites (NEW!)
+6. **FavoriteController** - New favorites (NEW!)
 
 ### Manual Triggers
 You can send custom notifications using:
@@ -99,7 +98,6 @@ NotificationService::adApproved($ad);
 NotificationService::adRejected($ad, $reason);
 NotificationService::newMessageOnAd($ad, $sender, $message);
 NotificationService::newFavorite($ad, $user);
-NotificationService::paymentApproved($payment);
 ```
 
 ## Real-Time Delivery

@@ -281,6 +281,11 @@ export const searchApi = {
 export const adminApi = {
   // Dashboard
   getDashboard: () => api.get('/admin/dashboard'),
+  getPaymentStats: () => Promise.resolve({ data: {} }),
+  getPayments: (params?: Record<string, any>) => Promise.resolve({ data: { data: [] } }),
+  getFinancialSummary: () => Promise.resolve({ data: { summary: null } }),
+  approvePayment: () => Promise.resolve({ data: { success: true } }),
+  rejectPayment: () => Promise.resolve({ data: { success: true } }),
 
   // Users
   getUsers: (params?: Record<string, any>) => api.get('/admin/users', { params }),
@@ -313,13 +318,6 @@ export const adminApi = {
   getReports: (params?: Record<string, any>) => api.get('/admin/reports', { params }),
   resolveReport: (id: number) => api.post(`/admin/reports/${id}/resolve`),
   dismissReport: (id: number) => api.post(`/admin/reports/${id}/dismiss`),
-
-  // Payments
-  getPayments: (params?: Record<string, any>) => api.get('/admin/payments', { params }),
-  getPaymentStats: () => api.get('/admin/payment-stats'),
-  getFinancialSummary: () => api.get('/admin/financial-summary'),
-  approvePayment: (id: number) => api.post(`/admin/payments/${id}/approve`),
-  rejectPayment: (id: number) => api.post(`/admin/payments/${id}/reject`),
 
   // Admin Wallet
   getAdminWallet: () => api.get('/admin/wallet'),
@@ -412,28 +410,6 @@ export const adminApi = {
   deleteReview: (id: number) => api.delete(`/reviews/${id}`),
   markReviewHelpful: (id: number) => api.post(`/reviews/${id}/helpful`),
   reportReview: (id: number, reason: string) => api.post(`/reviews/${id}/report`, { reason }),
-};
-
-// Payments API
-export const paymentsApi = {
-  initialize: (data: { ad_id: number; plan_id: number; method: string }) =>
-    api.post('/payments/initialize', data),
-  
-  verify: (reference: string) => 
-    api.post('/payments/verify', { reference }),
-  
-  getStatus: (reference: string) => 
-    api.get(`/payments/status/${reference}`),
-  
-  resendVirtualAccount: (paymentId: number) => 
-    api.post('/payments/resend-virtual-account', { payment_id: paymentId }),
-  
-  checkBankPayment: (reference: string) => 
-    api.post('/payments/check-bank-payment', { reference }),
-  
-  getMyPayments: () => api.get('/payments/my-payments'),
-  
-  getPublicKey: () => api.get('/payments/public-key'),
 };
 
 // Promotions API

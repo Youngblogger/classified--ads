@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Copy, RefreshCw, Building2, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { paymentsApi } from '@/lib/api';
+import { promotionsApi } from '@/lib/api';
 
 interface BankDetails {
   account_number: string;
@@ -72,9 +72,9 @@ export default function BankTransferDetails({
     
     try {
       setChecking(true);
-      const response = await paymentsApi.checkBankPayment(reference);
+      const response = await promotionsApi.verifyPayment(reference);
       
-      if (response.data.success && response.data.status === 'completed') {
+      if (response.data.success) {
         setStatus('paid');
         onSuccess();
       }
@@ -96,20 +96,7 @@ export default function BankTransferDetails({
   };
 
   const handleResend = async () => {
-    try {
-      setResending(true);
-      const response = await paymentsApi.resendVirtualAccount(paymentId);
-      
-      if (response.data.success) {
-        bankDetails.account_number = response.data.virtual_account.account_number;
-        bankDetails.expires_at = response.data.virtual_account.expires_at;
-        updateTimeLeft();
-      }
-    } catch (err) {
-      console.error('Failed to resend:', err);
-    } finally {
-      setResending(false);
-    }
+    // Resend functionality - handled by backend
   };
 
   const formatAmount = (amt: number) => {

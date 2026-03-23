@@ -266,12 +266,6 @@ export default function Footer() {
                 <p className="text-xs text-slate-500 mb-3">We accept:</p>
                 <div className="flex items-center gap-3">
                   <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
-                    <svg viewBox="0 0 100 30" className="h-6" fill="none">
-                      <rect width="100" height="30" rx="4" fill="#008535"/>
-                      <text x="10" y="20" fill="white" fontSize="10" fontWeight="bold" fontFamily="Arial">Paystack</text>
-                    </svg>
-                  </div>
-                  <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
                     <svg viewBox="0 0 50 30" className="h-6">
                       <rect width="50" height="30" rx="4" fill="#1A1F71"/>
                       <text x="25" y="20" fill="white" fontSize="12" fontWeight="bold" fontFamily="Arial" textAnchor="middle">VISA</text>

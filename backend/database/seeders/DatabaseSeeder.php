@@ -14,19 +14,204 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $categories = [
-            ['name' => 'Vehicles', 'slug' => 'vehicles', 'icon' => '🚗'],
-            ['name' => 'Electronics', 'slug' => 'electronics', 'icon' => '📱'],
-            ['name' => 'Furniture', 'slug' => 'furniture', 'icon' => '🛋️'],
-            ['name' => 'Clothing', 'slug' => 'clothing', 'icon' => '👕'],
-            ['name' => 'Real Estate', 'slug' => 'real-estate', 'icon' => '🏠'],
-            ['name' => 'Jobs', 'slug' => 'jobs', 'icon' => '💼'],
-            ['name' => 'Services', 'slug' => 'services', 'icon' => '🔧'],
-            ['name' => 'Sports', 'slug' => 'sports', 'icon' => '⚽'],
+        $categoriesWithSubcategories = [
+            [
+                'name' => 'Vehicles',
+                'slug' => 'vehicles',
+                'icon' => 'Car',
+                'subcategories' => [
+                    ['name' => 'Cars', 'slug' => 'cars'],
+                    ['name' => 'Motorcycles', 'slug' => 'motorcycles'],
+                    ['name' => 'Buses & Vans', 'slug' => 'buses-vans'],
+                    ['name' => 'Trucks & Trailers', 'slug' => 'trucks-trailers'],
+                    ['name' => 'Tricycles', 'slug' => 'tricycles'],
+                    ['name' => 'Vehicle Parts', 'slug' => 'vehicle-parts'],
+                    ['name' => 'Vehicle Accessories', 'slug' => 'vehicle-accessories'],
+                    ['name' => 'Heavy Equipment', 'slug' => 'heavy-equipment'],
+                ]
+            ],
+            [
+                'name' => 'Property',
+                'slug' => 'property',
+                'icon' => 'Home',
+                'subcategories' => [
+                    ['name' => 'Apartments for Rent', 'slug' => 'apartments-rent'],
+                    ['name' => 'Apartments for Sale', 'slug' => 'apartments-sale'],
+                    ['name' => 'Houses for Rent', 'slug' => 'houses-rent'],
+                    ['name' => 'Houses for Sale', 'slug' => 'houses-sale'],
+                    ['name' => 'Land & Plots', 'slug' => 'land'],
+                    ['name' => 'Commercial Property', 'slug' => 'commercial'],
+                    ['name' => 'Short Let / Airbnb', 'slug' => 'short-let'],
+                    ['name' => 'Event Spaces', 'slug' => 'event-spaces'],
+                ]
+            ],
+            [
+                'name' => 'Mobile Phones & Tablets',
+                'slug' => 'mobile-phones',
+                'icon' => 'Smartphone',
+                'subcategories' => [
+                    ['name' => 'Smartphones', 'slug' => 'smartphones'],
+                    ['name' => 'Feature Phones', 'slug' => 'feature-phones'],
+                    ['name' => 'Tablets', 'slug' => 'tablets'],
+                    ['name' => 'Smartwatches', 'slug' => 'smartwatches'],
+                    ['name' => 'Phone Accessories', 'slug' => 'phone-accessories'],
+                    ['name' => 'Power Banks', 'slug' => 'power-banks'],
+                    ['name' => 'Chargers', 'slug' => 'chargers'],
+                    ['name' => 'Screen Protectors', 'slug' => 'screen-protectors'],
+                ]
+            ],
+            [
+                'name' => 'Electronics',
+                'slug' => 'electronics',
+                'icon' => 'Monitor',
+                'subcategories' => [
+                    ['name' => 'Laptops', 'slug' => 'laptops'],
+                    ['name' => 'Desktop Computers', 'slug' => 'desktops'],
+                    ['name' => 'Televisions', 'slug' => 'tvs'],
+                    ['name' => 'Audio & Music Equipment', 'slug' => 'audio'],
+                    ['name' => 'Cameras & Photography', 'slug' => 'cameras'],
+                    ['name' => 'Gaming Consoles', 'slug' => 'gaming'],
+                    ['name' => 'Networking Equipment', 'slug' => 'networking'],
+                    ['name' => 'Accessories', 'slug' => 'electronics-accessories'],
+                ]
+            ],
+            [
+                'name' => 'Fashion',
+                'slug' => 'fashion',
+                'icon' => 'Shirt',
+                'subcategories' => [
+                    ['name' => "Men's Clothing", 'slug' => 'men-clothing'],
+                    ['name' => "Women's Clothing", 'slug' => 'women-clothing'],
+                    ['name' => 'Shoes', 'slug' => 'shoes'],
+                    ['name' => 'Bags', 'slug' => 'bags'],
+                    ['name' => 'Watches', 'slug' => 'watches'],
+                    ['name' => 'Jewelry', 'slug' => 'jewelry'],
+                    ['name' => 'Sunglasses', 'slug' => 'sunglasses'],
+                    ['name' => 'Underwear & Sleepwear', 'slug' => 'underwear'],
+                ]
+            ],
+            [
+                'name' => 'Home, Furniture & Appliances',
+                'slug' => 'home-furniture',
+                'icon' => 'Sofa',
+                'subcategories' => [
+                    ['name' => 'Furniture', 'slug' => 'furniture'],
+                    ['name' => 'Home Decor', 'slug' => 'home-decor'],
+                    ['name' => 'Kitchen Appliances', 'slug' => 'kitchen-appliances'],
+                    ['name' => 'Large Appliances', 'slug' => 'large-appliances'],
+                    ['name' => 'Small Appliances', 'slug' => 'small-appliances'],
+                    ['name' => 'Bedding', 'slug' => 'bedding'],
+                    ['name' => 'Lighting', 'slug' => 'lighting'],
+                    ['name' => 'Home Accessories', 'slug' => 'home-accessories'],
+                ]
+            ],
+            [
+                'name' => 'Jobs',
+                'slug' => 'jobs',
+                'icon' => 'Briefcase',
+                'subcategories' => [
+                    ['name' => 'Full-time Jobs', 'slug' => 'full-time'],
+                    ['name' => 'Part-time Jobs', 'slug' => 'part-time'],
+                    ['name' => 'Remote Jobs', 'slug' => 'remote'],
+                    ['name' => 'Internships', 'slug' => 'internships'],
+                    ['name' => 'Contract Jobs', 'slug' => 'contract'],
+                    ['name' => 'Graduate Jobs', 'slug' => 'graduate'],
+                    ['name' => 'Driver Jobs', 'slug' => 'driver'],
+                    ['name' => 'Tech Jobs', 'slug' => 'tech'],
+                ]
+            ],
+            [
+                'name' => 'Services',
+                'slug' => 'services',
+                'icon' => 'Wrench',
+                'subcategories' => [
+                    ['name' => 'Cleaning Services', 'slug' => 'cleaning'],
+                    ['name' => 'Repair & Maintenance', 'slug' => 'repair'],
+                    ['name' => 'Moving & Logistics', 'slug' => 'moving'],
+                    ['name' => 'Event Services', 'slug' => 'events'],
+                    ['name' => 'Digital Services', 'slug' => 'digital'],
+                    ['name' => 'Beauty Services', 'slug' => 'beauty-services'],
+                    ['name' => 'Automotive Services', 'slug' => 'auto-services'],
+                    ['name' => 'Home Services', 'slug' => 'home-services'],
+                ]
+            ],
+            [
+                'name' => 'Pets',
+                'slug' => 'pets',
+                'icon' => 'Dog',
+                'subcategories' => [
+                    ['name' => 'Dogs', 'slug' => 'dogs'],
+                    ['name' => 'Cats', 'slug' => 'cats'],
+                    ['name' => 'Birds', 'slug' => 'birds'],
+                    ['name' => 'Fish', 'slug' => 'fish'],
+                    ['name' => 'Pet Food', 'slug' => 'pet-food'],
+                    ['name' => 'Pet Accessories', 'slug' => 'pet-accessories'],
+                    ['name' => 'Livestock', 'slug' => 'livestock'],
+                    ['name' => 'Veterinary Services', 'slug' => 'vet-services'],
+                ]
+            ],
+            [
+                'name' => 'Health & Beauty',
+                'slug' => 'health-beauty',
+                'icon' => 'Heart',
+                'subcategories' => [
+                    ['name' => 'Skincare', 'slug' => 'skincare'],
+                    ['name' => 'Haircare', 'slug' => 'haircare'],
+                    ['name' => 'Makeup', 'slug' => 'makeup'],
+                    ['name' => 'Fragrances', 'slug' => 'fragrances'],
+                    ['name' => 'Personal Care', 'slug' => 'personal-care'],
+                    ['name' => 'Beauty Tools', 'slug' => 'beauty-tools'],
+                    ['name' => 'Supplements', 'slug' => 'supplements'],
+                    ['name' => 'Medical Supplies', 'slug' => 'medical-supplies'],
+                ]
+            ],
+            [
+                'name' => 'Baby & Kids',
+                'slug' => 'baby-kids',
+                'icon' => 'Baby',
+                'subcategories' => [
+                    ['name' => 'Baby Clothing', 'slug' => 'baby-clothing'],
+                    ['name' => 'Kids Clothing', 'slug' => 'kids-clothing'],
+                    ['name' => 'Toys', 'slug' => 'toys'],
+                    ['name' => 'Strollers', 'slug' => 'strollers'],
+                    ['name' => 'Car Seats', 'slug' => 'car-seats'],
+                    ['name' => 'Baby Food', 'slug' => 'baby-food'],
+                    ['name' => 'School Supplies', 'slug' => 'school-supplies'],
+                    ['name' => 'Maternity', 'slug' => 'maternity'],
+                ]
+            ],
+            [
+                'name' => 'Sports & Outdoors',
+                'slug' => 'sports',
+                'icon' => 'Dumbbell',
+                'subcategories' => [
+                    ['name' => 'Gym Equipment', 'slug' => 'gym-equipment'],
+                    ['name' => 'Fitness Accessories', 'slug' => 'fitness'],
+                    ['name' => 'Bicycles', 'slug' => 'bicycles'],
+                    ['name' => 'Outdoor Gear', 'slug' => 'outdoor'],
+                    ['name' => 'Sportswear', 'slug' => 'sportswear'],
+                    ['name' => 'Camping Equipment', 'slug' => 'camping'],
+                    ['name' => 'Football Equipment', 'slug' => 'football'],
+                    ['name' => 'Water Sports', 'slug' => 'water-sports'],
+                ]
+            ],
         ];
 
-        foreach ($categories as $cat) {
-            Category::create($cat);
+        foreach ($categoriesWithSubcategories as $catData) {
+            $parent = Category::create([
+                'name' => $catData['name'],
+                'slug' => $catData['slug'],
+                'icon' => $catData['icon'],
+            ]);
+
+            foreach ($catData['subcategories'] as $subData) {
+                Category::create([
+                    'name' => $subData['name'],
+                    'slug' => $subData['slug'],
+                    'icon' => $catData['icon'],
+                    'parent_id' => $parent->id,
+                ]);
+            }
         }
 
         $locations = [
@@ -56,43 +241,5 @@ class DatabaseSeeder extends Seeder
             'role' => 'admin',
             'status' => 'active',
         ]);
-
-        $sampleAds = [
-            ['title' => 'iPhone 15 Pro Max', 'price' => 999.99, 'category' => 'electronics', 'location' => 'new-york', 'condition' => 'new'],
-            ['title' => 'Toyota Camry 2023', 'price' => 28999.99, 'category' => 'vehicles', 'location' => 'los-angeles', 'condition' => 'like_new'],
-            ['title' => 'Modern Leather Sofa', 'price' => 599.99, 'category' => 'furniture', 'location' => 'chicago', 'condition' => 'good'],
-            ['title' => 'Designer Jacket', 'price' => 149.99, 'category' => 'clothing', 'location' => 'miami', 'condition' => 'new'],
-            ['title' => 'Downtown Apartment', 'price' => 2500, 'category' => 'real-estate', 'location' => 'houston', 'condition' => 'good'],
-            ['title' => 'Samsung 65" OLED TV', 'price' => 1299.99, 'category' => 'electronics', 'location' => 'new-york', 'condition' => 'new'],
-            ['title' => 'Mountain Bike', 'price' => 450.00, 'category' => 'sports', 'location' => 'los-angeles', 'condition' => 'good'],
-            ['title' => 'Home Cleaning Service', 'price' => 75.00, 'category' => 'services', 'location' => 'chicago', 'condition' => 'good'],
-        ];
-
-        foreach ($sampleAds as $adData) {
-            $category = Category::where('slug', $adData['category'])->first();
-            $location = Location::where('slug', $adData['location'])->first();
-
-            $ad = Ad::create([
-                'user_id' => $user->id,
-                'category_id' => $category->id,
-                'location_id' => $location->id,
-                'title' => $adData['title'],
-                'slug' => Str::slug($adData['title']) . '-' . time() . rand(100, 999),
-                'description' => 'This is a great ' . $adData['title'] . ' in excellent condition. Contact for more details.',
-                'price' => $adData['price'],
-                'currency' => 'USD',
-                'condition' => $adData['condition'],
-                'status' => 'active',
-                'is_featured' => rand(0, 1),
-                'is_verified' => true,
-                'views' => rand(10, 500),
-            ]);
-
-            AdImage::create([
-                'ad_id' => $ad->id,
-                'url' => 'https://picsum.photos/seed/' . $ad->id . '/400/300',
-                'is_primary' => true,
-            ]);
-        }
     }
 }

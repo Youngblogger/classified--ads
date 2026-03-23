@@ -17,7 +17,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { paymentsApi, promotionsApi } from '@/lib/api';
+import { promotionsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 export type PaymentMethod = 'card' | 'bank' | 'ussd' | 'wallet';
@@ -320,8 +320,8 @@ export default function PaymentMethods({
     
     setCheckingPayment(true);
     try {
-      const res = await paymentsApi.checkBankPayment(paymentState.paymentData.payment.reference);
-      if (res.data.success && res.data.status === 'completed') {
+      const res = await promotionsApi.verifyPayment(paymentState.paymentData.payment.reference);
+      if (res.data.success) {
         setPaymentState({
           processing: false,
           error: null,
@@ -508,7 +508,7 @@ export default function PaymentMethods({
               
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-700">
-                  You will be redirected to Paystack's secure payment page to enter your card details and complete the payment.
+                  You will be redirected to our secure payment page to enter your card details and complete the payment.
                 </p>
               </div>
 
@@ -546,18 +546,11 @@ export default function PaymentMethods({
 
               <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
                 <Lock className="w-3 h-3" />
-                Secured by Paystack
+                Secured Payment
               </p>
               
               {/* Payment Logos */}
               <div className="flex items-center justify-center gap-3 mt-3">
-                {/* Paystack */}
-                <div className="h-8 px-2 bg-white border border-gray-200 rounded flex items-center justify-center">
-                  <svg viewBox="0 0 80 24" className="h-4" fill="none">
-                    <rect width="80" height="24" rx="3" fill="#008535"/>
-                    <text x="8" y="16" fill="white" fontSize="8" fontWeight="bold" fontFamily="Arial">Paystack</text>
-                  </svg>
-                </div>
                 {/* Visa */}
                 <div className="h-8 px-2 bg-white border border-gray-200 rounded flex items-center justify-center">
                   <svg viewBox="0 0 40 24" className="h-4">

@@ -37,7 +37,6 @@ export default function PostAdPage() {
   const [price, setPrice] = useState('');
   const [negotiable, setNegotiable] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [subcategoryId, setSubcategoryId] = useState<number | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [lgaId, setLgaId] = useState<string | null>(null);
   const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
@@ -57,15 +56,39 @@ export default function PostAdPage() {
     
     const fetchData = async () => {
       try {
-        const [catsRes, locsRes] = await Promise.all([
-          categoriesApi.getAll(),
-          locationsApi.getAll()
-        ]);
-        setCategories(catsRes.data?.data || catsRes.data || []);
+        const catsRes = await categoriesApi.getAll();
+        // Get all categories from API
+        let allCategories = catsRes.data?.data || catsRes.data || [];
         
-        const apiLocs = locsRes.data?.data || locsRes.data || [];
-        if (apiLocs.length > 0) {
-          setApiLocations(apiLocs);
+        // If API returns parent categories with children, flatten to show all
+        if (allCategories.length > 0 && allCategories[0].children) {
+          // Has hierarchical structure - flatten it
+          const flatCategories: any[] = [];
+          allCategories.forEach((parent: any) => {
+            // Add parent category
+            flatCategories.push({
+              id: parent.id,
+              name: parent.name,
+              slug: parent.slug,
+              icon: parent.icon,
+              isParent: true,
+              children: parent.children
+            });
+          });
+          setCategories(flatCategories);
+        } else {
+          setCategories(allCategories);
+        }
+        
+        // Use API locations if available, otherwise fall back to local
+        try {
+          const locsRes = await locationsApi.getAll();
+          const apiLocs = locsRes.data?.data || locsRes.data || [];
+          if (apiLocs.length > 0) {
+            setApiLocations(apiLocs);
+          }
+        } catch (locErr) {
+          console.log('Using local locations');
         }
       } catch (err) {
         console.error('Failed to fetch data:', err);
@@ -74,8 +97,7 @@ export default function PostAdPage() {
     fetchData();
   }, []);
 
-  const selectedCategory = categories.find(c => c.id === categoryId);
-  const selectedLocation = apiLocations.find(l => l.id == locationId);
+  const selectedLocation = nigeriaLocations.find(l => l.id === locationId);
 
   const formatPrice = (value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '');
@@ -198,7 +220,6 @@ export default function PostAdPage() {
       formData.append('price', price);
       formData.append('negotiable', negotiable.toString());
       formData.append('category_id', categoryId!.toString());
-      if (subcategoryId) formData.append('subcategory_id', subcategoryId.toString());
       // Send location_id as required by API
       formData.append('location_id', locationId!);
       formData.append('lga', lgaId || '');
@@ -257,16 +278,25 @@ export default function PostAdPage() {
 
             <div className="flex items-center justify-center mb-10">
               <div className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                  {step > 1 ? <Check className="w-5 h-5" /> : '1'}
+                <div className="flex items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    {step > 1 ? <Check className="w-5 h-5" /> : '1'}
+                  </div>
+                  <span className="ml-2 text-sm font-medium text-gray-600 hidden sm:block">Details</span>
                 </div>
-                <div className={`w-20 h-1 ${step >= 2 ? 'bg-primary-600' : 'bg-gray-200'}`} />
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                  {step > 2 ? <Check className="w-5 h-5" /> : '2'}
+                <div className={`w-12 sm:w-20 h-1 mx-2 ${step >= 2 ? 'bg-primary-600' : 'bg-gray-200'}`} />
+                <div className="flex items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    {step > 2 ? <Check className="w-5 h-5" /> : '2'}
+                  </div>
+                  <span className="ml-2 text-sm font-medium text-gray-600 hidden sm:block">Price & Photos</span>
                 </div>
-                <div className={`w-20 h-1 ${step >= 3 ? 'bg-primary-600' : 'bg-gray-200'}`} />
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 3 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                  3
+                <div className={`w-12 sm:w-20 h-1 mx-2 ${step >= 3 ? 'bg-primary-600' : 'bg-gray-200'}`} />
+                <div className="flex items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 3 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    3
+                  </div>
+                  <span className="ml-2 text-sm font-medium text-gray-600 hidden sm:block">Preview</span>
                 </div>
               </div>
             </div>
@@ -275,44 +305,32 @@ export default function PostAdPage() {
               <div className="flex-1">
                 {step === 1 && (
                   <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-                    <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
+                      <span className="text-sm text-gray-500">Step 1 of 3</span>
+                    </div>
                     
-                    {/* Category Dropdown with Icons */}
+                    {/* Category Dropdown */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
                       <select
                         value={categoryId || ''}
                         onChange={(e) => {
                           setCategoryId(Number(e.target.value));
-                          setSubcategoryId(null);
                         }}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-gray-900 cursor-pointer"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 cursor-pointer"
                       >
                         <option value="">Select a category</option>
                         {categories.length > 0 ? (
                           categories.map((cat: any) => (
                             <option key={cat.id} value={cat.id}>
-                              {cat.icon ? `${cat.icon} ${cat.name}` : cat.name}
+                              {cat.name}
                             </option>
                           ))
                         ) : (
                           <option disabled>Loading categories...</option>
                         )}
                       </select>
-                      {selectedCategory?.subcategories?.length > 0 && (
-                        <div className="mt-3">
-                          <select
-                            value={subcategoryId || ''}
-                            onChange={(e) => setSubcategoryId(Number(e.target.value) || null)}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-gray-900 cursor-pointer"
-                          >
-                            <option value="">Select subcategory (optional)</option>
-                            {selectedCategory.subcategories.map((sub: any) => (
-                              <option key={sub.id} value={sub.id}>{sub.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
                     </div>
 
                     <div>
@@ -324,7 +342,7 @@ export default function PostAdPage() {
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           placeholder="Give your ad a catchy title"
-                          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                       </div>
                     </div>
@@ -337,33 +355,51 @@ export default function PostAdPage() {
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           placeholder="Describe your item in detail. Include condition, features, and any relevant information."
-                          rows={6}
-                          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                          rows={5}
+                          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
                         />
                       </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-3">Condition *</label>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         {[
-                          { value: 'new', label: 'New', desc: 'Brand new, never used' },
-                          { value: 'like_new', label: 'Like New', desc: 'Barely used, excellent' },
-                          { value: 'good', label: 'Good', desc: 'Minor signs of use' },
-                          { value: 'fair', label: 'Fair', desc: 'Visible wear, works fine' },
+                          { value: 'new', label: 'New', desc: 'Brand new, never used', color: 'emerald' },
+                          { value: 'like_new', label: 'Like New', desc: 'Barely used', color: 'blue' },
+                          { value: 'good', label: 'Good', desc: 'Minor signs of use', color: 'amber' },
+                          { value: 'fair', label: 'Fair', desc: 'Visible wear', color: 'orange' },
                         ].map((cond) => (
                           <button
                             key={cond.value}
                             type="button"
                             onClick={() => setCondition(cond.value as any)}
-                            className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            className={`relative p-4 rounded-xl border-2 text-left transition-all ${
                               condition === cond.value
-                                ? 'border-primary-500 bg-primary-50'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? cond.color === 'emerald' ? 'border-emerald-500 bg-emerald-50' :
+                                  cond.color === 'blue' ? 'border-blue-500 bg-blue-50' :
+                                  cond.color === 'amber' ? 'border-amber-500 bg-amber-50' :
+                                  'border-orange-500 bg-orange-50'
+                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                             }`}
                           >
-                            <span className="block font-medium text-gray-900">{cond.label}</span>
-                            <span className="text-sm text-gray-500">{cond.desc}</span>
+                            <span className={`block font-semibold ${
+                              condition === cond.value
+                                ? cond.color === 'emerald' ? 'text-emerald-700' :
+                                  cond.color === 'blue' ? 'text-blue-700' :
+                                  cond.color === 'amber' ? 'text-amber-700' :
+                                  'text-orange-700'
+                                : 'text-gray-900'
+                            }`}>{cond.label}</span>
+                            <span className="text-xs text-gray-500 mt-1 block">{cond.desc}</span>
+                            {condition === cond.value && (
+                              <Check className={`absolute top-3 right-3 w-5 h-5 ${
+                                cond.color === 'emerald' ? 'text-emerald-600' :
+                                cond.color === 'blue' ? 'text-blue-600' :
+                                cond.color === 'amber' ? 'text-amber-600' :
+                                'text-orange-600'
+                              }`} />
+                            )}
                           </button>
                         ))}
                       </div>
@@ -379,27 +415,27 @@ export default function PostAdPage() {
                             setLocationId(e.target.value || null);
                             setLgaId(null);
                           }}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-gray-900 cursor-pointer"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 cursor-pointer"
                         >
                           <option value="">Select a state</option>
-                          {apiLocations.length > 0 ? (
-                            apiLocations.map((loc: any) => (
-                              <option key={loc.id} value={loc.id}>{loc.name}</option>
-                            ))
-                          ) : (
-                            <option disabled>Loading states...</option>
-                          )}
+                          {nigeriaLocations.map((loc) => (
+                            <option key={loc.id} value={loc.id}>{loc.name}</option>
+                          ))}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Local Government Area</label>
-                        <input
-                          type="text"
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Local Government Area *</label>
+                        <select
                           value={lgaId || ''}
-                          onChange={(e) => setLgaId(e.target.value)}
-                          placeholder="Enter LGA"
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-gray-900"
-                        />
+                          onChange={(e) => setLgaId(e.target.value || null)}
+                          disabled={!locationId}
+                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        >
+                          <option value="">{locationId ? 'Select an LGA' : 'Select a state first'}</option>
+                          {locationId && nigeriaLocations.find(l => l.id === locationId)?.lgas?.map((lga) => (
+                            <option key={lga} value={lga}>{lga}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
@@ -416,7 +452,7 @@ export default function PostAdPage() {
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="e.g., 08012345678"
-                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                           />
                         </div>
                       </div>
@@ -433,7 +469,7 @@ export default function PostAdPage() {
                             value={whatsapp}
                             onChange={(e) => setWhatsapp(e.target.value)}
                             placeholder="e.g., 08012345678"
-                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                           />
                         </div>
                       </div>
@@ -442,16 +478,19 @@ export default function PostAdPage() {
                     <button
                       onClick={() => setStep(2)}
                       disabled={!canProceedToStep2}
-                      className="w-full py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full py-3.5 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      Continue <ChevronRight className="w-5 h-5" />
+                      Continue to Price & Photos <ChevronRight className="w-5 h-5" />
                     </button>
                   </div>
                 )}
 
                 {step === 2 && (
                   <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-                    <h2 className="text-xl font-semibold text-gray-900">Price & Images</h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-semibold text-gray-900">Price & Images</h2>
+                      <span className="text-sm text-gray-500">Step 2 of 3</span>
+                    </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Price *</label>
@@ -462,15 +501,15 @@ export default function PostAdPage() {
                           value={formatPrice(price)}
                           onChange={handlePriceChange}
                           placeholder="0"
-                          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                       </div>
-                      <label className="flex items-center gap-2 mt-2">
+                      <label className="flex items-center gap-2 mt-3 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={negotiable}
                           onChange={(e) => setNegotiable(e.target.checked)}
-                          className="w-4 h-4 text-primary-600 rounded"
+                          className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
                         />
                         <span className="text-sm text-gray-600">Price is negotiable</span>
                       </label>
@@ -486,7 +525,7 @@ export default function PostAdPage() {
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onClick={() => remainingSlots > 0 && fileInputRef.current?.click()}
-                        className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
+                        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
                           isDragging 
                             ? 'border-primary-500 bg-primary-50' 
                             : remainingSlots > 0 
@@ -503,11 +542,11 @@ export default function PostAdPage() {
                           className="hidden"
                           disabled={remainingSlots <= 0}
                         />
-                        <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragging ? 'text-primary-600' : 'text-gray-400'}`} />
-                        <p className="text-gray-600 font-medium">
+                        <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-primary-600' : 'text-gray-400'}`} />
+                        <p className="text-gray-600 font-medium text-lg">
                           {isDragging ? 'Drop images here' : 'Drag & drop or click to upload'}
                         </p>
-                        <p className="text-gray-400 text-sm mt-1">
+                        <p className="text-gray-400 text-sm mt-2">
                           {remainingSlots > 0 ? `${remainingSlots} more image${remainingSlots > 1 ? 's' : ''} allowed` : 'Maximum images reached'}
                         </p>
                         <p className="text-gray-400 text-xs mt-2">
@@ -517,7 +556,7 @@ export default function PostAdPage() {
 
                       {images.length > 0 && (
                         <div className="mt-4">
-                          <p className="text-sm text-gray-500 mb-2">
+                          <p className="text-sm text-gray-500 mb-3">
                             Drag images to reorder. First image is the primary.
                           </p>
                           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
@@ -529,12 +568,12 @@ export default function PostAdPage() {
                                 onDragEnd={handleDragEnd}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={() => handleDropReorder(index)}
-                                className={`relative aspect-square rounded-lg overflow-hidden group cursor-move ${
-                                  draggedIndex === index ? 'opacity-50' : ''
+                                className={`relative aspect-square rounded-xl overflow-hidden group cursor-move bg-gray-100 ${
+                                  draggedIndex === index ? 'opacity-50 ring-2 ring-primary-500' : ''
                                 }`}
                               >
                                 <img src={img.preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                                   <GripVertical className="w-6 h-6 text-white opacity-0 group-hover:opacity-100" />
                                 </div>
                                 <button
@@ -542,18 +581,15 @@ export default function PostAdPage() {
                                     e.stopPropagation();
                                     removeImage(img.id);
                                   }}
-                                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                                 >
                                   <X className="w-4 h-4" />
                                 </button>
                                 {index === 0 && (
-                                  <span className="absolute bottom-1 left-1 bg-primary-600 text-white text-xs px-2 py-0.5 rounded">
+                                  <span className="absolute bottom-2 left-2 bg-primary-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
                                     Primary
                                   </span>
                                 )}
-                                <div className="absolute top-1 left-1 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center text-xs">
-                                  <GripVertical className="w-3 h-3" />
-                                </div>
                               </div>
                             ))}
                           </div>
@@ -564,16 +600,16 @@ export default function PostAdPage() {
                     <div className="flex gap-3">
                       <button
                         onClick={() => setStep(1)}
-                        className="flex-1 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                        className="flex-1 py-3.5 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
                       >
                         Back
                       </button>
                       <button
                         onClick={() => setStep(3)}
                         disabled={!price || images.length === 0}
-                        className="flex-1 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex-1 py-3.5 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        Continue <ChevronRight className="w-5 h-5" />
+                        Preview Ad <ChevronRight className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
@@ -581,68 +617,80 @@ export default function PostAdPage() {
 
                 {step === 3 && (
                   <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-                    <h2 className="text-xl font-semibold text-gray-900">Preview Your Ad</h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-semibold text-gray-900">Preview Your Ad</h2>
+                      <span className="text-sm text-gray-500">Step 3 of 3</span>
+                    </div>
 
-                    <div className="border border-gray-200 rounded-xl p-4">
+                    <div className="border border-gray-200 rounded-xl overflow-hidden">
                       {images[0] && (
-                        <div className="aspect-video rounded-lg overflow-hidden mb-4">
+                        <div className="aspect-video bg-gray-100">
                           <img src={images[0].preview} alt="Preview" className="w-full h-full object-cover" />
                         </div>
                       )}
 
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <span className="inline-block px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full mb-2">
-                              {condition === 'new' ? 'New' : condition === 'like_new' ? 'Like New' : condition === 'good' ? 'Good' : 'Fair'}
-                            </span>
-                            <h3 className="text-xl font-semibold text-gray-900">{title || 'Ad Title'}</h3>
+                      <div className="p-5 space-y-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            {condition && (
+                              <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full mb-2 ${
+                                condition === 'new' ? 'bg-emerald-100 text-emerald-700' :
+                                condition === 'like_new' ? 'bg-blue-100 text-blue-700' :
+                                condition === 'good' ? 'bg-amber-100 text-amber-700' :
+                                'bg-orange-100 text-orange-700'
+                              }`}>
+                                {condition === 'new' ? 'New' : condition === 'like_new' ? 'Like New' : condition === 'good' ? 'Good' : 'Fair'}
+                              </span>
+                            )}
+                            <h3 className="text-xl font-bold text-gray-900 truncate">{title || 'Ad Title'}</h3>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex-shrink-0">
                             <p className="text-2xl font-bold text-primary-600">
                               ₦{Number(price).toLocaleString() || '0'}
                             </p>
                             {negotiable && (
-                              <span className="text-xs text-gray-500">Negotiable</span>
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Negotiable</span>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 text-gray-500 text-sm">
-                          <MapPin className="w-4 h-4" />
-                          <span>{lgaId ? `${lgaId}, ` : ''}{apiLocations.find(l => l.id == locationId)?.name || ''}</span>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="w-4 h-4 text-gray-400" />
+                            {lgaId ? `${lgaId}, ` : ''}{nigeriaLocations.find(l => l.id === locationId)?.name || ''}
+                          </span>
                         </div>
 
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-4 h-4" />
+                        <div className="flex items-center gap-4 text-sm border-t border-b border-gray-100 py-3">
+                          <span className="flex items-center gap-1.5 text-gray-600">
+                            <Phone className="w-4 h-4 text-gray-400" />
                             {phone}
                           </span>
                           {whatsapp && (
-                            <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                            <span className="flex items-center gap-1.5 text-green-600">
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.218 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                               </svg>
-                              {whatsapp}
+                              WhatsApp available
                             </span>
                           )}
                         </div>
 
-                        <p className="text-gray-600">{description || 'Description will appear here...'}</p>
+                        <p className="text-gray-600 text-sm leading-relaxed line-clamp-4">{description || 'Description will appear here...'}</p>
                       </div>
                     </div>
 
                     <div className="flex gap-3">
                       <button
                         onClick={() => setStep(2)}
-                        className="flex-1 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                        className="flex-1 py-3.5 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
                       >
                         Back
                       </button>
                       <button
                         onClick={handleSubmit}
                         disabled={!canSubmit || isLoading}
-                        className="flex-1 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex-1 py-3.5 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isLoading ? (
                           <>
@@ -650,7 +698,10 @@ export default function PostAdPage() {
                             Publishing...
                           </>
                         ) : (
-                          'Publish Ad'
+                          <>
+                            Publish Ad
+                            <ChevronRight className="w-5 h-5" />
+                          </>
                         )}
                       </button>
                     </div>

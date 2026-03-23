@@ -717,7 +717,7 @@ export default function Header() {
             <Link href="/categories" className="flex items-center gap-1.5 text-white hover:text-gray-200 font-medium whitespace-nowrap">
               <span>☰</span> All Categories
             </Link>
-            {categories.slice(0, 10).map((category: any) => (
+            {categories.slice(0, 16).map((category: any) => (
               <Link 
                 key={category.id} 
                 href={`/ads?category=${category.slug}`}
