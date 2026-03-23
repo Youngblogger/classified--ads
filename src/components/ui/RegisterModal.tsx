@@ -163,7 +163,7 @@ export default function RegisterModal() {
         onClick={handleClose}
       >
         <div 
-          className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col"
+          className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header - Match Header.tsx colors */}
