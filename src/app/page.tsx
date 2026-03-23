@@ -291,12 +291,12 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Recent Ads */}
+        {/* Latest Ads */}
         <section className="py-12 bg-slate-50">
           <div className="container-app">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="section-title">Recent Ads</h2>
+                <h2 className="section-title">Latest Ads</h2>
                 <p className="text-slate-600 mt-1">Fresh listings from sellers near you</p>
               </div>
               <Link href="/ads" className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium">
