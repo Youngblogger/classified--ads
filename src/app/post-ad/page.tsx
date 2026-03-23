@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, GripVertical, Loader2, Phone, MessageCircle, MapPinned } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { adsApi, categoriesApi, locationsApi } from '@/lib/api';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 import { nigeriaLocations } from '@/lib/nigeriaLocations';
 import toast from 'react-hot-toast';
 
@@ -25,6 +25,7 @@ const ACCEPTED_FORMATS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 
 export default function PostAdPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
+  const { toggleLoginModal, toggleRegisterModal } = useUIStore();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
@@ -285,19 +286,13 @@ export default function PostAdPage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
-                    onClick={() => {
-                      const event = new CustomEvent('openLoginModal');
-                      window.dispatchEvent(event);
-                    }}
+                    onClick={toggleLoginModal}
                     className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold transition-colors shadow-lg shadow-primary-500/30"
                   >
                     Login to Post Ad
                   </button>
                   <button
-                    onClick={() => {
-                      const event = new CustomEvent('openRegisterModal');
-                      window.dispatchEvent(event);
-                    }}
+                    onClick={toggleRegisterModal}
                     className="px-8 py-3 bg-white hover:bg-gray-50 text-primary-600 border-2 border-primary-300 rounded-xl font-semibold transition-colors"
                   >
                     Create Account
