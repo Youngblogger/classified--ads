@@ -271,6 +271,43 @@ export default function PostAdPage() {
       <main className="flex-1 py-8">
         <div className="container-app">
           <div className="max-w-4xl mx-auto">
+            {/* Login Required Message */}
+            {!isAuthenticated && (
+              <div className="bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 rounded-2xl p-8 text-center mb-8">
+                <div className="w-20 h-20 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">Login Required</h2>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  You need to be logged in to post an ad on iList. Please login or create an account to continue.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={() => {
+                      const event = new CustomEvent('openLoginModal');
+                      window.dispatchEvent(event);
+                    }}
+                    className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold transition-colors shadow-lg shadow-primary-500/30"
+                  >
+                    Login to Post Ad
+                  </button>
+                  <button
+                    onClick={() => {
+                      const event = new CustomEvent('openRegisterModal');
+                      window.dispatchEvent(event);
+                    }}
+                    className="px-8 py-3 bg-white hover:bg-gray-50 text-primary-600 border-2 border-primary-300 rounded-xl font-semibold transition-colors"
+                  >
+                    Create Account
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isAuthenticated && (
+            <>
             <div className="mb-8">
               <h1 className="text-3xl font-display font-bold text-gray-900">Post Your Ad</h1>
               <p className="text-gray-500 mt-2">Fill in the details to list your item on the marketplace</p>
@@ -741,6 +778,8 @@ export default function PostAdPage() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       </main>
