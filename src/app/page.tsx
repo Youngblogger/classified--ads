@@ -392,7 +392,7 @@ export default function HomePage() {
                   </li>
                 </ul>
                 <Link
-                  href="/subscription?plan=basic"
+                  href="/dashboard/promotions"
                   className="w-full py-3 px-4 border-2 border-slate-600 text-white rounded-xl font-medium hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
                 >
                   Get Started
@@ -436,7 +436,7 @@ export default function HomePage() {
                   </li>
                 </ul>
                 <Link
-                  href="/subscription?plan=professional"
+                  href="/dashboard/promotions"
                   className="w-full py-3 px-4 bg-amber-500 text-slate-900 rounded-xl font-semibold hover:bg-amber-400 transition-all flex items-center justify-center gap-2"
                 >
                   <Star className="w-4 h-4" />
@@ -476,7 +476,7 @@ export default function HomePage() {
                   </li>
                 </ul>
                 <Link
-                  href="/subscription?plan=enterprise"
+                  href="/dashboard/promotions"
                   className="w-full py-3 px-4 border-2 border-slate-600 text-white rounded-xl font-medium hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
                 >
                   Contact Sales
