@@ -292,23 +292,33 @@ export default function HomePage() {
         </section>
 
         {/* Latest Ads */}
-        <section className="py-12 bg-slate-50">
+        <section className="py-16 bg-gradient-to-br from-slate-50 via-white to-slate-100">
           <div className="container-app">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="section-title">Latest Ads</h2>
-                <p className="text-slate-600 mt-1">Fresh listings from sellers near you</p>
+            <div className="flex items-center justify-between mb-10">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/30">
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-slate-900">
+                    <span className="bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">Latest</span> Ads
+                  </h2>
+                  <p className="text-slate-500 mt-1">Fresh listings from sellers near you</p>
+                </div>
               </div>
-              <Link href="/ads" className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium">
-                View All <ArrowRight className="w-4 h-4" />
+              <Link href="/ads" className="group flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-slate-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all shadow-sm">
+                <span className="font-medium text-slate-700 group-hover:text-primary-600">View All</span>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-600 group-hover:translate-x-1 transition-all" />
               </Link>
             </div>
             
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse">
-                    <div className="aspect-[4/3] bg-slate-200" />
+                  <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse shadow-sm">
+                    <div className="aspect-square bg-gradient-to-br from-slate-200 to-slate-300" />
                     <div className="p-4 space-y-3">
                       <div className="h-4 bg-slate-200 rounded w-3/4" />
                       <div className="h-5 bg-slate-200 rounded w-1/2" />
@@ -318,20 +328,21 @@ export default function HomePage() {
                 ))}
               </div>
             ) : recentAds.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
                 {recentAds.slice(0, 8).map((ad: any) => (
                   <AdCardWithImage key={ad.id} ad={ad} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-2xl">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ImageIcon className="w-8 h-8 text-slate-400" />
+              <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-slate-100">
+                <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <ImageIcon className="w-10 h-10 text-slate-400" />
                 </div>
-                <p className="text-slate-500 mb-4">No recent ads available</p>
-                <Link href="/post-ad" className="btn-primary inline-flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  <span>Post the First Ad</span>
+                <h3 className="text-xl font-semibold text-slate-700 mb-2">No ads yet</h3>
+                <p className="text-slate-500 mb-5">Be the first to post an ad in your area!</p>
+                <Link href="/post-ad" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-primary-500/30">
+                  <Plus className="w-5 h-5" />
+                  <span>Post Your First Ad</span>
                 </Link>
               </div>
             )}
