@@ -406,10 +406,10 @@ export default function LoginModal() {
 
                 <div className="flex justify-between items-center text-sm">
                   <label className="flex items-center gap-2">
-                    <input type="checkbox" className="w-4 h-4 text-[#4B5320] rounded border-gray-300" />
+                    <input type="checkbox" className="w-4 h-4 text-primary-600 rounded border-gray-300" />
                     <span className="text-gray-600">Remember me</span>
                   </label>
-                  <Link href="/forgot-password" className="text-[#4B5320] hover:text-[#3a3f18] font-medium">
+                  <Link href="/forgot-password" className="text-primary-600 hover:text-primary-700 font-medium">
                     Forgot password?
                   </Link>
                 </div>
@@ -417,7 +417,7 @@ export default function LoginModal() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-2.5 bg-[#4B5320] hover:bg-[#3a3f18] text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
@@ -444,7 +444,7 @@ export default function LoginModal() {
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="Enter your phone number"
                       disabled={otpSent}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5320]/20 focus:border-[#4B5320] transition-all text-sm disabled:bg-gray-100"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm disabled:bg-gray-100"
                     />
                   </div>
                 </div>
@@ -454,7 +454,7 @@ export default function LoginModal() {
                     type="button"
                     onClick={handleSendOtp}
                     disabled={otpLoading || !phone}
-                    className="w-full py-2.5 bg-[#4B5320] hover:bg-[#3a3f18] text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {otpLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -487,7 +487,7 @@ export default function LoginModal() {
                             onKeyDown={(e) => handleOtpKeyDown(index, e)}
                             onPaste={handleOtpPaste}
                             disabled={isSubmitting}
-                            className="w-12 h-12 text-center text-lg font-bold rounded-xl border-2 focus:border-[#4B5320] focus:ring-2 focus:ring-[#4B5320]/20 outline-none bg-gray-50 transition-all"
+                            className="w-12 h-12 text-center text-lg font-bold rounded-xl border-2 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none bg-gray-50 transition-all"
                           />
                         ))}
                       </div>
@@ -497,7 +497,7 @@ export default function LoginModal() {
                       type="button"
                       onClick={() => handleVerifyOtp()}
                       disabled={isSubmitting || otp.join('').length !== 4}
-                      className="w-full py-2.5 bg-[#4B5320] hover:bg-[#3a3f18] text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isSubmitting ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -514,7 +514,7 @@ export default function LoginModal() {
                         <button
                           type="button"
                           onClick={handleResendOtp}
-                          className="text-[#4B5320] hover:text-[#3a3f18] font-medium"
+                          className="text-primary-600 hover:text-primary-700 font-medium"
                         >
                           Resend OTP Code
                         </button>
@@ -569,7 +569,7 @@ export default function LoginModal() {
                   closeAllModals();
                   toggleRegisterModal();
                 }}
-                className="text-[#4B5320] hover:text-[#3a3f18] font-semibold"
+                className="text-primary-600 hover:text-primary-700 font-semibold"
               >
                 Sign up free
               </button>

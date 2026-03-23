@@ -166,17 +166,12 @@ export default function RegisterModal() {
           className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header - Match Header.tsx colors exactly */}
-          <div className="bg-[#4B5320] px-6 py-5">
+          {/* Header - Match homepage hero gradient */}
+          <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-6 py-5">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-                  <span className="text-[#4B5320] font-bold text-xl">i</span>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">Create Account</h2>
-                  <p className="text-green-200 text-sm">Join iList - it's free!</p>
-                </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Create Account</h2>
+                <p className="text-primary-100 text-sm mt-1">Join iList - it's free!</p>
               </div>
               <button
                 onClick={handleClose}
@@ -205,7 +200,7 @@ export default function RegisterModal() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter your full name"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5320]/20 focus:border-[#4B5320] transition-all text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
                     required
                   />
                 </div>
@@ -220,7 +215,7 @@ export default function RegisterModal() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5320]/20 focus:border-[#4B5320] transition-all text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
                     required
                   />
                 </div>
@@ -235,7 +230,7 @@ export default function RegisterModal() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="Enter your phone number"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5320]/20 focus:border-[#4B5320] transition-all text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
                   />
                 </div>
               </div>
@@ -249,7 +244,7 @@ export default function RegisterModal() {
                     value={password}
                     onChange={handlePasswordChange}
                     placeholder="Create a strong password"
-                    className="w-full pl-10 pr-12 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5320]/20 focus:border-[#4B5320] transition-all text-sm"
+                    className="w-full pl-10 pr-12 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
                     required
                   />
                   <button
@@ -283,7 +278,7 @@ export default function RegisterModal() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm your password"
-                    className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5320]/20 focus:border-[#4B5320] transition-all text-sm"
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
                     required
                   />
                   {confirmPassword && (
@@ -303,20 +298,20 @@ export default function RegisterModal() {
                   type="checkbox" 
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 text-[#4B5320] rounded border-gray-300" 
+                  className="w-4 h-4 mt-0.5 text-primary-600 rounded border-gray-300" 
                 />
                 <span className="text-gray-600">
                   I agree to the{' '}
-                  <Link href="/terms" className="text-[#4B5320] font-medium underline">Terms</Link>
+                  <Link href="/terms" className="text-primary-600 font-medium underline">Terms</Link>
                   {' '}and{' '}
-                  <Link href="/privacy" className="text-[#4B5320] font-medium underline">Privacy Policy</Link>
+                  <Link href="/privacy" className="text-primary-600 font-medium underline">Privacy Policy</Link>
                 </span>
               </label>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 bg-[#4B5320] hover:bg-[#3a3f18] text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
@@ -366,7 +361,7 @@ export default function RegisterModal() {
                   closeAllModals();
                   toggleLoginModal();
                 }}
-                className="text-[#4B5320] hover:text-[#3a3f18] font-semibold"
+                className="text-primary-600 hover:text-[#3a3f18] font-semibold"
               >
                 Sign in
               </button>
