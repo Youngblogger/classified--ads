@@ -166,7 +166,7 @@ export default function RegisterModal() {
           className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header - Match Header.tsx colors */}
+          {/* Header - Match Header.tsx colors exactly */}
           <div className="bg-[#4B5320] px-6 py-5">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ export default function RegisterModal() {
               </div>
               <button
                 onClick={handleClose}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                className="p-2 hover:bg-white/10 rounded-xl transition-colors"
               >
                 <X className="w-5 h-5 text-white" />
               </button>

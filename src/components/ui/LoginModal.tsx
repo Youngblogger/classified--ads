@@ -304,19 +304,14 @@ export default function LoginModal() {
           className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header - Match Header.tsx colors */}
-          <div className="bg-[#4B5320] px-6 py-5">
+          {/* Header - Match homepage hero gradient */}
+          <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-6 py-5">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-                  <span className="text-[#4B5320] font-bold text-xl">i</span>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">Welcome Back!</h2>
-                  <p className="text-green-200 text-sm">Sign in to iList</p>
-                </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Welcome Back!</h2>
+                <p className="text-primary-100 text-sm mt-1">Sign in to continue to iList</p>
               </div>
-              <button onClick={handleClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+              <button onClick={handleClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
                 <X className="w-5 h-5 text-white" />
               </button>
             </div>
@@ -330,7 +325,7 @@ export default function LoginModal() {
                 onClick={() => handleLoginMethodChange('email')}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   loginMethod === 'email' 
-                    ? 'bg-[#4B5320] text-white shadow-sm font-semibold' 
+                    ? 'bg-primary-600 text-white shadow-sm font-semibold' 
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -341,7 +336,7 @@ export default function LoginModal() {
                 onClick={() => handleLoginMethodChange('phone')}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   loginMethod === 'phone' 
-                    ? 'bg-[#4B5320] text-white shadow-sm font-semibold' 
+                    ? 'bg-primary-600 text-white shadow-sm font-semibold' 
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -375,7 +370,7 @@ export default function LoginModal() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5320]/20 focus:border-[#4B5320] transition-all text-sm"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
                       required
                       list="email-suggestions"
                     />
@@ -396,7 +391,7 @@ export default function LoginModal() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
-                      className="w-full pl-10 pr-12 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B5320]/20 focus:border-[#4B5320] transition-all text-sm"
+                      className="w-full pl-10 pr-12 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
                       required
                     />
                     <button
