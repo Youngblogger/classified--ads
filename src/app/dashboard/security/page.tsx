@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
-// Icons
 const LockIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
   </svg>
 );
 
-const ShieldIcon = ({ className }: { className?: string }) => (
+const TrashIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
   </svg>
 );
 
@@ -28,19 +30,15 @@ const EyeOffIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const TrashIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
-
-const CheckCircleIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+const LoaderIcon = ({ className }: { className?: string }) => (
+  <svg className={`animate-spin ${className}`} fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
   </svg>
 );
 
 export default function SecuritySettingsPage() {
+  const router = useRouter();
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -51,13 +49,16 @@ export default function SecuritySettingsPage() {
     new: false,
     confirm: false,
   });
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPasswordData(prev => ({ ...prev, [name]: value }));
+    setPasswordError('');
   };
 
   const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
@@ -66,35 +67,68 @@ export default function SecuritySettingsPage() {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordError('');
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('New passwords do not match!');
+      setPasswordError('New passwords do not match!');
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      alert('Password must be at least 8 characters!');
+      setPasswordError('Password must be at least 8 characters!');
+      return;
+    }
+
+    if (passwordData.newPassword === passwordData.currentPassword) {
+      setPasswordError('New password must be different from current password!');
       return;
     }
 
     setIsSavingPassword(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSavingPassword(false);
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    alert('Password changed successfully!');
-  };
-
-  const handleTwoFactorToggle = () => {
-    setTwoFactorEnabled(!twoFactorEnabled);
-    if (!twoFactorEnabled) {
-      alert('Two-factor authentication enabled!');
+    try {
+      await api.post('/auth/change-password', {
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword,
+        new_password_confirmation: passwordData.confirmPassword,
+      });
+      toast.success('Password changed successfully!');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to change password';
+      toast.error(message);
+      if (message.includes('incorrect')) {
+        setPasswordError(message);
+      }
+    } finally {
+      setIsSavingPassword(false);
     }
   };
 
-  const handleDeleteAccount = () => {
-    // In real app, call API to delete account
-    alert('Account deletion request submitted. You will be logged out.');
-    setShowDeleteModal(false);
+  const handleDeleteAccount = async () => {
+    if (deletePassword.length === 0) {
+      toast.error('Please enter your password to confirm');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await api.post('/auth/delete-account', {
+        password: deletePassword,
+        confirm: 'DELETE',
+      });
+      toast.success('Account deleted successfully');
+      setShowDeleteModal(false);
+      setTimeout(() => {
+        router.push('/');
+        localStorage.clear();
+        window.location.href = '/';
+      }, 1500);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to delete account';
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -131,6 +165,7 @@ export default function SecuritySettingsPage() {
                 onChange={handlePasswordChange}
                 required
                 className="w-full px-4 py-2.5 pr-10 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                placeholder="Enter current password"
               />
               <button
                 type="button"
@@ -160,6 +195,7 @@ export default function SecuritySettingsPage() {
                 required
                 minLength={8}
                 className="w-full px-4 py-2.5 pr-10 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                placeholder="Enter new password"
               />
               <button
                 type="button"
@@ -189,6 +225,7 @@ export default function SecuritySettingsPage() {
                 onChange={handlePasswordChange}
                 required
                 className="w-full px-4 py-2.5 pr-10 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                placeholder="Confirm new password"
               />
               <button
                 type="button"
@@ -204,53 +241,21 @@ export default function SecuritySettingsPage() {
             </div>
           </div>
 
+          {passwordError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+              {passwordError}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={isSavingPassword}
-            className="px-6 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+            className="px-6 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
+            {isSavingPassword && <LoaderIcon className="w-4 h-4" />}
             {isSavingPassword ? 'Updating...' : 'Update Password'}
           </button>
         </form>
-      </div>
-
-      {/* Two-Factor Authentication */}
-      <div className="bg-white rounded-2xl p-6 shadow-card">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-xl">
-              <ShieldIcon className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Two-Factor Authentication</h3>
-              <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
-            </div>
-          </div>
-          <button
-            onClick={handleTwoFactorToggle}
-            className={`relative w-12 h-6 rounded-full transition-colors ${
-              twoFactorEnabled ? 'bg-primary-600' : 'bg-gray-300'
-            }`}
-          >
-            <span
-              className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                twoFactorEnabled ? 'left-7' : 'left-1'
-              }`}
-            />
-          </button>
-        </div>
-        
-        {twoFactorEnabled && (
-          <div className="mt-4 p-4 bg-green-50 rounded-xl flex items-start gap-3">
-            <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-green-800">Two-factor authentication is enabled</p>
-              <p className="text-xs text-green-600 mt-1">
-                You will receive a verification code via SMS or authenticator app when logging in.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Delete Account */}
@@ -288,22 +293,42 @@ export default function SecuritySettingsPage() {
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Account?</h3>
             </div>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-4">
               This action cannot be undone. All your data including ads, messages, favorites, 
               and profile information will be permanently deleted.
             </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Enter your password to confirm
+              </label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Type <strong>DELETE</strong> in the password field to confirm
+            </p>
             <div className="flex items-center justify-end gap-3">
               <button
-                onClick={() => setShowDeleteModal(false)}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletePassword('');
+                }}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAccount}
-                className="px-4 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700"
+                disabled={isDeleting || deletePassword.length === 0}
+                className="px-4 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
               >
-                Yes, Delete
+                {isDeleting && <LoaderIcon className="w-4 h-4" />}
+                {isDeleting ? 'Deleting...' : 'Yes, Delete My Account'}
               </button>
             </div>
           </div>

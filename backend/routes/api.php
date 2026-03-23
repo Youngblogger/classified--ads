@@ -41,6 +41,7 @@ Route::prefix('auth')->middleware('auth:sanctum')->group(function () {
     Route::match(['put', 'post'], '/profile', [AuthController::class, 'updateProfile']);
     Route::post('/profile/avatar', [AuthController::class, 'updateAvatar']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/delete-account', [AuthController::class, 'deleteAccount']);
 });
 
 Route::prefix('categories')->group(function () {

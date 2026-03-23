@@ -188,18 +188,80 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
         $user = $request->user();
 
         if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json(['message' => 'Current password is incorrect'], 400);
+            return response()->json(['success' => false, 'message' => 'Current password is incorrect'], 400);
         }
 
         $user->update(['password' => Hash::make($request->new_password)]);
 
-        return response()->json(['message' => 'Password changed successfully']);
+        return response()->json(['success' => true, 'message' => 'Password changed successfully']);
+    }
+
+    public function deleteAccount(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'password' => 'required|string',
+            'confirm' => 'required|string|in:DELETE',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => 'Please confirm account deletion'], 422);
+        }
+
+        $user = $request->user();
+
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json(['success' => false, 'message' => 'Incorrect password'], 400);
+        }
+
+        // Delete user's ads with images
+        foreach ($user->ads as $ad) {
+            foreach ($ad->images as $image) {
+                if ($image->url && file_exists(public_path($image->url))) {
+                    unlink(public_path($image->url));
+                }
+            }
+            $ad->images()->delete();
+            $ad->favorites()->delete();
+            $ad->reports()->delete();
+            $ad->delete();
+        }
+
+        // Delete user's favorites
+        $user->favorites()->delete();
+
+        // Delete user's conversations and messages
+        $user->conversations()->delete();
+
+        // Delete user's reviews
+        $user->givenReviews()->delete();
+        $user->receivedReviews()->delete();
+
+        // Delete user's notifications
+        $user->notifications()->delete();
+
+        // Delete user's wallet if exists
+        if ($user->wallet) {
+            $user->wallet->delete();
+        }
+
+        // Delete email verification
+        if ($user->emailVerification) {
+            $user->emailVerification->delete();
+        }
+
+        // Delete user's tokens
+        $user->tokens()->delete();
+
+        // Delete the user
+        $user->delete();
+
+        return response()->json(['success' => true, 'message' => 'Account deleted successfully']);
     }
 
     public function google(Request $request)
