@@ -1,0 +1,737 @@
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, GripVertical, Loader2, Phone, MessageCircle, MapPinned } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { adsApi } from '@/lib/api';
+import { useAuthStore, useUIStore } from '@/lib/store';
+import { nigeriaLocations } from '@/lib/nigeriaLocations';
+import toast from 'react-hot-toast';
+
+interface ImageFile {
+  id: string;
+  file: File;
+  preview: string;
+  uploading?: boolean;
+  error?: string;
+}
+
+interface PostAdFormProps {
+  onSuccess?: (adId: number) => void;
+  isStandalone?: boolean;
+}
+
+const MAX_IMAGES = 6;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_FORMATS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+
+export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFormProps) {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+  const { toggleLoginModal, toggleRegisterModal } = useUIStore();
+  const [step, setStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  
+  const [categories, setCategories] = useState<any[]>([]);
+  const [apiLocations, setApiLocations] = useState<any[]>([]);
+  
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [negotiable, setNegotiable] = useState(false);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [locationId, setLocationId] = useState<string | null>(null);
+  const [lgaId, setLgaId] = useState<string | null>(null);
+  const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
+  const [images, setImages] = useState<ImageFile[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const localLocs = nigeriaLocations.map(loc => ({ id: loc.id, name: loc.name, slug: loc.slug }));
+    setApiLocations(localLocs);
+    
+    const fetchData = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+        const catsRes = await fetch(`${API_URL}/categories`);
+        const catsData = await catsRes.json();
+        
+        let allCategories = catsData?.data || [];
+        
+        if (allCategories.length > 0 && allCategories[0].children) {
+          const flatCategories: any[] = [];
+          allCategories.forEach((parent: any) => {
+            flatCategories.push({
+              id: parent.id,
+              name: parent.name,
+              slug: parent.slug,
+              icon: parent.icon,
+              isParent: true,
+              children: parent.children
+            });
+          });
+          setCategories(flatCategories);
+        } else {
+          setCategories(allCategories);
+        }
+        
+        try {
+          const locsRes = await fetch(`${API_URL}/locations`);
+          const locsData = await locsRes.json();
+          const apiLocs = locsData?.data || [];
+          if (apiLocs.length > 0) {
+            setApiLocations(apiLocs);
+          }
+        } catch (locErr) {
+          console.log('Using local locations');
+        }
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const selectedLocation = apiLocations.find(l => l.id === locationId);
+
+  const formatPrice = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, '');
+    if (!numericValue) return '';
+    return Number(numericValue).toLocaleString();
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, '');
+    setPrice(value);
+  };
+
+  const validateFile = (file: File): string | null => {
+    if (!ACCEPTED_FORMATS.includes(file.type)) {
+      return 'Invalid format. Use JPG, PNG, WebP, GIF, or HEIC.';
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return 'File too large. Max 5MB allowed.';
+    }
+    return null;
+  };
+
+  const processFiles = useCallback((files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const remainingSlots = MAX_IMAGES - images.length;
+    
+    if (remainingSlots <= 0) {
+      toast.error(`Maximum ${MAX_IMAGES} images allowed.`);
+      return;
+    }
+
+    const filesToAdd = fileArray.slice(0, remainingSlots);
+    const newImages: ImageFile[] = [];
+    const errors: string[] = [];
+
+    filesToAdd.forEach((file) => {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(`${file.name}: ${error}`);
+      } else {
+        newImages.push({
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          file,
+          preview: URL.createObjectURL(file),
+          uploading: false,
+        });
+      }
+    });
+
+    if (errors.length > 0) {
+      errors.forEach(err => toast.error(err));
+    }
+
+    if (newImages.length > 0) {
+      setImages(prev => [...prev, ...newImages]);
+    }
+  }, [images.length]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files.length > 0) {
+      processFiles(e.dataTransfer.files);
+    }
+  }, [processFiles]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
+  const handleImageDragOver = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+    setImages(prev => {
+      const newImages = [...prev];
+      const [draggedItem] = newImages.splice(draggedIndex, 1);
+      newImages.splice(targetIndex, 0, draggedItem);
+      return newImages;
+    });
+    setDraggedIndex(targetIndex);
+  };
+
+  const removeImage = (id: string) => {
+    setImages(prev => {
+      const img = prev.find(i => i.id === id);
+      if (img) {
+        URL.revokeObjectURL(img.preview);
+      }
+      return prev.filter(i => i.id !== id);
+    });
+  };
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processFiles(e.target.files);
+      e.target.value = '';
+    }
+  };
+
+  const nextStep = () => {
+    if (step === 1 && !categoryId) {
+      toast.error('Please select a category');
+      return;
+    }
+    if (step === 1 && (!selectedLocation || !locationId)) {
+      toast.error('Please select a location');
+      return;
+    }
+    if (step === 2 && (!title || title.length < 5)) {
+      toast.error('Please enter a title (at least 5 characters)');
+      return;
+    }
+    if (step === 2 && images.length === 0) {
+      toast.error('Please add at least one image');
+      return;
+    }
+    if (step === 3 && (!price || parseFloat(price) <= 0)) {
+      toast.error('Please enter a valid price');
+      return;
+    }
+    setStep(prev => Math.min(prev + 1, 4));
+  };
+
+  const prevStep = () => {
+    setStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const canSubmit = title && description && price && categoryId && locationId && images.length > 0 && condition;
+
+  const handleSubmit = async () => {
+    if (!canSubmit || isLoading) return;
+
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('price', price);
+      formData.append('negotiable', negotiable ? '1' : '0');
+      formData.append('category_id', categoryId!.toString());
+      formData.append('location_id', locationId!.toString());
+      if (lgaId) formData.append('lga', lgaId);
+      formData.append('condition', condition);
+      if (phone) formData.append('phone', phone);
+      if (whatsapp) formData.append('whatsapp', whatsapp);
+      
+      images.forEach((img, index) => {
+        formData.append('images[]', img.file);
+      });
+
+      const response = await adsApi.create(formData);
+      
+      const adSlug = response.data?.slug || response.data?.data?.slug;
+      const adId = response.data?.id || response.data?.data?.id;
+      
+      if (onSuccess) {
+        onSuccess(adId);
+      } else if (isStandalone) {
+        toast.success(
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold">Ad posted successfully!</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => router.push(`/ad/${adSlug}`)}
+                className="px-3 py-1 bg-white text-primary-600 rounded-lg text-sm font-medium hover:bg-gray-100"
+              >
+                View My Ad
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="px-3 py-1 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700"
+              >
+                Go to Homepage
+              </button>
+            </div>
+          </div>,
+          { duration: 8000 }
+        );
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || 'Failed to post ad';
+      toast.error(errorMsg);
+      console.error('Post ad error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const selectedCategory = categories.find(c => c.id === categoryId || c.children?.some((child: any) => child.id === categoryId));
+
+  const conditionLabels = {
+    'new': 'Brand New',
+    'like_new': 'Like New',
+    'good': 'Good',
+    'fair': 'Fair'
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Progress Steps */}
+      <div className="flex items-center justify-center gap-2 mb-8">
+        {['Category', 'Details', 'Price', 'Review'].map((s, i) => (
+          <div key={s} className="flex items-center">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+              step > i + 1 ? 'bg-green-500 text-white' :
+              step === i + 1 ? 'bg-primary-600 text-white' :
+              'bg-gray-200 text-gray-500'
+            }`}>
+              {step > i + 1 ? <Check className="w-4 h-4" /> : i + 1}
+            </div>
+            <span className={`ml-2 text-sm hidden sm:inline ${step >= i + 1 ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+              {s}
+            </span>
+            {i < 3 && <div className={`w-8 sm:w-16 h-0.5 mx-2 ${step > i + 1 ? 'bg-green-500' : 'bg-gray-200'}`} />}
+          </div>
+        ))}
+      </div>
+
+      {/* Step 1: Category & Location */}
+      {step === 1 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <button
+              onClick={() => {
+                const modal = document.getElementById('category-modal');
+                if (modal) modal.classList.remove('hidden');
+              }}
+              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors"
+            >
+              <span className={selectedCategory ? 'text-gray-900' : 'text-gray-400'}>
+                {selectedCategory?.name || 'Select Category'}
+              </span>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Location <span className="text-red-500">*</span>
+            </label>
+            <button
+              onClick={() => {
+                const modal = document.getElementById('location-modal');
+                if (modal) modal.classList.remove('hidden');
+              }}
+              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors"
+            >
+              <span className={selectedLocation ? 'text-gray-900' : 'text-gray-400'}>
+                {selectedLocation?.name || 'Select Location'}
+              </span>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Details */}
+      {step === 2 && (
+        <div className="space-y-6">
+          {/* Images */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Photos <span className="text-red-500">*</span>
+              <span className="text-gray-400 font-normal ml-1">(up to {MAX_IMAGES})</span>
+            </label>
+            <div
+              ref={dropZoneRef}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={handleImageClick}
+              className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+                isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-500'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_FORMATS.join(',')}
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600 font-medium">Click or drag photos here</p>
+              <p className="text-gray-400 text-sm mt-1">JPG, PNG, WebP, GIF, HEIC - Max 5MB</p>
+            </div>
+
+            {/* Image Grid */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mt-4">
+                {images.map((img, index) => (
+                  <div
+                    key={img.id}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => handleImageDragOver(e, index)}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 ${
+                      draggedIndex === index ? 'border-primary-500 opacity-50' : 'border-gray-200'
+                    }`}
+                  >
+                    <img src={img.preview} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                      <GripVertical className="w-3 h-3" />
+                    </div>
+                    <button
+                      onClick={() => removeImage(img.id)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    {index === 0 && (
+                      <div className="absolute bottom-1 left-1 bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded">
+                        Cover
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {images.length < MAX_IMAGES && (
+                  <div
+                    onClick={handleImageClick}
+                    className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-primary-500 hover:bg-gray-50"
+                  >
+                    <ImageIcon className="w-6 h-6 text-gray-400" />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. iPhone 14 Pro Max 256GB"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+              maxLength={100}
+            />
+            <p className="text-xs text-gray-400 mt-1 text-right">{title.length}/100</p>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe your item in detail..."
+              rows={5}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors resize-none"
+              maxLength={2000}
+            />
+            <p className="text-xs text-gray-400 mt-1 text-right">{description.length}/2000</p>
+          </div>
+
+          {/* Condition */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Condition <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {(['new', 'like_new', 'good', 'fair'] as const).map((cond) => (
+                <button
+                  key={cond}
+                  onClick={() => setCondition(cond)}
+                  className={`p-3 rounded-xl border-2 text-center transition-all ${
+                    condition === cond
+                      ? 'border-primary-600 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="font-medium text-sm">{conditionLabels[cond]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Contact Info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="08012345678"
+                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                WhatsApp (optional)
+              </label>
+              <div className="relative">
+                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="tel"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="08012345678"
+                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Price */}
+      {step === 3 && (
+        <div className="max-w-md mx-auto space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Price <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">₦</span>
+              <input
+                type="text"
+                value={formatPrice(price)}
+                onChange={handlePriceChange}
+                placeholder="0"
+                className="w-full pl-10 pr-4 py-4 text-2xl border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors font-bold"
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={negotiable}
+              onChange={(e) => setNegotiable(e.target.checked)}
+              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="text-gray-700">Price is negotiable</span>
+          </label>
+        </div>
+      )}
+
+      {/* Step 4: Review */}
+      {step === 4 && (
+        <div className="space-y-6">
+          <div className="bg-gray-50 rounded-xl p-6 space-y-4">
+            <div className="flex items-start gap-4">
+              {images[0] && (
+                <img src={images[0].preview} alt="" className="w-24 h-24 rounded-lg object-cover" />
+              )}
+              <div>
+                <h3 className="font-semibold text-gray-900">{title || 'No title'}</h3>
+                <p className="text-2xl font-bold text-primary-600 mt-1">
+                  ₦{formatPrice(price) || '0'}
+                  {negotiable && <span className="text-sm font-normal text-gray-500 ml-2">Negotiable</span>}
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500">Category:</span>
+                <span className="ml-2 text-gray-900">{selectedCategory?.name}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Location:</span>
+                <span className="ml-2 text-gray-900">{selectedLocation?.name}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Condition:</span>
+                <span className="ml-2 text-gray-900">{condition && conditionLabels[condition as keyof typeof conditionLabels] || 'N/A'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Photos:</span>
+                <span className="ml-2 text-gray-900">{images.length}</span>
+              </div>
+            </div>
+
+            <div>
+              <span className="text-gray-500 text-sm">Description:</span>
+              <p className="text-gray-700 mt-1 text-sm line-clamp-3">{description}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between pt-6 border-t">
+        {step > 1 ? (
+          <button
+            onClick={prevStep}
+            className="px-6 py-3 text-gray-600 hover:text-gray-900 font-medium"
+          >
+            Back
+          </button>
+        ) : (
+          <div />
+        )}
+
+        {step < 4 ? (
+          <button
+            onClick={nextStep}
+            className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+          >
+            Continue
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            disabled={!canSubmit || isLoading}
+            className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Posting...
+              </>
+            ) : (
+              <>
+                Post Ad
+                <Check className="w-5 h-5" />
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Category Modal */}
+      <div id="category-modal" className="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
+          <div className="p-4 border-b flex items-center justify-between">
+            <h3 className="font-semibold">Select Category</h3>
+            <button onClick={() => document.getElementById('category-modal')?.classList.add('hidden')} className="p-1">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-4 overflow-y-auto max-h-[60vh]">
+            {categories.map((cat) => (
+              <div key={cat.id}>
+                <button
+                  onClick={() => {
+                    if (cat.children?.length > 0) {
+                      setCategoryId(cat.children[0].id);
+                    } else {
+                      setCategoryId(cat.id);
+                    }
+                    document.getElementById('category-modal')?.classList.add('hidden');
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg"
+                >
+                  {cat.name}
+                </button>
+                {cat.children?.map((child: any) => (
+                  <button
+                    key={child.id}
+                    onClick={() => {
+                      setCategoryId(child.id);
+                      document.getElementById('category-modal')?.classList.add('hidden');
+                    }}
+                    className="w-full text-left px-8 py-2 text-gray-600 hover:bg-gray-50"
+                  >
+                    {child.name}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Location Modal */}
+      <div id="location-modal" className="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
+          <div className="p-4 border-b flex items-center justify-between">
+            <h3 className="font-semibold">Select Location</h3>
+            <button onClick={() => document.getElementById('location-modal')?.classList.add('hidden')} className="p-1">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-4 overflow-y-auto max-h-[60vh]">
+            {apiLocations.map((loc) => (
+              <button
+                key={loc.id}
+                onClick={() => {
+                  setLocationId(loc.id);
+                  document.getElementById('location-modal')?.classList.add('hidden');
+                }}
+                className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg"
+              >
+                {loc.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

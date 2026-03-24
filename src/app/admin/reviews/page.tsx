@@ -81,7 +81,7 @@ export default function ReviewsManagementPage() {
   const [actionType, setActionType] = useState<'approve' | 'reject' | 'delete' | null>(null);
   const [actionReason, setActionReason] = useState('');
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
   const getImageUrl = (url: string | undefined): string => {
     if (!url) return '';
@@ -96,7 +96,7 @@ export default function ReviewsManagementPage() {
     if (!url) return '';
     let avatarUrl = url;
     if (avatarUrl.startsWith('/storage/')) {
-      avatarUrl = `http://localhost:8000${avatarUrl}`;
+      avatarUrl = `http://127.0.0.1:8000${avatarUrl}`;
     }
     return avatarUrl;
   };
@@ -599,7 +599,7 @@ export default function ReviewsManagementPage() {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-500">Review by: <span className="font-medium text-gray-900">{selectedReview.user?.name}</span></p>
                 <p className="text-sm text-gray-500 mt-1">Rating: {renderStars(selectedReview.rating)}</p>
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">"{selectedReview.comment}"</p>
+                <p className="text-sm text-gray-500 mt-1 line-clamp-2">&quot;{selectedReview.comment}&quot;</p>
               </div>
 
               <div className="flex gap-3">

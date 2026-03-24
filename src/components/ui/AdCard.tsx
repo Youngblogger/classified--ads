@@ -6,7 +6,7 @@ import { Ad } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import { useState } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const BASE_URL = 'http://127.0.0.1:8000';
 
 function getImageUrl(img: any): string {
   if (!img) return '';
@@ -16,7 +16,7 @@ function getImageUrl(img: any): string {
   if (typeof img === 'string') {
     url = img;
   } else if (typeof img === 'object') {
-    url = img.url || img.src || img.display_url || img.original_url || img.thumbnail_url || img.thumbnail || img.image || img.path || img.file || '';
+    url = img.display_url || img.url || img.thumbnail_url || img.thumbnail || img.src || img.original_url || img.image || img.path || img.file || '';
   }
   
   if (!url) return '';
@@ -25,12 +25,11 @@ function getImageUrl(img: any): string {
     return url;
   }
   
-  const baseUrl = API_URL.replace('/api', '');
   if (url.startsWith('/storage/')) {
-    return `${baseUrl}${url}`;
+    return `${BASE_URL}${url}`;
   }
   
-  return `${baseUrl}/storage/${url}`;
+  return `${BASE_URL}/storage/${url}`;
 }
 
 interface AdCardProps {

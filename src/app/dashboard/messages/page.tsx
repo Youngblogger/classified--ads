@@ -9,7 +9,7 @@ import { useSocket } from '@/hooks/useSocket';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 function getStorageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -17,8 +17,8 @@ function getStorageUrl(url: string | null | undefined): string | null {
     return `/storage/${url.replace('/storage/', '')}`;
   } else if (url.startsWith(API_URL.replace('/api', '') + '/storage/')) {
     return `/storage/${url.replace(API_URL.replace('/api', '') + '/storage/', '')}`;
-  } else if (url.startsWith('http://localhost:8000/storage/')) {
-    return `/storage/${url.replace('http://localhost:8000/storage/', '')}`;
+  } else if (url.startsWith('http://127.0.0.1:8000/storage/')) {
+    return `/storage/${url.replace('http://127.0.0.1:8000/storage/', '')}`;
   }
   return url;
 }

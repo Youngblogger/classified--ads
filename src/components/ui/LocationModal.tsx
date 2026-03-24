@@ -108,7 +108,7 @@ export default function LocationModal() {
           <div className="flex-1 overflow-y-auto p-4">
             {filteredLocations.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No locations found matching "{searchQuery}"
+                No locations found matching &quot;{searchQuery}&quot;
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

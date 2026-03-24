@@ -32,7 +32,7 @@ interface Ad {
   category: { id: number; name: string; slug: string };
   location: { id: number; name: string } | null;
   user: { id: number; name: string; email: string; phone?: string };
-  images: { id: number; url: string; is_primary: boolean }[];
+  images: { id: number; url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean }[];
   views: number;
   created_at: string;
 }
@@ -98,9 +98,12 @@ export default function AdsApprovalPage() {
     }
   };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
   
-  const getImageUrl = (url: string | undefined): string => {
+  const getImageUrl = (ad: Ad): string => {
+    const image = ad.images?.find((img: any) => img.is_primary) || ad.images?.[0];
+    const url = image?.display_url || image?.url || image?.thumbnail_url;
+    
     if (!url) return '/placeholder.jpg';
     
     // If already a full URL, return it
@@ -356,7 +359,7 @@ export default function AdsApprovalPage() {
                   {ad.images && ad.images.length > 0 ? (
                     <>
                       <img
-                        src={getImageUrl(ad.images[0].url)}
+                        src={getImageUrl(ad)}
                         alt={ad.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {

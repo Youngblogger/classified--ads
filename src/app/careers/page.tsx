@@ -116,7 +116,7 @@ export default function CareersPage() {
               Careers at iList.ng
             </h1>
             <p className="text-xl md:text-2xl text-primary-100 mb-8">
-              Join us in building Nigeria's leading marketplace and shape the future of e-commerce.
+              Join us in building Nigeria&apos;s leading marketplace and shape the future of e-commerce.
             </p>
             <Link 
               href="#open-positions"
@@ -251,8 +251,8 @@ export default function CareersPage() {
             </div>
             <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl p-8 md:p-12">
               <blockquote className="text-xl text-gray-700 italic mb-6">
-                "Working at iList.ng means being part of something bigger. We are not just building a product — 
-                we are changing how Nigeria trades."
+                &quot;Working at iList.ng means being part of something bigger. We are not just building a product — 
+                we are changing how Nigeria trades.&quot;
               </blockquote>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold">

@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus, ChevronRight, Heart, Check, X, Building2 } from 'lucide-react';
+import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus } from 'lucide-react';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
+import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000';
 
 function getImageUrl(img: any): string {
   if (!img) return '';
@@ -15,17 +17,16 @@ function getImageUrl(img: any): string {
   if (typeof img === 'string') {
     url = img;
   } else if (typeof img === 'object') {
-    url = img.url || img.src || img.display_url || img.original_url || img.thumbnail_url || img.thumbnail || img.image || img.path || img.file || '';
+    url = img.display_url || img.url || img.thumbnail_url || img.thumbnail || img.src || img.original_url || img.image || img.path || img.file || '';
   }
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
-  const baseUrl = API_URL.replace('/api', '');
   if (url.startsWith('/storage/')) {
-    return `${baseUrl}${url}`;
+    return `${BASE_URL}${url}`;
   }
-  return `${baseUrl}/storage/${url}`;
+  return `${BASE_URL}/storage/${url}`;
 }
 
 function AdCardWithImage({ ad }: { ad: any }) {
@@ -37,6 +38,7 @@ function AdCardWithImage({ ad }: { ad: any }) {
     primaryImage = imagesArray[0];
   }
   const imageUrl = primaryImage ? getImageUrl(primaryImage) : '';
+  console.log('Image URL debug:', imageUrl, primaryImage);
   const imageCount = imagesArray.length;
   
   return (
@@ -84,6 +86,12 @@ function AdCardWithImage({ ad }: { ad: any }) {
           </h3>
         </div>
         
+        {ad.description && (
+          <p className="text-sm text-slate-500 mt-2 line-clamp-2">
+            {ad.description}
+          </p>
+        )}
+        
         <p className="text-xl font-bold text-primary-600 mt-2">
           {formatPrice(ad.price, ad.currency)}
         </p>
@@ -92,13 +100,6 @@ function AdCardWithImage({ ad }: { ad: any }) {
           <MapPin className="w-4 h-4 flex-shrink-0 text-slate-400" />
           <span className="truncate">{ad.location?.name || 'N/A'}</span>
         </div>
-        
-        {ad.created_at && (
-          <div className="flex items-center gap-1.5 mt-2 text-slate-400 text-xs">
-            <Eye className="w-3.5 h-3.5" />
-            <span>{formatRelativeTime(ad.created_at)}</span>
-          </div>
-        )}
       </div>
     </Link>
   );
@@ -123,23 +124,69 @@ const TRUST_FEATURES = [
 export default function HomePage() {
   const [recentAds, setRecentAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [adsError, setAdsError] = useState(false);
+  const ITEMS_PER_PAGE = 8;
+
+  const fetchAds = useCallback(async (pageNum: number = 1, forceRefresh = false) => {
+    if (pageNum === 1 && !forceRefresh && recentAds.length > 0) {
+      return;
+    }
+    
+    if (pageNum === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    
+    try {
+      const res = await fetch(`${API_URL}/ads?limit=${ITEMS_PER_PAGE}&page=${pageNum}&_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
+      if (!res.ok) throw new Error('Failed to fetch');
+      const json = await res.json();
+      
+      let newAds: any[] = [];
+      if (Array.isArray(json)) {
+        newAds = json;
+      } else if (json?.data && Array.isArray(json.data)) {
+        newAds = json.data;
+      } else {
+        newAds = [];
+      }
+      
+      console.log('Fetched ads:', newAds.length, newAds[0]?.images);
+      setRecentAds(prev => pageNum === 1 ? newAds : [...prev, ...newAds]);
+      setHasMore(newAds.length === ITEMS_PER_PAGE);
+      setAdsError(false);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      setAdsError(true);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const recentRes = await fetch(`${API_URL}/ads/recent?limit=8`);
-        const recentJson = await recentRes.json();
-        setRecentAds(recentJson.data?.data || recentJson.data || recentJson || []);
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, []);
+    fetchAds(1, true);
+  }, [fetchAds]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchAds(nextPage);
+    }
+  }, [loadingMore, hasMore, page, fetchAds]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -164,7 +211,7 @@ export default function HomePage() {
                   <span className="text-accent-400">Sell Everything</span>
                 </h1>
                 <p className="text-lg md:text-xl text-primary-100 mb-8 max-w-lg mx-auto lg:mx-0">
-                  Nigeria's trusted marketplace for buying and selling. Connect with thousands of buyers and sellers near you.
+                  Nigeria&apos;s trusted marketplace for buying and selling. Connect with thousands of buyers and sellers near you.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                   <Link
@@ -327,12 +374,33 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-            ) : recentAds.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-                {recentAds.slice(0, 8).map((ad: any) => (
-                  <AdCardWithImage key={ad.id} ad={ad} />
-                ))}
+            ) : adsError ? (
+              <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-slate-100">
+                <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <span className="text-4xl">⚠️</span>
+                </div>
+                <h3 className="text-xl font-semibold text-slate-700 mb-2">Unable to load ads</h3>
+                <p className="text-slate-500 mb-5">The server might be temporarily unavailable.</p>
+                <button 
+                  onClick={() => fetchAds(1, true)} 
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-primary-500/30"
+                >
+                  <span>Try Again</span>
+                </button>
               </div>
+            ) : recentAds.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+                  {recentAds.map((ad: any) => (
+                    <AdCardWithImage key={ad.id} ad={ad} />
+                  ))}
+                </div>
+                <LoadMoreButton 
+                  loading={loadingMore} 
+                  hasMore={hasMore} 
+                  onLoadMore={handleLoadMore} 
+                />
+              </>
             ) : (
               <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-slate-100">
                 <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-5">
@@ -363,7 +431,7 @@ export default function HomePage() {
               Ready to Start Selling?
             </h2>
             <p className="text-lg text-primary-100 mb-8 max-w-xl mx-auto">
-              Join thousands of sellers already growing their business on iList. It's free, fast, and easy!
+              Join thousands of sellers already growing their business on iList. It&apos;s free, fast, and easy!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

@@ -513,7 +513,7 @@ export default function PromotionsPage() {
         <div className="space-y-4">
           {myPromotions.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
-              <p className="text-gray-500 mb-4">You don't have any active promotions.</p>
+              <p className="text-gray-500 mb-4">You don&apos;t have any active promotions.</p>
               <button
                 onClick={() => setActiveTab('plans')}
                 className="px-6 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700"

@@ -100,7 +100,7 @@ export default function Footer() {
                 Post Free Ad – Start selling in seconds
               </h2>
               <p className="text-primary-100 text-sm md:text-base">
-                Join thousands of sellers on Nigeria's trusted marketplace
+                Join thousands of sellers on Nigeria&apos;s trusted marketplace
               </p>
             </div>
             <Link 
@@ -398,19 +398,19 @@ export default function Footer() {
             {/* Legal Links */}
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
               <Link 
-                href="/privacy" 
+                href="/privacy-policy" 
                 className="text-slate-400 hover:text-white text-sm transition-colors"
               >
                 Privacy Policy
               </Link>
               <Link 
-                href="/terms" 
+                href="/terms-of-service" 
                 className="text-slate-400 hover:text-white text-sm transition-colors"
               >
                 Terms of Service
               </Link>
               <Link 
-                href="/cookies" 
+                href="/cookie-policy" 
                 className="text-slate-400 hover:text-white text-sm transition-colors"
               >
                 Cookie Policy

@@ -35,7 +35,7 @@ interface Ad {
   category: { name: string; slug: string };
   location: { name: string } | null;
   user: { name: string; verified: boolean };
-  images: { url: string; is_primary: boolean }[];
+  images: { url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean }[];
   views: number;
   created_at: string;
 }
@@ -170,9 +170,12 @@ export default function AdsPage() {
     rejected: ads.filter(a => a.status === 'rejected').length,
   };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
   
-  const getImageUrl = (url: string | undefined): string => {
+  const getImageUrl = (ad: Ad): string => {
+    const image = ad.images?.find((img: any) => img.is_primary) || ad.images?.[0];
+    const url = image?.display_url || image?.url || image?.thumbnail_url;
+    
     if (!url) return '/placeholder.jpg';
     
     // If already a full URL, return it
@@ -320,7 +323,7 @@ export default function AdsPage() {
                       <div className="flex items-center gap-3">
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
                           <Image
-                            src={getImageUrl(ad.images?.[0]?.url)}
+                            src={getImageUrl(ad)}
                             alt={ad.title}
                             fill
                             className="object-cover"

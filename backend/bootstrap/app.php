@@ -21,20 +21,27 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthenticated. Please login to continue.',
-                ], 401);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please login to continue.',
+                'redirect' => '/login',
+            ], 401);
         });
         
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Resource not found.',
+            ], 404);
+        });
+        
+        $exceptions->render(function (\Throwable $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Resource not found.',
-                ], 404);
+                    'message' => config('app.debug') ? $e->getMessage() : 'An error occurred.',
+                    'error' => get_class($e),
+                ], 500);
             }
         });
     })->create();

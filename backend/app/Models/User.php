@@ -32,6 +32,7 @@ class User extends Authenticatable
         'facebook_avatar',
         'phone',
         'location',
+        'location_id',
         'verified',
         'banned_at',
         'suspended_at',

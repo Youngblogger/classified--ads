@@ -115,6 +115,8 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:30',
+            'location' => 'nullable|string|max:255',
+            'location_id' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {
@@ -128,6 +130,12 @@ class AuthController extends Controller
         }
         if ($request->has('phone')) {
             $user->phone = $request->phone;
+        }
+        if ($request->has('location')) {
+            $user->location = $request->location;
+        }
+        if ($request->has('location_id')) {
+            $user->location_id = $request->location_id;
         }
         $user->save();
 

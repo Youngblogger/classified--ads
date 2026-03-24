@@ -653,9 +653,9 @@ export default function PaymentMethods({
                     Checking...
                   </>
                 ) : (
-                  <>
+                    <>
                     <CheckCircle className="w-5 h-5" />
-                    I've Made the Transfer
+                    I&apos;ve Made the Transfer
                   </>
                 )}
               </button>

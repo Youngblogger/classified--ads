@@ -45,7 +45,7 @@ export default function SellerProfilePage() {
       const profileRes = await sellerReviewsApi.getSellerProfile(sellerId);
       setSeller(profileRes.data);
       
-      const adsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/ads?user_id=${sellerId}&status=active`);
+      const adsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/ads?user_id=${sellerId}&status=active`);
       if (adsRes.ok) {
         const adsData = await adsRes.json();
         setAds(adsData.data || []);
@@ -81,7 +81,7 @@ export default function SellerProfilePage() {
     let url = typeof img === 'string' ? img : img.url || img.avatar || img.google_avatar || img.facebook_avatar || '';
     if (!url) return '';
     if (url.startsWith('http')) return url;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
     return url.startsWith('/storage/') ? `${baseUrl}${url}` : `${baseUrl}/storage/${url}`;
   };
 
@@ -104,7 +104,7 @@ export default function SellerProfilePage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-xl font-bold text-dark mb-2">Seller Not Found</h2>
-            <p className="text-gray-500 mb-4">The seller you're looking for doesn't exist.</p>
+            <p className="text-gray-500 mb-4">The seller you&apos;re looking for doesn&apos;t exist.</p>
             <Link href="/" className="text-[#4B5320] hover:underline">
               Go back home
             </Link>
@@ -245,7 +245,7 @@ export default function SellerProfilePage() {
                             <Star className="w-8 h-8 text-gray-300" />
                           </div>
                           <h3 className="text-lg font-semibold text-dark mb-2">No Reviews Yet</h3>
-                          <p className="text-gray-500 mb-4">This seller hasn't received any reviews.</p>
+                          <p className="text-gray-500 mb-4">This seller hasn&apos;t received any reviews.</p>
                           <button
                             onClick={() => setShowReviewModal(true)}
                             className="px-4 py-2 bg-[#4B5320] text-white rounded-lg hover:bg-[#3d4220] transition-colors"
@@ -292,7 +292,7 @@ export default function SellerProfilePage() {
                             <span className="text-3xl">📦</span>
                           </div>
                           <h3 className="text-lg font-semibold text-dark mb-2">No Active Ads</h3>
-                          <p className="text-gray-500">This seller doesn't have any active ads.</p>
+                          <p className="text-gray-500">This seller doesn&apos;t have any active ads.</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -71,10 +71,10 @@ function PaymentCallbackContent() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Payment Failed</h2>
             <p className="text-gray-600">{message}</p>
             <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push('/')}
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
             >
-              Go to Dashboard
+              Go to Homepage
             </button>
           </>
         )}

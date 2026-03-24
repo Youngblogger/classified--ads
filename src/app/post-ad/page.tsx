@@ -1,780 +1,92 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
-import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, GripVertical, Loader2, Phone, MessageCircle, MapPinned } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { adsApi, categoriesApi, locationsApi } from '@/lib/api';
-import { useAuthStore, useUIStore } from '@/lib/store';
-import { nigeriaLocations } from '@/lib/nigeriaLocations';
-import toast from 'react-hot-toast';
-
-interface ImageFile {
-  id: string;
-  file: File;
-  preview: string;
-  uploading?: boolean;
-  error?: string;
-}
-
-const MAX_IMAGES = 6;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ACCEPTED_FORMATS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+import PostAdForm from '@/components/forms/PostAdForm';
+import { Check, Shield, Clock, Star } from 'lucide-react';
 
 export default function PostAdPage() {
-  const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
-  const { toggleLoginModal, toggleRegisterModal } = useUIStore();
-  const [step, setStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  
-  const [categories, setCategories] = useState<any[]>([]);
-  const [apiLocations, setApiLocations] = useState<any[]>([]);
-  
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [negotiable, setNegotiable] = useState(false);
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [locationId, setLocationId] = useState<string | null>(null);
-  const [lgaId, setLgaId] = useState<string | null>(null);
-  const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
-  const [images, setImages] = useState<ImageFile[]>([]);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [phone, setPhone] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropZoneRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Initialize with local locations immediately
-    const localLocs = nigeriaLocations.map(loc => ({ id: loc.id, name: loc.name, slug: loc.slug }));
-    setApiLocations(localLocs);
-    
-    const fetchData = async () => {
-      try {
-        const catsRes = await categoriesApi.getAll();
-        // Get all categories from API
-        let allCategories = catsRes.data?.data || catsRes.data || [];
-        
-        // If API returns parent categories with children, flatten to show all
-        if (allCategories.length > 0 && allCategories[0].children) {
-          // Has hierarchical structure - flatten it
-          const flatCategories: any[] = [];
-          allCategories.forEach((parent: any) => {
-            // Add parent category
-            flatCategories.push({
-              id: parent.id,
-              name: parent.name,
-              slug: parent.slug,
-              icon: parent.icon,
-              isParent: true,
-              children: parent.children
-            });
-          });
-          setCategories(flatCategories);
-        } else {
-          setCategories(allCategories);
-        }
-        
-        // Use API locations if available, otherwise fall back to local
-        try {
-          const locsRes = await locationsApi.getAll();
-          const apiLocs = locsRes.data?.data || locsRes.data || [];
-          if (apiLocs.length > 0) {
-            setApiLocations(apiLocs);
-          }
-        } catch (locErr) {
-          console.log('Using local locations');
-        }
-      } catch (err) {
-        console.error('Failed to fetch data:', err);
-      }
-    };
-    fetchData();
-  }, []);
-
-  const selectedLocation = nigeriaLocations.find(l => l.id === locationId);
-
-  const formatPrice = (value: string) => {
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (!numericValue) return '';
-    return Number(numericValue).toLocaleString();
-  };
-
-  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9]/g, '');
-    setPrice(value);
-  };
-
-  const validateFile = (file: File): string | null => {
-    if (!ACCEPTED_FORMATS.includes(file.type)) {
-      return 'Invalid format. Use JPG, PNG, WebP, GIF, or HEIC.';
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return 'File too large. Max 5MB allowed.';
-    }
-    return null;
-  };
-
-  const processFiles = useCallback((files: FileList | File[]) => {
-    const fileArray = Array.from(files);
-    const remainingSlots = MAX_IMAGES - images.length;
-    
-    if (remainingSlots <= 0) {
-      toast.error(`Maximum ${MAX_IMAGES} images allowed.`);
-      return;
-    }
-
-    const filesToAdd = fileArray.slice(0, remainingSlots);
-    const newImages: ImageFile[] = [];
-    const errors: string[] = [];
-
-    filesToAdd.forEach((file) => {
-      const error = validateFile(file);
-      if (error) {
-        errors.push(`${file.name}: ${error}`);
-      } else {
-        newImages.push({
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          file,
-          preview: URL.createObjectURL(file),
-          uploading: false,
-        });
-      }
-    });
-
-    if (errors.length > 0) {
-      errors.forEach(err => toast.error(err));
-    }
-
-    if (newImages.length > 0) {
-      setImages(prev => [...prev, ...newImages]);
-    }
-  }, [images.length]);
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      processFiles(e.target.files);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files.length > 0) {
-      processFiles(e.dataTransfer.files);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const removeImage = (id: string) => {
-    setImages(prev => {
-      const img = prev.find(i => i.id === id);
-      if (img) {
-        URL.revokeObjectURL(img.preview);
-      }
-      return prev.filter(i => i.id !== id);
-    });
-  };
-
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
-
-  const handleDropReorder = (targetIndex: number) => {
-    if (draggedIndex === null || draggedIndex === targetIndex) return;
-    
-    setImages(prev => {
-      const newImages = [...prev];
-      const [draggedItem] = newImages.splice(draggedIndex, 1);
-      newImages.splice(targetIndex, 0, draggedItem);
-      return newImages;
-    });
-    setDraggedIndex(null);
-  };
-
-  const handleSubmit = async () => {
-    setIsLoading(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('description', description);
-      formData.append('price', price);
-      formData.append('negotiable', negotiable.toString());
-      formData.append('category_id', categoryId!.toString());
-      // Send location_id as required by API
-      formData.append('location_id', locationId!);
-      formData.append('lga', lgaId || '');
-      formData.append('condition', condition);
-      formData.append('phone', phone);
-      if (whatsapp) formData.append('whatsapp', whatsapp);
-      
-      images.forEach((img) => {
-        formData.append('images[]', img.file);
-      });
-
-      const res = await adsApi.create(formData);
-      console.log('Success:', res.data);
-      
-      images.forEach(img => URL.revokeObjectURL(img.preview));
-      
-      const successMessage = res.data?.message || 'Ad posted successfully! Pending approval from admin.';
-      toast.success(successMessage);
-      
-      setTimeout(() => {
-        router.push('/dashboard/my-ads');
-      }, 2000);
-    } catch (error: any) {
-      console.error('Error:', error);
-      console.error('Error response:', error.response?.data);
-      // Log the validation errors
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const errorMessages = Object.entries(errors).map(([field, msgs]) => `${field}: ${msgs}`).join('\n');
-        toast.error(errorMessages);
-      } else if (error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error('Failed to post ad. Please check all required fields.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const canProceedToStep2 = title && description && categoryId && locationId && lgaId && condition && phone;
-  const canSubmit = canProceedToStep2 && price && images.length > 0;
-  const remainingSlots = MAX_IMAGES - images.length;
-
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
       
       <main className="flex-1 py-8">
         <div className="container-app">
-          <div className="max-w-4xl mx-auto">
-            {/* Login Required Message */}
-            {!isAuthenticated && (
-              <div className="bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 rounded-2xl p-8 text-center mb-8">
-                <div className="w-20 h-20 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-3">Login Required</h2>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  You need to be logged in to post an ad on iList. Please login or create an account to continue.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <button
-                    onClick={toggleLoginModal}
-                    className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold transition-colors shadow-lg shadow-primary-500/30"
-                  >
-                    Login to Post Ad
-                  </button>
-                  <button
-                    onClick={toggleRegisterModal}
-                    className="px-8 py-3 bg-white hover:bg-gray-50 text-primary-600 border-2 border-primary-300 rounded-xl font-semibold transition-colors"
-                  >
-                    Create Account
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {isAuthenticated && (
-            <>
-            <div className="mb-8">
-              <h1 className="text-3xl font-display font-bold text-gray-900">Post Your Ad</h1>
-              <p className="text-gray-500 mt-2">Fill in the details to list your item on the marketplace</p>
-            </div>
-
-            <div className="flex items-center justify-center mb-10">
-              <div className="flex items-center">
-                <div className="flex items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                    {step > 1 ? <Check className="w-5 h-5" /> : '1'}
-                  </div>
-                  <span className="ml-2 text-sm font-medium text-gray-600 hidden sm:block">Details</span>
-                </div>
-                <div className={`w-12 sm:w-20 h-1 mx-2 ${step >= 2 ? 'bg-primary-600' : 'bg-gray-200'}`} />
-                <div className="flex items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                    {step > 2 ? <Check className="w-5 h-5" /> : '2'}
-                  </div>
-                  <span className="ml-2 text-sm font-medium text-gray-600 hidden sm:block">Price & Photos</span>
-                </div>
-                <div className={`w-12 sm:w-20 h-1 mx-2 ${step >= 3 ? 'bg-primary-600' : 'bg-gray-200'}`} />
-                <div className="flex items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 3 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                    3
-                  </div>
-                  <span className="ml-2 text-sm font-medium text-gray-600 hidden sm:block">Preview</span>
-                </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Form */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl shadow-card p-6 md:p-8">
+                <h1 className="text-2xl font-bold text-dark mb-2">Post Your Ad</h1>
+                <p className="text-gray-500 mb-8">Fill in the details to list your item for sale</p>
+                
+                <PostAdForm isStandalone={true} />
               </div>
             </div>
 
-            <div className="flex gap-8">
-              <div className="flex-1">
-                {step === 1 && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
-                      <span className="text-sm text-gray-500">Step 1 of 3</span>
-                    </div>
-                    
-                    {/* Category Dropdown */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
-                      <select
-                        value={categoryId || ''}
-                        onChange={(e) => {
-                          setCategoryId(Number(e.target.value));
-                        }}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 cursor-pointer"
-                      >
-                        <option value="">Select a category</option>
-                        {categories.length > 0 ? (
-                          categories.map((cat: any) => (
-                            <option key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </option>
-                          ))
-                        ) : (
-                          <option disabled>Loading categories...</option>
-                        )}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-                      <div className="relative">
-                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          placeholder="Give your ad a catchy title"
-                          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
-                      <div className="relative">
-                        <FileText className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                        <textarea
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          placeholder="Describe your item in detail. Include condition, features, and any relevant information."
-                          rows={5}
-                          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">Condition *</label>
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        {[
-                          { value: 'new', label: 'New', desc: 'Brand new, never used', color: 'emerald' },
-                          { value: 'like_new', label: 'Like New', desc: 'Barely used', color: 'blue' },
-                          { value: 'good', label: 'Good', desc: 'Minor signs of use', color: 'amber' },
-                          { value: 'fair', label: 'Fair', desc: 'Visible wear', color: 'orange' },
-                        ].map((cond) => (
-                          <button
-                            key={cond.value}
-                            type="button"
-                            onClick={() => setCondition(cond.value as any)}
-                            className={`relative p-4 rounded-xl border-2 text-left transition-all ${
-                              condition === cond.value
-                                ? cond.color === 'emerald' ? 'border-emerald-500 bg-emerald-50' :
-                                  cond.color === 'blue' ? 'border-blue-500 bg-blue-50' :
-                                  cond.color === 'amber' ? 'border-amber-500 bg-amber-50' :
-                                  'border-orange-500 bg-orange-50'
-                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                            }`}
-                          >
-                            <span className={`block font-semibold ${
-                              condition === cond.value
-                                ? cond.color === 'emerald' ? 'text-emerald-700' :
-                                  cond.color === 'blue' ? 'text-blue-700' :
-                                  cond.color === 'amber' ? 'text-amber-700' :
-                                  'text-orange-700'
-                                : 'text-gray-900'
-                            }`}>{cond.label}</span>
-                            <span className="text-xs text-gray-500 mt-1 block">{cond.desc}</span>
-                            {condition === cond.value && (
-                              <Check className={`absolute top-3 right-3 w-5 h-5 ${
-                                cond.color === 'emerald' ? 'text-emerald-600' :
-                                cond.color === 'blue' ? 'text-blue-600' :
-                                cond.color === 'amber' ? 'text-amber-600' :
-                                'text-orange-600'
-                              }`} />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* State + LGA Location */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
-                        <select
-                          value={locationId || ''}
-                          onChange={(e) => {
-                            setLocationId(e.target.value || null);
-                            setLgaId(null);
-                          }}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 cursor-pointer"
-                        >
-                          <option value="">Select a state</option>
-                          {nigeriaLocations.map((loc) => (
-                            <option key={loc.id} value={loc.id}>{loc.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Local Government Area *</label>
-                        <select
-                          value={lgaId || ''}
-                          onChange={(e) => setLgaId(e.target.value || null)}
-                          disabled={!locationId}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        >
-                          <option value="">{locationId ? 'Select an LGA' : 'Select a state first'}</option>
-                          {locationId && nigeriaLocations.find(l => l.id === locationId)?.lgas?.map((lga) => (
-                            <option key={lga} value={lga}>{lga}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Phone and WhatsApp */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Phone Number *
-                        </label>
-                        <div className="relative">
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                          <input
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="e.g., 08012345678"
-                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          WhatsApp Number (optional)
-                        </label>
-                        <div className="relative">
-                          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.218 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                          </svg>
-                          <input
-                            type="tel"
-                            value={whatsapp}
-                            onChange={(e) => setWhatsapp(e.target.value)}
-                            placeholder="e.g., 08012345678"
-                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setStep(2)}
-                      disabled={!canProceedToStep2}
-                      className="w-full py-3.5 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      Continue to Price & Photos <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                )}
-
-                {step === 2 && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold text-gray-900">Price & Images</h2>
-                      <span className="text-sm text-gray-500">Step 2 of 3</span>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Price *</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl text-gray-400">₦</span>
-                        <input
-                          type="text"
-                          value={formatPrice(price)}
-                          onChange={handlePriceChange}
-                          placeholder="0"
-                          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      </div>
-                      <label className="flex items-center gap-2 mt-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={negotiable}
-                          onChange={(e) => setNegotiable(e.target.checked)}
-                          className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
-                        />
-                        <span className="text-sm text-gray-600">Price is negotiable</span>
-                      </label>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Images * ({images.length}/{MAX_IMAGES})
-                      </label>
-                      <div
-                        ref={dropZoneRef}
-                        onDrop={handleDrop}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onClick={() => remainingSlots > 0 && fileInputRef.current?.click()}
-                        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
-                          isDragging 
-                            ? 'border-primary-500 bg-primary-50' 
-                            : remainingSlots > 0 
-                              ? 'border-gray-300 hover:border-primary-500 hover:bg-gray-50' 
-                              : 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                        }`}
-                      >
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          multiple
-                          accept={ACCEPTED_FORMATS.join(',')}
-                          onChange={handleImageUpload}
-                          className="hidden"
-                          disabled={remainingSlots <= 0}
-                        />
-                        <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-primary-600' : 'text-gray-400'}`} />
-                        <p className="text-gray-600 font-medium text-lg">
-                          {isDragging ? 'Drop images here' : 'Drag & drop or click to upload'}
-                        </p>
-                        <p className="text-gray-400 text-sm mt-2">
-                          {remainingSlots > 0 ? `${remainingSlots} more image${remainingSlots > 1 ? 's' : ''} allowed` : 'Maximum images reached'}
-                        </p>
-                        <p className="text-gray-400 text-xs mt-2">
-                          JPG, PNG, WebP, GIF, HEIC up to 5MB
-                        </p>
-                      </div>
-
-                      {images.length > 0 && (
-                        <div className="mt-4">
-                          <p className="text-sm text-gray-500 mb-3">
-                            Drag images to reorder. First image is the primary.
-                          </p>
-                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                            {images.map((img, index) => (
-                              <div
-                                key={img.id}
-                                draggable
-                                onDragStart={() => handleDragStart(index)}
-                                onDragEnd={handleDragEnd}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={() => handleDropReorder(index)}
-                                className={`relative aspect-square rounded-xl overflow-hidden group cursor-move bg-gray-100 ${
-                                  draggedIndex === index ? 'opacity-50 ring-2 ring-primary-500' : ''
-                                }`}
-                              >
-                                <img src={img.preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                                  <GripVertical className="w-6 h-6 text-white opacity-0 group-hover:opacity-100" />
-                                </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeImage(img.id);
-                                  }}
-                                  className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                                {index === 0 && (
-                                  <span className="absolute bottom-2 left-2 bg-primary-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-                                    Primary
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setStep(1)}
-                        className="flex-1 py-3.5 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                      >
-                        Back
-                      </button>
-                      <button
-                        onClick={() => setStep(3)}
-                        disabled={!price || images.length === 0}
-                        className="flex-1 py-3.5 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        Preview Ad <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {step === 3 && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold text-gray-900">Preview Your Ad</h2>
-                      <span className="text-sm text-gray-500">Step 3 of 3</span>
-                    </div>
-
-                    <div className="border border-gray-200 rounded-xl overflow-hidden">
-                      {images[0] && (
-                        <div className="aspect-video bg-gray-100">
-                          <img src={images[0].preview} alt="Preview" className="w-full h-full object-cover" />
-                        </div>
-                      )}
-
-                      <div className="p-5 space-y-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            {condition && (
-                              <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full mb-2 ${
-                                condition === 'new' ? 'bg-emerald-100 text-emerald-700' :
-                                condition === 'like_new' ? 'bg-blue-100 text-blue-700' :
-                                condition === 'good' ? 'bg-amber-100 text-amber-700' :
-                                'bg-orange-100 text-orange-700'
-                              }`}>
-                                {condition === 'new' ? 'New' : condition === 'like_new' ? 'Like New' : condition === 'good' ? 'Good' : 'Fair'}
-                              </span>
-                            )}
-                            <h3 className="text-xl font-bold text-gray-900 truncate">{title || 'Ad Title'}</h3>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-2xl font-bold text-primary-600">
-                              ₦{Number(price).toLocaleString() || '0'}
-                            </p>
-                            {negotiable && (
-                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Negotiable</span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span className="flex items-center gap-1.5">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            {lgaId ? `${lgaId}, ` : ''}{nigeriaLocations.find(l => l.id === locationId)?.name || ''}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-4 text-sm border-t border-b border-gray-100 py-3">
-                          <span className="flex items-center gap-1.5 text-gray-600">
-                            <Phone className="w-4 h-4 text-gray-400" />
-                            {phone}
-                          </span>
-                          {whatsapp && (
-                            <span className="flex items-center gap-1.5 text-green-600">
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.218 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                              </svg>
-                              WhatsApp available
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="text-gray-600 text-sm leading-relaxed line-clamp-4">{description || 'Description will appear here...'}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setStep(2)}
-                        className="flex-1 py-3.5 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                      >
-                        Back
-                      </button>
-                      <button
-                        onClick={handleSubmit}
-                        disabled={!canSubmit || isLoading}
-                        className="flex-1 py-3.5 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Publishing...
-                          </>
-                        ) : (
-                          <>
-                            Publish Ad
-                            <ChevronRight className="w-5 h-5" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Tips Card */}
+              <div className="bg-white rounded-2xl shadow-card p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Tips for a Great Ad</h3>
+                <ul className="space-y-3">
+                  <li className="flex gap-2">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-600 text-sm">Use clear, high quality photos</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-600 text-sm">Write a detailed description</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-600 text-sm">Set a competitive price</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-600 text-sm">Choose the right category</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-600 text-sm">Include your location</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-600 text-sm">Add a phone number for contact</span>
+                  </li>
+                </ul>
               </div>
 
-              <div className="w-72 hidden lg:block">
-                <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-24">
-                  <h3 className="font-semibold text-gray-900 mb-4">Posting Tips</h3>
-                  <ul className="space-y-3 text-sm text-gray-600">
-                    <li className="flex gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      <span>Use clear, high quality photos</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      <span>Write a detailed description</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      <span>Set a competitive price</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      <span>Choose the right category</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      <span>Include your location</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      <span>Add a phone number for contact</span>
-                    </li>
-                  </ul>
+              {/* Trust Badges */}
+              <div className="bg-gradient-to-br from-primary-50 to-secondary-50 rounded-2xl p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <Shield className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">Secure Platform</p>
+                    <p className="text-xs text-gray-500">Your data is protected</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <Clock className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">Quick Approval</p>
+                    <p className="text-xs text-gray-500">Ads go live in minutes</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <Star className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">Reach Thousands</p>
+                    <p className="text-xs text-gray-500">Connect with serious buyers</p>
+                  </div>
                 </div>
               </div>
             </div>
-            </>
-            )}
           </div>
         </div>
       </main>

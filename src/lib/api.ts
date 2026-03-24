@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { getCookie, setCookie, deleteCookie, getAuthToken } from '@/lib/cookies';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -39,7 +39,7 @@ class ApiClient {
       async (error) => {
         if (error.response?.status === 401) {
           const url = error.config?.url || '';
-          if (!url.startsWith('/auth/login') && !url.startsWith('/admin')) {
+          if (!url.startsWith('/auth/login') && !url.startsWith('/admin') && !url.startsWith('/categories') && !url.startsWith('/locations') && !url.startsWith('/notifications') && !url.startsWith('/messages')) {
             deleteCookie('token');
             if (typeof window !== 'undefined') {
               window.location.href = '/';

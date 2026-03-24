@@ -5,7 +5,7 @@ import { Star, ThumbsUp, Flag, User, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { getAuthToken } from '@/lib/cookies';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 interface Review {
   id: number;

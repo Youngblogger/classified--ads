@@ -367,7 +367,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const handleLogout = async () => {
     try {
       const tokenFromCookie = getCookie('token');
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/auth/logout`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${tokenFromCookie || token}`,

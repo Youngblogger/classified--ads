@@ -330,7 +330,7 @@ export default function WalletPage() {
                   onClick={handleVerify}
                   className="w-full mt-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700"
                 >
-                  I've Paid
+                  I&apos;ve Paid
                 </button>
               </div>
             )}
@@ -379,7 +379,7 @@ export default function WalletPage() {
                   <h3 className="font-semibold text-orange-900">Bank Transfer Details</h3>
                 </div>
                 <p className="text-sm text-orange-700 mb-4">
-                  Transfer to the account below and click "I've Paid" after transfer.
+                  Transfer to the account below and click &quot;I&apos;ve Paid&quot; after transfer.
                 </p>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
@@ -411,7 +411,7 @@ export default function WalletPage() {
                   onClick={handleVerify}
                   className="w-full mt-4 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700"
                 >
-                  I've Paid
+                  I&apos;ve Paid
                 </button>
               </div>
             )}

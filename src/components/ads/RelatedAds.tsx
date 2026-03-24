@@ -6,6 +6,8 @@ import { MapPin } from 'lucide-react';
 import axios from 'axios';
 import { formatPrice } from '@/lib/utils';
 
+const BASE_URL = 'http://127.0.0.1:8000';
+
 interface Ad {
   id: number;
   title: string;
@@ -13,7 +15,9 @@ interface Ad {
   price: string;
   currency: string;
   condition: string;
-  images: { url: string; is_primary: boolean }[];
+  description?: string;
+  short_description?: string;
+  images: { url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean }[];
   location: { name: string };
   created_at: string;
 }
@@ -32,7 +36,7 @@ export default function RelatedAds({ currentAdId, categoryId }: RelatedAdsProps)
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const API_URL = 'http://127.0.0.1:8000/api';
 
   const fetchAds = useCallback(async (pageNum: number, isInitial = false) => {
     try {
@@ -100,13 +104,18 @@ export default function RelatedAds({ currentAdId, categoryId }: RelatedAdsProps)
 
   const getPrimaryImage = (images: Ad['images']) => {
     const primary = images?.find((img) => img.is_primary);
-    return primary?.url || images?.[0]?.url || '/placeholder.jpg';
+    const img = primary || images?.[0];
+    const url = img?.display_url || img?.url || img?.thumbnail_url || '/placeholder.jpg';
+    if (url.startsWith('/storage/')) {
+      return `${BASE_URL}${url}`;
+    }
+    return url;
   };
 
   if (loading) {
     return (
       <div className="bg-white rounded-2xl p-6">
-        <h3 className="text-lg font-bold text-dark mb-4">Related Ads</h3>
+        <h3 className="text-lg font-bold text-dark mb-4">Similar Ads</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="animate-pulse">
@@ -126,7 +135,7 @@ export default function RelatedAds({ currentAdId, categoryId }: RelatedAdsProps)
 
   return (
     <div className="bg-white rounded-2xl p-6">
-      <h3 className="text-lg font-bold text-dark mb-4">Related Ads</h3>
+      <h3 className="text-lg font-bold text-dark mb-4">Similar Ads</h3>
       
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {ads.map((ad) => (
@@ -156,6 +165,11 @@ export default function RelatedAds({ currentAdId, categoryId }: RelatedAdsProps)
               <p className="text-lg font-bold text-primary-600 mt-1">
                 {formatPrice(ad.price, ad.currency)}
               </p>
+              {(ad.description || ad.short_description) && (
+                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                  {ad.short_description || ad.description}
+                </p>
+              )}
               <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
                 <MapPin className="w-3 h-3" />
                 <span className="truncate">{ad.location?.name}</span>

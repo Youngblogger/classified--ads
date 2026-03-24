@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, Eye, EyeOff, User, Phone, CheckCircle, Loader2 } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import OtpModal from './OtpModal';
+import toast from 'react-hot-toast';
 
 export default function RegisterModal() {
   const router = useRouter();
@@ -82,7 +83,7 @@ export default function RegisterModal() {
     setLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
       const formData = new URLSearchParams();
       formData.append('name', name);
       formData.append('email', email || '');
@@ -116,7 +117,9 @@ export default function RegisterModal() {
       }
 
       if (data.user && data.token) {
+        const userName = data.user?.name || 'there';
         login(data.user, data.token);
+        toast.success(`Account created successfully! Welcome, ${userName}!`);
         closeAllModals();
         resetForm();
         router.push('/');
@@ -131,6 +134,7 @@ export default function RegisterModal() {
   };
 
   const handleOtpVerified = async () => {
+    toast.success('Account created successfully! Welcome!');
     setShowOtpModal(false);
     closeAllModals();
     resetForm();
@@ -171,7 +175,7 @@ export default function RegisterModal() {
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold text-white">Create Account</h2>
-                <p className="text-primary-100 text-sm mt-1">Join iList - it's free!</p>
+                <p className="text-primary-100 text-sm mt-1">Join iList - it&apos;s free!</p>
               </div>
               <button
                 onClick={handleClose}

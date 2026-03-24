@@ -169,9 +169,9 @@ export default function PressPage() {
               <h2 className="text-3xl font-bold text-gray-900 mb-6">About iList.ng</h2>
               <div className="space-y-4 text-gray-600">
                 <p>
-                  iList.ng is Nigeria's trusted online marketplace, connecting buyers and sellers across the country. 
+                  iList.ng is Nigeria&apos;s trusted online marketplace, connecting buyers and sellers across the country. 
                   Founded with a mission to make buying and selling simple and accessible, we have grown to become 
-                  one of Nigeria's most popular classified ad platforms.
+                  one of Nigeria&apos;s most popular classified ad platforms.
                 </p>
                 <p>
                   Our platform enables individuals and businesses to post ads, browse listings, and connect with 
@@ -194,8 +194,8 @@ export default function PressPage() {
             </div>
             <div className="bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl p-8 md:p-12">
               <blockquote className="text-xl text-primary-800 italic mb-6">
-                "We believe that everyone should have access to a simple, trusted platform to buy and sell. 
-                That belief drives everything we do at iList.ng."
+                &quot;We believe that everyone should have access to a simple, trusted platform to buy and sell. 
+                That belief drives everything we do at iList.ng.&quot;
               </blockquote>
               <p className="text-primary-700 font-medium">— iList.ng Team</p>
             </div>

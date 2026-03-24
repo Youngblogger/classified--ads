@@ -30,7 +30,7 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
     if (url.startsWith('/storage/')) {
       return `${baseUrl}${url}`;
     }

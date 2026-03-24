@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, Eye, EyeOff, Phone, Send, CheckCircle, Loader2 } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
+import toast from 'react-hot-toast';
 
 export default function LoginModal() {
   const router = useRouter();
@@ -50,7 +51,7 @@ export default function LoginModal() {
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
       const response = await fetch(`${apiUrl}/auth/send-otp`, {
         method: 'POST',
         headers: {
@@ -120,7 +121,7 @@ export default function LoginModal() {
     setLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
       const response = await fetch(`${apiUrl}/auth/verify-otp`, {
         method: 'POST',
         headers: {
@@ -136,19 +137,9 @@ export default function LoginModal() {
         throw new Error(data.message || data.otp?.[0] || 'Invalid OTP');
       }
 
-      if (data.token) {
-        login(data.user, data.token);
-      } else {
-        const meResponse = await fetch(`${apiUrl}/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${data.token || data.user?.id}`,
-            'Accept': 'application/json',
-          },
-        });
-        const userData = await meResponse.json();
-        login(userData, data.token);
-      }
-
+      const userName = data.user?.name || 'there';
+      login(data.user, data.token);
+      toast.success(`Welcome back, ${userName}!`);
       setOtpVerified(true);
       closeAllModals();
       resetForm();
@@ -184,7 +175,7 @@ export default function LoginModal() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
       const formData = new URLSearchParams();
       formData.append('login', email);
       formData.append('password', password);
@@ -220,6 +211,7 @@ export default function LoginModal() {
         throw new Error(data.message || data.login?.[0] || 'Login failed');
       }
 
+      const userName = data.user?.name || 'there';
       login(data.user, data.token);
       if (typeof window !== 'undefined' && email) {
         const usedEmails = JSON.parse(localStorage.getItem('used-emails') || '[]');
@@ -228,6 +220,7 @@ export default function LoginModal() {
           localStorage.setItem('used-emails', JSON.stringify(usedEmails.slice(-5)));
         }
       }
+      toast.success(`Welcome back, ${userName}!`);
       closeAllModals();
       resetForm();
       router.push('/');
@@ -268,7 +261,7 @@ export default function LoginModal() {
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
       const response = await fetch(`${apiUrl}/auth/google`, {
         method: 'GET',
         headers: {
@@ -563,7 +556,7 @@ export default function LoginModal() {
             )}
 
             <p className="text-center mt-4 text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <button
                 onClick={() => {
                   closeAllModals();

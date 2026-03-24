@@ -9,7 +9,7 @@ import AdCard from '@/components/ui/AdCard';
 import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal, MapPin, Loader2 } from 'lucide-react';
 import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 const fetcher = async (url: string) => {
   try {
     const response = await fetch(url);
@@ -387,7 +387,7 @@ function AdsPageContent() {
                 <span className="text-sm text-gray-500">Active filters:</span>
                 {query && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-600 rounded-full text-sm">
-                    "{query}"
+                    &quot;{query}&quot;
                     <button onClick={() => { setLocalQuery(''); handleSearch(); }} className="hover:text-primary-800">
                       <X className="w-3 h-3" />
                     </button>

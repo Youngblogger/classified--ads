@@ -139,7 +139,7 @@ export default function PromoteAdPage() {
       <div className="min-h-screen flex flex-col items-center justify-center">
         <XCircle className="w-12 h-12 text-red-500 mb-4" />
         <h2 className="text-xl font-semibold text-gray-900">Ad Not Found</h2>
-        <p className="text-gray-500 mt-2">The ad you're trying to promote doesn't exist.</p>
+        <p className="text-gray-500 mt-2">The ad you&apos;re trying to promote doesn&apos;t exist.</p>
         <button
           onClick={() => router.push('/dashboard/my-ads')}
           className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"

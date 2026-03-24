@@ -479,7 +479,7 @@ export default function WatermarkSettingsPage() {
             <span className="font-medium text-gray-900">Show Ad ID in watermark</span>
           </label>
           <p className="text-sm text-gray-500 mt-2">
-            Example: "MyMarketplace.com | Ad ID: 48291"
+            Example: &quot;MyMarketplace.com | Ad ID: 48291&quot;
           </p>
         </div>
       </div>

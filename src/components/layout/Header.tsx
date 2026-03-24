@@ -16,7 +16,7 @@ function getAvatarUrl(url: string | null | undefined): string {
   if (!url) return '';
   let avatarUrl = url;
   if (avatarUrl.startsWith('/storage/')) {
-    avatarUrl = `http://localhost:8000${avatarUrl}`;
+    avatarUrl = `http://127.0.0.1:8000${avatarUrl}`;
   }
   return avatarUrl;
 }
@@ -67,7 +67,7 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   system_notice: 'bg-gray-100 text-gray-600',
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 const fetcher = (url: string) => fetch(url).then(r => r.json()).catch(() => null);
 
 function formatNotificationTime(dateString: string): string {
@@ -629,7 +629,7 @@ export default function Header() {
                       onClick={() => setIsProfileDropdownOpen(false)}
                     >
                       <User className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-dark">My Dashboard</span>
+                      <span className="text-sm text-dark">My Account</span>
                     </Link>
                     <Link
                       href="/dashboard/my-ads"
@@ -785,7 +785,7 @@ export default function Header() {
               {isAuthenticated && (
                 <>
                   <Link href="/dashboard" className="block py-2 text-dark font-medium">
-                    My Dashboard
+                    My Account
                   </Link>
                   <Link href="/dashboard/my-ads" className="block py-2 text-dark font-medium">
                     My Ads

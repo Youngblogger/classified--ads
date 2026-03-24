@@ -6,7 +6,7 @@ import { useAuthStore } from '@/lib/store';
 import { adsApi, notificationsApi, messagesApi } from '@/lib/api';
 import { Heart, MessageCircle, Eye, CheckCircle, Clock, Plus, FileText } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -146,7 +146,7 @@ export default function DashboardPage() {
       {/* Welcome section */}
       <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-2xl p-6 sm:p-8 text-white">
         <h2 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back, {user?.name || 'User'}!</h2>
-        <p className="text-primary-100">Here's what's happening with your listings today.</p>
+        <p className="text-primary-100">Here&apos;s what&apos;s happening with your listings today.</p>
       </div>
 
       {/* Stats Grid */}

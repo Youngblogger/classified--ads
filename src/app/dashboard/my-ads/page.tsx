@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { adsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 function getAdImageUrl(ad: any): string {
   if (!ad) return '';

@@ -7,7 +7,7 @@ import { Eye, EyeOff, Mail, Lock, User, CheckCircle, ArrowLeft, AlertCircle } fr
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 interface RegisterFormData {
   name: string;

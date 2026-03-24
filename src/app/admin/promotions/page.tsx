@@ -60,7 +60,7 @@ export default function PromotionsPage() {
   const getImageUrl = (url: string | undefined): string => {
     if (!url) return '/placeholder.jpg';
     if (url.startsWith('http')) return url;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
     return `${baseUrl}/${url.replace(/^\/+/, '')}`;
   };
   

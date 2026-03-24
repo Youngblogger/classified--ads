@@ -9,7 +9,7 @@ export function formatPrice(price: number | string, currency: string = 'NGN'): s
   
   if (isNaN(numericPrice)) return '₦0';
   
-  return '₦' + numericPrice.toLocaleString('en-NG');
+  return '₦' + numericPrice.toLocaleString('en-US');
 }
 
 export function formatDate(date: string | Date): string {

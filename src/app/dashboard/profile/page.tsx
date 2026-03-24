@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
 
+const API_URL = 'http://127.0.0.1:8000';
+
+function getAvatarUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/storage/')) {
+    return `${API_URL}${url}`;
+  }
+  return url;
+}
+
 const UserIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -67,8 +78,9 @@ export default function ProfileSettingsPage() {
         location: user.location || '',
         location_id: (user as any).location_id || null,
       });
-      if (user.avatar || (user as any).avatar_url) {
-        setAvatarPreview((user as any).avatar_url || user.avatar);
+      const avatarUrl = (user as any).avatar_url || user.avatar;
+      if (avatarUrl) {
+        setAvatarPreview(getAvatarUrl(avatarUrl));
       }
     }
   }, [user]);
@@ -119,15 +131,18 @@ export default function ProfileSettingsPage() {
         const avatarFormData = new FormData();
         avatarFormData.append('avatar', avatarFile);
         console.log('Uploading avatar to dedicated endpoint...');
+        console.log('Using token:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
         
-        const avatarResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/auth/profile/avatar`, {
+        const avatarResponse = await fetch(`${API_URL}/api/auth/profile/avatar`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
           },
           body: avatarFormData,
         });
         
+        console.log('Avatar response status:', avatarResponse.status);
         const avatarData = await avatarResponse.json();
         console.log('Avatar upload response:', avatarData);
         
@@ -138,7 +153,8 @@ export default function ProfileSettingsPage() {
         // Update user with avatar data
         if (avatarData.user) {
           setUser(avatarData.user);
-          setAvatarPreview(avatarData.user.avatar_url || avatarData.user.avatar);
+          const newAvatarUrl = avatarData.user.avatar_url || avatarData.user.avatar;
+          setAvatarPreview(getAvatarUrl(newAvatarUrl));
         }
       }
 
@@ -153,7 +169,7 @@ export default function ProfileSettingsPage() {
 
       console.log('Sending request to /auth/profile...');
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/auth/profile`, {
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -177,7 +193,7 @@ export default function ProfileSettingsPage() {
       };
       setUser(updatedUser);
       if (data.user?.avatar_url || data.user?.avatar) {
-        setAvatarPreview(data.user.avatar_url || data.user.avatar);
+        setAvatarPreview(getAvatarUrl(data.user?.avatar_url || data.user?.avatar));
       }
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
       setAvatarFile(null);

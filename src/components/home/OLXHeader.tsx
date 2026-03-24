@@ -656,7 +656,7 @@ export default function OLXHeader() {
                                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                   <Search className="w-8 h-8 text-gray-300" />
                                 </div>
-                                <p className="text-sm text-gray-500">No results found for "{searchQuery}"</p>
+                                <p className="text-sm text-gray-500">No results found for &quot;{searchQuery}&quot;</p>
                               </div>
                             )}
                           </>
@@ -952,7 +952,7 @@ export default function OLXHeader() {
                           </div>
                           <Link href="/dashboard" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
                             <LayoutDashboard className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm text-dark">Dashboard</span>
+                            <span className="text-sm text-dark">My Account</span>
                           </Link>
                           <Link href="/dashboard/my-ads" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
                             <Package className="w-4 h-4 text-gray-500" />
@@ -1189,7 +1189,7 @@ export default function OLXHeader() {
                   <div className="border-t border-gray-200 my-3"></div>
                   <Link href="/dashboard" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">
                     <LayoutDashboard className="w-5 h-5 text-gray-500" />
-                    <span className="font-medium">Dashboard</span>
+                    <span className="font-medium">My Account</span>
                   </Link>
                   <Link href="/dashboard/my-ads" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">
                     <Package className="w-5 h-5 text-gray-500" />

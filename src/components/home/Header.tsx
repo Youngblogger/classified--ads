@@ -834,7 +834,7 @@ export default function Header() {
                                 }}
                                 className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-xl transition-colors"
                               >
-                                View all results for "{searchQuery}"
+                                View all results for &quot;{searchQuery}&quot;
                                 <ArrowRight className="w-4 h-4" />
                               </button>
                             </div>
@@ -843,7 +843,7 @@ export default function Header() {
                               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Search className="w-8 h-8 text-slate-300" />
                               </div>
-                              <p className="text-sm text-slate-500">No results found for "{searchQuery}"</p>
+                              <p className="text-sm text-slate-500">No results found for &quot;{searchQuery}&quot;</p>
                               <button
                                 onClick={() => {
                                   saveRecentSearch(searchQuery.trim());
@@ -1114,7 +1114,7 @@ export default function Header() {
                           </div>
                           <Link href="/dashboard" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
                             <LayoutDashboard className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm text-slate-700">Dashboard</span>
+                            <span className="text-sm text-slate-700">My Account</span>
                           </Link>
                           <Link href="/dashboard/my-ads" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
                             <Package className="w-4 h-4 text-slate-500" />
@@ -1385,7 +1385,7 @@ export default function Header() {
                 <>
                   <Link href="/dashboard" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
                     <LayoutDashboard className="w-5 h-5 text-slate-500" />
-                    <span className="font-medium text-slate-700">Dashboard</span>
+                    <span className="font-medium text-slate-700">My Account</span>
                   </Link>
                   <Link href="/dashboard/my-ads" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
                     <Package className="w-5 h-5 text-slate-500" />

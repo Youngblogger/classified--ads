@@ -31,7 +31,7 @@ function GoogleCallbackContent() {
       }
 
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
         const response = await fetch(`${apiUrl}/auth/google`, {
           method: 'POST',
           headers: {
@@ -48,7 +48,7 @@ function GoogleCallbackContent() {
         }
 
         login(data.user, data.token);
-        router.push('/dashboard');
+        router.push('/');
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
         setError(errorMessage);

@@ -185,7 +185,7 @@ export default function EditAdPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Ad Not Found</h2>
-            <p className="text-gray-500 mb-4">This ad doesn't exist or you don't have permission to edit it.</p>
+            <p className="text-gray-500 mb-4">This ad doesn&apos;t exist or you don&apos;t have permission to edit it.</p>
             <button onClick={() => router.push('/dashboard/my-ads')} className="btn-primary">
               Back to My Ads
             </button>
