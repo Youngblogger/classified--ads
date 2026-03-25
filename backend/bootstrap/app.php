@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthenticationException $e, Request $request) {
-            return response()->json([
+            return new \Illuminate\Http\JsonResponse([
                 'success' => false,
                 'message' => 'Unauthenticated. Please login to continue.',
                 'redirect' => '/login',
@@ -29,7 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
         
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
-            return response()->json([
+            return new \Illuminate\Http\JsonResponse([
                 'success' => false,
                 'message' => 'Resource not found.',
             ], 404);
@@ -37,9 +37,10 @@ return Application::configure(basePath: dirname(__DIR__))
         
         $exceptions->render(function (\Throwable $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
+                $message = config('app.debug') ? $e->getMessage() : 'An error occurred.';
+                return new \Illuminate\Http\JsonResponse([
                     'success' => false,
-                    'message' => config('app.debug') ? $e->getMessage() : 'An error occurred.',
+                    'message' => $message,
                     'error' => get_class($e),
                 ], 500);
             }
