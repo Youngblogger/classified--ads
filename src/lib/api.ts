@@ -39,7 +39,22 @@ class ApiClient {
       async (error) => {
         if (error.response?.status === 401) {
           const url = error.config?.url || '';
-          if (!url.startsWith('/auth/login') && !url.startsWith('/admin') && !url.startsWith('/categories') && !url.startsWith('/locations') && !url.startsWith('/notifications') && !url.startsWith('/messages')) {
+          // List of public endpoints that should NOT trigger logout/redirect
+          const publicEndpoints = [
+            '/auth/login',
+            '/auth/register',
+            '/auth/google',
+            '/categories',
+            '/locations',
+            '/ads',
+            '/search',
+            '/banners',
+            '/notifications',
+            '/messages',
+          ];
+          const isPublicEndpoint = publicEndpoints.some(endpoint => url.startsWith(endpoint));
+          
+          if (!isPublicEndpoint) {
             deleteCookie('token');
             if (typeof window !== 'undefined') {
               window.location.href = '/';

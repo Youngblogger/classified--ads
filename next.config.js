@@ -21,11 +21,11 @@ const nextConfig = {
     return [
       {
         source: '/storage/:path*',
-        destination: 'http://172.26.118.55:8000/storage/:path*',
+        destination: 'http://localhost:8000/storage/:path*',
       },
       {
         source: '/api/:path*',
-        destination: 'http://172.26.118.55:8000/api/:path*',
+        destination: 'http://localhost:8000/api/:path*',
       },
     ];
   },

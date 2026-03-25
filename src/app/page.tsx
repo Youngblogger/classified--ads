@@ -144,13 +144,21 @@ export default function HomePage() {
     try {
       const res = await fetch(`${API_URL}/ads?limit=${ITEMS_PER_PAGE}&page=${pageNum}&_t=${Date.now()}`, {
         cache: 'no-store',
+        credentials: 'include',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0',
+          'Accept': 'application/json',
         },
       });
-      if (!res.ok) throw new Error('Failed to fetch');
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Ads fetch error:', res.status, errorText);
+        throw new Error(`Server error: ${res.status}`);
+      }
+      
       const json = await res.json();
       
       let newAds: any[] = [];
@@ -167,7 +175,7 @@ export default function HomePage() {
       setHasMore(newAds.length === ITEMS_PER_PAGE);
       setAdsError(false);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
+      console.error('Failed to fetch ads:', error);
       setAdsError(true);
       setHasMore(false);
     } finally {

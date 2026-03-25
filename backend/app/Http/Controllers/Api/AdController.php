@@ -16,67 +16,89 @@ class AdController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Ad::with(['images', 'category', 'location'])
-            ->where('status', 'active');
+        try {
+            $query = Ad::with(['images', 'category', 'location'])
+                ->where('status', 'active');
 
-        if ($request->category) {
-            $query->whereHas('category', function($q) use ($request) {
-                $q->where('slug', $request->category);
-            });
+            if ($request->category) {
+                $query->whereHas('category', function($q) use ($request) {
+                    $q->where('slug', $request->category);
+                });
+            }
+
+            if ($request->location) {
+                $query->whereHas('location', function($q) use ($request) {
+                    $q->where('slug', $request->location);
+                });
+            }
+
+            if ($request->search) {
+                $query->where(function($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->search . '%')
+                      ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            $ads = $query->orderBy('created_at', 'desc')->paginate(20);
+
+            return response()->json($ads);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch ads: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load ads', 'message' => $e->getMessage()], 500);
         }
-
-        if ($request->location) {
-            $query->whereHas('location', function($q) use ($request) {
-                $q->where('slug', $request->location);
-            });
-        }
-
-        if ($request->search) {
-            $query->where(function($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('description', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        $ads = $query->orderBy('created_at', 'desc')->paginate(20);
-
-        return response()->json($ads);
     }
 
     public function featured(Request $request)
     {
-        $limit = $request->limit ?? 8;
-        $ads = Ad::with(['images', 'category', 'location'])
-            ->where('status', 'active')
-            ->where('is_featured', true)
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
+        try {
+            $limit = $request->limit ?? 8;
+            $ads = Ad::with(['images', 'category', 'location'])
+                ->where('status', 'active')
+                ->where('is_featured', true)
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get();
 
-        return response()->json(['data' => $ads]);
+            return response()->json(['data' => $ads]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch featured ads: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load featured ads', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function recent(Request $request)
     {
-        $limit = $request->limit ?? 8;
-        $ads = Ad::with(['images', 'category', 'location'])
-            ->where('status', 'active')
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
+        try {
+            $limit = $request->limit ?? 8;
+            $ads = Ad::with(['images', 'category', 'location'])
+                ->where('status', 'active')
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get();
 
-        return response()->json(['data' => $ads]);
+            return response()->json(['data' => $ads]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch recent ads: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load recent ads', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function show($slug)
     {
-        $ad = Ad::with(['images', 'category', 'location', 'user'])
-            ->where('slug', $slug)
-            ->firstOrFail();
+        try {
+            $ad = Ad::with(['images', 'category', 'location', 'user'])
+                ->where('slug', $slug)
+                ->firstOrFail();
 
-        $ad->increment('views');
+            $ad->increment('views');
 
-        return response()->json(['data' => $ad]);
+            return response()->json(['data' => $ad]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'Ad not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch ad: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load ad', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function store(Request $request)
