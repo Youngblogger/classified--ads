@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { getCookie, setCookie, deleteCookie, getAuthToken } from '@/lib/cookies';
+import toast from 'react-hot-toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -44,7 +45,7 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const axiosError = error as AxiosError<{ message?: string }>;
+        const axiosError = error as AxiosError<{ message?: string; success?: boolean }>;
         
         if (axiosError.response?.status === 401) {
           const url = axiosError.config?.url || '';
@@ -53,8 +54,19 @@ class ApiClient {
           
           if (!isAuthEndpoint) {
             deleteCookie('token');
-            if (typeof window !== 'undefined' && !url.includes('/auth/me')) {
-              window.location.href = '/';
+            
+            if (typeof window !== 'undefined') {
+              const isAlreadyRedirecting = (window as any).__authRedirecting;
+              
+              if (!isAlreadyRedirecting && !url.includes('/auth/me')) {
+                (window as any).__authRedirecting = true;
+                
+                toast.error('Your session has expired. Please login to continue.');
+                
+                setTimeout(() => {
+                  window.location.href = '/login';
+                }, 1500);
+              }
             }
           }
         }
