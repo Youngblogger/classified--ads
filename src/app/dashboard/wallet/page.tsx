@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Copy, Check, Loader2, Building2, CreditCard, Smartphone, Wallet } from 'lucide-react';
@@ -13,6 +14,7 @@ interface WalletTransaction {
   balance_after: string;
   description: string;
   status: string;
+  payment_method: string;
   created_at: string;
 }
 
@@ -29,14 +31,36 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [funding, setFunding] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('card');
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [copied, setCopied] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     fetchWallet();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verified = params.get('verified');
+    const reference = params.get('reference');
+    
+    if (verified === 'true' && reference) {
+      api.post('/wallet/verify', { reference })
+        .then(() => {
+          toast.success('Payment successful! Your wallet has been credited.');
+          fetchWallet();
+        })
+        .catch(() => {
+          toast.error('Payment verification failed');
+        });
+      
+      window.history.replaceState({}, '', '/dashboard/wallet');
+    }
   }, []);
 
   const fetchWallet = async () => {
@@ -60,9 +84,10 @@ export default function WalletPage() {
 
     setFunding(true);
     try {
+      const apiMethod = method === 'manual' ? 'bank_transfer' : 'paystack';
       const res = await api.post('/wallet/fund', {
         amount: parseFloat(amount),
-        method,
+        method: apiMethod,
       });
 
       setPaymentDetails(res.data);
@@ -81,6 +106,37 @@ export default function WalletPage() {
   const handleVerify = async () => {
     if (!paymentDetails?.reference) return;
     
+    if (method === 'manual' && selectedFile) {
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('reference', paymentDetails.reference);
+        formData.append('proof', selectedFile);
+        
+        await api.post('/wallet/bank-transfer-proof', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+            }
+          },
+        });
+        
+        toast.success('Payment proof uploaded! Your transfer is pending admin approval.');
+        setPaymentDetails(null);
+        setShowPaymentForm(false);
+        setAmount('');
+        setSelectedFile(null);
+        fetchWallet();
+      } catch (error: any) {
+        toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to upload proof');
+      } finally {
+        setUploading(false);
+        setUploadProgress(0);
+      }
+      return;
+    }
+    
     try {
       const res = await api.post('/wallet/verify', { reference: paymentDetails.reference });
       toast.success('Wallet funded successfully!');
@@ -90,6 +146,17 @@ export default function WalletPage() {
       fetchWallet();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Verification failed');
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      setSelectedFile(file);
     }
   };
 
@@ -128,6 +195,34 @@ export default function WalletPage() {
         return 'text-blue-600 bg-blue-50';
       default:
         return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-700';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'failed':
+        return 'bg-red-100 text-red-700';
+      case 'processing':
+        return 'bg-blue-100 text-blue-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case 'paystack':
+        return 'Card';
+      case 'bank_transfer':
+        return 'Bank Transfer';
+      case 'manual':
+        return 'Manual Transfer';
+      default:
+        return method || '-';
     }
   };
 
@@ -379,7 +474,7 @@ export default function WalletPage() {
                   <h3 className="font-semibold text-orange-900">Bank Transfer Details</h3>
                 </div>
                 <p className="text-sm text-orange-700 mb-4">
-                  Transfer to the account below and click &quot;I&apos;ve Paid&quot; after transfer.
+                  Transfer to the account below and upload your payment proof after transfer.
                 </p>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
@@ -407,11 +502,52 @@ export default function WalletPage() {
                     <span className="font-bold text-orange-600">{formatAmount(paymentDetails.amount)}</span>
                   </div>
                 </div>
+                
+                {/* Proof Upload */}
+                <div className="mt-6 p-4 bg-white rounded-lg border-2 border-dashed border-orange-200">
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">Upload Payment Proof</span>
+                    <span className="text-xs text-gray-500 block">(Screenshot or photo of transfer receipt)</span>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleFileChange}
+                      className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                    />
+                  </label>
+                  {selectedFile && (
+                    <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+                      <Check className="w-4 h-4" />
+                      <span>{selectedFile.name}</span>
+                    </div>
+                  )}
+                </div>
+                
+                {uploadProgress > 0 && (
+                  <div className="mt-4">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-orange-600 h-2 rounded-full transition-all" 
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1 text-center">{uploadProgress}% uploaded</p>
+                  </div>
+                )}
+                
                 <button
                   onClick={handleVerify}
-                  className="w-full mt-4 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700"
+                  disabled={uploading || !selectedFile}
+                  className="w-full mt-4 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  I&apos;ve Paid
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    selectedFile ? 'Submit Payment Proof' : 'Select Payment Proof First'
+                  )}
                 </button>
               </div>
             )}
@@ -457,9 +593,14 @@ export default function WalletPage() {
                   <p className={`font-semibold ${tx.type === 'deposit' || tx.type === 'refund' ? 'text-green-600' : 'text-red-600'}`}>
                     {tx.type === 'deposit' || tx.type === 'refund' ? '+' : '-'}{formatAmount(tx.amount)}
                   </p>
-                  <p className={`text-xs ${tx.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
+                  <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${getStatusColor(tx.status)}`}>
                     {tx.status}
-                  </p>
+                  </span>
+                  {tx.payment_method && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      via {getPaymentMethodLabel(tx.payment_method)}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SellerReviewController;
 use App\Http\Controllers\Api\WatermarkController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\PaymentWebhookController;
+use App\Http\Controllers\Api\PromotionController;
 use Illuminate\Support\Facades\Route;
 
 // Public auth routes
@@ -147,9 +149,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Wallet
     Route::get('/wallet', [WalletController::class, 'index']);
+    Route::get('/wallet/balance', [WalletController::class, 'balance']);
     Route::post('/wallet/fund', [WalletController::class, 'fund']);
     Route::post('/wallet/verify', [WalletController::class, 'verify']);
+    Route::post('/wallet/check-balance', [WalletController::class, 'checkBalance']);
+    Route::post('/wallet/bank-transfer-proof', [WalletController::class, 'bankTransferProof']);
+
+    // Promotions
+    Route::get('/promotions/plans', [PromotionController::class, 'plans']);
+    Route::post('/promotions/buy', [PromotionController::class, 'buy']);
+    Route::get('/promotions/my-promotions', [PromotionController::class, 'myPromotions']);
+    Route::get('/promotions/ad/{adId}', [PromotionController::class, 'adPromotions']);
+    Route::post('/promotions/{id}/cancel', [PromotionController::class, 'cancelPromotion']);
 });
+
+// Webhook routes (no auth required)
+Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'handlePaystackWebhook']);
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard']);
@@ -187,4 +202,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::post('/fonts', [FontController::class, 'store']);
     Route::delete('/fonts/{id}', [FontController::class, 'destroy']);
     Route::post('/fonts/{id}/default', [FontController::class, 'setDefault']);
+
+    // Bank Transfers
+    Route::get('/bank-transfers', [AdminController::class, 'bankTransfers']);
+    Route::get('/bank-transfers/stats', [AdminController::class, 'getBankTransferStats']);
+    Route::post('/bank-transfers/{id}/approve', [AdminController::class, 'approveBankTransfer']);
+    Route::post('/bank-transfers/{id}/reject', [AdminController::class, 'rejectBankTransfer']);
 });

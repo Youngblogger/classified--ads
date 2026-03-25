@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Wallet extends Model
 {
@@ -38,33 +39,72 @@ class Wallet extends Model
         return $this->balance - $this->pending_balance;
     }
 
-    public function credit(float $amount, string $description, ?array $metadata = null): Transaction
+    public function credit(float $amount, string $description, ?string $reference = null, ?array $metadata = null): Transaction
     {
-        $balanceBefore = $this->balance;
-        $this->increment('balance', $amount);
-        
-        return $this->transactions()->create([
-            'type' => 'credit',
-            'amount' => $amount,
-            'balance_before' => $balanceBefore,
-            'balance_after' => $this->balance,
-            'description' => $description,
-            'metadata' => $metadata,
-        ]);
+        return DB::transaction(function () use ($amount, $description, $reference, $metadata) {
+            $balanceBefore = $this->balance;
+            $this->increment('balance', $amount);
+            $this->refresh();
+            
+            return $this->transactions()->create([
+                'type' => 'credit',
+                'amount' => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $this->balance,
+                'reference' => $reference,
+                'description' => $description,
+                'status' => 'success',
+                'payment_method' => 'paystack',
+                'metadata' => $metadata,
+                'processed_at' => now(),
+            ]);
+        });
     }
 
-    public function debit(float $amount, string $description, ?array $metadata = null): Transaction
+    public function debit(float $amount, string $description, ?string $reference = null, ?array $metadata = null): Transaction
     {
-        $balanceBefore = $this->balance;
-        $this->decrement('balance', $amount);
-        
-        return $this->transactions()->create([
-            'type' => 'debit',
-            'amount' => $amount,
-            'balance_before' => $balanceBefore,
-            'balance_after' => $this->balance,
-            'description' => $description,
-            'metadata' => $metadata,
-        ]);
+        return DB::transaction(function () use ($amount, $description, $reference, $metadata) {
+            $balanceBefore = $this->balance;
+            $this->decrement('balance', $amount);
+            $this->refresh();
+            
+            return $this->transactions()->create([
+                'type' => 'debit',
+                'amount' => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $this->balance,
+                'reference' => $reference,
+                'description' => $description,
+                'status' => 'success',
+                'metadata' => $metadata,
+                'processed_at' => now(),
+            ]);
+        });
+    }
+
+    public function atomicDebit(float $amount, string $description, ?string $reference = null, ?array $metadata = null): ?Transaction
+    {
+        return DB::transaction(function () use ($amount, $description, $reference, $metadata) {
+            // Check balance first
+            if ($this->balance < $amount) {
+                return null;
+            }
+            
+            $balanceBefore = $this->balance;
+            $this->decrement('balance', $amount);
+            $this->refresh();
+            
+            return $this->transactions()->create([
+                'type' => 'debit',
+                'amount' => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $this->balance,
+                'reference' => $reference,
+                'description' => $description,
+                'status' => 'success',
+                'metadata' => $metadata,
+                'processed_at' => now(),
+            ]);
+        });
     }
 }

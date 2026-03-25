@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
-import { adsApi, notificationsApi, messagesApi } from '@/lib/api';
-import { Heart, MessageCircle, Eye, CheckCircle, Clock, Plus, FileText } from 'lucide-react';
+import { adsApi, notificationsApi, messagesApi, walletApi } from '@/lib/api';
+import { Heart, MessageCircle, Eye, CheckCircle, Clock, Plus, FileText, Wallet, TrendingUp, Star, Sparkles, ChevronRight } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -16,27 +16,44 @@ export default function DashboardPage() {
     sold: 0,
     favorites: 0,
     unreadMessages: 0,
+    promoted: 0,
+    views: 0,
   });
+  const [walletBalance, setWalletBalance] = useState(0);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [adsRes, notificationsRes] = await Promise.all([
+        const [adsRes, notificationsRes, walletRes] = await Promise.all([
           adsApi.getMyAds().catch(() => ({ data: { data: [] } })),
           notificationsApi.getAll().catch(() => ({ data: { data: [] } })),
+          walletApi.getBalance().catch(() => ({ data: { balance: 0 } })),
         ]);
 
         const ads = adsRes.data?.data || adsRes.data || [];
         
+        // Calculate stats
+        const activeAds = ads.filter((a: any) => a.status === 'active');
+        const promotedAds = ads.filter((a: any) => a.is_promoted);
+        
         setStats({
-          active: ads.filter((a: any) => a.status === 'active').length,
+          active: activeAds.length,
           pending: ads.filter((a: any) => a.status === 'pending').length,
           sold: ads.filter((a: any) => a.status === 'sold').length,
           favorites: 0,
           unreadMessages: 0,
+          promoted: promotedAds.length,
+          views: activeAds.reduce((sum: number, a: any) => sum + (a.views || 0), 0),
         });
+
+        // Set wallet balance
+        if (walletRes.data?.balance !== undefined) {
+          setWalletBalance(walletRes.data.balance);
+        } else if (walletRes.data?.wallet?.balance) {
+          setWalletBalance(walletRes.data.wallet.balance);
+        }
 
         const notifications = notificationsRes.data?.data || notificationsRes.data || [];
         setRecentActivity(notifications.slice(0, 5));
@@ -73,7 +90,27 @@ export default function DashboardPage() {
       href: '/dashboard/my-ads?status=active',
     },
     {
-      title: 'Pending Ads',
+      title: 'Total Views',
+      value: stats.views,
+      change: 'All time',
+      changeType: 'neutral',
+      icon: Eye,
+      bgColor: 'bg-indigo-50',
+      iconColor: 'text-indigo-600',
+      href: '/dashboard/my-ads',
+    },
+    {
+      title: 'Promoted',
+      value: stats.promoted,
+      change: 'Boosted ads',
+      changeType: 'positive',
+      icon: TrendingUp,
+      bgColor: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+      href: '/dashboard/promotions',
+    },
+    {
+      title: 'Pending',
       value: stats.pending,
       change: 'Awaiting approval',
       changeType: 'neutral',
@@ -83,34 +120,14 @@ export default function DashboardPage() {
       href: '/dashboard/my-ads?status=pending',
     },
     {
-      title: 'Sold Ads',
+      title: 'Sold',
       value: stats.sold,
-      change: 'Completed sales',
+      change: 'Completed',
       changeType: 'positive',
       icon: CheckCircle,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600',
       href: '/dashboard/my-ads?status=sold',
-    },
-    {
-      title: 'Favorites',
-      value: stats.favorites,
-      change: 'Saved items',
-      changeType: 'positive',
-      icon: Heart,
-      bgColor: 'bg-red-50',
-      iconColor: 'text-red-600',
-      href: '/dashboard/favorites',
-    },
-    {
-      title: 'Messages',
-      value: stats.unreadMessages,
-      change: 'Unread',
-      changeType: 'warning',
-      icon: MessageCircle,
-      bgColor: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-      href: '/dashboard/messages',
     },
   ];
 
@@ -143,14 +160,34 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome section */}
-      <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-2xl p-6 sm:p-8 text-white">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back, {user?.name || 'User'}!</h2>
-        <p className="text-primary-100">Here&apos;s what&apos;s happening with your listings today.</p>
+      {/* Welcome section with Wallet */}
+      <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
+        <div className="absolute right-0 top-0 h-full w-1/2 opacity-10">
+          <div className="grid grid-cols-3 gap-4 p-8">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-8 w-8 rounded-full bg-white"></div>
+            ))}
+          </div>
+        </div>
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back, {user?.name || 'User'}!</h2>
+              <p className="text-primary-100">Here&apos;s what&apos;s happening with your listings today.</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 min-w-[180px]">
+              <div className="flex items-center gap-2 text-primary-100 mb-1">
+                <Wallet className="w-4 h-4" />
+                <span className="text-sm">Wallet Balance</span>
+              </div>
+              <p className="text-2xl font-bold">₦{walletBalance.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
+      {/* Stats Grid - 5 columns */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="bg-white rounded-2xl p-5 sm:p-6 shadow-card animate-pulse">

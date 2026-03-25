@@ -430,10 +430,30 @@ export const promotionsApi = {
     api.post('/promotions/cancel', { promotion_id: promotionId }),
 };
 
-// Wallet API additions
+// Wallet API
 export const walletApi = {
   getBalance: () => api.get('/wallet/balance'),
   getTransactions: () => api.get('/wallet'),
+  fundWallet: (amount: number, method: string) => 
+    api.post('/wallet/fund', { amount, method }),
+  verifyPayment: (reference: string) => 
+    api.post('/wallet/verify', { reference }),
+  checkBalance: (amount: number) => 
+    api.post('/wallet/check-balance', { amount }),
+  uploadBankProof: (reference: string, proof: File) => {
+    const formData = new FormData();
+    formData.append('reference', reference);
+    formData.append('proof', proof);
+    return api.post('/wallet/bank-transfer-proof', formData);
+  },
+};
+
+// Admin Bank Transfers API
+export const adminBankTransfersApi = {
+  getTransfers: (status?: string) => api.get('/admin/bank-transfers', { params: { status } }),
+  getStats: () => api.get('/admin/bank-transfers/stats'),
+  approve: (id: number) => api.post(`/admin/bank-transfers/${id}/approve`),
+  reject: (id: number, note?: string) => api.post(`/admin/bank-transfers/${id}/reject`, { note }),
 };
 
 export default api;

@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Models\Category;
 use App\Models\Location;
 use App\Models\Notification;
+use App\Models\Transaction;
+use App\Models\Wallet;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -414,5 +416,152 @@ class AdminController extends Controller
             );
         }
         return response()->json(['message' => 'Settings updated']);
+    }
+
+    // Bank Transfer Management
+    public function bankTransfers(Request $request)
+    {
+        $query = Transaction::with(['user', 'wallet'])
+            ->where('payment_method', 'bank_transfer')
+            ->where('type', 'credit');
+
+        // Filter by status
+        if ($request->status && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Search by user email or reference
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('email', 'like', "%{$search}%")
+                               ->orWhere('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $transfers = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        return response()->json($transfers);
+    }
+
+    public function approveBankTransfer(Request $request, $id)
+    {
+        $request->validate([
+            'admin_note' => 'nullable|string|max:500',
+        ]);
+
+        $transaction = Transaction::with(['user', 'wallet'])->findOrFail($id);
+
+        // Check if already processed
+        if ($transaction->status !== 'pending') {
+            return response()->json([
+                'message' => 'Transaction has already been processed',
+            ], 400);
+        }
+
+        // Use DB transaction for atomicity
+        DB::transaction(function () use ($transaction, $request) {
+            $wallet = $transaction->wallet;
+            $balanceBefore = $wallet->balance;
+
+            // Credit wallet
+            $wallet->increment('balance', $transaction->amount);
+            $wallet->refresh();
+
+            // Update transaction
+            $transaction->update([
+                'status' => 'success',
+                'balance_before' => $balanceBefore,
+                'balance_after' => $wallet->balance,
+                'processed_at' => now(),
+                'processed_by' => $request->user()->id,
+                'admin_note' => $request->admin_note,
+                'is_suspicious' => false, // Clear suspicious flag after manual review
+            ]);
+
+            // Log the action
+            \Illuminate\Support\Facades\Log::info('Bank transfer approved', [
+                'transaction_id' => $transaction->id,
+                'admin_id' => $request->user()->id,
+                'amount' => $transaction->amount,
+            ]);
+        });
+
+        // Send notification to user
+        $transaction->user->notify(new \App\Notifications\WalletFundedNotification(
+            $transaction->amount,
+            'Bank transfer approved'
+        ));
+
+        return response()->json([
+            'message' => 'Bank transfer approved successfully',
+            'transaction' => $transaction->fresh(),
+        ]);
+    }
+
+    public function rejectBankTransfer(Request $request, $id)
+    {
+        $request->validate([
+            'admin_note' => 'required|string|max:500',
+        ]);
+
+        $transaction = Transaction::with(['user', 'wallet'])->findOrFail($id);
+
+        // Check if already processed
+        if ($transaction->status !== 'pending') {
+            return response()->json([
+                'message' => 'Transaction has already been processed',
+            ], 400);
+        }
+
+        // Update transaction
+        $transaction->update([
+            'status' => 'failed',
+            'processed_at' => now(),
+            'processed_by' => $request->user()->id,
+            'admin_note' => $request->admin_note,
+        ]);
+
+        // Log the action
+        \Illuminate\Support\Facades\Log::info('Bank transfer rejected', [
+            'transaction_id' => $transaction->id,
+            'admin_id' => $request->user()->id,
+            'reason' => $request->admin_note,
+        ]);
+
+        return response()->json([
+            'message' => 'Bank transfer rejected',
+            'transaction' => $transaction->fresh(),
+        ]);
+    }
+
+    public function getBankTransferStats()
+    {
+        $stats = [
+            'pending' => Transaction::where('payment_method', 'bank_transfer')
+                ->where('status', 'pending')
+                ->count(),
+            'approved' => Transaction::where('payment_method', 'bank_transfer')
+                ->where('status', 'success')
+                ->count(),
+            'rejected' => Transaction::where('payment_method', 'bank_transfer')
+                ->where('status', 'failed')
+                ->count(),
+            'suspicious' => Transaction::where('payment_method', 'bank_transfer')
+                ->where('is_suspicious', true)
+                ->where('status', 'pending')
+                ->count(),
+            'total_amount_pending' => Transaction::where('payment_method', 'bank_transfer')
+                ->where('status', 'pending')
+                ->sum('amount'),
+            'total_amount_approved' => Transaction::where('payment_method', 'bank_transfer')
+                ->where('status', 'success')
+                ->sum('amount'),
+        ];
+
+        return response()->json($stats);
     }
 }

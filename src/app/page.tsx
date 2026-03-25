@@ -289,22 +289,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   
-                  {/* Main Card */}
-                  <div className="bg-white rounded-3xl shadow-2xl p-6 ml-12">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl flex items-center justify-center">
-                        <span className="text-3xl">🚗</span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-slate-900">Toyota Camry 2023</p>
-                        <p className="text-sm text-slate-500">Lagos, Nigeria</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-2xl font-bold text-primary-600">₦25,000,000</p>
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-full">Verified</span>
-                    </div>
-                  </div>
+
                 </div>
               </div>
             </div>

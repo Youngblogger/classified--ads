@@ -29,7 +29,8 @@ import {
   Search,
   Eye,
   EyeOff,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { api, notificationsApi } from '@/lib/api';
@@ -54,6 +55,7 @@ const navigation: NavItem[] = [
   { name: 'Messages', href: '/admin/messages', icon: MessageSquare },
   { name: 'Banners & Ads', href: '/admin/banners', icon: Image },
   { name: 'Promotions', href: '/admin/promotions', icon: TrendingUp },
+  { name: 'Bank Transfers', href: '/admin/bank-transfers', icon: Building2 },
   { name: 'Wallets', href: '/admin/wallets', icon: Wallet },
   { name: 'Payments', href: '/admin/payments', icon: CreditCard },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
