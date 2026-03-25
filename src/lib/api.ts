@@ -1,7 +1,11 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { getCookie, setCookie, deleteCookie, getAuthToken } from '@/lib/cookies';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+export function getApiBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+}
 
 class ApiClient {
   private client: AxiosInstance;
@@ -11,7 +15,10 @@ class ApiClient {
       baseURL: API_BASE_URL,
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
+      timeout: 30000,
+      withCredentials: true,
     });
 
     this.client.interceptors.request.use((config) => {
@@ -36,31 +43,30 @@ class ApiClient {
 
     this.client.interceptors.response.use(
       (response) => response,
-      async (error) => {
-        if (error.response?.status === 401) {
-          const url = error.config?.url || '';
-          // List of public endpoints that should NOT trigger logout/redirect
-          const publicEndpoints = [
-            '/auth/login',
-            '/auth/register',
-            '/auth/google',
-            '/categories',
-            '/locations',
-            '/ads',
-            '/search',
-            '/banners',
-            '/notifications',
-            '/messages',
-          ];
-          const isPublicEndpoint = publicEndpoints.some(endpoint => url.startsWith(endpoint));
+      async (error: AxiosError) => {
+        const axiosError = error as AxiosError<{ message?: string }>;
+        
+        if (axiosError.response?.status === 401) {
+          const url = axiosError.config?.url || '';
           
-          if (!isPublicEndpoint) {
+          const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
+          
+          if (!isAuthEndpoint) {
             deleteCookie('token');
-            if (typeof window !== 'undefined') {
+            if (typeof window !== 'undefined' && !url.includes('/auth/me')) {
               window.location.href = '/';
             }
           }
         }
+        
+        if (axiosError.code === 'ECONNABORTED') {
+          console.error('[API] Request timeout');
+        }
+        
+        if (axiosError.code === 'ERR_NETWORK' || axiosError.message === 'Network Error') {
+          console.error('[API] Network error - backend may not be running');
+        }
+        
         return Promise.reject(error);
       }
     );

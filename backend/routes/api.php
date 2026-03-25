@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdImageController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AuthOtpController;
+use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\BroadcastController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FavoriteController;
@@ -72,6 +73,9 @@ Route::get('/search', [SearchController::class, 'search']);
 Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
 Route::get('/search/trending', [SearchController::class, 'trending']);
 Route::get('/search/recent', [SearchController::class, 'recentSearches']);
+
+// Public banners
+Route::get('/banners/active', [BannerController::class, 'active']);
 
 Route::prefix('ads')->group(function () {
     Route::get('/', [AdController::class, 'index']);
@@ -208,4 +212,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::get('/bank-transfers/stats', [AdminController::class, 'getBankTransferStats']);
     Route::post('/bank-transfers/{id}/approve', [AdminController::class, 'approveBankTransfer']);
     Route::post('/bank-transfers/{id}/reject', [AdminController::class, 'rejectBankTransfer']);
+
+    // Banners
+    Route::get('/banners', [BannerController::class, 'index']);
+    Route::post('/banners', [BannerController::class, 'store']);
+    Route::put('/banners/{id}', [BannerController::class, 'update']);
+    Route::delete('/banners/{id}', [BannerController::class, 'destroy']);
+    Route::post('/banners/reorder', [BannerController::class, 'reorder']);
 });

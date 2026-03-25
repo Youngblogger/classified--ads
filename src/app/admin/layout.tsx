@@ -121,17 +121,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Skip auth check for login page - render without auth verification
   const isLoginPage = pathname === '/admin-login';
 
-  // Get token from store or directly from localStorage (for initial hydration)
-  const getInitialToken = () => {
-    if (token) return token;
+  // Get token from cookie (not localStorage)
+  const getTokenFromCookie = () => {
     if (typeof window === 'undefined') return null;
-    const stored = localStorage.getItem('auth-storage');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        return parsed.state?.token || null;
-      } catch {
-        return null;
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'token') {
+        return decodeURIComponent(value || '');
       }
     }
     return null;
@@ -145,11 +142,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       return;
     }
     
-    const initialToken = getInitialToken();
+    // Get token from cookie directly
+    const cookieToken = getTokenFromCookie();
+    console.log('[Admin Layout] Cookie token:', cookieToken ? 'present' : 'null');
     setInitialTokenChecked(true);
     
-    if (!initialToken) {
-      console.log('Layout: No token, showing login form');
+    if (!cookieToken) {
+      console.log('[Admin Layout] No token in cookie, showing login form');
       setAuthChecked(true);
       return;
     }
@@ -158,76 +157,42 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const controller = new AbortController();
     
     const verifyAuth = async () => {
-      console.log('Layout verifyAuth running, token:', initialToken ? 'present' : 'null');
-      
-      if (!initialToken) {
-        console.log('Layout: No token, showing login form');
-        if (isMounted) {
-          setAuthChecked(true);
-        }
-        return;
-      }
-      
       try {
         const response = await api.get('/auth/me', { signal: controller.signal });
-        console.log('Layout: Token is valid', response.data);
-        
-        // Ensure authChecked is set even if there's an error below
-        if (!isMounted) return;
+        console.log('[Admin Layout] Token valid, user:', response.data);
         
         if (!isMounted) return;
         
         const user = response.data.user || response.data;
         const userRole = user?.role || user?.user_type || user?.type;
-        console.log('Layout: Checking role, found:', userRole);
         
         if (user && (userRole === 'admin' || userRole === 'Admin' || userRole === 'administrator')) {
-          console.log('Layout: Admin verified, setting state...');
+          console.log('[Admin Layout] Admin verified!');
           setVerifiedUser(user);
           setUser(user);
           setIsVerified(true);
-          console.log('Layout: isVerified set to true');
         } else {
-          console.log('Layout: User is not admin');
+          console.log('[Admin Layout] Not admin, logging out');
           logout();
           setIsVerified(false);
         }
       } catch (err: any) {
-        console.log('Layout: Auth error:', err);
-        if (!isMounted) {
-          setAuthChecked(true);
-          return;
-        }
-        if (err.name === 'AbortError' || err.name === 'CanceledError') {
-          setAuthChecked(true);
-          return;
-        }
-        console.log('Layout: Token is invalid, clearing auth');
-        logout();
-        setIsVerified(false);
-        setAuthChecked(true);
+        console.log('[Admin Layout] Auth error:', err?.message);
+        if (err?.name === 'AbortError') return;
+        // Don't logout immediately on error - keep user logged in
+        console.log('[Admin Layout] Keeping current auth state');
       }
       
       if (isMounted) {
         setAuthChecked(true);
-        console.log('Layout: Auth check complete');
       }
     };
-    
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-      if (isMounted) {
-        console.log('Layout: Timeout, but not logging out automatically');
-        setAuthChecked(true);
-      }
-    }, 5000);
     
     verifyAuth();
     
     return () => {
       isMounted = false;
       controller.abort();
-      clearTimeout(timeoutId);
     };
   }, [pathname, logout, router, setUser, isLoginPage]);
 

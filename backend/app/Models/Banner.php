@@ -13,20 +13,21 @@ class Banner extends Model
     protected $fillable = [
         'title',
         'image_url',
-        'link',
+        'link_url',
         'position',
-        'page',
-        'status',
+        'is_active',
         'starts_at',
-        'expires_at',
+        'ends_at',
         'clicks',
         'impressions',
+        'sort_order',
         'created_by',
     ];
 
     protected $casts = [
         'starts_at' => 'datetime',
-        'expires_at' => 'datetime',
+        'ends_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
 
     public function creator(): BelongsTo
@@ -46,14 +47,14 @@ class Banner extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('status', 'active')
+        return $query->where('is_active', true)
             ->where(function ($q) {
                 $q->whereNull('starts_at')
                     ->orWhere('starts_at', '<=', now());
             })
             ->where(function ($q) {
-                $q->whereNull('expires_at')
-                    ->orWhere('expires_at', '>=', now());
+                $q->whereNull('ends_at')
+                    ->orWhere('ends_at', '>=', now());
             });
     }
 

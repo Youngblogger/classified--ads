@@ -9,17 +9,6 @@ use Illuminate\Support\Facades\Storage;
 
 class BannerController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(function ($request, $next) {
-            $user = $request->user();
-            if (!$user || $user->role !== 'admin') {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-            return $next($request);
-        });
-    }
-
     public function index(Request $request)
     {
         $query = Banner::query();
@@ -29,8 +18,30 @@ class BannerController extends Controller
         }
 
         if ($request->status) {
-            $query->where('status', $request->status);
+            $query->where('is_active', $request->status === 'active');
         }
+
+        $banners = $query->orderBy('sort_order')->get();
+
+        return response()->json($banners);
+    }
+
+    public function active(Request $request)
+    {
+        $query = Banner::where('is_active', true);
+
+        if ($request->position) {
+            $query->where('position', $request->position);
+        }
+
+        $now = now();
+        $query->where(function ($q) use ($now) {
+            $q->whereNull('starts_at')
+              ->orWhere('starts_at', '<=', $now);
+        })->where(function ($q) use ($now) {
+            $q->whereNull('ends_at')
+              ->orWhere('ends_at', '>=', $now);
+        });
 
         $banners = $query->orderBy('sort_order')->get();
 
@@ -41,23 +52,38 @@ class BannerController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'image' => 'required|image|max:5120',
-            'link' => 'nullable|url|max:500',
-            'position' => 'required|in:home,category,sidebar',
-            'status' => 'in:active,inactive',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after:start_date',
+            'image' => 'nullable|image|max:5120',
+            'image_url' => 'nullable|string|max:500',
+            'link_url' => 'nullable|string|max:500',
+            'position' => 'required|string|max:50',
+            'is_active' => 'boolean',
+            'starts_at' => 'nullable|date',
+            'ends_at' => 'nullable|date',
             'sort_order' => 'integer',
         ]);
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('banners', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image_url'] = url('storage/' . $path);
+        } elseif (!empty($validated['image_url'])) {
+            // image_url is already set from form
         }
 
-        $banner = Banner::create($validated);
+        // Map fields
+        $bannerData = [
+            'title' => $validated['title'],
+            'image_url' => $validated['image_url'] ?? null,
+            'link_url' => $validated['link_url'] ?? null,
+            'position' => $validated['position'],
+            'is_active' => $validated['is_active'] ?? true,
+            'starts_at' => $validated['starts_at'] ?? null,
+            'ends_at' => $validated['ends_at'] ?? null,
+            'sort_order' => $validated['sort_order'] ?? 0,
+        ];
 
-        return response()->json($banner, 201);
+        $banner = Banner::create($bannerData);
+
+        return response()->json(['data' => $banner], 201);
     }
 
     public function show($id)
@@ -72,29 +98,35 @@ class BannerController extends Controller
 
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
-            'image' => 'sometimes|image|max:5120',
-            'link' => 'nullable|url|max:500',
-            'position' => 'sometimes|in:home,category,sidebar',
-            'status' => 'sometimes|in:active,inactive',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after:start_date',
+            'image' => 'nullable|image|max:5120',
+            'image_url' => 'nullable|string|max:500',
+            'link_url' => 'nullable|string|max:500',
+            'position' => 'sometimes|string|max:50',
+            'is_active' => 'boolean',
+            'starts_at' => 'nullable|date',
+            'ends_at' => 'nullable|date',
             'sort_order' => 'integer',
         ]);
 
         if ($request->hasFile('image')) {
-            // Delete old image
-            if ($banner->image) {
-                $oldPath = str_replace('/storage/', '', $banner->image);
-                Storage::disk('public')->delete($oldPath);
-            }
-            
             $path = $request->file('image')->store('banners', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image_url'] = url('storage/' . $path);
         }
 
-        $banner->update($validated);
+        // Map fields
+        $updateData = [];
+        if (isset($validated['title'])) $updateData['title'] = $validated['title'];
+        if (isset($validated['image_url'])) $updateData['image_url'] = $validated['image_url'];
+        if (isset($validated['link_url'])) $updateData['link_url'] = $validated['link_url'];
+        if (isset($validated['position'])) $updateData['position'] = $validated['position'];
+        if (isset($validated['is_active'])) $updateData['is_active'] = $validated['is_active'];
+        if (isset($validated['starts_at'])) $updateData['starts_at'] = $validated['starts_at'];
+        if (isset($validated['ends_at'])) $updateData['ends_at'] = $validated['ends_at'];
+        if (isset($validated['sort_order'])) $updateData['sort_order'] = $validated['sort_order'];
 
-        return response()->json($banner);
+        $banner->update($updateData);
+
+        return response()->json(['data' => $banner]);
     }
 
     public function destroy($id)

@@ -23,7 +23,7 @@ import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { getAuthToken } from '@/lib/cookies';
 import { sellerReviewsApi } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 function getImageUrl(url: string): string {
   if (!url) return '';

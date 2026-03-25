@@ -8,8 +8,8 @@ import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 function getImageUrl(img: any): string {
   if (!img) return '';
@@ -38,7 +38,6 @@ function AdCardWithImage({ ad }: { ad: any }) {
     primaryImage = imagesArray[0];
   }
   const imageUrl = primaryImage ? getImageUrl(primaryImage) : '';
-  console.log('Image URL debug:', imageUrl, primaryImage);
   const imageCount = imagesArray.length;
   
   return (
@@ -127,24 +126,29 @@ export default function HomePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
-  const [adsError, setAdsError] = useState(false);
+  const [adsError, setAdsError] = useState<null | boolean>(null);
+  const [isFetching, setIsFetching] = useState(false);
   const ITEMS_PER_PAGE = 8;
 
   const fetchAds = useCallback(async (pageNum: number = 1, forceRefresh = false) => {
-    if (pageNum === 1 && !forceRefresh && recentAds.length > 0) {
-      return;
-    }
+    if (isFetching) return;
     
     if (pageNum === 1) {
       setLoading(true);
     } else {
       setLoadingMore(true);
     }
+    setIsFetching(true);
     
     try {
+      console.log('Fetching ads from:', `${API_URL}/ads?limit=${ITEMS_PER_PAGE}&page=${pageNum}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
       const res = await fetch(`${API_URL}/ads?limit=${ITEMS_PER_PAGE}&page=${pageNum}&_t=${Date.now()}`, {
         cache: 'no-store',
         credentials: 'include',
+        signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -153,9 +157,10 @@ export default function HomePage() {
         },
       });
       
+      clearTimeout(timeoutId);
+      console.log('Response status:', res.status);
+      
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Ads fetch error:', res.status, errorText);
         throw new Error(`Server error: ${res.status}`);
       }
       
@@ -170,7 +175,6 @@ export default function HomePage() {
         newAds = [];
       }
       
-      console.log('Fetched ads:', newAds.length, newAds[0]?.images);
       setRecentAds(prev => pageNum === 1 ? newAds : [...prev, ...newAds]);
       setHasMore(newAds.length === ITEMS_PER_PAGE);
       setAdsError(false);
@@ -181,12 +185,13 @@ export default function HomePage() {
     } finally {
       setLoading(false);
       setLoadingMore(false);
+      setIsFetching(false);
     }
-  }, []);
+  }, [isFetching]);
 
   useEffect(() => {
     fetchAds(1, true);
-  }, [fetchAds]);
+  }, []);
 
   const handleLoadMore = useCallback(() => {
     if (!loadingMore && hasMore) {
@@ -194,7 +199,7 @@ export default function HomePage() {
       setPage(nextPage);
       fetchAds(nextPage);
     }
-  }, [loadingMore, hasMore, page, fetchAds]);
+  }, [loadingMore, hasMore, page]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -354,7 +359,7 @@ export default function HomePage() {
               </Link>
             </div>
             
-            {loading ? (
+            {loading || adsError === null ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse shadow-sm">
