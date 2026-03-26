@@ -142,6 +142,19 @@ class NotificationService
             "Your account has been restored. Welcome back!", []);
     }
 
+    // Seller Verification Notifications
+    public static function sellerVerified($user)
+    {
+        return self::send($user->id, 'seller_verified', 'Seller Verified! ✅', 
+            "Congratulations! You are now a verified seller on iList. Your listings will display a blue verification badge.", []);
+    }
+
+    public static function sellerVerificationRevoked($user)
+    {
+        return self::send($user->id, 'seller_verification_revoked', 'Verification Removed ⚠️', 
+            "Your verified seller status has been removed. Contact support if you have questions.", []);
+    }
+
     // Review Notifications
     public static function newReview($review)
     {

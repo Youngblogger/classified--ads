@@ -183,6 +183,8 @@ Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
     Route::post('/users/{id}/suspend', [AdminController::class, 'suspendUser']);
     Route::post('/users/{id}/ban', [AdminController::class, 'banUser']);
     Route::post('/users/{id}/activate', [AdminController::class, 'activateUser']);
+    Route::post('/users/{id}/verify-seller', [AdminController::class, 'verifySeller']);
+    Route::post('/users/{id}/revoke-seller-verification', [AdminController::class, 'revokeSellerVerification']);
     Route::get('/categories', [AdminController::class, 'categories']);
     Route::post('/categories', [AdminController::class, 'createCategory']);
     Route::put('/categories/{id}', [AdminController::class, 'updateCategory']);

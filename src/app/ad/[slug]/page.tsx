@@ -10,6 +10,7 @@ import AdDescription from '@/components/ads/AdDescription';
 import ShareModal from '@/components/ui/ShareModal';
 import WriteReviewModal from '@/components/reviews/WriteReviewModal';
 import ChatModal from '@/components/chat/ChatModal';
+import VerifiedBadge from '@/components/ui/VerifiedBadge';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { Heart, Share2, Flag, MapPin, Eye, Phone, ChevronLeft, ChevronRight, CheckCircle, User, Home, X, Check, Star, MessageCircle, MoreHorizontal } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -634,18 +635,16 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                         );
                       })()}
                     </div>
-                    {displayAd.user?.verified === 1 || displayAd.user?.role === 'verified' ? (
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md">
-                        <CheckCircle className="w-5 h-5 text-success fill-white" />
+                    {displayAd.user?.is_verified_seller ? (
+                      <div className="absolute -bottom-1 -right-1">
+                        <VerifiedBadge isVerified={true} size="md" />
                       </div>
                     ) : null}
                   </div>
                   <div className="text-center mt-2">
                     <h3 className="font-semibold text-dark flex items-center justify-center gap-1">
                       {displayAd.user?.name || 'Unknown Seller'}
-                      {displayAd.user?.verified === 1 || displayAd.user?.role === 'verified' ? (
-                        <CheckCircle className="w-4 h-4 text-success" />
-                      ) : null}
+                      <VerifiedBadge isVerified={displayAd.user?.is_verified_seller} size="sm" />
                     </h3>
                     <p className="text-sm text-gray-500">
                       Member since {displayAd.user?.created_at 
