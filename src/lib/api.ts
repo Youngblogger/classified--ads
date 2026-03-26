@@ -339,8 +339,6 @@ export const adminApi = {
   suspendUser: (id: number) => api.post(`/admin/users/${id}/suspend`),
   banUser: (id: number, reason: string) => api.post(`/admin/users/${id}/ban`, { reason }),
   activateUser: (id: number) => api.post(`/admin/users/${id}/activate`),
-  verifySeller: (id: number) => api.post(`/admin/users/${id}/verify-seller`),
-  revokeSellerVerification: (id: number) => api.post(`/admin/users/${id}/revoke-seller-verification`),
   deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
 
   // Ads

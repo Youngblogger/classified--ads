@@ -2,93 +2,138 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { MapPin } from 'lucide-react';
+import { MapPin, Loader2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getAdImageUrl } from '@/lib/utils';
 
-const BASE_URL = 'http://127.0.0.1:8000';
+interface AdImage {
+  url?: string;
+  display_url?: string;
+  thumbnail_url?: string;
+  original_url?: string;
+  is_primary?: boolean;
+  full_url?: string;
+  full_thumbnail_url?: string;
+}
 
 interface Ad {
   id: number;
   title: string;
   slug: string;
-  price: string;
+  price: string | number;
   currency: string;
   condition: string;
   description?: string;
   short_description?: string;
-  images: { url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean; full_url?: string; full_thumbnail_url?: string }[];
-  location: { name: string };
+  images: AdImage[];
+  location?: { name: string } | null;
   created_at: string;
 }
 
 interface RelatedAdsProps {
   currentAdId: number;
   categoryId?: number;
+  initialAds?: Ad[];
 }
 
-export default function RelatedAds({ currentAdId, categoryId }: RelatedAdsProps) {
-  const [ads, setAds] = useState<Ad[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function RelatedAds({ currentAdId, categoryId, initialAds }: RelatedAdsProps) {
+  const [ads, setAds] = useState<Ad[]>(initialAds || []);
+  const [loading, setLoading] = useState(!initialAds);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const loadedIdsRef = useRef<Set<number>>(new Set(initialAds?.map(ad => ad.id) || []));
 
   const API_URL = 'http://127.0.0.1:8000/api';
+  const ITEMS_PER_PAGE = 12;
 
   const fetchAds = useCallback(async (pageNum: number, isInitial = false) => {
     try {
+      setError(null);
+      
       if (isInitial) {
         setLoading(true);
       } else {
         setLoadingMore(true);
       }
 
+      setDebugInfo(`Fetching page ${pageNum}...`);
+
       const params = new URLSearchParams({
         page: pageNum.toString(),
-        per_page: '10',
+        per_page: ITEMS_PER_PAGE.toString(),
         exclude: currentAdId.toString(),
       });
-      if (categoryId) params.append('category_id', categoryId.toString());
-
-      const response = await axios.get(`${API_URL}/ads?${params}`);
-
-      const newAds = response.data.data || response.data;
       
-      if (isInitial) {
-        setAds(newAds);
-      } else {
-        setAds((prev) => [...prev, ...newAds]);
+      if (categoryId) {
+        params.append('category_id', categoryId.toString());
       }
 
-      setHasMore(newAds.length === 10);
+      const response = await axios.get(`${API_URL}/ads?${params}`, {
+        timeout: 10000,
+      });
+
+      let newAds = response.data.data || response.data.ads || response.data || [];
+      
+      if (!Array.isArray(newAds)) {
+        newAds = [];
+      }
+
+      setDebugInfo(`Got ${newAds.length} ads, total loaded: ${ads.length + newAds.length}`);
+
+      const uniqueAds = newAds.filter((ad: Ad) => {
+        if (loadedIdsRef.current.has(ad.id)) {
+          return false;
+        }
+        loadedIdsRef.current.add(ad.id);
+        return true;
+      });
+
+      if (isInitial) {
+        setAds(uniqueAds);
+      } else {
+        setAds((prev) => [...prev, ...uniqueAds]);
+      }
+
+      setHasMore(uniqueAds.length === ITEMS_PER_PAGE);
       setPage(pageNum);
-    } catch (error) {
-      console.error('Error fetching related ads:', error);
+    } catch (err: any) {
+      console.error('Error fetching related ads:', err);
+      setError(err.message || 'Failed to load ads');
+      setDebugInfo(`Error: ${err.message}`);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [currentAdId, categoryId]);
+  }, [currentAdId, categoryId, ads.length]);
 
   useEffect(() => {
-    fetchAds(1, true);
-  }, [fetchAds]);
+    if (!initialAds) {
+      fetchAds(1, true);
+    }
+  }, [initialAds, fetchAds]);
 
   useEffect(() => {
+    if (loading || !hasMore) return;
+
     if (observerRef.current) {
       observerRef.current.disconnect();
     }
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
           fetchAds(page + 1);
         }
       },
-      { threshold: 0.1 }
+      { 
+        threshold: 0.1,
+        rootMargin: '100px',
+      }
     );
 
     if (loadMoreRef.current) {
@@ -100,19 +145,17 @@ export default function RelatedAds({ currentAdId, categoryId }: RelatedAdsProps)
         observerRef.current.disconnect();
       }
     };
-  }, [hasMore, loadingMore, page, fetchAds]);
+  }, [hasMore, loadingMore, loading, page, fetchAds]);
 
-  const getPrimaryImage = (images: Ad['images']) => {
-    const primary = images?.find((img) => img.is_primary);
-    const img = primary || images?.[0];
-    const url = img?.full_url || img?.full_thumbnail_url || img?.display_url || img?.thumbnail_url || img?.url || '/placeholder.jpg';
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    if (url.startsWith('/storage/')) {
-      return `${BASE_URL}${url}`;
-    }
-    return `${BASE_URL}/storage/${url}`;
+  const getConditionBadge = (condition: string) => {
+    const isNew = condition === 'new';
+    return (
+      <span className={`absolute top-2 left-2 px-2 py-1 text-xs font-medium rounded-md ${
+        isNew ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+      }`}>
+        {isNew ? 'New' : 'Used'}
+      </span>
+    );
   };
 
   if (loading) {
@@ -128,69 +171,95 @@ export default function RelatedAds({ currentAdId, categoryId }: RelatedAdsProps)
             </div>
           ))}
         </div>
+        <p className="text-xs text-gray-400 mt-4 text-center">Loading ads...</p>
       </div>
     );
   }
 
-  if (ads.length === 0) {
-    return null;
-  }
-
   return (
     <div className="bg-white rounded-2xl p-6">
-      <h3 className="text-lg font-bold text-dark mb-4">Similar Ads</h3>
-      
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {ads.map((ad) => (
-          <Link
-            key={ad.id}
-            href={`/ad/${ad.slug}`}
-            className="group block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-          >
-            <div className="relative aspect-[4/3] bg-gray-100">
-              <img
-                src={getPrimaryImage(ad.images)}
-                alt={ad.title}
-                className="w-full h-full object-cover"
-              />
-              <span className={`absolute top-2 left-2 px-2 py-1 text-xs font-medium rounded-md ${
-                ad.condition === 'new' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-orange-100 text-orange-700'
-              }`}>
-                {ad.condition === 'new' ? 'New' : 'Used'}
-              </span>
-            </div>
-            <div className="p-3">
-              <h4 className="font-medium text-dark text-sm line-clamp-2 group-hover:text-primary-600 transition-colors">
-                {ad.title}
-              </h4>
-              <p className="text-lg font-bold text-primary-600 mt-1">
-                {formatPrice(ad.price, ad.currency)}
-              </p>
-              {(ad.description || ad.short_description) && (
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                  {ad.short_description || ad.description}
-                </p>
-              )}
-              <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                <MapPin className="w-3 h-3" />
-                <span className="truncate">{ad.location?.name}</span>
-              </div>
-            </div>
-          </Link>
-        ))}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold text-dark">Similar Ads</h3>
+        <span className="text-sm text-gray-500">{ads.length} ads</span>
       </div>
-
-      {/* Infinite scroll trigger */}
-      {hasMore && (
-        <div ref={loadMoreRef} className="mt-6 text-center">
-          {loadingMore && (
-            <div className="flex justify-center">
-              <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          )}
+      
+      {error && (
+        <div className="flex items-center gap-2 text-red-500 text-sm mb-4 p-3 bg-red-50 rounded-lg">
+          <AlertCircle className="w-4 h-4" />
+          <span>{error}</span>
+          <button 
+            onClick={() => fetchAds(1, true)} 
+            className="ml-auto text-primary-600 hover:underline"
+          >
+            Retry
+          </button>
         </div>
+      )}
+      
+      {ads.length === 0 && !loading ? (
+        <div className="text-center py-8 text-gray-500">
+          <p>No similar ads found</p>
+          <button 
+            onClick={() => fetchAds(1, true)} 
+            className="text-primary-600 hover:underline mt-2"
+          >
+            Refresh
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {ads.map((ad) => (
+              <Link
+                key={ad.id}
+                href={`/ad/${ad.slug}`}
+                className="group block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="relative aspect-[4/3] bg-gray-100">
+                  <img
+                    src={getAdImageUrl(ad.images?.[0])}
+                    alt={ad.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.jpg';
+                    }}
+                  />
+                  {getConditionBadge(ad.condition)}
+                </div>
+                <div className="p-3">
+                  <h4 className="font-medium text-dark text-sm line-clamp-2 group-hover:text-primary-600 transition-colors">
+                    {ad.title}
+                  </h4>
+                  <p className="text-lg font-bold text-primary-600 mt-1">
+                    {formatPrice(ad.price, ad.currency)}
+                  </p>
+                  {(ad.description || ad.short_description) && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                      {ad.short_description || ad.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                    <MapPin className="w-3 h-3" />
+                    <span className="truncate">{ad.location?.name || 'N/A'}</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Infinite scroll trigger */}
+          <div ref={loadMoreRef} className="mt-6 text-center py-4">
+            {loadingMore && (
+              <div className="flex items-center justify-center gap-2 text-gray-500">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Loading more ads...</span>
+              </div>
+            )}
+            {!hasMore && ads.length > 0 && (
+              <p className="text-sm text-gray-400">No more ads to show</p>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

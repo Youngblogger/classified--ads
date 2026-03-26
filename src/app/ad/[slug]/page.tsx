@@ -10,7 +10,6 @@ import AdDescription from '@/components/ads/AdDescription';
 import ShareModal from '@/components/ui/ShareModal';
 import WriteReviewModal from '@/components/reviews/WriteReviewModal';
 import ChatModal from '@/components/chat/ChatModal';
-import VerifiedBadge from '@/components/ui/VerifiedBadge';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { Heart, Share2, Flag, MapPin, Eye, Phone, ChevronLeft, ChevronRight, CheckCircle, User, Home, X, Check, Star, MessageCircle, MoreHorizontal } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -595,13 +594,14 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
 
             {/* Sidebar */}
             <div className="space-y-4 lg:space-y-6">
-              {/* Seller Card */}
+              {/* Seller Info Card */}
               <div className="card p-4 lg:p-6">
-                <div className="flex flex-col items-center mb-4">
-                  <div className="relative">
-                    <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
+                {/* Seller Info - Horizontal Layout */}
+                <div className="flex items-center gap-4">
+                  {/* Left: Profile Thumbnail */}
+                  <div className="flex-shrink-0">
+                    <div className="w-[60px] h-[60px] bg-primary-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-sm">
                       {(() => {
-                        // Try all possible avatar fields
                         const avatarFields = [
                           displayAd.user?.avatar_url,
                           displayAd.user?.google_avatar,
@@ -624,38 +624,33 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                             );
                           }
                         }
-                        // Show default avatar with initials
                         const nameInitials = displayAd.user?.name 
                           ? displayAd.user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
                           : '?';
                         return (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-300 to-primary-500 text-white font-bold text-2xl">
+                          <div className="w-full h-full flex items-center justify-center bg-primary-500 text-white font-bold text-lg">
                             {nameInitials}
                           </div>
                         );
                       })()}
                     </div>
-                    {displayAd.user?.is_verified_seller ? (
-                      <div className="absolute -bottom-1 -right-1">
-                        <VerifiedBadge isVerified={true} size="md" />
-                      </div>
-                    ) : null}
                   </div>
-                  <div className="text-center mt-2">
-                    <h3 className="font-semibold text-dark flex items-center justify-center gap-1">
+                  
+                  {/* Right: Seller Info */}
+                  <div className="flex flex-col">
+                    <h3 className="font-bold text-dark text-base">
                       {displayAd.user?.name || 'Unknown Seller'}
-                      <VerifiedBadge isVerified={displayAd.user?.is_verified_seller} size="sm" />
                     </h3>
                     <p className="text-sm text-gray-500">
-                      Member since {displayAd.user?.created_at 
-                        ? new Date(displayAd.user.created_at).getFullYear().toString()
+                      Joined {displayAd.user?.created_at 
+                        ? new Date(displayAd.user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                         : 'N/A'}
                     </p>
                   </div>
                 </div>
 
-                {/* Seller Meta Info */}
-                <div className="flex items-center justify-center gap-4 text-sm text-gray-500 mb-4">
+                {/* Seller Rating */}
+                <div className="flex items-center gap-4 text-sm text-gray-500 mt-4 pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                     <span className="font-medium">{sellerRating?.average_rating?.toFixed(1) || '0.0'}</span>

@@ -34,8 +34,6 @@ class User extends Authenticatable
         'location',
         'location_id',
         'verified',
-        'is_verified_seller',
-        'verified_seller_at',
         'banned_at',
         'suspended_at',
         'ban_reason',
@@ -62,8 +60,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'verified' => 'boolean',
-            'is_verified_seller' => 'boolean',
-            'verified_seller_at' => 'datetime',
         ];
     }
 
@@ -111,27 +107,6 @@ class User extends Authenticatable
     public function isEmailVerified(): bool
     {
         return $this->emailVerification && $this->emailVerification->is_verified;
-    }
-
-    public function isVerifiedSeller(): bool
-    {
-        return (bool) $this->is_verified_seller;
-    }
-
-    public function verifyAsSeller(): void
-    {
-        $this->update([
-            'is_verified_seller' => true,
-            'verified_seller_at' => now(),
-        ]);
-    }
-
-    public function revokeSellerVerification(): void
-    {
-        $this->update([
-            'is_verified_seller' => false,
-            'verified_seller_at' => null,
-        ]);
     }
 
     public function getAvatarUrlAttribute()

@@ -203,32 +203,6 @@ class AdminController extends Controller
         return response()->json(['message' => 'User activated', 'user' => $user]);
     }
 
-    public function verifySeller($id)
-    {
-        $user = User::findOrFail($id);
-        $user->verifyAsSeller();
-        
-        NotificationService::sellerVerified($user);
-        
-        return response()->json([
-            'message' => 'User verified as seller',
-            'user' => $user
-        ]);
-    }
-
-    public function revokeSellerVerification($id)
-    {
-        $user = User::findOrFail($id);
-        $user->revokeSellerVerification();
-        
-        NotificationService::sellerVerificationRevoked($user);
-        
-        return response()->json([
-            'message' => 'Seller verification revoked',
-            'user' => $user
-        ]);
-    }
-
     // Categories Management
     public function categories(Request $request)
     {

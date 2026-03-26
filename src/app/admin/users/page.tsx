@@ -12,12 +12,9 @@ import {
   UserX,
   Loader2,
   XCircle,
-  Eye,
-  ShieldCheck,
-  ShieldOff
+  Eye
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
-import VerifiedBadge from '@/components/ui/VerifiedBadge';
 import toast from 'react-hot-toast';
 
 interface User {
@@ -28,7 +25,6 @@ interface User {
   location: { name: string } | null;
   status: string;
   verified: boolean;
-  is_verified_seller: boolean;
   created_at: string;
   ads_count?: number;
   banned_at?: string | null;
@@ -98,32 +94,6 @@ export default function UsersPage() {
       fetchUsers();
     } catch (error) {
       toast.error('Failed to ban user');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleVerifySeller = async (userId: number) => {
-    try {
-      setActionLoading(userId);
-      await adminApi.verifySeller(userId);
-      toast.success('User verified as seller');
-      fetchUsers();
-    } catch (error) {
-      toast.error('Failed to verify seller');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleRevokeVerification = async (userId: number) => {
-    try {
-      setActionLoading(userId);
-      await adminApi.revokeSellerVerification(userId);
-      toast.success('Seller verification revoked');
-      fetchUsers();
-    } catch (error) {
-      toast.error('Failed to revoke verification');
     } finally {
       setActionLoading(null);
     }
@@ -283,7 +253,6 @@ export default function UsersPage() {
                             {user.verified && (
                               <CheckCircle className="w-4 h-4 text-sky-500" />
                             )}
-                            <VerifiedBadge isVerified={user.is_verified_seller} size="sm" />
                           </div>
                         </div>
                       </div>
@@ -303,26 +272,6 @@ export default function UsersPage() {
                       <button className="p-2 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg" title="View">
                         <Eye className="w-4 h-4" />
                       </button>
-                      {/* Seller Verification Toggle */}
-                      {user.is_verified_seller ? (
-                        <button
-                          onClick={() => handleRevokeVerification(user.id)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                          title="Revoke Verified Seller"
-                          disabled={actionLoading === user.id}
-                        >
-                          <ShieldOff className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleVerifySeller(user.id)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                          title="Verify as Seller"
-                          disabled={actionLoading === user.id}
-                        >
-                          <ShieldCheck className="w-4 h-4" />
-                        </button>
-                      )}
                       {user.status === 'active' ? (
                         <button className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg" title="Suspend">
                           <Ban className="w-4 h-4" />
