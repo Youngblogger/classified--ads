@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import {
   Search,
   CheckCircle,
@@ -14,9 +13,10 @@ import {
   Filter,
   Save,
   Clock,
-  Image as ImageIcon
+  ImageIcon
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
+import { getAdImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 interface Ad {
@@ -98,26 +98,8 @@ export default function AdsApprovalPage() {
     }
   };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-  const API_BASE = API_URL.replace('/api', '');
-  
   const getImageUrl = (ad: Ad): string => {
-    const imagesArray = Array.isArray(ad.images) ? ad.images : [];
-    const image = imagesArray.find((img: any) => img.is_primary) || imagesArray[0];
-    const url = image?.full_url || image?.full_thumbnail_url || image?.display_url || image?.url || image?.thumbnail_url;
-    
-    if (!url) return '/placeholder.jpg';
-    
-    // If already a full URL, return it
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    
-    // Remove leading slash if present
-    const cleanUrl = url.replace(/^\/+/, '');
-    
-    // Use the API base URL
-    return `${API_BASE}/${cleanUrl}`;
+    return getAdImageUrl(ad);
   };
 
   const fetchPendingAds = async () => {

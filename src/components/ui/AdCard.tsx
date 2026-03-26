@@ -1,36 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin } from 'lucide-react';
+import { MapPin, ImageIcon } from 'lucide-react';
 import { Ad } from '@/types';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getAdImageUrl } from '@/lib/utils';
 import { useState } from 'react';
-
-const BASE_URL = 'http://127.0.0.1:8000';
-
-function getImageUrl(img: any): string {
-  if (!img) return '';
-  
-  let url = '';
-  
-  if (typeof img === 'string') {
-    url = img;
-  } else if (typeof img === 'object') {
-    url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.src || img.original_url || img.image || img.path || img.file || '';
-  }
-  
-  if (!url) return '';
-  
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  
-  if (url.startsWith('/storage/')) {
-    return `${BASE_URL}${url}`;
-  }
-  
-  return `${BASE_URL}/storage/${url}`;
-}
 
 interface AdCardProps {
   ad: Ad;
@@ -41,14 +15,12 @@ interface AdCardProps {
 export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
   const [imgError, setImgError] = useState(false);
   
-  // Ensure images is always an array
   const imagesArray = Array.isArray(ad.images) ? ad.images : [];
-  // Find primary image or use first available
   let primaryImage = imagesArray.find(img => img?.is_primary);
   if (!primaryImage && imagesArray.length > 0) {
     primaryImage = imagesArray[0];
   }
-  const imageUrl = primaryImage ? getImageUrl(primaryImage) : '';
+  const imageUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
 
   const getConditionBadge = () => {
     if (!ad.condition) return null;
@@ -75,7 +47,7 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-              <span className="text-4xl">📷</span>
+              <ImageIcon className="w-10 h-10 text-gray-300" />
             </div>
           )}
           {getConditionBadge()}
@@ -111,7 +83,7 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-              <span className="text-3xl">📷</span>
+              <ImageIcon className="w-8 h-8 text-gray-300" />
             </div>
           )}
           {getConditionBadge()}
@@ -142,7 +114,7 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-            <span className="text-5xl">📷</span>
+            <ImageIcon className="w-12 h-12 text-gray-300" />
           </div>
         )}
         {getConditionBadge()}

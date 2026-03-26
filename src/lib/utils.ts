@@ -4,7 +4,9 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
+export const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
+
+export const FALLBACK_IMAGE = '/placeholder-image.svg';
 
 export function getAdImageUrl(img: any): string {
   if (!img) return '';
@@ -41,6 +43,22 @@ export function getPrimaryImageUrl(images: any[]): string {
   const img = primary || images[0];
   
   return getAdImageUrl(img);
+}
+
+export function getUserAvatarUrl(user: any): string | null {
+  if (!user) return null;
+  
+  const avatar = user.full_avatar_url || user.avatar_url || user.avatar || 
+                 user.google_avatar || user.facebook_avatar;
+  if (!avatar) return null;
+  
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    return avatar;
+  }
+  if (avatar.startsWith('/storage/')) {
+    return `${BACKEND_URL}${avatar}`;
+  }
+  return `${BACKEND_URL}/storage/${avatar}`;
 }
 
 export function formatPrice(price: number | string, currency: string = 'NGN'): string {

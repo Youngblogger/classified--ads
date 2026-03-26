@@ -3,41 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ImageIcon } from 'lucide-react';
 import { adsApi } from '@/lib/api';
+import { getAdImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-
-function getAdImageUrl(ad: any): string {
-  if (!ad) return '';
-  
-  const BASE_URL = API_URL.replace('/api', '');
-  
-  // Check for ad.image (single image field)
-  if (ad.image) {
-    const img = ad.image;
-    if (typeof img === 'string') {
-      if (img.startsWith('http://') || img.startsWith('https://')) return img;
-      if (img.startsWith('/storage/')) return `${BASE_URL}${img}`;
-      return `${BASE_URL}/storage/${img}`;
-    }
-  }
-  
-  // Check for ad.images array
-  const imagesArray = Array.isArray(ad.images) ? ad.images : [];
-  const primaryImage = imagesArray.find((img: any) => img?.is_primary) || imagesArray[0];
-  if (primaryImage) {
-    const url = primaryImage.full_url || primaryImage.full_thumbnail_url || primaryImage.display_url || primaryImage.thumbnail_url || primaryImage.thumbnail || primaryImage.url || primaryImage.original_url || '';
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('/storage/')) return `${BASE_URL}${url}`;
-    return `${BASE_URL}/storage/${url}`;
-  }
-  
-  return '';
-}
-
-// Icons
 const EditIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -200,18 +170,23 @@ export default function MyAdsPage() {
             >
               {/* Image */}
               <div className="relative aspect-square bg-gray-100">
-                {getAdImageUrl(ad) ? (
-                  <Image
-                    src={getAdImageUrl(ad)}
-                    alt={ad.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                    <span className="text-4xl">📷</span>
-                  </div>
-                )}
+                {(() => {
+                  const imageUrl = getAdImageUrl(ad);
+                  return imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={ad.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                      <ImageIcon className="w-12 h-12 text-gray-400" />
+                    </div>
+                  );
+                })()}
                 <div className="absolute top-3 right-3">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig[ad.status as keyof typeof statusConfig].class}`}>
                     {statusConfig[ad.status as keyof typeof statusConfig].label}

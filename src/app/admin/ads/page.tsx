@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import {
   Search,
   Filter,
@@ -18,9 +17,11 @@ import {
   List,
   Loader2,
   CheckSquare,
-  Square
+  Square,
+  ImageIcon
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
+import { getAdImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 interface Ad {
@@ -35,7 +36,7 @@ interface Ad {
   category: { name: string; slug: string };
   location: { name: string } | null;
   user: { name: string; verified: boolean };
-  images: { url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean }[];
+  images: { url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean; full_url?: string; full_thumbnail_url?: string }[];
   views: number;
   created_at: string;
 }
@@ -170,25 +171,8 @@ export default function AdsPage() {
     rejected: ads.filter(a => a.status === 'rejected').length,
   };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-  
   const getImageUrl = (ad: Ad): string => {
-    const image = ad.images?.find((img: any) => img.is_primary) || ad.images?.[0];
-    const url = image?.display_url || image?.url || image?.thumbnail_url;
-    
-    if (!url) return '/placeholder.jpg';
-    
-    // If already a full URL, return it
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    
-    // Remove leading slash if present
-    const cleanUrl = url.replace(/^\/+/, '');
-    
-    // Use the API base URL
-    const API_BASE = API_URL.replace('/api', '');
-    return `${API_BASE}/storage/${cleanUrl}`;
+    return getAdImageUrl(ad);
   };
 
   return (
@@ -322,12 +306,20 @@ export default function AdsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
-                          <Image
-                            src={getImageUrl(ad)}
-                            alt={ad.title}
-                            fill
-                            className="object-cover"
-                          />
+                          {getImageUrl(ad) ? (
+                            <img
+                              src={getImageUrl(ad)}
+                              alt={ad.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <ImageIcon className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">{ad.title}</p>
