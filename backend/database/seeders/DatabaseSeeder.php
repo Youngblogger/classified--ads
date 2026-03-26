@@ -198,19 +198,25 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($categoriesWithSubcategories as $catData) {
-            $parent = Category::create([
-                'name' => $catData['name'],
-                'slug' => $catData['slug'],
-                'icon' => $catData['icon'],
-            ]);
+            $parent = Category::updateOrCreate(
+                ['slug' => $catData['slug']],
+                [
+                    'name' => $catData['name'],
+                    'icon' => $catData['icon'],
+                    'is_active' => true,
+                ]
+            );
 
             foreach ($catData['subcategories'] as $subData) {
-                Category::create([
-                    'name' => $subData['name'],
-                    'slug' => $subData['slug'],
-                    'icon' => $catData['icon'],
-                    'parent_id' => $parent->id,
-                ]);
+                Category::updateOrCreate(
+                    ['slug' => $subData['slug']],
+                    [
+                        'name' => $subData['name'],
+                        'icon' => $catData['icon'],
+                        'parent_id' => $parent->id,
+                        'is_active' => true,
+                    ]
+                );
             }
         }
 
@@ -255,23 +261,30 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($locations as $loc) {
-            Location::create($loc);
+            Location::updateOrCreate(
+                ['slug' => $loc['slug']],
+                array_merge($loc, ['is_active' => true])
+            );
         }
 
-        $user = User::create([
-            'name' => 'Demo User',
-            'email' => 'demo@example.com',
-            'password' => bcrypt('password'),
-            'role' => 'user',
-            'status' => 'active',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'demo@example.com'],
+            [
+                'name' => 'Demo User',
+                'password' => bcrypt('password'),
+                'role' => 'user',
+                'status' => 'active',
+            ]
+        );
 
-        User::create([
-            'name' => 'Admin',
-            'email' => 'admin@ilist.com',
-            'password' => bcrypt('admin123'),
-            'role' => 'admin',
-            'status' => 'active',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@ilist.com'],
+            [
+                'name' => 'Admin',
+                'password' => bcrypt('admin123'),
+                'role' => 'admin',
+                'status' => 'active',
+            ]
+        );
     }
 }

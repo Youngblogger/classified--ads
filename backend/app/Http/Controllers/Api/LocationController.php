@@ -12,6 +12,7 @@ class LocationController extends Controller
     {
         $locations = Location::where('is_active', true)
             ->whereNull('parent_id')
+            ->with('children')
             ->get();
 
         return response()->json(['data' => $locations]);

@@ -13,12 +13,16 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = Category::where('is_active', true)
-            ->with('children')
             ->whereNull('parent_id')
-            ->orderBy('sort_order')
+            ->with('children')
+            ->orderBy('id')
             ->get();
 
-        return response()->json(['data' => $categories]);
+        return response()->json([
+            'success' => true,
+            'count' => $categories->count(),
+            'data' => $categories
+        ]);
     }
 
     public function show($slug)
@@ -30,7 +34,7 @@ class CategoryController extends Controller
     public function getAllCategories()
     {
         $categories = Category::with(['parent', 'children'])
-            ->orderBy('sort_order')
+            ->orderBy('id')
             ->get();
 
         return response()->json([

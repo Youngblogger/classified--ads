@@ -42,7 +42,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [negotiable, setNegotiable] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
-  const [lgaId, setLgaId] = useState<string | null>(null);
+  const [lgaId, setLgaId] = useState<string>('');
   const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
   const [images, setImages] = useState<ImageFile[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -53,53 +53,108 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
+  // Local fallback categories (same as homepage)
+  const localCategories = [
+    { id: 1, name: 'Vehicles', slug: 'vehicles', icon: 'Car', children: [
+      { id: 101, name: 'Cars', slug: 'cars' },
+      { id: 102, name: 'Motorcycles', slug: 'motorcycles' },
+      { id: 103, name: 'Buses & Vans', slug: 'buses-vans' },
+      { id: 104, name: 'Trucks & Trailers', slug: 'trucks-trailers' },
+    ]},
+    { id: 2, name: 'Property', slug: 'property', icon: 'Home', children: [
+      { id: 201, name: 'Apartments for Rent', slug: 'apartments-rent' },
+      { id: 202, name: 'Apartments for Sale', slug: 'apartments-sale' },
+      { id: 203, name: 'Houses for Rent', slug: 'houses-rent' },
+      { id: 204, name: 'Houses for Sale', slug: 'houses-sale' },
+    ]},
+    { id: 3, name: 'Mobile Phones & Tablets', slug: 'mobile-phones', icon: 'Smartphone', children: [
+      { id: 301, name: 'Smartphones', slug: 'smartphones' },
+      { id: 302, name: 'Tablets', slug: 'tablets' },
+      { id: 303, name: 'Smartwatches', slug: 'smartwatches' },
+      { id: 304, name: 'Phone Accessories', slug: 'phone-accessories' },
+    ]},
+    { id: 4, name: 'Electronics', slug: 'electronics', icon: 'Monitor', children: [
+      { id: 401, name: 'Laptops', slug: 'laptops' },
+      { id: 402, name: 'Desktop Computers', slug: 'desktops' },
+      { id: 403, name: 'Televisions', slug: 'tvs' },
+      { id: 404, name: 'Gaming Consoles', slug: 'gaming' },
+    ]},
+    { id: 5, name: 'Fashion', slug: 'fashion', icon: 'Shirt', children: [
+      { id: 501, name: "Men's Clothing", slug: 'men-clothing' },
+      { id: 502, name: "Women's Clothing", slug: 'women-clothing' },
+      { id: 503, name: 'Shoes', slug: 'shoes' },
+      { id: 504, name: 'Watches', slug: 'watches' },
+    ]},
+    { id: 6, name: 'Home, Furniture & Appliances', slug: 'home-furniture', icon: 'Sofa', children: [
+      { id: 601, name: 'Furniture', slug: 'furniture' },
+      { id: 602, name: 'Home Decor', slug: 'home-decor' },
+      { id: 603, name: 'Kitchen Appliances', slug: 'kitchen-appliances' },
+      { id: 604, name: 'Bedding', slug: 'bedding' },
+    ]},
+    { id: 7, name: 'Jobs', slug: 'jobs', icon: 'Briefcase', children: [
+      { id: 701, name: 'Full-time Jobs', slug: 'full-time' },
+      { id: 702, name: 'Part-time Jobs', slug: 'part-time' },
+      { id: 703, name: 'Remote Jobs', slug: 'remote' },
+      { id: 704, name: 'Internships', slug: 'internships' },
+    ]},
+    { id: 8, name: 'Services', slug: 'services', icon: 'Wrench', children: [
+      { id: 801, name: 'Cleaning Services', slug: 'cleaning' },
+      { id: 802, name: 'Repair & Maintenance', slug: 'repair' },
+      { id: 803, name: 'Moving & Logistics', slug: 'moving' },
+      { id: 804, name: 'Event Services', slug: 'events' },
+    ]},
+    { id: 9, name: 'Pets', slug: 'pets', icon: 'Dog', children: [
+      { id: 901, name: 'Dogs', slug: 'dogs' },
+      { id: 902, name: 'Cats', slug: 'cats' },
+      { id: 903, name: 'Birds', slug: 'birds' },
+      { id: 904, name: 'Pet Food', slug: 'pet-food' },
+    ]},
+    { id: 10, name: 'Health & Beauty', slug: 'health-beauty', icon: 'Heart', children: [
+      { id: 1001, name: 'Skincare', slug: 'skincare' },
+      { id: 1002, name: 'Haircare', slug: 'haircare' },
+      { id: 1003, name: 'Makeup', slug: 'makeup' },
+      { id: 1004, name: 'Fragrances', slug: 'fragrances' },
+    ]},
+  ];
+
   useEffect(() => {
-    const localLocs = nigeriaLocations.map(loc => ({ id: loc.id, name: loc.name, slug: loc.slug }));
+    // Use local Nigeria locations with LGAs
+    const localLocs = nigeriaLocations.map(loc => ({
+      id: loc.id,
+      name: loc.name,
+      slug: loc.slug,
+      children: (loc.lgas || []).map((lgaName: string, index: number) => ({
+        id: `${loc.id}-${index}`,
+        name: lgaName,
+        slug: lgaName.toLowerCase().replace(/\s+/g, '-')
+      }))
+    }));
     setApiLocations(localLocs);
     
-    const fetchData = async () => {
+    // Use local categories as default, then try API
+    setCategories(localCategories);
+    
+    // Fetch categories from API
+    const fetchCategories = async () => {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
         const catsRes = await fetch(`${API_URL}/categories`);
         const catsData = await catsRes.json();
         
         let allCategories = catsData?.data || [];
-        
-        if (allCategories.length > 0 && allCategories[0].children) {
-          const flatCategories: any[] = [];
-          allCategories.forEach((parent: any) => {
-            flatCategories.push({
-              id: parent.id,
-              name: parent.name,
-              slug: parent.slug,
-              icon: parent.icon,
-              isParent: true,
-              children: parent.children
-            });
-          });
-          setCategories(flatCategories);
-        } else {
+        if (allCategories.length > 0) {
           setCategories(allCategories);
         }
-        
-        try {
-          const locsRes = await fetch(`${API_URL}/locations`);
-          const locsData = await locsRes.json();
-          const apiLocs = locsData?.data || [];
-          if (apiLocs.length > 0) {
-            setApiLocations(apiLocs);
-          }
-        } catch (locErr) {
-          console.log('Using local locations');
-        }
       } catch (err) {
-        console.error('Failed to fetch data:', err);
+        console.error('Failed to fetch categories:', err);
       }
     };
-    fetchData();
+    fetchCategories();
   }, []);
 
   const selectedLocation = apiLocations.find(l => l.id === locationId);
+  const selectedState = apiLocations.find(l => l.id === locationId);
+  const lgas = selectedState?.children || [];
 
   const formatPrice = (value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '');
@@ -374,7 +429,12 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors"
             >
               <span className={selectedLocation ? 'text-gray-900' : 'text-gray-400'}>
-                {selectedLocation?.name || 'Select Location'}
+                {selectedLocation?.name || 'Select State'}
+                {lgaId && selectedState?.children && (
+                  <span className="text-gray-500">
+                    {' > '}{selectedState.children.find((l: any) => l.id === lgaId)?.name}
+                  </span>
+                )}
               </span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
@@ -711,24 +771,56 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       <div id="location-modal" className="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
           <div className="p-4 border-b flex items-center justify-between">
-            <h3 className="font-semibold">Select Location</h3>
-            <button onClick={() => document.getElementById('location-modal')?.classList.add('hidden')} className="p-1">
+            <h3 className="font-semibold">{lgaId ? 'Select LGA' : 'Select State'}</h3>
+            <button onClick={() => {
+              document.getElementById('location-modal')?.classList.add('hidden');
+              setLgaId('');
+            }} className="p-1">
               <X className="w-5 h-5" />
             </button>
           </div>
           <div className="p-4 overflow-y-auto max-h-[60vh]">
-            {apiLocations.map((loc) => (
-              <button
-                key={loc.id}
-                onClick={() => {
-                  setLocationId(loc.id);
-                  document.getElementById('location-modal')?.classList.add('hidden');
-                }}
-                className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg"
-              >
-                {loc.name}
-              </button>
-            ))}
+            {!locationId || !selectedLocation?.children?.length ? (
+              // Show states
+              apiLocations.map((loc) => (
+                <button
+                  key={loc.id}
+                  onClick={() => {
+                    setLocationId(loc.id);
+                    setLgaId('');
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg flex justify-between items-center"
+                >
+                  <span>{loc.name}</span>
+                  {loc.children && loc.children.length > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
+                </button>
+              ))
+            ) : (
+              // Show LGAs
+              <>
+                <button
+                  onClick={() => {
+                    setLocationId('');
+                    setLgaId('');
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg text-sm text-gray-500 flex items-center gap-1"
+                >
+                  ← Back to states
+                </button>
+                {lgas.map((lga: any) => (
+                  <button
+                    key={lga.id}
+                    onClick={() => {
+                      setLgaId(lga.id);
+                      document.getElementById('location-modal')?.classList.add('hidden');
+                    }}
+                    className={`w-full text-left px-4 py-3 rounded-lg ${lgaId === lga.id ? 'bg-primary-50 text-primary-700' : 'hover:bg-gray-50'}`}
+                  >
+                    {lga.name}
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </div>
