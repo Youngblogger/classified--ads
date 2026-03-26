@@ -8,8 +8,9 @@ import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const BACKEND_URL = API_URL.replace('/api', '');
 
 function getImageUrl(img: any): string {
   if (!img) return '';
@@ -17,16 +18,19 @@ function getImageUrl(img: any): string {
   if (typeof img === 'string') {
     url = img;
   } else if (typeof img === 'object') {
-    url = img.display_url || img.url || img.thumbnail_url || img.thumbnail || img.src || img.original_url || img.image || img.path || img.file || '';
+    url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.src || img.original_url || img.image || img.path || img.file || '';
   }
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
   if (url.startsWith('/storage/')) {
-    return `${BASE_URL}${url}`;
+    return `${BACKEND_URL}${url}`;
   }
-  return `${BASE_URL}/storage/${url}`;
+  if (url.startsWith('storage/')) {
+    return `${BACKEND_URL}/${url}`;
+  }
+  return `${BACKEND_URL}/storage/${url}`;
 }
 
 function AdCardWithImage({ ad }: { ad: any }) {

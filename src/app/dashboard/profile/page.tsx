@@ -150,9 +150,15 @@ export default function ProfileSettingsPage() {
           throw new Error(avatarData.message || 'Failed to upload avatar');
         }
         
-        // Update user with avatar data
+        // Update user with avatar data (include full_avatar_url for header display)
         if (avatarData.user) {
-          setUser(avatarData.user);
+          const userWithFullUrl = {
+            ...avatarData.user,
+            full_avatar_url: avatarData.user.full_avatar_url || 
+              (avatarData.user.avatar ? `${API_URL}${avatarData.user.avatar}` : null) ||
+              (avatarData.user.google_avatar ? avatarData.user.google_avatar : null),
+          };
+          setUser(userWithFullUrl);
           const newAvatarUrl = avatarData.user.avatar_url || avatarData.user.avatar;
           setAvatarPreview(getAvatarUrl(newAvatarUrl));
         }
@@ -184,12 +190,15 @@ export default function ProfileSettingsPage() {
         throw new Error(data.message || data.error || 'Failed to update profile');
       }
 
-      // Update user with avatar_url if available
+      // Update user with avatar_url if available (include full_avatar_url for header display)
       const updatedUser = {
         ...user,
         ...data.user,
         avatar: data.user?.avatar || data.user?.avatar_url || user?.avatar || avatarPreview,
-        avatar_url: data.user?.avatar_url || data.user?.avatar || user?.avatar_url || user?.avatar || avatarPreview
+        avatar_url: data.user?.avatar_url || data.user?.avatar || user?.avatar_url || user?.avatar || avatarPreview,
+        full_avatar_url: data.user?.full_avatar_url || 
+          (data.user?.avatar ? `${API_URL}${data.user.avatar}` : null) ||
+          (user?.full_avatar_url ? user.full_avatar_url : null),
       };
       setUser(updatedUser);
       if (data.user?.avatar_url || data.user?.avatar) {

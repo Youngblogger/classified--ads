@@ -8,6 +8,8 @@ export function getApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 }
 
+console.log('[API] Base URL:', API_BASE_URL);
+
 class ApiClient {
   private client: AxiosInstance;
 
@@ -45,7 +47,16 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const axiosError = error as AxiosError<{ message?: string; success?: boolean }>;
+        const axiosError = error as AxiosError<{ message?: string; success?: boolean; errors?: any }>;
+        
+        console.error('[API Error]', {
+          url: axiosError.config?.url,
+          method: axiosError.config?.method,
+          status: axiosError.response?.status,
+          data: axiosError.response?.data,
+          message: axiosError.message,
+          code: axiosError.code,
+        });
         
         if (axiosError.response?.status === 401) {
           const url = axiosError.config?.url || '';
@@ -73,10 +84,12 @@ class ApiClient {
         
         if (axiosError.code === 'ECONNABORTED') {
           console.error('[API] Request timeout');
+          toast.error('Request timed out. Please try again.');
         }
         
         if (axiosError.code === 'ERR_NETWORK' || axiosError.message === 'Network Error') {
           console.error('[API] Network error - backend may not be running');
+          toast.error('Cannot connect to server. Please ensure the backend is running.');
         }
         
         return Promise.reject(error);
@@ -187,8 +200,9 @@ export const adsApi = {
   getRecent: (limit?: number) => api.get('/ads/recent', { params: { limit } }),
   getSimilar: (adId: number, limit?: number) => api.get(`/ads/${adId}/similar`, { params: { limit } }),
   create: (data: FormData) => api.upload('/ads', data),
-  update: (id: number, data: FormData) => api.post(`/ads/${id}`, data),
-  delete: (id: number) => api.delete(`/ads/${id}`),
+  update: (id: number, data: FormData) => api.put(`/ads/${id}`, data),
+  delete: (slug: string) => api.delete(`/ads/${slug}`),
+  deleteById: (id: number) => api.delete(`/ads/${id}`),
   incrementViews: (id: number) => api.post(`/ads/${id}/views`),
   getMyAds: (params?: Record<string, any>) => api.get('/my-ads', { params }),
 };

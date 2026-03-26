@@ -22,7 +22,7 @@ class AdImage extends Model
         'file_size' => 'integer',
     ];
 
-    protected $appends = ['display_url', 'thumbnail'];
+    protected $appends = ['display_url', 'thumbnail', 'full_url', 'full_thumbnail_url'];
 
     public function ad(): BelongsTo
     {
@@ -37,5 +37,31 @@ class AdImage extends Model
     public function getThumbnailAttribute(): string
     {
         return $this->thumbnail_url ?? $this->url ?? $this->original_url ?? '';
+    }
+
+    public function getFullUrlAttribute(): string
+    {
+        $url = $this->url ?? $this->original_url ?? '';
+        if (empty($url)) return '';
+        return $this->buildFullUrl($url);
+    }
+
+    public function getFullThumbnailUrlAttribute(): string
+    {
+        $url = $this->thumbnail_url ?? $this->url ?? $this->original_url ?? '';
+        if (empty($url)) return '';
+        return $this->buildFullUrl($url);
+    }
+
+    protected function buildFullUrl(string $path): string
+    {
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        $baseUrl = rtrim(config('app.url'), '/');
+        if (!str_starts_with($path, '/')) {
+            $path = '/' . $path;
+        }
+        return $baseUrl . $path;
     }
 }

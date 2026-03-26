@@ -6,6 +6,7 @@ export interface User {
   phone?: string;
   avatar?: string;
   avatar_url?: string;
+  full_avatar_url?: string;
   google_avatar?: string;
   facebook_avatar?: string;
   location?: string;
@@ -71,6 +72,11 @@ export interface Ad {
 export interface AdImage {
   id: number;
   url: string;
+  full_url?: string;
+  full_thumbnail_url?: string;
+  thumbnail_url?: string;
+  display_url?: string;
+  thumbnail?: string;
   is_primary: boolean;
   order?: number;
 }

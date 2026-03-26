@@ -17,7 +17,7 @@ interface Ad {
   condition: string;
   description?: string;
   short_description?: string;
-  images: { url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean }[];
+  images: { url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean; full_url?: string; full_thumbnail_url?: string }[];
   location: { name: string };
   created_at: string;
 }
@@ -105,11 +105,14 @@ export default function RelatedAds({ currentAdId, categoryId }: RelatedAdsProps)
   const getPrimaryImage = (images: Ad['images']) => {
     const primary = images?.find((img) => img.is_primary);
     const img = primary || images?.[0];
-    const url = img?.display_url || img?.url || img?.thumbnail_url || '/placeholder.jpg';
+    const url = img?.full_url || img?.full_thumbnail_url || img?.display_url || img?.thumbnail_url || img?.url || '/placeholder.jpg';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
     if (url.startsWith('/storage/')) {
       return `${BASE_URL}${url}`;
     }
-    return url;
+    return `${BASE_URL}/storage/${url}`;
   };
 
   if (loading) {

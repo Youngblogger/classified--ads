@@ -8,17 +8,20 @@ import { messagesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const BACKEND_URL = API_URL.replace('/api', '');
 
 function getImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  if (url.startsWith('/storage/')) {
-    return `/storage/${url.replace('/storage/', '')}`;
-  } else if (url.startsWith(API_URL.replace('/api', '') + '/storage/')) {
-    return `/storage/${url.replace(API_URL.replace('/api', '') + '/storage/', '')}`;
-  } else if (url.startsWith('http://127.0.0.1:8000/storage/')) {
-    return `/storage/${url.replace('http://127.0.0.1:8000/storage/', '')}`;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
   }
-  return url;
+  if (url.startsWith('/storage/')) {
+    return `${BACKEND_URL}${url}`;
+  }
+  if (url.startsWith('storage/')) {
+    return `${BACKEND_URL}/${url}`;
+  }
+  return `${BACKEND_URL}/storage/${url}`;
 }
 
 const SendIcon = ({ className }: { className?: string }) => (
@@ -45,6 +48,7 @@ interface Message {
     avatar?: string | null;
     google_avatar?: string | null;
     avatar_url?: string | null;
+    full_avatar_url?: string | null;
   };
 }
 
@@ -569,7 +573,7 @@ export default function ChatModal({
           ) : (
             messages.map((msg) => {
               const isMe = msg.sender_id === currentUserId;
-              const senderAvatar = getImageUrl(msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar);
+              const senderAvatar = getImageUrl(msg.sender?.full_avatar_url || msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar);
 
               return (
                 <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
@@ -654,8 +658,8 @@ export default function ChatModal({
 
                   {isMe && (
                     <div className="w-8 h-8 rounded-full bg-[#dcf8c6] flex-shrink-0 overflow-hidden">
-                      {user?.avatar_url || user?.google_avatar ? (
-                        <img src={getImageUrl(user.avatar_url || user.google_avatar || '') || ''} alt="" className="w-full h-full object-cover" />
+                      {user?.full_avatar_url || user?.avatar_url || user?.google_avatar ? (
+                        <img src={getImageUrl(user.full_avatar_url || user.avatar_url || user.google_avatar || '') || ''} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs text-[#00a884] font-medium">
                           {user?.name?.[0]?.toUpperCase() || 'U'}

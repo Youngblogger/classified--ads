@@ -100,6 +100,30 @@ class AdController extends Controller
             return response()->json(['error' => 'Failed to load ad', 'message' => $e->getMessage()], 500);
         }
     }
+    
+    public function getById($id)
+    {
+        try {
+            $ad = Ad::with(['images', 'category', 'location', 'user'])
+                ->where('id', $id)
+                ->first();
+            
+            if (!$ad) {
+                return response()->json(['error' => 'Ad not found'], 404);
+            }
+            
+            // Check ownership
+            $user = request()->user();
+            if ($user && $ad->user_id !== $user->id && $user->role !== 'admin') {
+                return response()->json(['error' => 'You do not have permission to edit this ad'], 403);
+            }
+
+            return response()->json(['data' => $ad]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch ad by ID: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load ad', 'message' => $e->getMessage()], 500);
+        }
+    }
 
     public function store(Request $request)
     {
@@ -204,7 +228,11 @@ class AdController extends Controller
     {
         $ad = Ad::where('slug', $slug)->firstOrFail();
 
-        if ($request->user()->id !== $ad->user_id) {
+        // Allow admin to delete any ad, or owner to delete their own ad
+        $isAdmin = $request->user()->role === 'admin';
+        $isOwner = $request->user()->id === $ad->user_id;
+        
+        if (!$isAdmin && !$isOwner) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -215,8 +243,12 @@ class AdController extends Controller
 
     public function myAds(Request $request)
     {
-        $query = Ad::with(['images', 'category', 'location'])
-            ->where('user_id', $request->user()->id);
+        $query = Ad::with(['images', 'category', 'location']);
+        
+        // Admins can see all ads, regular users see only their own
+        if ($request->user()->role !== 'admin') {
+            $query->where('user_id', $request->user()->id);
+        }
 
         if ($request->status && $request->status !== 'all') {
             $query->where('status', $request->status);

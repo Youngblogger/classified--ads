@@ -14,7 +14,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $appends = ['avatar_url'];
+    protected $appends = ['avatar_url', 'full_avatar_url'];
 
     /**
      * The attributes that are mass assignable.
@@ -112,5 +112,24 @@ class User extends Authenticatable
     public function getAvatarUrlAttribute()
     {
         return $this->avatar ?: $this->google_avatar ?: $this->facebook_avatar;
+    }
+    
+    public function getFullAvatarUrlAttribute(): ?string
+    {
+        $avatar = $this->avatar ?: $this->google_avatar ?: $this->facebook_avatar;
+        
+        if (!$avatar) return null;
+        
+        // If it's already a full URL, return as-is
+        if (str_starts_with($avatar, 'http://') || str_starts_with($avatar, 'https://')) {
+            return $avatar;
+        }
+        
+        $baseUrl = rtrim(config('app.url'), '/');
+        if (!str_starts_with($avatar, '/')) {
+            $avatar = '/' . $avatar;
+        }
+        
+        return $baseUrl . $avatar;
     }
 }

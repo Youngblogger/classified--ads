@@ -31,8 +31,8 @@ interface Ad {
   is_verified: boolean;
   category: { id: number; name: string; slug: string };
   location: { id: number; name: string } | null;
-  user: { id: number; name: string; email: string; phone?: string };
-  images: { id: number; url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean }[];
+  user: { id: number; name: string; email: string; phone?: string; avatar?: string; avatar_url?: string };
+  images: { id: number; url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean; full_url?: string; full_thumbnail_url?: string }[];
   views: number;
   created_at: string;
 }
@@ -99,10 +99,12 @@ export default function AdsApprovalPage() {
   };
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+  const API_BASE = API_URL.replace('/api', '');
   
   const getImageUrl = (ad: Ad): string => {
-    const image = ad.images?.find((img: any) => img.is_primary) || ad.images?.[0];
-    const url = image?.display_url || image?.url || image?.thumbnail_url;
+    const imagesArray = Array.isArray(ad.images) ? ad.images : [];
+    const image = imagesArray.find((img: any) => img.is_primary) || imagesArray[0];
+    const url = image?.full_url || image?.full_thumbnail_url || image?.display_url || image?.url || image?.thumbnail_url;
     
     if (!url) return '/placeholder.jpg';
     
@@ -115,8 +117,7 @@ export default function AdsApprovalPage() {
     const cleanUrl = url.replace(/^\/+/, '');
     
     // Use the API base URL
-    const API_BASE = API_URL.replace('/api', '');
-    return `${API_BASE}/storage/${cleanUrl}`;
+    return `${API_BASE}/${cleanUrl}`;
   };
 
   const fetchPendingAds = async () => {

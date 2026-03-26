@@ -34,14 +34,13 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   
   const [categories, setCategories] = useState<any[]>([]);
-  const [apiLocations, setApiLocations] = useState<any[]>([]);
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [negotiable, setNegotiable] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [locationId, setLocationId] = useState<string | null>(null);
+  const [locationId, setLocationId] = useState<number | null>(null);
   const [lgaId, setLgaId] = useState<string>('');
   const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
   const [images, setImages] = useState<ImageFile[]>([]);
@@ -118,20 +117,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   ];
 
   useEffect(() => {
-    // Use local Nigeria locations with LGAs
-    const localLocs = nigeriaLocations.map(loc => ({
-      id: loc.id,
-      name: loc.name,
-      slug: loc.slug,
-      children: (loc.lgas || []).map((lgaName: string, index: number) => ({
-        id: `${loc.id}-${index}`,
-        name: lgaName,
-        slug: lgaName.toLowerCase().replace(/\s+/g, '-')
-      }))
-    }));
-    setApiLocations(localLocs);
-    
-    // Use local categories as default, then try API
+    // Use local categories as default
     setCategories(localCategories);
     
     // Fetch categories from API
@@ -149,12 +135,30 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         console.error('Failed to fetch categories:', err);
       }
     };
+    
     fetchCategories();
   }, []);
 
-  const selectedLocation = apiLocations.find(l => l.id === locationId);
-  const selectedState = apiLocations.find(l => l.id === locationId);
-  const lgas = selectedState?.children || [];
+  // Get LGAs for selected state from local data
+  const getLgasForState = (stateSlug: string): string[] => {
+    const state = nigeriaLocations.find(loc => loc.slug === stateSlug);
+    return state?.lgas || [];
+  };
+  
+  // Map local state slug to API numeric ID
+  const stateSlugToId: Record<string, number> = {
+    'abia': 1, 'abuja': 2, 'adamawa': 3, 'akwa-ibom': 4, 'anambra': 5,
+    'bauchi': 6, 'bayelsa': 7, 'benue': 8, 'borno': 9, 'cross-river': 10,
+    'delta': 11, 'ebonyi': 12, 'edo': 13, 'ekiti': 14, 'enugu': 15,
+    'gombe': 16, 'imo': 17, 'jigawa': 18, 'kaduna': 19, 'kano': 20,
+    'katsina': 21, 'kebbi': 22, 'kogi': 23, 'kwara': 24, 'lagos': 25,
+    'nasarawa': 26, 'niger': 27, 'ogun': 28, 'ondo': 29, 'osun': 30,
+    'oyo': 31, 'plateau': 32, 'rivers': 33, 'sokoto': 34, 'taraba': 35,
+    'yobe': 36, 'zamfara': 37
+  };
+  
+  const selectedState = locationId ? nigeriaLocations.find(loc => stateSlugToId[loc.slug] === locationId) : null;
+  const stateLgas = selectedState?.lgas || [];
 
   const formatPrice = (value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '');
@@ -279,7 +283,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       toast.error('Please select a category');
       return;
     }
-    if (step === 1 && (!selectedLocation || !locationId)) {
+    if (step === 1 && !locationId) {
       toast.error('Please select a location');
       return;
     }
@@ -307,6 +311,12 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const handleSubmit = async () => {
     if (!canSubmit || isLoading) return;
 
+    if (!isAuthenticated) {
+      toast.error('Please login to post an ad.');
+      toggleLoginModal();
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -315,8 +325,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       formData.append('description', description);
       formData.append('price', price);
       formData.append('negotiable', negotiable ? '1' : '0');
-      formData.append('category_id', categoryId!.toString());
-      formData.append('location_id', locationId!.toString());
+      formData.append('category_id', String(categoryId));
+      formData.append('location_id', String(locationId));
       if (lgaId) formData.append('lga', lgaId);
       formData.append('condition', condition);
       if (phone) formData.append('phone', phone);
@@ -331,34 +341,70 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       const adSlug = response.data?.slug || response.data?.data?.slug;
       const adId = response.data?.id || response.data?.data?.id;
       
+      setIsLoading(false);
+      
+      // Reset form
+      setStep(1);
+      setTitle('');
+      setDescription('');
+      setPrice('');
+      setCategoryId(null);
+      setLocationId(null);
+      setLgaId('');
+      setCondition('');
+      setImages([]);
+      
+      // Show success message
+      toast.success(
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Check className="w-5 h-5 text-green-500" />
+            <p className="font-semibold">Ad posted successfully!</p>
+          </div>
+          <p className="text-sm text-gray-600">Pending admin approval. Your ad will appear on the homepage once approved.</p>
+        </div>,
+        { duration: 6000 }
+      );
+      
+      // Redirect to homepage after short delay
+      if (isStandalone) {
+        setTimeout(() => {
+          router.push('/');
+        }, 2000);
+      }
+      
       if (onSuccess) {
         onSuccess(adId);
-      } else if (isStandalone) {
-        toast.success(
-          <div className="flex flex-col gap-2">
-            <p className="font-semibold">Ad posted successfully!</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => router.push(`/ad/${adSlug}`)}
-                className="px-3 py-1 bg-white text-primary-600 rounded-lg text-sm font-medium hover:bg-gray-100"
-              >
-                View My Ad
-              </button>
-              <button
-                onClick={() => router.push('/')}
-                className="px-3 py-1 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700"
-              >
-                Go to Homepage
-              </button>
-            </div>
-          </div>,
-          { duration: 8000 }
-        );
       }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.response?.data?.error || 'Failed to post ad';
-      toast.error(errorMsg);
       console.error('Post ad error:', err);
+      
+      let errorMsg = 'Failed to post ad. Please try again.';
+      
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMsg = err.response.data.error;
+      } else if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        const firstError = Object.values(errors)[0];
+        if (Array.isArray(firstError) && firstError[0]) {
+          errorMsg = firstError[0];
+        }
+      } else if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        errorMsg = 'Cannot connect to server. Please ensure the backend is running on Laragon.';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMsg = 'Request timed out. Please try again.';
+      } else if (err.response?.status === 401) {
+        errorMsg = 'Please login to post an ad.';
+        toggleLoginModal();
+      } else if (err.response?.status === 422) {
+        errorMsg = 'Validation error. Please check your input.';
+      } else if (err.response?.status === 500) {
+        errorMsg = 'Server error. Please try again later.';
+      }
+      
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -428,12 +474,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               }}
               className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors"
             >
-              <span className={selectedLocation ? 'text-gray-900' : 'text-gray-400'}>
-                {selectedLocation?.name || 'Select State'}
-                {lgaId && selectedState?.children && (
-                  <span className="text-gray-500">
-                    {' > '}{selectedState.children.find((l: any) => l.id === lgaId)?.name}
-                  </span>
+              <span className={locationId ? 'text-gray-900' : 'text-gray-400'}>
+                {selectedState?.name || 'Select State'}
+                {lgaId && (
+                  <span className="text-gray-500">{' > '}{lgaId}</span>
                 )}
               </span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -662,7 +706,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               </div>
               <div>
                 <span className="text-gray-500">Location:</span>
-                <span className="ml-2 text-gray-900">{selectedLocation?.name}</span>
+                <span className="ml-2 text-gray-900">
+                  {selectedState?.name}{lgaId ? ` > ${lgaId}` : ''}
+                </span>
               </div>
               <div>
                 <span className="text-gray-500">Condition:</span>
@@ -767,58 +813,103 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         </div>
       </div>
 
-      {/* Location Modal */}
+      {/* Location Modal - State/LGA Dependent Dropdown */}
       <div id="location-modal" className="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
           <div className="p-4 border-b flex items-center justify-between">
-            <h3 className="font-semibold">{lgaId ? 'Select LGA' : 'Select State'}</h3>
+            <h3 className="font-semibold">
+              {!locationId ? 'Select State' : lgaId ? 'Confirm Location' : 'Select LGA'}
+            </h3>
             <button onClick={() => {
               document.getElementById('location-modal')?.classList.add('hidden');
-              setLgaId('');
             }} className="p-1">
               <X className="w-5 h-5" />
             </button>
           </div>
           <div className="p-4 overflow-y-auto max-h-[60vh]">
-            {!locationId || !selectedLocation?.children?.length ? (
-              // Show states
-              apiLocations.map((loc) => (
-                <button
-                  key={loc.id}
-                  onClick={() => {
-                    setLocationId(loc.id);
-                    setLgaId('');
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg flex justify-between items-center"
-                >
-                  <span>{loc.name}</span>
-                  {loc.children && loc.children.length > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
-                </button>
-              ))
-            ) : (
-              // Show LGAs
+            {!locationId ? (
+              // Step 1: Select State
+              <>
+                <p className="text-sm text-gray-500 mb-4">Select a state to see available LGAs</p>
+                {nigeriaLocations.map((state) => (
+                  <button
+                    key={state.slug}
+                    onClick={() => {
+                      setLocationId(stateSlugToId[state.slug]);
+                      setLgaId('');
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg flex justify-between items-center"
+                  >
+                    <span>{state.name}</span>
+                    {state.lgas && state.lgas.length > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
+                  </button>
+                ))}
+              </>
+            ) : !lgaId ? (
+              // Step 2: Select LGA
               <>
                 <button
                   onClick={() => {
-                    setLocationId('');
-                    setLgaId('');
+                    setLocationId(null);
                   }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg text-sm text-gray-500 flex items-center gap-1"
+                  className="w-full text-left px-4 py-2 mb-3 hover:bg-gray-50 rounded-lg text-sm text-gray-500 flex items-center gap-1"
                 >
-                  ← Back to states
+                  ← Change State
                 </button>
-                {lgas.map((lga: any) => (
+                <p className="text-sm text-gray-600 mb-3">
+                  LGAs in <span className="font-semibold">{selectedState?.name}</span>
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {stateLgas.map((lgaName) => (
+                    <button
+                      key={lgaName}
+                      onClick={() => {
+                        setLgaId(lgaName);
+                        document.getElementById('location-modal')?.classList.add('hidden');
+                      }}
+                      className="text-left px-3 py-2 rounded-lg hover:bg-primary-50 text-sm"
+                    >
+                      {lgaName}
+                    </button>
+                  ))}
+                </div>
+                {/* Skip LGA option */}
+                <button
+                  onClick={() => {
+                    setLgaId('');
+                    document.getElementById('location-modal')?.classList.add('hidden');
+                  }}
+                  className="w-full text-center mt-4 px-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg text-sm"
+                >
+                  Skip LGA (State only)
+                </button>
+              </>
+            ) : (
+              // Step 3: Confirm
+              <>
+                <div className="text-center py-4">
+                  <p className="text-gray-500 text-sm">Selected Location</p>
+                  <p className="text-xl font-semibold">{selectedState?.name}</p>
+                  <p className="text-gray-600">{lgaId}</p>
+                </div>
+                <div className="space-y-3 mt-4">
                   <button
-                    key={lga.id}
                     onClick={() => {
-                      setLgaId(lga.id);
+                      setLgaId('');
+                    }}
+                    className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+                  >
+                    Change LGA
+                  </button>
+                  <button
+                    onClick={() => {
                       document.getElementById('location-modal')?.classList.add('hidden');
                     }}
-                    className={`w-full text-left px-4 py-3 rounded-lg ${lgaId === lga.id ? 'bg-primary-50 text-primary-700' : 'hover:bg-gray-50'}`}
+                    className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium"
                   >
-                    {lga.name}
+                    Confirm Location
                   </button>
-                ))}
+                </div>
               </>
             )}
           </div>

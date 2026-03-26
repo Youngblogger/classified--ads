@@ -4,6 +4,45 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
+
+export function getAdImageUrl(img: any): string {
+  if (!img) return '';
+  
+  let url = '';
+  
+  if (typeof img === 'string') {
+    url = img;
+  } else if (typeof img === 'object') {
+    url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.src || img.original_url || img.image || img.path || img.file || '';
+  }
+  
+  if (!url) return '';
+  
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  if (url.startsWith('/storage/')) {
+    return `${BACKEND_URL}${url}`;
+  }
+  
+  if (url.startsWith('storage/')) {
+    return `${BACKEND_URL}/${url}`;
+  }
+  
+  return `${BACKEND_URL}/storage/${url}`;
+}
+
+export function getPrimaryImageUrl(images: any[]): string {
+  if (!images || !Array.isArray(images) || images.length === 0) return '';
+  
+  const primary = images.find((img: any) => img?.is_primary);
+  const img = primary || images[0];
+  
+  return getAdImageUrl(img);
+}
+
 export function formatPrice(price: number | string, currency: string = 'NGN'): string {
   const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
   

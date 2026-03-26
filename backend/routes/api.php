@@ -38,7 +38,7 @@ Route::prefix('auth')->group(function () {
 });
 
 // Protected auth routes
-Route::prefix('auth')->middleware('auth:sanctum')->group(function () {
+Route::prefix('auth')->middleware('auth.api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::match(['put', 'post'], '/profile', [AuthController::class, 'updateProfile']);
@@ -81,17 +81,17 @@ Route::prefix('ads')->group(function () {
     Route::get('/', [AdController::class, 'index']);
     Route::get('/featured', [AdController::class, 'featured']);
     Route::get('/recent', [AdController::class, 'recent']);
-    // Public show route - must be last to catch any slug
-    Route::get('/{slug}', [AdController::class, 'show']);
+    Route::get('/{slug}', [AdController::class, 'show'])->where('slug', '^(?=.*[a-z])[a-z0-9\-]+$');
 });
 
 // Protected ad routes - define before wildcard to avoid route conflicts
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth.api')->group(function () {
     // Reports
     Route::post('/reports', [ReportController::class, 'store']);
 
     // Ads - protected routes (must be before /{slug} wildcard)
     Route::post('/ads', [AdController::class, 'store']);
+    Route::get('/ads/{id}', [AdController::class, 'getById'])->where('id', '[0-9]+');
     Route::put('/ads/{slug}', [AdController::class, 'update']);
     Route::delete('/ads/{slug}', [AdController::class, 'destroy']);
     Route::get('/my-ads', [AdController::class, 'myAds']);
@@ -170,7 +170,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // Webhook routes (no auth required)
 Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'handlePaystackWebhook']);
 
-Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
+Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard']);
     Route::get('/ads', [AdminController::class, 'ads']);
     Route::post('/ads/{id}/approve', [AdminController::class, 'approveAd']);
@@ -219,4 +219,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::put('/banners/{id}', [BannerController::class, 'update']);
     Route::delete('/banners/{id}', [BannerController::class, 'destroy']);
     Route::post('/banners/reorder', [BannerController::class, 'reorder']);
+});
+
+Route::post('/test', function () {
+    return response()->json(['success' => true, 'message' => 'POST works!']);
 });

@@ -16,7 +16,7 @@ function getImageUrl(img: any): string {
   if (typeof img === 'string') {
     url = img;
   } else if (typeof img === 'object') {
-    url = img.display_url || img.url || img.thumbnail_url || img.thumbnail || img.src || img.original_url || img.image || img.path || img.file || '';
+    url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.src || img.original_url || img.image || img.path || img.file || '';
   }
   
   if (!url) return '';

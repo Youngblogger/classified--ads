@@ -23,21 +23,28 @@ import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { getAuthToken } from '@/lib/cookies';
 import { sellerReviewsApi } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
-function getImageUrl(url: string): string {
+function getImageUrl(img: any): string {
+  if (!img) return '';
+  let url = '';
+  if (typeof img === 'string') {
+    url = img;
+  } else if (typeof img === 'object') {
+    url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.src || img.original_url || img.image || img.path || img.file || '';
+  }
   if (!url) return '';
-  // If already a full URL, return as-is
-  if (url.startsWith('http')) {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
-  // If it's a storage path, prepend the API URL
+  const API_BASE = API_URL.replace('/api', '');
   if (url.startsWith('/storage/')) {
-    const API_BASE = API_URL.replace('/api', '');
     return `${API_BASE}${url}`;
   }
-  // If it's just a path, prepend API URL
-  return `${API_URL.replace('/api', '')}/storage/${url}`;
+  if (url.startsWith('storage/')) {
+    return `${API_BASE}/${url}`;
+  }
+  return `${API_BASE}/storage/${url}`;
 }
 
 function WatermarkBadge({ adId }: { adId: number }) {
@@ -902,7 +909,8 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
           sellerName={displayAd.user.name || 'Seller'}
           sellerAvatar={(() => {
             // Check all possible avatar sources in order of priority
-            const avatarSrc = displayAd.user?.avatar || 
+            const avatarSrc = displayAd.user?.full_avatar_url ||
+                            displayAd.user?.avatar || 
                             displayAd.user?.google_avatar || 
                             displayAd.user?.facebook_avatar || 
                             displayAd.user?.profile_image || 

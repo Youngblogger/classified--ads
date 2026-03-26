@@ -11,13 +11,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 function getAdImageUrl(ad: any): string {
   if (!ad) return '';
   
+  const BASE_URL = API_URL.replace('/api', '');
+  
   // Check for ad.image (single image field)
   if (ad.image) {
     const img = ad.image;
     if (typeof img === 'string') {
-      if (img.startsWith('http')) return img;
-      if (img.startsWith('/storage/')) return `${API_URL.replace('/api', '')}${img}`;
-      return `${API_URL.replace('/api', '')}/storage/${img}`;
+      if (img.startsWith('http://') || img.startsWith('https://')) return img;
+      if (img.startsWith('/storage/')) return `${BASE_URL}${img}`;
+      return `${BASE_URL}/storage/${img}`;
     }
   }
   
@@ -25,11 +27,11 @@ function getAdImageUrl(ad: any): string {
   const imagesArray = Array.isArray(ad.images) ? ad.images : [];
   const primaryImage = imagesArray.find((img: any) => img?.is_primary) || imagesArray[0];
   if (primaryImage) {
-    const url = primaryImage.url || primaryImage.original_url || primaryImage.thumbnail_url || primaryImage.thumbnail || '';
+    const url = primaryImage.full_url || primaryImage.full_thumbnail_url || primaryImage.display_url || primaryImage.thumbnail_url || primaryImage.thumbnail || primaryImage.url || primaryImage.original_url || '';
     if (!url) return '';
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/storage/')) return `${API_URL.replace('/api', '')}${url}`;
-    return `${API_URL.replace('/api', '')}/storage/${url}`;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/storage/')) return `${BASE_URL}${url}`;
+    return `${BASE_URL}/storage/${url}`;
   }
   
   return '';
@@ -114,11 +116,17 @@ export default function MyAdsPage() {
   const handleDeleteAd = async (adId: number, adSlug: string) => {
     if (!confirm('Are you sure you want to delete this ad?')) return;
     
+    // Optimistic update - immediately remove from UI
+    const previousAds = [...ads];
+    setAds(prev => prev.filter(ad => ad.id !== adId));
+    
     try {
-      await adsApi.delete(adId);
+      // Use slug for delete since backend expects slug
+      await adsApi.delete(adSlug);
       toast.success('Ad deleted successfully');
-      fetchAds();
     } catch (error) {
+      // Revert on error
+      setAds(previousAds);
       console.error('Failed to delete ad:', error);
       toast.error('Failed to delete ad');
     }
@@ -209,6 +217,13 @@ export default function MyAdsPage() {
                     {statusConfig[ad.status as keyof typeof statusConfig].label}
                   </span>
                 </div>
+                {ad.status === 'pending' && (
+                  <div className="absolute bottom-3 left-3">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                      Awaiting admin approval
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Content */}

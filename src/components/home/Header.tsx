@@ -24,6 +24,23 @@ import { useSocket } from '@/hooks/useSocket';
 const RECENT_SEARCHES_KEY = 'ilist_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
 
+const BACKEND_URL = 'http://127.0.0.1:8000';
+
+function getFullAvatarUrl(user: any): string | null {
+  if (!user) return null;
+  
+  const avatar = user.full_avatar_url || user.avatar_url || user.avatar || user.google_avatar || user.facebook_avatar;
+  if (!avatar) return null;
+  
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    return avatar;
+  }
+  if (avatar.startsWith('/storage/')) {
+    return `${BACKEND_URL}${avatar}`;
+  }
+  return `${BACKEND_URL}/storage/${avatar}`;
+}
+
 const NOTIFICATION_ICONS: Record<string, any> = {
   ad_approved: ThumbsUp,
   ad_rejected: ThumbsDown,
@@ -1091,18 +1108,26 @@ export default function Header() {
                         className="flex items-center gap-2 p-1.5 hover:bg-primary-700 rounded-xl transition-colors"
                       >
                         <div className="w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
-                          {user?.google_avatar || user?.avatar || user?.avatar_url ? (
-                            <img 
-                              src={user.google_avatar || user.avatar || user.avatar_url} 
-                              alt={user.name || 'User'} 
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span className="text-primary-600 font-semibold text-sm">
-                              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                            </span>
-                          )}
+                          {(() => {
+                            const avatarUrl = getFullAvatarUrl(user);
+                            return avatarUrl ? (
+                              <img 
+                                src={avatarUrl} 
+                                alt={user?.name || 'User'} 
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.nextElementSibling?.classList.remove('hidden');
+                                }}
+                              />
+                            ) : (
+                              <span className="text-primary-600 font-semibold text-sm">
+                                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </button>
                       
