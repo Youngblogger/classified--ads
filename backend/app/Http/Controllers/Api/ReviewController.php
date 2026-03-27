@@ -100,6 +100,17 @@ class ReviewController extends Controller
 
     public function adReviews(Request $request, $adId)
     {
+        $limit = $request->input('limit');
+        
+        if ($limit) {
+            $reviews = Review::where('ad_id', $adId)
+                ->with(['user'])
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get();
+            return response()->json(['data' => $reviews]);
+        }
+        
         $reviews = Review::where('ad_id', $adId)
             ->with(['user'])
             ->orderBy('created_at', 'desc')
@@ -139,10 +150,12 @@ class ReviewController extends Controller
 
     public function adLatestReviews(Request $request, $adId)
     {
+        $limit = $request->input('limit', 3);
+        
         $reviews = Review::where('ad_id', $adId)
             ->with(['user'])
             ->orderBy('created_at', 'desc')
-            ->limit(5)
+            ->limit($limit)
             ->get();
 
         return response()->json(['data' => $reviews]);

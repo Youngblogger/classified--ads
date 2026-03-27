@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Star, Loader2, BadgeCheck } from 'lucide-react';
 import { sellerReviewsApi } from '@/lib/api';
+import WriteReviewModal from './WriteReviewModal';
+import { useAuthStore, useUIStore } from '@/lib/store';
 
 interface Review {
   id: number;
@@ -83,6 +85,9 @@ export default function SellerReviewsSection({
   const [rating, setRating] = useState<SellerRating | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showWriteReview, setShowWriteReview] = useState(false);
+  const { isAuthenticated } = useAuthStore();
+  const { toggleLoginModal } = useUIStore();
 
   useEffect(() => {
     const numericId = typeof sellerId === 'string' ? parseInt(sellerId, 10) : sellerId;
@@ -105,14 +110,18 @@ export default function SellerReviewsSection({
       ]);
       
       if (reviewsRes.status === 'fulfilled') {
-        const data = reviewsRes.value.data;
-        if (Array.isArray(data)) {
-          setReviews(data);
-        } else if (data && Array.isArray(data.reviews)) {
-          setReviews(data.reviews);
-        } else {
-          setReviews([]);
+        const responseData = reviewsRes.value.data;
+        let reviewsData = [];
+        
+        if (Array.isArray(responseData)) {
+          reviewsData = responseData;
+        } else if (responseData && Array.isArray(responseData.data)) {
+          reviewsData = responseData.data;
+        } else if (responseData && Array.isArray(responseData.reviews)) {
+          reviewsData = responseData.reviews;
         }
+        
+        setReviews(reviewsData);
       }
       
       if (ratingRes.status === 'fulfilled') {
@@ -128,7 +137,19 @@ export default function SellerReviewsSection({
   };
 
   const handleWriteReview = () => {
-    window.location.href = `/seller/${sellerId}/reviews`;
+    if (!isAuthenticated) {
+      toggleLoginModal();
+      return;
+    }
+    setShowWriteReview(true);
+  };
+
+  const handleReviewSuccess = () => {
+    const numericId = typeof sellerId === 'string' ? parseInt(sellerId, 10) : sellerId;
+    if (numericId) {
+      fetchData(numericId);
+    }
+    setShowWriteReview(false);
   };
 
   if (sellerId === undefined || sellerId === null) {
@@ -249,6 +270,17 @@ export default function SellerReviewsSection({
         >
           View All {reviewsArray.length} Reviews
         </Link>
+      )}
+
+      {/* Write Review Modal */}
+      {showWriteReview && (
+        <WriteReviewModal
+          sellerId={Number(sellerId)}
+          sellerName={sellerName || 'this seller'}
+          isOpen={showWriteReview}
+          onClose={() => setShowWriteReview(false)}
+          onSuccess={handleReviewSuccess}
+        />
       )}
     </div>
   );
