@@ -316,7 +316,7 @@ export default function SellerProfilePage() {
         isOpen={showReviewModal}
         onClose={() => setShowReviewModal(false)}
         sellerId={sellerId}
-        sellerName={seller.seller?.name || 'this seller'}
+        sellerName={seller?.seller?.name || 'this seller'}
         onSuccess={() => setRefreshKey(k => k + 1)}
       />
     </div>

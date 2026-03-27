@@ -47,6 +47,7 @@ export default function SellerReviewModal({
       setCanReview(response.data);
     } catch (error) {
       console.error('Error checking review permission:', error);
+      setCanReview({ allowed: false, reason: 'Unable to check review permissions', requires: [] });
     } finally {
       setLoadingPermission(false);
     }
@@ -55,7 +56,7 @@ export default function SellerReviewModal({
   const loadExistingReview = async () => {
     try {
       const response = await sellerReviewsApi.getMyReview(sellerId);
-      if (response.data.review) {
+      if (response.data && response.data.review) {
         setExistingReview(response.data.review);
         setRating(response.data.review.rating);
         setComment(response.data.review.comment || '');
@@ -142,26 +143,28 @@ export default function SellerReviewModal({
                 Close
               </button>
             </div>
-          ) : canReview && !canReview.allowed ? (
+          ) : !canReview || !canReview.allowed ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MessageCircle className="w-8 h-8 text-orange-500" />
               </div>
               <h3 className="text-lg font-semibold text-dark mb-2">Cannot Review Yet</h3>
               <p className="text-sm text-gray-500 mb-4">
-                {canReview.reason}
+                {canReview?.reason || 'You cannot review this seller at this time.'}
               </p>
-              <div className="bg-gray-50 rounded-lg p-4 text-left">
-                <p className="text-xs text-gray-500 mb-2">To review this seller, you need to:</p>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  {canReview.requires.includes('chatted') && (
-                    <li className="flex items-center gap-2">
-                      <span className="w-5 h-5 bg-[#4B5320] text-white rounded-full flex items-center justify-center text-xs">1</span>
-                      Start a conversation with this seller
-                    </li>
-                  )}
-                </ul>
-              </div>
+              {canReview?.requires && canReview.requires.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4 text-left">
+                  <p className="text-xs text-gray-500 mb-2">To review this seller, you need to:</p>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    {canReview.requires.includes('chatted') && (
+                      <li className="flex items-center gap-2">
+                        <span className="w-5 h-5 bg-[#4B5320] text-white rounded-full flex items-center justify-center text-xs">1</span>
+                        Start a conversation with this seller
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
               <button
                 onClick={onClose}
                 className="mt-4 px-6 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

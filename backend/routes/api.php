@@ -84,6 +84,21 @@ Route::prefix('ads')->group(function () {
     Route::get('/{slug}', [AdController::class, 'show'])->where('slug', '^(?=.*[a-z])[a-z0-9\-]+$');
 });
 
+// Public seller reviews endpoints (read-only)
+Route::prefix('sellers')->group(function () {
+    Route::get('/{sellerId}/reviews', [SellerReviewController::class, 'index']);
+    Route::get('/{sellerId}/reviews/latest', [SellerReviewController::class, 'latestReviews']);
+    Route::get('/{sellerId}/rating', [SellerReviewController::class, 'ratingSummary']);
+    Route::get('/{sellerId}/profile', [SellerReviewController::class, 'sellerProfile']);
+});
+
+// Public ad reviews endpoints (read-only)
+Route::prefix('ads')->group(function () {
+    Route::get('/{adId}/reviews', [ReviewController::class, 'adReviews']);
+    Route::get('/{adId}/reviews/summary', [ReviewController::class, 'adReviewSummary']);
+    Route::get('/{adId}/reviews/latest', [ReviewController::class, 'adLatestReviews']);
+});
+
 // Protected ad routes - define before wildcard to avoid route conflicts
 Route::middleware('auth.api')->group(function () {
     // Reports
@@ -130,19 +145,12 @@ Route::middleware('auth.api')->group(function () {
 
     // Ad Reviews
     Route::post('/ads/{adId}/reviews', [ReviewController::class, 'storeAdReview']);
-    Route::get('/ads/{adId}/reviews', [ReviewController::class, 'adReviews']);
-    Route::get('/ads/{adId}/reviews/summary', [ReviewController::class, 'adReviewSummary']);
-    Route::get('/ads/{adId}/reviews/latest', [ReviewController::class, 'adLatestReviews']);
 
     // Review Actions
     Route::post('/reviews/{reviewId}/helpful', [ReviewController::class, 'markHelpful']);
     Route::post('/reviews/{reviewId}/report', [ReviewController::class, 'reportReview']);
 
-    // Seller Reviews (for sellers, not ads)
-    Route::get('/sellers/{sellerId}/reviews', [SellerReviewController::class, 'index']);
-    Route::get('/sellers/{sellerId}/reviews/latest', [SellerReviewController::class, 'latestReviews']);
-    Route::get('/sellers/{sellerId}/rating', [SellerReviewController::class, 'ratingSummary']);
-    Route::get('/sellers/{sellerId}/profile', [SellerReviewController::class, 'sellerProfile']);
+    // Seller Reviews (for sellers, not ads) - write operations require auth
     Route::get('/sellers/{sellerId}/can-review', [SellerReviewController::class, 'canReview']);
     Route::get('/sellers/{sellerId}/my-review', [SellerReviewController::class, 'userReview']);
     Route::post('/sellers/{sellerId}/reviews', [SellerReviewController::class, 'store']);

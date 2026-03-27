@@ -15,7 +15,7 @@ class SellerReviewController extends Controller
     public function index(Request $request, $sellerId)
     {
         $query = Review::where('target_user_id', $sellerId)
-            ->with(['user:id,name,avatar,avatar,google_avatar,facebook_avatar,verified,created_at'])
+            ->with(['user:id,name,avatar,google_avatar,facebook_avatar,verified,created_at'])
             ->with(['ad:id,title,slug']);
 
         if ($request->has('rating') && $request->rating >= 1 && $request->rating <= 5) {
@@ -35,6 +35,16 @@ class SellerReviewController extends Controller
         }
 
         $reviews = $query->paginate(10);
+        
+        $reviews->getCollection()->transform(function ($review) {
+            if ($review->user) {
+                $review->user->avatar_url = $review->user->avatar;
+                $review->user->full_avatar_url = $review->user->avatar ? url('storage/' . $review->user->avatar) : null;
+            }
+            $review->reviewer = $review->user;
+            unset($review->user);
+            return $review;
+        });
 
         return response()->json($reviews);
     }
@@ -48,10 +58,20 @@ class SellerReviewController extends Controller
     public function latestReviews($sellerId)
     {
         $reviews = Review::where('target_user_id', $sellerId)
-            ->with(['user:id,name,avatar,avatar,google_avatar,facebook_avatar,verified,created_at'])
+            ->with(['user:id,name,avatar,google_avatar,facebook_avatar,verified,created_at'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
+
+        $reviews = $reviews->map(function ($review) {
+            if ($review->user) {
+                $review->user->avatar_url = $review->user->avatar;
+                $review->user->full_avatar_url = $review->user->avatar ? url('storage/' . $review->user->avatar) : null;
+            }
+            $review->reviewer = $review->user;
+            unset($review->user);
+            return $review;
+        });
 
         return response()->json(['data' => $reviews]);
     }
@@ -339,8 +359,11 @@ class SellerReviewController extends Controller
             ->count();
         $memberSince = \Carbon\Carbon::parse($seller->created_at)->format('M Y');
 
+        $sellerArray = $seller->toArray();
+        $sellerArray['avatar_url'] = $seller->avatar ? url('storage/' . $seller->avatar) : null;
+
         return response()->json([
-            'seller' => $seller,
+            'seller' => $sellerArray,
             'rating' => $ratingSummary,
             'ads_count' => $adsCount,
             'member_since' => $memberSince,

@@ -10,6 +10,7 @@ import AdDescription from '@/components/ads/AdDescription';
 import ShareModal from '@/components/ui/ShareModal';
 import WriteReviewModal from '@/components/reviews/WriteReviewModal';
 import ChatModal from '@/components/chat/ChatModal';
+import SellerReviewsSection from '@/components/reviews/SellerReviewsSection';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { Heart, Share2, Flag, MapPin, Eye, Phone, ChevronLeft, ChevronRight, CheckCircle, User, Home, X, Check, Star, MessageCircle, MoreHorizontal } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -74,27 +75,35 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
 
   // Fetch ad from API
   useEffect(() => {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+    
     const fetchAd = async () => {
       console.log('[AdDetail] Starting fetch for slug:', slug);
       console.log('[AdDetail] API URL:', `${API_URL}/ads/${slug}`);
+      
+      if (!isMounted) return;
       setIsLoading(true);
       setError(null);
       
+      // Safety timeout - force stop loading after 10 seconds
+      timeoutId = setTimeout(() => {
+        if (isMounted && isLoading) {
+          console.log('[AdDetail] Safety timeout reached, stopping loading');
+          setIsLoading(false);
+          setError('Request timed out. Please try again.');
+        }
+      }, 10000);
+      
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          console.log('[AdDetail] Request timeout, aborting');
-          controller.abort();
-        }, 15000); // Increased timeout to 15 seconds
-
-        console.log('[AdDetail] Making fetch request...');
         const response = await fetch(`${API_URL}/ads/${slug}`, { 
-          signal: controller.signal,
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
           }
         });
+        
+        if (!isMounted) return;
         clearTimeout(timeoutId);
         
         console.log('[AdDetail] Response status:', response.status);
@@ -104,28 +113,34 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
         }
         const data = await response.json();
         console.log('[AdDetail] Received data:', data ? 'success' : 'empty');
-        console.log('[AdDetail] Full API response:', JSON.stringify(data));
-        // Handle both formats: { data: ad } or just { ad }
+        
         const adData = data.data || data;
-        console.log('[AdDetail] Ad data keys:', Object.keys(adData));
-        console.log('[AdDetail] Ad images raw:', adData.images);
         setAd(adData);
         setIsFavorited(adData.is_favorited || false);
       } catch (err: any) {
         console.error('[AdDetail] Error fetching ad:', err);
-        if (err.name === 'AbortError') {
-          setError('Request timed out. Please check your connection and try again.');
-        } else if (err.message.includes('Ad not found')) {
-          setError(err.message);
-        } else {
-          setError('Failed to load ad. Please try again.');
+        if (isMounted) {
+          if (err.name === 'AbortError') {
+            setError('Request timed out. Please check your connection and try again.');
+          } else if (err.message.includes('Ad not found')) {
+            setError(err.message);
+          } else {
+            setError('Failed to load ad. Please try again.');
+          }
         }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     
     fetchAd();
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [slug]);
 
   // Fetch seller rating
@@ -624,8 +639,8 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                             );
                           }
                         }
-                        const nameInitials = displayAd.user?.name 
-                          ? displayAd.user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                        const nameInitials = (typeof displayAd.user?.name === 'string' && displayAd.user.name)
+                          ? displayAd.user.name.split(' ').map((n: string) => n && n[0] ? n[0] : '').join('').slice(0, 2).toUpperCase()
                           : '?';
                         return (
                           <div className="w-full h-full flex items-center justify-center bg-primary-500 text-white font-bold text-lg">
@@ -649,40 +664,43 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                   </div>
                 </div>
 
-                {/* Seller Rating */}
-                <div className="flex items-center gap-4 text-sm text-gray-500 mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    <span className="font-medium">{sellerRating?.average_rating?.toFixed(1) || '0.0'}</span>
-                    <span>({sellerRating?.total_reviews || 0} reviews)</span>
-                  </div>
+                {/* Seller Reviews Section */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <SellerReviewsSection 
+                    sellerId={displayAd.user?.id}
+                    sellerName={displayAd.user?.name || 'Seller'}
+                    sellerAvatar={(() => {
+                      const avatarFields = [
+                        displayAd.user?.avatar_url,
+                        displayAd.user?.google_avatar,
+                        displayAd.user?.facebook_avatar,
+                        displayAd.user?.avatar,
+                        displayAd.user?.profile_image,
+                        displayAd.user?.image
+                      ];
+                      const avatarSrc = avatarFields.find(f => f && f.trim() !== '');
+                      return avatarSrc ? getImageUrl(avatarSrc) : undefined;
+                    })()}
+                  />
                 </div>
+              </div>
 
-                {/* View All Ads Link */}
-                <Link
-                  href={`/seller/${displayAd.user?.id}`}
-                  className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
-                >
-                  View all ads by this seller →
-                </Link>
+              {/* View All Ads Link */}
+              <Link
+                href={`/seller/${displayAd.user?.id}`}
+                className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                View all ads by this seller →
+              </Link>
 
-                {/* Write Review Button */}
+              <div className="space-y-3">
                 <button
-                  onClick={() => setShowWriteReview(true)}
-                  className="w-full mt-3 py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-700 border-2 border-amber-200 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                >
-                  <Star className="w-4 h-4" />
-                  Write a Review
-                </button>
-
-                <div className="space-y-3">
-                  <button
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        toggleLoginModal();
-                        return;
-                      }
-                      const phoneNumber = displayAd.phone || displayAd.user?.phone;
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      toggleLoginModal();
+                      return;
+                    }
+                    const phoneNumber = displayAd.phone || displayAd.user?.phone;
                       if (!phoneNumber) {
                         toast.error('No phone number available');
                         return;
@@ -763,19 +781,18 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                 </ul>
               </div>
             </div>
-          </div>
           )}
-        </div>
 
-        {/* Related Ads Section */}
-        {ad && (
-          <div className="mt-6">
-            <RelatedAds currentAdId={ad.id} categoryId={ad.category_id} />
+            {/* Related Ads Section */}
+            {ad && (
+              <div className="mt-6">
+                <RelatedAds currentAdId={ad.id} categoryId={ad.category_id} />
+              </div>
+            )}
           </div>
-        )}
-      </main>
+        </main>
 
-      <Footer />
+        <Footer />
 
       {/* Mobile Sticky Chat Button */}
       <div className="fixed bottom-4 left-4 right-4 md:hidden z-40">
