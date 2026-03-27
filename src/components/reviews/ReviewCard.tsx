@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, ThumbsUp, Flag, User, CheckCircle } from 'lucide-react';
+import { Star, ThumbsUp, Flag, User, CheckCircle, Heart } from 'lucide-react';
 import axios from 'axios';
 import { getAuthToken } from '@/lib/cookies';
 
@@ -18,6 +18,8 @@ interface Review {
   comment: string;
   is_verified?: boolean;
   helpful_count?: number;
+  like_count?: number;
+  is_liked_by_user?: boolean;
   created_at: string;
 }
 
@@ -26,9 +28,22 @@ interface ReviewCardProps {
   onReport: () => void;
 }
 
+function formatLikeCount(count: number): string {
+  if (count >= 1000000) {
+    return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (count >= 1000) {
+    return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return count.toString();
+}
+
 export default function ReviewCard({ review, onReport }: ReviewCardProps) {
   const [helpfulCount, setHelpfulCount] = useState(review.helpful_count ?? 0);
   const [hasVoted, setHasVoted] = useState(false);
+  const [likeCount, setLikeCount] = useState(review.like_count ?? 0);
+  const [isLiked, setIsLiked] = useState(review.is_liked_by_user ?? false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
 
@@ -50,6 +65,40 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
       setHasVoted(true);
     } catch (error) {
       console.error('Error marking review as helpful:', error);
+    }
+  };
+
+  const handleLike = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      alert('Please login to like this review');
+      return;
+    }
+
+    if (isLikeLoading) return;
+    setIsLikeLoading(true);
+
+    const wasLiked = isLiked;
+    
+    setIsLiked(!wasLiked);
+    setLikeCount((prev) => wasLiked ? prev - 1 : prev + 1);
+
+    try {
+      if (wasLiked) {
+        await axios.delete(`${API_URL}/reviews/${review.id}/like`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        await axios.post(`${API_URL}/reviews/${review.id}/like`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      setIsLiked(wasLiked);
+      setLikeCount((prev) => wasLiked ? prev + 1 : prev - 1);
+    } finally {
+      setIsLikeLoading(false);
     }
   };
 
@@ -142,7 +191,32 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
             <p className="text-xs text-gray-400 mb-3">{formatDate(review.created_at)}</p>
 
             {/* Actions */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleLike}
+                disabled={isLikeLoading}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                  isLiked
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                } ${isLikeLoading ? 'opacity-50 cursor-wait' : ''}`}
+              >
+                <svg 
+                  className="w-4 h-4"
+                  fill={isLiked ? "currentColor" : "none"}
+                  stroke={isLiked ? "currentColor" : "currentColor"}
+                  viewBox="0 0 24 24" 
+                  strokeWidth="2"
+                >
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+                </svg>
+                {likeCount > 0 && (
+                  <span className="text-xs">
+                    {formatLikeCount(likeCount)}
+                  </span>
+                )}
+              </button>
+
               <button
                 onClick={handleHelpful}
                 disabled={hasVoted}

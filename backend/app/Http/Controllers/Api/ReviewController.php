@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Review;
+use App\Models\ReviewLike;
 use App\Models\Ad;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -90,10 +91,18 @@ class ReviewController extends Controller
 
     public function userReviews(Request $request, $userId)
     {
+        $currentUserId = $request->user() ? $request->user()->id : null;
+
         $reviews = Review::where('target_user_id', $userId)
             ->with(['user', 'ad'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
+
+        $reviews->getCollection()->transform(function ($review) use ($currentUserId) {
+            $review->like_count = $review->likeCount();
+            $review->is_liked_by_user = $currentUserId ? $review->isLikedByUser($currentUserId) : false;
+            return $review;
+        });
 
         return response()->json($reviews);
     }
@@ -101,20 +110,28 @@ class ReviewController extends Controller
     public function adReviews(Request $request, $adId)
     {
         $limit = $request->input('limit');
-        
+        $currentUserId = $request->user() ? $request->user()->id : null;
+
+        $query = Review::where('ad_id', $adId)
+            ->with(['user'])
+            ->orderBy('created_at', 'desc');
+
         if ($limit) {
-            $reviews = Review::where('ad_id', $adId)
-                ->with(['user'])
-                ->orderBy('created_at', 'desc')
-                ->limit($limit)
-                ->get();
+            $reviews = $query->limit($limit)->get();
+            $reviews->transform(function ($review) use ($currentUserId) {
+                $review->like_count = $review->likeCount();
+                $review->is_liked_by_user = $currentUserId ? $review->isLikedByUser($currentUserId) : false;
+                return $review;
+            });
             return response()->json(['data' => $reviews]);
         }
         
-        $reviews = Review::where('ad_id', $adId)
-            ->with(['user'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $reviews = $query->paginate(20);
+        $reviews->getCollection()->transform(function ($review) use ($currentUserId) {
+            $review->like_count = $review->likeCount();
+            $review->is_liked_by_user = $currentUserId ? $review->isLikedByUser($currentUserId) : false;
+            return $review;
+        });
 
         return response()->json($reviews);
     }
@@ -195,5 +212,55 @@ class ReviewController extends Controller
             'message' => 'Review reported successfully',
             'report' => $report
         ], 201);
+    }
+
+    public function likeReview(Request $request, $reviewId)
+    {
+        $userId = $request->user()->id;
+
+        $review = Review::findOrFail($reviewId);
+
+        $existingLike = ReviewLike::where('review_id', $reviewId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($existingLike) {
+            return response()->json(['message' => 'You have already liked this review'], 400);
+        }
+
+        ReviewLike::create([
+            'review_id' => $reviewId,
+            'user_id' => $userId,
+            'created_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Review liked successfully',
+            'like_count' => $review->fresh()->likeCount(),
+            'is_liked_by_user' => true,
+        ]);
+    }
+
+    public function unlikeReview(Request $request, $reviewId)
+    {
+        $userId = $request->user()->id;
+
+        $review = Review::findOrFail($reviewId);
+
+        $like = ReviewLike::where('review_id', $reviewId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$like) {
+            return response()->json(['message' => 'You have not liked this review'], 400);
+        }
+
+        $like->delete();
+
+        return response()->json([
+            'message' => 'Review unliked successfully',
+            'like_count' => $review->fresh()->likeCount(),
+            'is_liked_by_user' => false,
+        ]);
     }
 }

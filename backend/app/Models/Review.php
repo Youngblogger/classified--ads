@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Review extends Model
 {
@@ -36,5 +37,20 @@ class Review extends Model
     public function ad(): BelongsTo
     {
         return $this->belongsTo(Ad::class);
+    }
+
+    public function likes(): HasMany
+    {
+        return $this->hasMany(ReviewLike::class);
+    }
+
+    public function likeCount(): int
+    {
+        return $this->likes()->count();
+    }
+
+    public function isLikedByUser(int $userId): bool
+    {
+        return $this->likes()->where('user_id', $userId)->exists();
     }
 }

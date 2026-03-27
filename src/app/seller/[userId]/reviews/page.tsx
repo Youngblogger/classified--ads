@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Star, Loader2, BadgeCheck, Home } from 'lucide-react';
+import { ArrowLeft, Star, Loader2, Home } from 'lucide-react';
 import { sellerReviewsApi } from '@/lib/api';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
+import SellerReviewCard from '@/components/reviews/SellerReviewCard';
 
 interface Review {
   id: number;
@@ -26,6 +27,8 @@ interface Review {
   is_verified_buyer: boolean;
   helpful_count: number;
   is_helpful?: boolean;
+  like_count?: number;
+  is_liked_by_user?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -84,72 +87,25 @@ function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md
 }
 
 function ReviewCard({ review }: { review: Review }) {
-  const reviewer = review.reviewer || {};
-  const reviewerName = reviewer.name || 'Anonymous';
-  const reviewerAvatar = reviewer.avatar_url || reviewer.avatar || reviewer.google_avatar || '';
-  const reviewerInitial = reviewerName.charAt(0)?.toUpperCase() || 'U';
-  
-  return (
-    <div className={`bg-white rounded-xl border p-4 ${
-      review.is_verified_buyer ? 'border-l-4 border-l-green-500 border-gray-100' : 'border-gray-100'
-    }`}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-            {reviewerAvatar ? (
-              <img 
-                src={reviewerAvatar}
-                alt={reviewerName}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-primary-600 font-bold">
-                {reviewerInitial}
-              </span>
-            )}
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-medium text-dark">{reviewerName}</span>
-              {review.is_verified_buyer && (
-                <BadgeCheck className="w-4 h-4 text-green-500" />
-              )}
-            </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <StarRating rating={review.rating} size="sm" />
-              <span className="text-xs text-gray-400">
-                {new Date(review.created_at).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  year: 'numeric' 
-                })}
-              </span>
-            </div>
-          </div>
-        </div>
-        {review.is_verified_buyer && (
-          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-            Verified Buyer
-          </span>
-        )}
-      </div>
+  const transformedReview = {
+    id: review.id,
+    rating: review.rating,
+    comment: review.comment || '',
+    created_at: review.created_at,
+    helpful_count: review.helpful_count,
+    like_count: review.like_count || 0,
+    is_liked_by_user: review.is_liked_by_user || false,
+    user: {
+      id: review.reviewer?.id || review.reviewer_id,
+      name: review.reviewer?.name || 'Anonymous',
+      email: '',
+      avatar: review.reviewer?.avatar_url || review.reviewer?.avatar || review.reviewer?.google_avatar || '',
+      created_at: '',
+      verified: review.is_verified_buyer,
+    },
+  };
 
-      {/* Review Text */}
-      <p className="text-gray-600 text-sm leading-relaxed">
-        {review.comment || 'No comment provided.'}
-      </p>
-
-      {/* Helpful Count */}
-      {review.helpful_count > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <span className="text-xs text-gray-400">
-            {review.helpful_count} {review.helpful_count === 1 ? 'person' : 'people'} found this helpful
-          </span>
-        </div>
-      )}
-    </div>
-  );
+  return <SellerReviewCard review={transformedReview} />;
 }
 
 function RatingBreakdown({ distribution, total }: { distribution: RatingDistribution; total: number }) {

@@ -175,6 +175,8 @@ export interface SellerReview {
   user: User;
   ad?: { id: number; title: string; slug: string };
   helpful_count?: number;
+  like_count?: number;
+  is_liked_by_user?: boolean;
   created_at: string;
 }
 

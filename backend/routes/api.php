@@ -150,6 +150,8 @@ Route::middleware('auth.api')->group(function () {
     // Review Actions
     Route::post('/reviews/{reviewId}/helpful', [ReviewController::class, 'markHelpful']);
     Route::post('/reviews/{reviewId}/report', [ReviewController::class, 'reportReview']);
+    Route::post('/reviews/{reviewId}/like', [ReviewController::class, 'likeReview']);
+    Route::delete('/reviews/{reviewId}/like', [ReviewController::class, 'unlikeReview']);
 
     // Seller Reviews (for sellers, not ads) - write operations require auth
     Route::get('/sellers/{sellerId}/can-review', [SellerReviewController::class, 'canReview']);

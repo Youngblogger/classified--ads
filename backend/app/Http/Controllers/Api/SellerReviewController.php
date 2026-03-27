@@ -14,6 +14,8 @@ class SellerReviewController extends Controller
 {
     public function index(Request $request, $sellerId)
     {
+        $currentUserId = $request->user() ? $request->user()->id : null;
+
         $query = Review::where('target_user_id', $sellerId)
             ->with(['user:id,name,avatar,google_avatar,facebook_avatar,verified,created_at'])
             ->with(['ad:id,title,slug']);
@@ -36,12 +38,14 @@ class SellerReviewController extends Controller
 
         $reviews = $query->paginate(10);
         
-        $reviews->getCollection()->transform(function ($review) {
+        $reviews->getCollection()->transform(function ($review) use ($currentUserId) {
             if ($review->user) {
                 $review->user->avatar_url = $review->user->avatar;
                 $review->user->full_avatar_url = $review->user->avatar ? url('storage/' . $review->user->avatar) : null;
             }
             $review->reviewer = $review->user;
+            $review->like_count = $review->likeCount();
+            $review->is_liked_by_user = $currentUserId ? $review->isLikedByUser($currentUserId) : false;
             unset($review->user);
             return $review;
         });
@@ -57,18 +61,22 @@ class SellerReviewController extends Controller
 
     public function latestReviews($sellerId)
     {
+        $currentUserId = request()->user() ? request()->user()->id : null;
+
         $reviews = Review::where('target_user_id', $sellerId)
             ->with(['user:id,name,avatar,google_avatar,facebook_avatar,verified,created_at'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
 
-        $reviews = $reviews->map(function ($review) {
+        $reviews = $reviews->map(function ($review) use ($currentUserId) {
             if ($review->user) {
                 $review->user->avatar_url = $review->user->avatar;
                 $review->user->full_avatar_url = $review->user->avatar ? url('storage/' . $review->user->avatar) : null;
             }
             $review->reviewer = $review->user;
+            $review->like_count = $review->likeCount();
+            $review->is_liked_by_user = $currentUserId ? $review->isLikedByUser($currentUserId) : false;
             unset($review->user);
             return $review;
         });
