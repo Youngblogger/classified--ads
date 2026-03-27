@@ -61,19 +61,15 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
         setLoadingMore(true);
       }
 
-      setDebugInfo(`Fetching page ${pageNum}...`);
+      setDebugInfo(`Fetching similar ads page ${pageNum}...`);
 
       const params = new URLSearchParams({
+        ad_id: currentAdId.toString(),
+        limit: ITEMS_PER_PAGE.toString(),
         page: pageNum.toString(),
-        per_page: ITEMS_PER_PAGE.toString(),
-        exclude: currentAdId.toString(),
       });
-      
-      if (categoryId) {
-        params.append('category_id', categoryId.toString());
-      }
 
-      const response = await axios.get(`${API_URL}/ads?${params}`, {
+      const response = await axios.get(`${API_URL}/ads/similar?${params}`, {
         timeout: 10000,
       });
 
@@ -83,7 +79,7 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
         newAds = [];
       }
 
-      setDebugInfo(`Got ${newAds.length} ads, total loaded: ${ads.length + newAds.length}`);
+      setDebugInfo(`Got ${newAds.length} similar ads`);
 
       const uniqueAds = newAds.filter((ad: Ad) => {
         if (loadedIdsRef.current.has(ad.id)) {
@@ -102,14 +98,14 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
       setHasMore(uniqueAds.length === ITEMS_PER_PAGE);
       setPage(pageNum);
     } catch (err: any) {
-      console.error('Error fetching related ads:', err);
+      console.error('Error fetching similar ads:', err);
       setError(err.message || 'Failed to load ads');
       setDebugInfo(`Error: ${err.message}`);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [currentAdId, categoryId, ads.length]);
+  }, [currentAdId]);
 
   useEffect(() => {
     if (!initialAds) {

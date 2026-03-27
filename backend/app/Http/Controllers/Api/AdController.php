@@ -258,4 +258,96 @@ class AdController extends Controller
 
         return response()->json($ads);
     }
+
+    public function similarAds(Request $request)
+    {
+        try {
+            $adId = $request->ad_id;
+            $limit = $request->limit ?? 12;
+            $page = $request->page ?? 1;
+
+            $currentAd = Ad::find($adId);
+            
+            if (!$currentAd) {
+                return response()->json(['error' => 'Ad not found'], 404);
+            }
+
+            $keywords = $this->extractKeywords($currentAd->title . ' ' . $currentAd->description);
+            
+            $query = Ad::with(['images', 'category', 'location'])
+                ->where('status', 'active')
+                ->where('id', '!=', $adId);
+
+            $query->where(function($q) use ($currentAd) {
+                $q->where('category_id', $currentAd->category_id);
+                
+                if ($currentAd->category && $currentAd->category->parent_id) {
+                    $q->orWhereHas('category', function($catQuery) use ($currentAd) {
+                        $catQuery->where('parent_id', $currentAd->category->parent_id);
+                    });
+                }
+            });
+
+            if (!empty($keywords)) {
+                $query->where(function($q) use ($keywords) {
+                    foreach ($keywords as $keyword) {
+                        if (strlen($keyword) >= 2) {
+                            $q->orWhere(function($subQ) use ($keyword) {
+                                $subQ->where('title', 'like', '%' . $keyword . '%')
+                                     ->orWhere('description', 'like', '%' . $keyword . '%');
+                            });
+                        }
+                    }
+                });
+            }
+
+            $priceMin = $currentAd->price * 0.5;
+            $priceMax = $currentAd->price * 2;
+            $query->whereBetween('price', [$priceMin, $priceMax]);
+
+            $ads = $query->orderBy('created_at', 'desc')
+                ->skip(($page - 1) * $limit)
+                ->take($limit)
+                ->get();
+
+            return response()->json([
+                'data' => $ads,
+                'meta' => [
+                    'current_page' => $page,
+                    'per_page' => $limit,
+                    'total' => $ads->count()
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch similar ads: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load similar ads', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    private function extractKeywords($text)
+    {
+        $text = strtolower($text);
+        $text = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $text);
+        $words = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+        
+        $stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
+            'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+            'may', 'might', 'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'those',
+            'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'whom',
+            'their', 'its', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 'so',
+            'not', 'no', 'yes', 'all', 'any', 'some', 'much', 'many', 'more', 'most', 'other',
+            'such', 'only', 'own', 'same', 'than', 'too', 'very', 's', 't', 'can', 'will',
+            'just', 'don', 'should', 'now', 'your', 'my', 'our', 'his', 'her', 'product'];
+        
+        $filteredWords = array_filter($words, function($word) use ($stopWords) {
+            return strlen($word) >= 2 && !in_array($word, $stopWords);
+        });
+
+        usort($filteredWords, function($a, $b) {
+            return strlen($b) - strlen($a);
+        });
+
+        return array_slice($filteredWords, 0, 10);
+    }
 }

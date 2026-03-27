@@ -81,6 +81,7 @@ Route::prefix('ads')->group(function () {
     Route::get('/', [AdController::class, 'index']);
     Route::get('/featured', [AdController::class, 'featured']);
     Route::get('/recent', [AdController::class, 'recent']);
+    Route::get('/similar', [AdController::class, 'similarAds']);
     Route::get('/{slug}', [AdController::class, 'show'])->where('slug', '^(?=.*[a-z])[a-z0-9\-]+$');
 });
 
