@@ -229,7 +229,7 @@ class NotificationService
     public static function newFavorite($ad, $user)
     {
         return self::sendToAdOwner($ad, 'new_favorite', 'Someone Saved Your Ad ❤️', 
-            "{$user->name} saved your ad '{$ad->title}' to their favorites!", [
+            "A buyer saved your ad '{$ad->title}' to their favorites!", [
                 'favoriter_id' => $user->id,
                 'favoriter_name' => $user->name
             ]);

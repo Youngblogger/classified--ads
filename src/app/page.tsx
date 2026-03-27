@@ -101,7 +101,7 @@ function AdCardWithImage({ ad }: { ad: any }) {
         
         <div className="flex items-center gap-1.5 mt-3 text-slate-500 text-sm">
           <MapPin className="w-4 h-4 flex-shrink-0 text-slate-400" />
-          <span className="truncate">{ad.location?.name || 'N/A'}</span>
+          <span className="truncate">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</span>
         </div>
       </div>
     </Link>

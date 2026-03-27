@@ -31,6 +31,7 @@ interface Ad {
   is_verified: boolean;
   category: { id: number; name: string; slug: string };
   location: { id: number; name: string } | null;
+  lga?: string;
   user: { id: number; name: string; email: string; phone?: string; avatar?: string; avatar_url?: string };
   images: { id: number; url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean; full_url?: string; full_thumbnail_url?: string }[];
   views: number;
@@ -392,7 +393,7 @@ export default function AdsApprovalPage() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Location</p>
-                      <p className="font-medium text-gray-900">{ad.location?.name || 'N/A'}</p>
+                      <p className="font-medium text-gray-900">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Condition</p>

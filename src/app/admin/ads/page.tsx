@@ -35,6 +35,7 @@ interface Ad {
   is_featured?: boolean;
   category: { name: string; slug: string };
   location: { name: string } | null;
+  lga?: string;
   user: { name: string; verified: boolean };
   images: { url?: string; display_url?: string; thumbnail_url?: string; is_primary: boolean; full_url?: string; full_thumbnail_url?: string }[];
   views: number;
@@ -330,7 +331,7 @@ export default function AdsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm text-gray-900">{ad.user?.name}</p>
-                      <p className="text-sm text-gray-500">{ad.location?.name || 'N/A'}</p>
+                      <p className="text-sm text-gray-500">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</p>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${

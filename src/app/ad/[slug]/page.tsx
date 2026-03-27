@@ -515,7 +515,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
-                    {displayAd.location?.name}
+                    {displayAd.lga ? `${displayAd.location?.name}, ${displayAd.lga}` : displayAd.location?.name}
                   </span>
                   <span className="flex items-center gap-1">
                     <Eye className="w-4 h-4" />

@@ -63,6 +63,7 @@ export interface Ad {
   user?: Partial<User>;
   category?: Category;
   location?: Location;
+  lga?: string;
   images: AdImage[];
   specifications?: AdSpecification[];
   is_favorited?: boolean;

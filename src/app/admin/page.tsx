@@ -70,6 +70,7 @@ interface RecentAd {
   price: string;
   status: string;
   location: { name: string } | string | null;
+  lga?: string;
   created_at: string;
 }
 
@@ -273,7 +274,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{ad.title}</p>
-                    <p className="text-sm text-gray-500">{typeof ad.location === 'object' ? ad.location?.name || 'N/A' : ad.location || 'N/A'} • {timeAgo(ad.created_at)}</p>
+                    <p className="text-sm text-gray-500">{typeof ad.location === 'object' ? (ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name) || 'N/A' : ad.location || 'N/A'} • {timeAgo(ad.created_at)}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(ad.status)}`}>

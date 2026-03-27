@@ -27,6 +27,7 @@ interface Ad {
   short_description?: string;
   images: AdImage[];
   location?: { name: string } | null;
+  lga?: string;
   created_at: string;
 }
 
@@ -236,7 +237,7 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
                   )}
                   <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
                     <MapPin className="w-3 h-3" />
-                    <span className="truncate">{ad.location?.name || 'N/A'}</span>
+                    <span className="truncate">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</span>
                   </div>
                 </div>
               </Link>

@@ -22,6 +22,12 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
   }
   const imageUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
 
+  const getLocationDisplay = () => {
+    if (!ad.location?.name) return 'N/A';
+    if (ad.lga) return `${ad.location.name}, ${ad.lga}`;
+    return ad.location.name;
+  };
+
   const getConditionBadge = () => {
     if (!ad.condition) return null;
     const badgeClasses = ad.condition === 'new' ? 'bg-green-500 text-white' :
@@ -63,7 +69,7 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
           </div>
           <div className="flex items-center gap-2 mt-2 text-gray-500 text-sm">
             <MapPin className="w-4 h-4" />
-            <span>{ad.location?.name || 'N/A'}</span>
+            <span>{getLocationDisplay()}</span>
           </div>
         </div>
       </Link>
@@ -95,7 +101,7 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
           </p>
           <div className="flex items-center gap-1 mt-2 text-gray-400 text-xs">
             <MapPin className="w-3 h-3" />
-            <span className="truncate">{ad.location?.name || 'N/A'}</span>
+            <span className="truncate">{getLocationDisplay()}</span>
           </div>
         </div>
       </Link>
@@ -133,7 +139,7 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
         </p>
         <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
           <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">{ad.location?.name || 'N/A'}</span>
+          <span className="truncate">{getLocationDisplay()}</span>
         </div>
       </div>
     </Link>
