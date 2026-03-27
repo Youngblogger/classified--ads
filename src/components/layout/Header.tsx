@@ -717,7 +717,13 @@ export default function Header() {
             <Link href="/categories" className="flex items-center gap-1.5 text-white hover:text-gray-200 font-medium whitespace-nowrap">
               <span>☰</span> All Categories
             </Link>
-            {categories.slice(0, 16).map((category: any) => (
+            <Link href="/promote-ad" className="text-white/80 hover:text-white whitespace-nowrap transition-colors font-medium">
+              Promote Ad
+            </Link>
+            <Link href="/premium-plans" className="text-white/80 hover:text-white whitespace-nowrap transition-colors font-medium">
+              Premium Plans
+            </Link>
+            {categories.slice(0, 14).map((category: any) => (
               <Link 
                 key={category.id} 
                 href={`/ads?category=${category.slug}`}
@@ -800,6 +806,15 @@ export default function Header() {
               )}
               <Link href="/categories" className="block py-2 text-dark font-medium">
                 All Categories
+              </Link>
+              <Link href="/promote-ad" className="block py-2 text-dark font-medium">
+                Promote Ad
+              </Link>
+              <Link href="/premium-plans" className="block py-2 text-dark font-medium">
+                Premium Plans
+              </Link>
+              <Link href="/business-accounts" className="block py-2 text-dark font-medium">
+                Business Accounts
               </Link>
               <button onClick={handleLogout} className="block py-2 text-error font-medium w-full text-left">
                 Logout

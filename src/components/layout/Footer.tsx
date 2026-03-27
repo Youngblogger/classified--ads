@@ -59,9 +59,9 @@ export default function Footer() {
 
   const serviceLinks = [
     { label: 'Post Ad', href: '/post-ad' },
-    { label: 'Promote Ad', href: '/promote' },
-    { label: 'Premium Plans', href: '/subscription' },
-    { label: 'Business Accounts', href: '/business' },
+    { label: 'Promote Ad', href: '/promote-ad' },
+    { label: 'Premium Plans', href: '/premium-plans' },
+    { label: 'Business Accounts', href: '/business-accounts' },
   ];
 
   const locationLinks = [

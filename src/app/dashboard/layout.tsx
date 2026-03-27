@@ -130,6 +130,8 @@ const navigation: NavItem[] = [
   { name: 'Promotions', href: '/dashboard/promotions', icon: PromoIcon },
   { name: 'Notifications', href: '/dashboard/notifications', icon: BellIcon },
   { name: 'Reviews', href: '/dashboard/reviews', icon: StarIcon },
+  { name: 'Premium Plans', href: '/premium-plans', icon: StarIcon },
+  { name: 'Business Accounts', href: '/business-accounts', icon: UserIcon },
   { name: 'Profile Settings', href: '/dashboard/profile', icon: UserIcon },
   { name: 'Security Settings', href: '/dashboard/security', icon: ShieldIcon },
 ];
