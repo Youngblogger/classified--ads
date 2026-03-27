@@ -33,11 +33,25 @@ interface Review {
 interface SellerProfile {
   id: number;
   name: string;
+  avatar?: string;
   avatar_url?: string;
-  rating: {
+  google_avatar?: string;
+  facebook_avatar?: string;
+  rating?: {
     average_rating: number;
     total_reviews: number;
   };
+}
+
+interface SellerProfileResponse {
+  seller: SellerProfile;
+  rating: {
+    average_rating: number;
+    total_reviews: number;
+    distribution?: RatingDistribution;
+  };
+  ads_count: number;
+  member_since: string;
 }
 
 interface RatingDistribution {
@@ -190,8 +204,14 @@ export default function SellerReviewsPage() {
         sort: 'verified_first',
       });
 
-      const newReviews = response.data.reviews || response.data.data || response.data || [];
-      const meta = response.data.meta;
+      const responseData = response.data;
+      const reviewsData = responseData.data || responseData.reviews || responseData || [];
+      const newReviews = Array.isArray(reviewsData) ? reviewsData : [];
+      const meta = {
+        total: responseData.total,
+        current_page: responseData.current_page,
+        last_page: responseData.last_page,
+      };
       
       const uniqueReviews = newReviews.filter((review: Review) => {
         if (loadedIdsRef.current.has(review.id)) return false;
@@ -205,11 +225,11 @@ export default function SellerReviewsPage() {
         setReviews(prev => [...prev, ...uniqueReviews]);
       }
 
-      if (meta) {
+      if (meta?.total !== undefined) {
         setTotalReviews(meta.total || 0);
         setHasMore(meta.current_page < meta.last_page);
       } else {
-        setHasMore(uniqueReviews.length === 12);
+        setHasMore(uniqueReviews.length === 10);
       }
       
       setPage(pageNum);
@@ -224,9 +244,14 @@ export default function SellerReviewsPage() {
   const fetchSellerProfile = async () => {
     try {
       const response = await sellerReviewsApi.getSellerProfile(sellerId);
-      setSeller(response.data);
-      if (response.data.rating?.distribution) {
-        setDistribution(response.data.rating.distribution);
+      const rawData = response.data;
+      
+      // Backend returns { seller: {...}, rating: {...}, ads_count: X, member_since: X }
+      const sellerData = rawData.seller || rawData;
+      setSeller(sellerData);
+      
+      if (rawData.rating?.distribution) {
+        setDistribution(rawData.rating.distribution);
       }
     } catch (error) {
       console.error('Error fetching seller profile:', error);
@@ -272,28 +297,50 @@ export default function SellerReviewsPage() {
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Back Link */}
-          <Link 
-            href="/"
+          <button 
+            onClick={() => window.history.back()}
             className="inline-flex items-center gap-2 text-gray-500 hover:text-primary-600 mb-6"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
+            Back
+          </button>
 
           {/* Seller Header */}
           <div className="bg-white rounded-2xl p-6 mb-6">
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                {seller?.avatar_url ? (
-                  <img 
-                    src={seller.avatar_url} 
-                    alt={seller.name} 
-                    className="w-full h-full object-cover"
-                  />
+                {seller && seller.name ? (
+                  (() => {
+                    // Try all avatar sources in order of priority
+                    const avatarSrc = 
+                      seller.avatar_url || 
+                      seller.google_avatar || 
+                      seller.facebook_avatar ||
+                      (seller.avatar ? `/storage/${seller.avatar}` : null);
+                    
+                    if (avatarSrc) {
+                      return (
+                        <img 
+                          src={avatarSrc} 
+                          alt={seller.name || 'Seller'} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to initial if image fails
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = `<span class="text-primary-600 font-bold text-2xl">${seller.name?.charAt(0)?.toUpperCase() || 'S'}</span>`;
+                          }}
+                        />
+                      );
+                    }
+                    return (
+                      <span className="text-primary-600 font-bold text-2xl">
+                        {seller.name?.charAt(0)?.toUpperCase() || 'S'}
+                      </span>
+                    );
+                  })()
                 ) : (
-                  <span className="text-primary-600 font-bold text-2xl">
-                    {seller?.name?.charAt(0)?.toUpperCase() || 'S'}
-                  </span>
+                  <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
                 )}
               </div>
               <div>

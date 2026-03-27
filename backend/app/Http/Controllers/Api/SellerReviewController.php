@@ -360,7 +360,22 @@ class SellerReviewController extends Controller
         $memberSince = \Carbon\Carbon::parse($seller->created_at)->format('M Y');
 
         $sellerArray = $seller->toArray();
-        $sellerArray['avatar_url'] = $seller->avatar ? url('storage/' . $seller->avatar) : null;
+        
+        // Build full avatar URL - use backend URL from config
+        $backendUrl = config('app.url', 'http://127.0.0.1:8000');
+        if ($seller->avatar) {
+            $sellerArray['avatar_url'] = $backendUrl . '/storage/' . $seller->avatar;
+        } else {
+            $sellerArray['avatar_url'] = null;
+        }
+        
+        // Add full URLs for social avatars
+        if ($seller->google_avatar) {
+            $sellerArray['google_avatar'] = $seller->google_avatar;
+        }
+        if ($seller->facebook_avatar) {
+            $sellerArray['facebook_avatar'] = $seller->facebook_avatar;
+        }
 
         return response()->json([
             'seller' => $sellerArray,

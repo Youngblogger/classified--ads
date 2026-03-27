@@ -786,7 +786,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
             {/* Related Ads Section */}
             {ad && (
               <div className="mt-6">
-                <RelatedAds currentAdId={ad.id} categoryId={ad.category_id} />
+                <RelatedAds currentAdId={ad.id} categoryId={ad.category?.id} />
               </div>
             )}
           </div>
