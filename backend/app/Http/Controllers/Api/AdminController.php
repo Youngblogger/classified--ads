@@ -74,6 +74,7 @@ class AdminController extends Controller
         $ad->update(['status' => 'active']);
         
         NotificationService::adApproved($ad);
+        NotificationService::notifyFollowersOfNewAd($ad);
         
         return response()->json(['message' => 'Ad approved', 'ad' => $ad]);
     }

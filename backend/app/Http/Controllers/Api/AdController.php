@@ -168,6 +168,8 @@ class AdController extends Controller
             NotificationService::adPendingReview($ad);
         } else {
             NotificationService::adPublished($ad);
+            // Notify followers of new ad
+            NotificationService::notifyFollowersOfNewAd($ad);
         }
 
         // Handle images - Laravel receives 'images[]' as 'images' in FormData

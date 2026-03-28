@@ -99,6 +99,33 @@ class User extends Authenticatable
         return $this->hasOne(\App\Models\Wallet::class);
     }
 
+    public function followers()
+    {
+        return $this->hasMany(\App\Models\Follow::class, 'following_id');
+    }
+
+    public function following()
+    {
+        return $this->hasMany(\App\Models\Follow::class, 'follower_id');
+    }
+
+    public function followersCount(): int
+    {
+        return \App\Models\Follow::where('following_id', $this->id)->count();
+    }
+
+    public function followingCount(): int
+    {
+        return \App\Models\Follow::where('follower_id', $this->id)->count();
+    }
+
+    public function isFollowedBy(int $userId): bool
+    {
+        return \App\Models\Follow::where('follower_id', $userId)
+            ->where('following_id', $this->id)
+            ->exists();
+    }
+
     public function emailVerification()
     {
         return $this->hasOne(\App\Models\EmailVerification::class);

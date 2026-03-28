@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Search, MapPin, Bell, Heart, User, LogOut, Plus, Phone, MessageCircle, Check, Star, CreditCard, TrendingUp, Shield, AlertTriangle, ThumbsUp, ThumbsDown, Megaphone, Ban, Mail, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Menu, X, Search, MapPin, Bell, Heart, User, LogOut, Plus, Phone, MessageCircle, Check, Star, CreditCard, TrendingUp, Shield, AlertTriangle, ThumbsUp, ThumbsDown, Megaphone, Ban, Mail, FileText, CheckCircle, Clock, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useSWR from 'swr';
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
@@ -26,6 +26,7 @@ const NOTIFICATION_ICONS: Record<string, any> = {
   ad_rejected: ThumbsDown,
   ad_deleted: AlertTriangle,
   new_message: MessageCircle,
+  new_ad_followed: Package,
   payment_received: CreditCard,
   payment_approved: CreditCard,
   payment_rejected: CreditCard,
@@ -301,6 +302,7 @@ export default function Header() {
         router.push('/dashboard/reports');
         break;
       case 'new_favorite':
+      case 'new_ad_followed':
         if (notif.data?.ad_slug) {
           router.push(`/ad/${notif.data.ad_slug}`);
         } else if (notif.data?.ad_id) {

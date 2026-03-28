@@ -273,6 +273,18 @@ export const messagesApi = {
   deleteMessage: (messageId: number) => api.delete(`/messages/message/${messageId}`),
 };
 
+// Follow API
+export const followApi = {
+  follow: (followingId: number) => api.post('/follow', { following_id: followingId }),
+  unfollow: (followingId: number) => api.delete('/unfollow', { data: { following_id: followingId } }),
+  checkFollow: (followingId: number) => api.get('/follow/check', { params: { following_id: followingId } }),
+  getFollowers: (userId: number, page = 1) => api.get(`/users/${userId}/followers`, { params: { page } }),
+  getFollowing: (userId: number, page = 1) => api.get(`/users/${userId}/following`, { params: { page } }),
+  getUserStats: (userId: number) => api.get(`/users/${userId}/stats`),
+  getFollowingFeed: (page = 1) => api.get('/feed/following', { params: { page } }),
+  getSuggestedSellers: () => api.get('/sellers/suggested'),
+};
+
 // Reviews API
 export const reviewsApi = {
   getUserReviews: (userId: number) => api.get(`/reviews/user/${userId}`),

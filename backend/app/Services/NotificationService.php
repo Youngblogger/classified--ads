@@ -256,6 +256,31 @@ class NotificationService
             ]);
     }
 
+    public static function newAdFromFollowedSeller($ad, $follower)
+    {
+        return self::send($follower->id, 'new_ad_followed', '🆕 New Item from Seller You Follow', 
+            "{$ad->user->name} just posted a new item: {$ad->title}", [
+                'ad_id' => $ad->id,
+                'ad_slug' => $ad->slug,
+                'seller_id' => $ad->user_id,
+                'seller_name' => $ad->user->name,
+                'ad_title' => $ad->title,
+                'ad_price' => $ad->price,
+            ]);
+    }
+
+    public static function notifyFollowersOfNewAd($ad)
+    {
+        // Get all followers of this seller
+        $followers = \App\Models\Follow::where('following_id', $ad->user_id)->get();
+        
+        foreach ($followers as $follow) {
+            self::newAdFromFollowedSeller($ad, $follow->follower);
+        }
+        
+        return count($followers);
+    }
+
     // System Notifications
     public static function systemNotice($userId, $title, $message)
     {

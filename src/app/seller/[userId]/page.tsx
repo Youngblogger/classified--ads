@@ -3,14 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Star, MapPin, Calendar, CheckCircle, MessageCircle, Phone, ChevronLeft, Loader2 } from 'lucide-react';
+import { Star, MapPin, Calendar, CheckCircle, MessageCircle, Phone, ChevronLeft, Loader2, UserPlus, UserMinus } from 'lucide-react';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import SellerRatingSummary from '@/components/reviews/SellerRatingSummary';
 import SellerReviewCard from '@/components/reviews/SellerReviewCard';
 import SellerReviewModal from '@/components/reviews/SellerReviewModal';
 import AdCard from '@/components/ui/AdCard';
-import { sellerReviewsApi } from '@/lib/api';
+import { sellerReviewsApi, followApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { useAuthStore } from '@/lib/store';
 import type { SellerProfile, SellerReview } from '@/types';
 
@@ -29,10 +30,16 @@ export default function SellerProfilePage() {
   const [reviewSort, setReviewSort] = useState('newest');
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
+  const { user } = useAuthStore();
 
   useEffect(() => {
     fetchSellerProfile();
-  }, [sellerId]);
+    fetchFollowStatus();
+  }, [sellerId, isAuthenticated]);
 
   useEffect(() => {
     if (seller) {
@@ -73,6 +80,41 @@ export default function SellerProfilePage() {
       }
     } finally {
       setReviewsLoading(false);
+    }
+  };
+
+  const fetchFollowStatus = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const response = await followApi.getUserStats(sellerId);
+      setIsFollowing(response.data.is_following);
+      setFollowersCount(response.data.followers_count);
+      setFollowingCount(response.data.following_count);
+    } catch (error) {
+      console.error('Error fetching follow status:', error);
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please login to follow sellers');
+      return;
+    }
+    
+    setFollowLoading(true);
+    try {
+      const response = await followApi.follow(sellerId);
+      setIsFollowing(response.data.is_following);
+      setFollowersCount(response.data.followers_count);
+      if (response.data.is_following) {
+        toast.success(`You're now following ${seller?.seller?.name}`);
+      } else {
+        toast.success(`Unfollowed ${seller?.seller?.name}`);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update follow status');
+    } finally {
+      setFollowLoading(false);
     }
   };
 
@@ -159,6 +201,16 @@ export default function SellerProfilePage() {
                       Verified Seller
                     </span>
                   )}
+                  {/* Follow Stats */}
+                  <div className="flex items-center gap-4 mt-2 text-sm">
+                    <span className="font-medium text-gray-700">
+                      {followersCount.toLocaleString()} follower{followersCount !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-gray-400">|</span>
+                    <span className="text-gray-600">
+                      {followingCount.toLocaleString()} following
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-3 text-sm">
@@ -183,6 +235,31 @@ export default function SellerProfilePage() {
                 </div>
 
                 <div className="mt-6 space-y-3">
+                  {user && user.id !== sellerId && (
+                    <button
+                      onClick={handleFollow}
+                      disabled={followLoading}
+                      className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+                        isFollowing
+                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                          : 'bg-primary-600 text-white hover:bg-primary-700'
+                      } ${followLoading ? 'opacity-70 cursor-wait' : ''}`}
+                    >
+                      {followLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : isFollowing ? (
+                        <>
+                          <UserMinus className="w-5 h-5" />
+                          <span>Following</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-5 h-5" />
+                          <span>Follow</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowReviewModal(true)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium"

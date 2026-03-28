@@ -11,6 +11,7 @@ import ShareModal from '@/components/ui/ShareModal';
 import WriteReviewModal from '@/components/reviews/WriteReviewModal';
 import ChatModal from '@/components/chat/ChatModal';
 import SellerReviewsSection from '@/components/reviews/SellerReviewsSection';
+import SellerProfileCard from '@/components/ui/SellerProfileCard';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { Heart, Share2, Flag, MapPin, Eye, Phone, ChevronLeft, ChevronRight, CheckCircle, User, Home, X, Check, Star, MessageCircle, MoreHorizontal } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -611,66 +612,21 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
             <div className="space-y-4 lg:space-y-6">
               {/* Seller Info Card */}
               <div className="card p-4 lg:p-6">
-                {/* Seller Info - Horizontal Layout */}
-                <div className="flex items-center gap-4">
-                  {/* Left: Profile Thumbnail */}
-                  <div className="flex-shrink-0">
-                    <div className="w-[60px] h-[60px] bg-primary-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-sm">
-                      {(() => {
-                        const avatarFields = [
-                          displayAd.user?.avatar_url,
-                          displayAd.user?.google_avatar,
-                          displayAd.user?.facebook_avatar,
-                          displayAd.user?.avatar,
-                          displayAd.user?.profile_image,
-                          displayAd.user?.image
-                        ];
-                        const avatarSrc = avatarFields.find(f => f && f.trim() !== '');
-                        
-                        if (avatarSrc) {
-                          const imgUrl = getImageUrl(avatarSrc);
-                          if (imgUrl) {
-                            return (
-                              <img 
-                                src={imgUrl} 
-                                alt={displayAd.user?.name || 'Seller'} 
-                                className="w-full h-full object-cover"
-                              />
-                            );
-                          }
-                        }
-                        const nameInitials = (typeof displayAd.user?.name === 'string' && displayAd.user.name)
-                          ? displayAd.user.name.split(' ').map((n: string) => n && n[0] ? n[0] : '').join('').slice(0, 2).toUpperCase()
-                          : '?';
-                        return (
-                          <div className="w-full h-full flex items-center justify-center bg-primary-500 text-white font-bold text-lg">
-                            {nameInitials}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  
-                  {/* Right: Seller Info */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="font-bold text-dark text-base">
-                        {displayAd.user?.name || 'Unknown Seller'}
-                      </h3>
-                      {(displayAd.user?.verified || displayAd.user?.is_verified) && (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#1d9bf0"/>
-                        </svg>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      Joined {displayAd.user?.created_at 
-                        ? new Date(displayAd.user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                        : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-
+                <SellerProfileCard
+                  seller={{
+                    id: displayAd.user?.id,
+                    name: displayAd.user?.name || 'Unknown Seller',
+                    avatar: displayAd.user?.avatar,
+                    google_avatar: displayAd.user?.google_avatar,
+                    facebook_avatar: displayAd.user?.facebook_avatar,
+                    is_verified: displayAd.user?.verified || displayAd.user?.is_verified,
+                    created_at: displayAd.user?.created_at,
+                    verified: displayAd.user?.verified || displayAd.user?.is_verified,
+                  }}
+                  size="md"
+                  showFollowButton={true}
+                  className="w-full"
+                />
               </div>
 
               {/* View All Ads Link */}

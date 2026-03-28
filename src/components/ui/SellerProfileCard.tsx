@@ -1,24 +1,33 @@
 'use client';
 
-import { CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle, UserPlus, UserMinus, Loader2 } from 'lucide-react';
+import { useAuthStore } from '@/lib/store';
+import { followApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface SellerProfileCardProps {
   seller: {
+    id?: number;
     name: string;
     profile_image?: string | null;
     avatar?: string | null;
     google_avatar?: string | null;
     facebook_avatar?: string | null;
     is_verified?: boolean;
+    verified?: boolean;
     title?: string;
     joined_date?: string;
     created_at?: string;
     member_since?: string;
     rating?: number;
     total_reviews?: number;
+    followers_count?: number;
+    is_following?: boolean;
   };
   size?: 'sm' | 'md' | 'lg';
   showHoverEffect?: boolean;
+  showFollowButton?: boolean;
   className?: string;
 }
 
@@ -26,6 +35,17 @@ function formatDate(dateString?: string): string {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+function formatFollowers(count?: number): string {
+  if (!count || count === 0) return '0 followers';
+  if (count >= 1000000) {
+    return `${(count / 1000000).toFixed(1)}M followers`;
+  }
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K followers`;
+  }
+  return `${count.toLocaleString()} follower${count === 1 ? '' : 's'}`;
 }
 
 function getProfileImage(seller: SellerProfileCardProps['seller']): string | null {
@@ -67,7 +87,6 @@ function VerifiedBadge({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
 function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md' }) {
   const sizes = { sm: 12, md: 14 };
   const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 >= 0.5;
   
   return (
     <div className="flex items-center gap-0.5">
@@ -111,8 +130,15 @@ export default function SellerProfileCard({
   seller,
   size = 'md',
   showHoverEffect = true,
+  showFollowButton = false,
   className = ''
 }: SellerProfileCardProps) {
+  const { user, isAuthenticated } = useAuthStore();
+  const [isFollowing, setIsFollowing] = useState(seller.is_following || false);
+  const [followersCount, setFollowersCount] = useState(seller.followers_count || 0);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const isOwnProfile = user?.id === seller.id;
   const profileImage = getProfileImage(seller);
   const joinedDate = seller.joined_date || formatDate(seller.created_at || seller.member_since);
   
@@ -124,17 +150,51 @@ export default function SellerProfileCard({
   
   const currentSizes = sizes[size];
 
+  const handleFollow = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please login to follow sellers');
+      return;
+    }
+    
+    if (!seller.id) {
+      toast.error('Invalid seller');
+      return;
+    }
+    
+    if (isOwnProfile) {
+      toast.error("You can't follow yourself");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const response = await followApi.follow(seller.id);
+      setIsFollowing(response.data.is_following);
+      setFollowersCount(response.data.followers_count);
+      
+      if (response.data.is_following) {
+        toast.success(`You're now following ${seller.name}`);
+      } else {
+        toast.success(`Unfollowed ${seller.name}`);
+      }
+    } catch (error: any) {
+      console.error('Follow error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update follow status');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div
       className={`
-        flex items-center justify-between
-        bg-white rounded-xl border border-gray-100
+        bg-white rounded-xl border border-gray-100 p-4
         ${showHoverEffect ? 'hover:shadow-md transition-shadow duration-200' : ''}
         ${className}
       `}
     >
-      {/* Left side - Profile image and name */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         {/* Profile Image */}
         <div className="relative flex-shrink-0">
           {profileImage ? (
@@ -154,46 +214,66 @@ export default function SellerProfileCard({
           </div>
         </div>
         
-        {/* Name and Verified Badge */}
-        <div className="flex flex-col">
+        {/* Right side - Name and Follow button */}
+        <div className="flex-1 min-w-0">
+          {/* Line 1: Name + Verified Badge */}
           <div className="flex items-center gap-1.5">
             <span
-              className="font-bold text-dark"
+              className="font-bold text-dark truncate"
               style={{ fontSize: currentSizes.name }}
             >
               {seller.name || 'Unknown Seller'}
             </span>
-            {seller.is_verified && <VerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
+            {(seller.is_verified || seller.verified) && <VerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
+          </div>
+          
+          {/* Line 2: Followers count (left) + Follow button (right) */}
+          <div className="flex items-center mt-1">
+            {followersCount > 0 ? (
+              <span className="text-xs text-gray-500">
+                {formatFollowers(followersCount)}
+              </span>
+            ) : (
+              <span className="text-xs text-gray-500">0 followers</span>
+            )}
+            
+            {showFollowButton && seller.id && !isOwnProfile && (
+              <button
+                onClick={handleFollow}
+                disabled={isLoading}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 ml-2
+                  ${isFollowing 
+                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300' 
+                    : 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm hover:shadow'
+                  }
+                  ${isLoading ? 'opacity-70 cursor-wait' : 'cursor-pointer'}
+                `}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isFollowing ? (
+                  <>
+                    <UserMinus className="w-4 h-4" />
+                    <span>Following</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4" />
+                    <span>Follow</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
           
           {/* Rating (if available) */}
           {seller.rating !== undefined && seller.rating > 0 && (
-            <StarRating rating={seller.rating} size={size === 'lg' ? 'md' : 'sm'} />
+            <div className="mt-1">
+              <StarRating rating={seller.rating} size={size === 'lg' ? 'md' : 'sm'} />
+            </div>
           )}
         </div>
-      </div>
-      
-      {/* Right side - Title and Joined Date */}
-      <div className="flex flex-col items-end text-right">
-        {seller.title && (
-          <span
-            className="font-medium text-gray-700"
-            style={{ fontSize: currentSizes.title }}
-          >
-            {seller.title}
-          </span>
-        )}
-        <span
-          className="text-gray-400"
-          style={{ fontSize: currentSizes.date }}
-        >
-          Joined {joinedDate}
-        </span>
-        {seller.total_reviews !== undefined && seller.total_reviews > 0 && (
-          <span className="text-xs text-gray-400 mt-0.5">
-            {seller.total_reviews} reviews
-          </span>
-        )}
       </div>
     </div>
   );

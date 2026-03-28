@@ -28,6 +28,7 @@ const NOTIFICATION_ICONS: Record<string, any> = {
   ad_published: CheckCircle,
   ad_pending: Clock,
   new_message: MessageCircle,
+  new_ad_followed: Package,
   payment_received: CreditCard,
   payment_approved: CreditCard,
   payment_rejected: CreditCard,
@@ -53,6 +54,7 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   ad_published: 'bg-green-100 text-green-600',
   ad_pending: 'bg-yellow-100 text-yellow-600',
   new_message: 'bg-blue-100 text-blue-600',
+  new_ad_followed: 'bg-violet-100 text-violet-600',
   payment_received: 'bg-green-100 text-green-600',
   payment_approved: 'bg-green-100 text-green-600',
   payment_rejected: 'bg-red-100 text-red-600',
@@ -424,6 +426,7 @@ export default function OLXHeader() {
         }
         break;
       case 'new_favorite':
+      case 'new_ad_followed':
         if (notif.data?.ad_slug) {
           router.push(`/ad/${notif.data.ad_slug}`);
         } else if (notif.data?.ad_id) {

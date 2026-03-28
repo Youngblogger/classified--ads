@@ -13,7 +13,7 @@ import {
   BellOff, ChevronRight, Smartphone, Laptop, Car,
   Home, Briefcase, Shirt, Sofa, TreePine, Gamepad2,
   BookOpen, Dog, Wrench, Building2, GraduationCap, Baby,
-  CheckCircle
+  CheckCircle, UserPlus, UserMinus
 } from 'lucide-react';
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
@@ -49,6 +49,7 @@ const NOTIFICATION_ICONS: Record<string, any> = {
   ad_published: CheckCircle,
   ad_pending: Clock,
   new_message: MessageCircle,
+  new_ad_followed: Package,
   payment_received: CreditCard,
   payment_approved: CreditCard,
   payment_rejected: CreditCard,
@@ -74,6 +75,7 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   ad_published: 'bg-emerald-100 text-emerald-600',
   ad_pending: 'bg-amber-100 text-amber-600',
   new_message: 'bg-blue-100 text-blue-600',
+  new_ad_followed: 'bg-violet-100 text-violet-600',
   payment_received: 'bg-emerald-100 text-emerald-600',
   payment_approved: 'bg-emerald-100 text-emerald-600',
   payment_rejected: 'bg-red-100 text-red-600',
@@ -546,6 +548,7 @@ export default function Header() {
         }
         break;
       case 'new_favorite':
+      case 'new_ad_followed':
         if (notif.data?.ad_slug) {
           router.push(`/ad/${notif.data.ad_slug}`);
         } else if (notif.data?.ad_id) {

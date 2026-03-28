@@ -139,6 +139,16 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/messages/{conversationId}/read', [MessageController::class, 'markAsRead']);
     Route::delete('/messages/message/{messageId}', [MessageController::class, 'deleteMessage']);
 
+    // Follow System
+    Route::post('/follow', [FollowController::class, 'follow']);
+    Route::delete('/unfollow', [FollowController::class, 'unfollow']);
+    Route::get('/follow/check', [FollowController::class, 'checkFollow']);
+    Route::get('/users/{userId}/followers', [FollowController::class, 'followers']);
+    Route::get('/users/{userId}/following', [FollowController::class, 'following']);
+    Route::get('/users/{userId}/stats', [FollowController::class, 'userStats']);
+    Route::get('/feed/following', [FollowController::class, 'followingFeed']);
+    Route::get('/sellers/suggested', [FollowController::class, 'suggestedSellers']);
+
     // Reviews
     Route::get('/reviews/my-reviews', [ReviewController::class, 'myReviews']);
     Route::get('/reviews/user/{userId}', [ReviewController::class, 'userReviews']);
