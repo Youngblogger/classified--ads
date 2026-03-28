@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthOtpController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\BroadcastController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\FollowController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\FontController;
 use App\Http\Controllers\Api\IconController;

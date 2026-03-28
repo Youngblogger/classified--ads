@@ -65,7 +65,27 @@ export const useAuthStore = create<AuthStore>()(
         set({ user: null, token: null, isAuthenticated: false, isLoading: false });
       },
       
-      setUser: (user) => set({ user }),
+      setUser: (user) => {
+        // Update localStorage when user data changes (e.g., avatar update)
+        if (typeof window !== 'undefined' && user) {
+          const currentToken = get().token;
+          if (currentToken) {
+            localStorage.setItem('user', JSON.stringify(user));
+            const persistData = {
+              state: {
+                user,
+                token: currentToken,
+                isAuthenticated: true,
+                isLoading: false,
+                hasHydrated: true
+              },
+              version: 0
+            };
+            localStorage.setItem('auth-storage', JSON.stringify(persistData));
+          }
+        }
+        set({ user });
+      },
       
       setLoading: (isLoading) => set({ isLoading }),
       

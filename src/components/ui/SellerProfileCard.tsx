@@ -24,10 +24,12 @@ interface SellerProfileCardProps {
     total_reviews?: number;
     followers_count?: number;
     is_following?: boolean;
+    show_joined_date?: boolean;
   };
   size?: 'sm' | 'md' | 'lg';
   showHoverEffect?: boolean;
   showFollowButton?: boolean;
+  showJoinedDate?: boolean;
   className?: string;
 }
 
@@ -131,6 +133,7 @@ export default function SellerProfileCard({
   size = 'md',
   showHoverEffect = true,
   showFollowButton = false,
+  showJoinedDate = true,
   className = ''
 }: SellerProfileCardProps) {
   const { user, isAuthenticated } = useAuthStore();
@@ -138,7 +141,7 @@ export default function SellerProfileCard({
   const [followersCount, setFollowersCount] = useState(seller.followers_count || 0);
   const [isLoading, setIsLoading] = useState(false);
   
-  const isOwnProfile = user?.id === seller.id;
+    const isOwnProfile = user?.id === seller.id;
   const profileImage = getProfileImage(seller);
   const joinedDate = seller.joined_date || formatDate(seller.created_at || seller.member_since);
   
@@ -189,12 +192,12 @@ export default function SellerProfileCard({
   return (
     <div
       className={`
-        bg-white rounded-xl border border-gray-100 p-4
+        bg-white rounded-xl border border-gray-100 p-3 sm:p-4
         ${showHoverEffect ? 'hover:shadow-md transition-shadow duration-200' : ''}
         ${className}
       `}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2 sm:gap-3">
         {/* Profile Image */}
         <div className="relative flex-shrink-0">
           {profileImage ? (
@@ -217,7 +220,7 @@ export default function SellerProfileCard({
         {/* Right side - Name and Follow button */}
         <div className="flex-1 min-w-0">
           {/* Line 1: Name + Verified Badge */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <span
               className="font-bold text-dark truncate"
               style={{ fontSize: currentSizes.name }}
@@ -242,7 +245,7 @@ export default function SellerProfileCard({
                 onClick={handleFollow}
                 disabled={isLoading}
                 className={`
-                  flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 ml-2
+                  flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 ml-[10px] sm:ml-[15px]
                   ${isFollowing 
                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300' 
                     : 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm hover:shadow'
@@ -271,6 +274,13 @@ export default function SellerProfileCard({
           {seller.rating !== undefined && seller.rating > 0 && (
             <div className="mt-1">
               <StarRating rating={seller.rating} size={size === 'lg' ? 'md' : 'sm'} />
+            </div>
+          )}
+          
+          {/* Joined Date */}
+          {showJoinedDate && (
+            <div className="text-xs text-gray-400 mt-1">
+              Joined {joinedDate}
             </div>
           )}
         </div>

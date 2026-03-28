@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Follow extends Model
 {
+    public $timestamps = false;
+    
     protected $fillable = [
         'follower_id',
         'following_id',
