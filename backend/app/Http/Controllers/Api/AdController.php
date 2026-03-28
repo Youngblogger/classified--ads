@@ -93,6 +93,11 @@ class AdController extends Controller
 
             $ad->increment('views');
 
+            // Explicitly add avatar fields to ensure they're in response
+            if ($ad->user) {
+                $ad->user->makeVisible(['avatar', 'google_avatar', 'facebook_avatar']);
+            }
+
             return response()->json(['data' => $ad]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['error' => 'Ad not found'], 404);

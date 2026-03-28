@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, UserPlus, UserMinus, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { followApi } from '@/lib/api';
@@ -12,6 +12,8 @@ interface SellerProfileCardProps {
     name: string;
     profile_image?: string | null;
     avatar?: string | null;
+    avatar_url?: string | null;
+    full_avatar_url?: string | null;
     google_avatar?: string | null;
     facebook_avatar?: string | null;
     is_verified?: boolean;
@@ -51,7 +53,17 @@ function formatFollowers(count?: number): string {
 }
 
 function getProfileImage(seller: SellerProfileCardProps['seller']): string | null {
-  const image = seller.profile_image || seller.avatar || seller.google_avatar || seller.facebook_avatar;
+  // Try all possible avatar sources
+  const imageSources = [
+    seller.profile_image,
+    seller.avatar,
+    seller.avatar_url,
+    seller.full_avatar_url,
+    seller.google_avatar,
+    seller.facebook_avatar,
+  ];
+  
+  const image = imageSources.find(img => img && typeof img === 'string' && img.trim() !== '');
   if (!image) return null;
   
   if (image.startsWith('http://') || image.startsWith('https://')) {
@@ -60,6 +72,7 @@ function getProfileImage(seller: SellerProfileCardProps['seller']): string | nul
   if (image.startsWith('/storage/')) {
     return `http://127.0.0.1:8000${image}`;
   }
+  // Handle case where it's just a filename like "avatars/xxx.jpg"
   return `http://127.0.0.1:8000/storage/${image}`;
 }
 
@@ -140,6 +153,7 @@ export default function SellerProfileCard({
   const [isFollowing, setIsFollowing] = useState(seller.is_following || false);
   const [followersCount, setFollowersCount] = useState(seller.followers_count || 0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   
     const isOwnProfile = user?.id === seller.id;
   const profileImage = getProfileImage(seller);
@@ -152,6 +166,20 @@ export default function SellerProfileCard({
   };
   
   const currentSizes = sizes[size];
+
+  useEffect(() => {
+    if (seller.id && isAuthenticated) {
+      followApi.getUserStats(seller.id!)
+        .then(res => {
+          setIsFollowing(res.data.is_following);
+          setFollowersCount(res.data.followers_count);
+        })
+        .catch(console.error)
+        .finally(() => setIsInitializing(false));
+    } else {
+      setIsInitializing(false);
+    }
+  }, [seller.id, isAuthenticated]);
 
   const handleFollow = async () => {
     if (!isAuthenticated) {
@@ -172,15 +200,11 @@ export default function SellerProfileCard({
     setIsLoading(true);
     
     try {
+      // Always follow (not toggle)
       const response = await followApi.follow(seller.id);
-      setIsFollowing(response.data.is_following);
-      setFollowersCount(response.data.followers_count);
-      
-      if (response.data.is_following) {
-        toast.success(`You're now following ${seller.name}`);
-      } else {
-        toast.success(`Unfollowed ${seller.name}`);
-      }
+      setIsFollowing(true);
+      setFollowersCount(prev => prev + 1);
+      toast.success(`You're now following ${seller.name}`);
     } catch (error: any) {
       console.error('Follow error:', error);
       toast.error(error.response?.data?.message || 'Failed to update follow status');
@@ -240,17 +264,17 @@ export default function SellerProfileCard({
               <span className="text-xs text-gray-500">0 followers</span>
             )}
             
-            {showFollowButton && seller.id && !isOwnProfile && (
+            {showFollowButton && seller.id && (
               <button
                 onClick={handleFollow}
-                disabled={isLoading}
+                disabled={isLoading || isInitializing || isOwnProfile}
                 className={`
                   flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 ml-[10px] sm:ml-[15px]
                   ${isFollowing 
                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300' 
                     : 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm hover:shadow'
                   }
-                  ${isLoading ? 'opacity-70 cursor-wait' : 'cursor-pointer'}
+                  ${(isLoading || isInitializing) ? 'opacity-70 cursor-wait' : 'cursor-pointer'}
                 `}
               >
                 {isLoading ? (

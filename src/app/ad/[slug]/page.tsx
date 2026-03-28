@@ -31,6 +31,22 @@ function getImageUrl(img: any): string {
   return getAdImageUrl(img);
 }
 
+function formatPhoneNumber(phone: string | null | undefined): string {
+  if (!phone) return '';
+  // Remove any existing country code or special characters
+  const cleaned = phone.replace(/\D/g, '');
+  // If already has country code (starts with 234), keep it
+  if (cleaned.startsWith('234')) {
+    return `+234 ${cleaned.slice(3, 6)} ${cleaned.slice(6, 9)} ${cleaned.slice(9)}`;
+  }
+  // If starts with 0, remove it and add +234
+  if (cleaned.startsWith('0')) {
+    return `+234 ${cleaned.slice(1, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
+  }
+  // Otherwise just add +234
+  return `+234 ${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+}
+
 function WatermarkBadge({ adId }: { adId: number }) {
   return (
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary-600/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 backdrop-blur-sm shadow-lg">
@@ -617,6 +633,8 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                     id: displayAd.user?.id,
                     name: displayAd.user?.name || 'Unknown Seller',
                     avatar: displayAd.user?.avatar,
+                    avatar_url: displayAd.user?.avatar_url,
+                    full_avatar_url: displayAd.user?.full_avatar_url,
                     google_avatar: displayAd.user?.google_avatar,
                     facebook_avatar: displayAd.user?.facebook_avatar,
                     is_verified: displayAd.user?.verified || displayAd.user?.is_verified,
@@ -661,7 +679,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                     <Phone className="w-5 h-5" />
                     {isAuthenticated ? (
                       showPhone ? (
-                        <span>{displayAd.phone || displayAd.user?.phone}</span>
+                        <span>{formatPhoneNumber(displayAd.phone || displayAd.user?.phone)}</span>
                       ) : (
                         'Show Phone Number'
                       )
@@ -706,7 +724,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                   </div>
                 </div>
 
-                {/* Seller Reviews Section - Moved to bottom of Contact Seller */}
+                {/* Seller Reviews Section */}
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <SellerReviewsSection 
                     sellerId={displayAd.user?.id}
@@ -725,26 +743,35 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                     })()}
                   />
                 </div>
+
+                {/* Safety Tips */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <h3 className="font-semibold text-dark mb-3">Safety Tips</h3>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                      Meet in a Safe Public Place
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                      Prioritize Verified Sellers
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                      Never Pay Before Seeing the Item
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                      Don't Go Alone for High-Value Deals
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                      Verify Ownership & Receipts
+                    </li>
+                  </ul>
+                </div>
               </div>
 
-              {/* Safety Tips */}
-              <div className="card p-4 lg:p-6">
-                <h3 className="font-semibold text-dark mb-4">Safety Tips</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-success mt-0.5" />
-                    Meet in a public place
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-success mt-0.5" />
-                    Check the item before paying
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-success mt-0.5" />
-                    Never wire funds or use gift cards
-                  </li>
-                </ul>
-              </div>
             </div>
           )}
 
