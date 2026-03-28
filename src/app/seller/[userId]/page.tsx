@@ -147,14 +147,14 @@ export default function SellerProfilePage() {
                       </div>
                     )}
                     {seller.seller?.verified && (
-                      <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#4B5320] rounded-full flex items-center justify-center">
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
                         <CheckCircle className="w-5 h-5 text-white" />
                       </div>
                     )}
                   </div>
                   <h1 className="text-xl font-bold text-dark mt-4">{seller.seller?.name}</h1>
                   {seller.seller?.verified && (
-                    <span className="inline-flex items-center gap-1 text-sm text-[#4B5320] mt-1">
+                    <span className="inline-flex items-center gap-1 text-sm text-blue-500 font-medium mt-1">
                       <CheckCircle className="w-4 h-4" />
                       Verified Seller
                     </span>
@@ -185,7 +185,7 @@ export default function SellerProfilePage() {
                 <div className="mt-6 space-y-3">
                   <button
                     onClick={() => setShowReviewModal(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#4B5320] text-white rounded-xl hover:bg-[#3d4220] transition-colors font-medium"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium"
                   >
                     <MessageCircle className="w-5 h-5" />
                     Write a Review

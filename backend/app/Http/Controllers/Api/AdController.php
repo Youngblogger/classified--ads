@@ -142,7 +142,7 @@ class AdController extends Controller
 
         $data['slug'] = \Illuminate\Support\Str::slug($request->title) . '-' . time();
         $data['user_id'] = $request->user()->id;
-        $data['status'] = 'pending';
+        $data['status'] = 'active';
         
         // Save LGA separately if provided
         $lga = $request->input('lga');

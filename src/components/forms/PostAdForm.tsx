@@ -361,7 +361,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             <Check className="w-5 h-5 text-green-500" />
             <p className="font-semibold">Ad posted successfully!</p>
           </div>
-          <p className="text-sm text-gray-600">Pending admin approval. Your ad will appear on the homepage once approved.</p>
+          <p className="text-sm text-gray-600">Your ad is now live on the homepage!</p>
         </div>,
         { duration: 6000 }
       );

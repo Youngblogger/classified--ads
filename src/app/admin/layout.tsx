@@ -104,6 +104,37 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
+  // Handle login function
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+
+    try {
+      const response = await api.post('/auth/login', {
+        login: loginEmail,
+        password: loginPassword,
+      });
+
+      if (response.data.user && response.data.user.role === 'admin') {
+        login(response.data.user, response.data.token);
+        setIsVerified(true);
+        setVerifiedUser(response.data.user);
+      } else {
+        setLoginError('Access denied. Admin credentials required.');
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message;
+      if (errorMessage?.includes('Invalid credentials')) {
+        setLoginError('Incorrect email or password');
+      } else {
+        setLoginError(errorMessage || 'Login failed');
+      }
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   // Click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -119,7 +150,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, []);
 
   // Skip auth check for login page - render without auth verification
-  const isLoginPage = pathname === '/admin-login';
+  const isLoginPage = pathname === '/admin/login';
 
   // Get token from cookie (not localStorage)
   const getTokenFromCookie = () => {
@@ -232,49 +263,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     );
   }
 
-  // Allow login page to render without auth
-  if (isLoginPage) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <main className="p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
-      </div>
-    );
-  }
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    setLoginLoading(true);
-
-    try {
-      const response = await api.post('/auth/login', {
-        login: loginEmail,
-        password: loginPassword,
-      });
-
-      if (response.data.user && response.data.user.role === 'admin') {
-        login(response.data.user, response.data.token);
-        setIsVerified(true);
-        setVerifiedUser(response.data.user);
-      } else {
-        setLoginError('Access denied. Admin credentials required.');
-      }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message;
-      if (errorMessage?.includes('Invalid credentials')) {
-        setLoginError('Incorrect email or password');
-      } else {
-        setLoginError(errorMessage || 'Login failed');
-      }
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  // Show login form if not authenticated
-  if (!isVerified && !isLoginPage) {
+  // Show login form if not authenticated (on login page or when no token)
+  if (!isVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-purple-50">
         <div className="w-full max-w-md p-8">
@@ -325,7 +315,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="text-center">
               <a href="/" className="text-sm text-gray-500 hover:text-gray-700">← Back to Homepage</a>
             </div>
-          </form>
+           </form>
         </div>
       </div>
     );

@@ -33,8 +33,19 @@ class ApiClient {
         token = getCookie('token');
       }
       
+      // Last resort: check localStorage directly
+      if (!token && typeof window !== 'undefined') {
+        token = localStorage.getItem('authToken');
+        if (token) {
+          console.log('Token found from localStorage direct');
+        }
+      }
+      
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('Setting Authorization header:', token.substring(0, 20) + '...');
+      } else {
+        console.log('No token found for request');
       }
       
       // Only prevent caching for authenticated POST/PUT/PATCH/DELETE requests

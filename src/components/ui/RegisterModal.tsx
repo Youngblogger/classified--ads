@@ -133,13 +133,38 @@ export default function RegisterModal() {
     }
   };
 
-  const handleOtpVerified = async () => {
+  const handleOtpVerified = async (data?: { token: string; user: any }) => {
     toast.success('Account created successfully! Welcome!');
     setShowOtpModal(false);
     closeAllModals();
     resetForm();
-    router.push('/');
-    window.location.reload();
+    
+    // Store auth data if available from OTP verification
+    if (data?.token && data?.user) {
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Also store in zustand persist format for compatibility
+      localStorage.setItem('auth-storage', JSON.stringify({
+        state: {
+          token: data.token,
+          user: data.user,
+          isAuthenticated: true,
+          isLoading: false,
+          hasHydrated: true
+        },
+        version: 0
+      }));
+      
+      document.cookie = `token=${data.token};path=/;max-age=${7*24*60*60};SameSite=Lax`;
+      login(data.user, data.token);
+      
+      // Redirect to homepage for new users
+      window.location.href = '/';
+    } else {
+      // Fallback to homepage if no auth data
+      window.location.href = '/';
+    }
   };
 
   const resetForm = () => {

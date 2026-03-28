@@ -81,6 +81,7 @@ interface ChatModalProps {
   sellerId: number;
   sellerName: string;
   sellerAvatar?: string;
+  sellerVerified?: boolean;
   conversationId?: number;
 }
 
@@ -92,6 +93,7 @@ export default function ChatModal({
   sellerId,
   sellerName,
   sellerAvatar,
+  sellerVerified,
   conversationId: initialConversationId,
 }: ChatModalProps) {
   const { user, isAuthenticated } = useAuthStore();
@@ -547,9 +549,10 @@ export default function ChatModal({
       };
 
       setMessages(prev => [...prev, newMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file:', error);
-      toast.error('Failed to upload file');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Failed to upload file';
+      toast.error(errorMsg);
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -588,7 +591,14 @@ export default function ChatModal({
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-[#111b21] text-sm sm:text-base truncate">{sellerName}</h3>
+            <div className="flex items-center gap-1">
+              <h3 className="font-semibold text-[#111b21] text-sm sm:text-base truncate">{sellerName}</h3>
+              {sellerVerified && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#1d9bf0"/>
+                </svg>
+              )}
+            </div>
             <p className="text-xs text-[#667781] truncate">Ad: {adTitle}</p>
           </div>
         </div>

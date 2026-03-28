@@ -162,8 +162,50 @@ export default function DashboardLayout({
   // Get auth functions from store
   const { user: authUser, logout, isAuthenticated, token } = useAuthStore();
 
-  // Use auth user - no mock data
-  // If not authenticated, the page should redirect to login
+  // Check auth on mount - try to load from localStorage if not in store
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Check zustand persist storage
+      try {
+        const stored = localStorage.getItem('auth-storage');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.state && parsed.state.user && parsed.state.token) {
+            console.log('Restored auth from zustand persist:', parsed.state.user);
+            useAuthStore.getState().login(parsed.state.user, parsed.state.token);
+            return;
+          }
+        }
+      } catch (e) {
+        console.log('Zustand persist not found, checking manual storage');
+      }
+      
+      // Fallback to manual localStorage
+      if (!authUser) {
+        const storedUser = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('authToken');
+        console.log('Manual storage check - user:', storedUser ? 'found' : 'not found', 'token:', storedToken ? 'found' : 'not found');
+        if (storedUser && storedToken) {
+          try {
+            const userData = JSON.parse(storedUser);
+            useAuthStore.getState().login(userData, storedToken);
+          } catch (e) {
+            console.error('Failed to parse stored user:', e);
+          }
+        }
+      }
+    }
+  }, []);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    const hasAuth = authUser || localStorage.getItem('auth-token') || localStorage.getItem('auth-storage');
+    if (!hasAuth) {
+      router.push('/login');
+    }
+  }, [authUser]);
+
+  // Use auth user
   const user = authUser;
 
   // Handle logout

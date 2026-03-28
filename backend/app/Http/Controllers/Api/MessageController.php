@@ -238,13 +238,22 @@ class MessageController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'receiver_id' => 'required|exists:users,id',
-            'ad_id' => 'nullable|exists:ads,id',
-            'message' => 'string|nullable',
-            'message_type' => 'sometimes|string|in:text,image,file,voice',
-            'duration' => 'nullable|integer',
-        ]);
+        try {
+            $validated = $request->validate([
+                'receiver_id' => 'required|exists:users,id',
+                'ad_id' => 'nullable|exists:ads,id',
+                'message' => 'string|nullable',
+                'message_type' => 'sometimes|string|in:text,image,file,voice',
+                'duration' => 'nullable|integer',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Message store validation failed: ' . json_encode($e->errors()));
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
 
         $user = $request->user();
 

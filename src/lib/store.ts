@@ -4,6 +4,8 @@ import { User, AuthState } from '@/types';
 import { setCookie } from './cookies';
 
 interface AuthStore extends AuthState {
+  hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
   login: (user: User, token: string) => void;
   logout: () => void;
   setUser: (user: User) => void;
@@ -13,15 +15,38 @@ interface AuthStore extends AuthState {
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
       isLoading: false,
+      hasHydrated: false,
+      
+      setHasHydrated: (state) => set({ hasHydrated: state }),
       
       login: (user, token) => {
+        console.log('Login called with user:', user, 'token:', token);
         setCookie('token', token, 7);
-        set({ user, token, isAuthenticated: true, isLoading: false });
+        
+        // Manually persist to localStorage before setting state
+        if (typeof window !== 'undefined') {
+          const persistData = {
+            state: {
+              user,
+              token,
+              isAuthenticated: true,
+              isLoading: false,
+              hasHydrated: true
+            },
+            version: 0
+          };
+          localStorage.setItem('auth-storage', JSON.stringify(persistData));
+          localStorage.setItem('authToken', token);
+          localStorage.setItem('user', JSON.stringify(user));
+        }
+        
+        set({ user, token, isAuthenticated: true, isLoading: false, hasHydrated: true });
+        console.log('Auth state after login:', get());
       },
       
       logout: () => {
@@ -51,8 +76,12 @@ export const useAuthStore = create<AuthStore>()(
       partialize: (state) => ({ 
         token: state.token, 
         user: state.user,
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated,
+        hasHydrated: state.hasHydrated
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

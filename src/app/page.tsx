@@ -7,6 +7,7 @@ import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
+import { useAuthStore } from '@/lib/store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -125,7 +126,9 @@ const TRUST_FEATURES = [
 ];
 
 export default function HomePage() {
+  const { isAuthenticated, user, hasHydrated } = useAuthStore();
   const [recentAds, setRecentAds] = useState<any[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -443,13 +446,15 @@ export default function HomePage() {
                 <Plus className="w-5 h-5" />
                 <span>Post Your Ad Free</span>
               </Link>
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary-500 text-white rounded-full font-semibold hover:bg-primary-400 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-              >
-                <Users className="w-5 h-5" />
-                <span>Create Account</span>
-              </Link>
+              {!isAuthenticated && (
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary-500 text-white rounded-full font-semibold hover:bg-primary-400 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                >
+                  <Users className="w-5 h-5" />
+                  <span>Create Account</span>
+                </Link>
+              )}
             </div>
           </div>
         </section>

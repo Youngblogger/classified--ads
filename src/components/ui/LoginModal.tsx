@@ -138,12 +138,34 @@ export default function LoginModal() {
       }
 
       const userName = data.user?.name || 'there';
+      
+      // Store auth data in localStorage for persistence
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Also store in zustand persist format for compatibility
+      localStorage.setItem('auth-storage', JSON.stringify({
+        state: {
+          token: data.token,
+          user: data.user,
+          isAuthenticated: true
+        },
+        version: 0
+      }));
+      
+      // Also set cookie (API looks for this)
+      document.cookie = `token=${data.token};path=/;max-age=${7*24*60*60}`;
+      
+      // Use login function which handles zustand persist
       login(data.user, data.token);
+      
       toast.success(`Welcome back, ${userName}!`);
       setOtpVerified(true);
       closeAllModals();
       resetForm();
-      router.push('/');
+      
+      // Full page redirect to ensure auth state is loaded
+      window.location.href = '/';
       
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid verification code';
@@ -219,7 +241,27 @@ export default function LoginModal() {
       }
 
       const userName = data.user?.name || 'there';
+      
+      // Store auth data in localStorage for persistence
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Also store in zustand persist format for compatibility
+      localStorage.setItem('auth-storage', JSON.stringify({
+        state: {
+          token: data.token,
+          user: data.user,
+          isAuthenticated: true
+        },
+        version: 0
+      }));
+      
+      // Also set cookie (API looks for this)
+      document.cookie = `token=${data.token};path=/;max-age=${7*24*60*60}`;
+      
+      // Use login function which handles zustand persist
       login(data.user, data.token);
+      
       if (typeof window !== 'undefined' && email) {
         const usedEmails = JSON.parse(localStorage.getItem('used-emails') || '[]');
         if (!usedEmails.includes(email)) {
@@ -230,7 +272,9 @@ export default function LoginModal() {
       toast.success(`Welcome back, ${userName}!`);
       closeAllModals();
       resetForm();
-      router.push('/');
+      
+      // Full page redirect to ensure auth state is loaded
+      window.location.href = '/';
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid credentials';
       setError(errorMessage);

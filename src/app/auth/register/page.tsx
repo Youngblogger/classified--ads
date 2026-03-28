@@ -324,7 +324,7 @@ export default function RegisterPage() {
         toast.error(data.message || 'Verification failed');
         
         // Clear OTP on error
-        setOtpDigits(['', '', '', '', '', '']);
+        setOtpDigits(['', '', '', '']);
         const firstInput = document.getElementById('otp-0');
         if (firstInput) firstInput.focus();
         return;
@@ -332,13 +332,28 @@ export default function RegisterPage() {
       
       toast.success('Email verified successfully!');
       
-      // Auto login
+      // Store auth data in localStorage for persistence
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Also store in zustand persist format for compatibility
+      localStorage.setItem('auth-storage', JSON.stringify({
+        state: {
+          token: data.token,
+          user: data.user,
+          isAuthenticated: true
+        },
+        version: 0
+      }));
+      
+      // Also set cookie (API looks for this)
+      document.cookie = `token=${data.token};path=/;max-age=${7*24*60*60}`;
+      
+      // Auto login - use login function which handles zustand persist
       login(data.user, data.token);
       
-      // Redirect to home
-      setTimeout(() => {
-        router.push('/');
-      }, 1000);
+      // Full page redirect to ensure auth state is loaded
+      window.location.href = '/dashboard';
       
     } catch (error) {
       console.error('Verification error:', error);

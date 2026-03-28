@@ -58,16 +58,20 @@ export function getAuthToken(): string | null {
   const token = getCookie('token');
   if (token) return token;
   
-  // Fall back to localStorage
-  if (typeof localStorage === 'undefined') return null;
-  const authData = localStorage.getItem('auth-storage');
-  if (authData) {
-    try {
-      const parsed = JSON.parse(authData);
-      return parsed.state?.token || null;
-    } catch {
-      return null;
+  // Fall back to localStorage - check auth-storage (zustand persist)
+  if (typeof localStorage !== 'undefined') {
+    const authData = localStorage.getItem('auth-storage');
+    if (authData) {
+      try {
+        const parsed = JSON.parse(authData);
+        if (parsed.state?.token) return parsed.state.token;
+      } catch {}
     }
+    
+    // Also check manual authToken key
+    const manualToken = localStorage.getItem('authToken');
+    if (manualToken) return manualToken;
   }
+  
   return null;
 }

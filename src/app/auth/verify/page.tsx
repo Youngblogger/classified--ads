@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, ArrowLeft, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/lib/store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuthStore();
   const emailFromParams = searchParams.get('email') || '';
   const fromLogin = searchParams.get('from_login') === 'true';
   
@@ -110,7 +112,7 @@ function VerifyPageContent() {
 
       if (!response.ok) {
         setError(data.message || 'Verification failed');
-        setOtpDigits(['', '', '', '', '', '']);
+        setOtpDigits(['', '', '', '']);
         const firstInput = document.getElementById('otp-0');
         if (firstInput) firstInput.focus();
         return;
@@ -119,14 +121,39 @@ function VerifyPageContent() {
       setIsVerified(true);
       toast.success('Email verified successfully!');
       
+      // Auto login and redirect to dashboard
+      if (data.token && data.user) {
+        console.log('Auto logging in with token:', data.token);
+        
+        // Store in localStorage for multiple lookups
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Also store in zustand persist format for compatibility
+        localStorage.setItem('auth-storage', JSON.stringify({
+          state: {
+            token: data.token,
+            user: data.user,
+            isAuthenticated: true,
+            hasHydrated: true
+          },
+          version: 0
+        }));
+        
+        // Also set cookie (API looks for this)
+        document.cookie = `token=${data.token};path=/;max-age=${7*24*60*60}`;
+        
+        // Use login function which handles zustand persist
+        login(data.user, data.token);
+        
+        // Full page redirect to ensure auth state is loaded
+        window.location.href = '/dashboard';
+        return;
+      }
+      
       setTimeout(() => {
-        // If user came from login, redirect to dashboard
-        if (fromLogin) {
-          router.push('/dashboard');
-        } else {
-          router.push('/login');
-        }
-      }, 2000);
+        router.push('/dashboard');
+      }, 1500);
     } catch (err) {
       console.error('Verification error:', err);
       setError('An error occurred. Please try again.');

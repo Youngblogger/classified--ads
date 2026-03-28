@@ -172,7 +172,7 @@ function formatNotificationTime(dateString: string): string {
 
 export default function Header() {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout, hasHydrated } = useAuthStore();
   const { toggleLoginModal, toggleRegisterModal } = useUIStore();
   const { selectedLocation } = useGlobalStore();
   
@@ -216,6 +216,19 @@ export default function Header() {
       }
     }
   }, []);
+
+  if (!hasHydrated) {
+    return (
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div className="container-app">
+          <div className="h-16 flex items-center justify-between">
+            <div className="h-6 w-24 bg-slate-200 rounded animate-pulse" />
+            <div className="h-6 w-48 bg-slate-200 rounded animate-pulse" />
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

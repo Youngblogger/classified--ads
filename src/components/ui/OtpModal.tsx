@@ -8,7 +8,7 @@ interface OtpModalProps {
   onClose: () => void;
   phone?: string;
   email?: string;
-  onVerified: () => void;
+  onVerified: (data?: { token: string; user: any }) => void;
 }
 
 export default function OtpModal({ isOpen, onClose, phone = '', email = '', onVerified }: OtpModalProps) {
@@ -115,8 +115,9 @@ export default function OtpModal({ isOpen, onClose, phone = '', email = '', onVe
 
       setSuccess(true);
       
+      // Pass token and user data to callback if available
       setTimeout(() => {
-        onVerified();
+        onVerified(data.token && data.user ? { token: data.token, user: data.user } : undefined);
       }, 1000);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid verification code';

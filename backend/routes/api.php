@@ -129,7 +129,7 @@ Route::middleware('auth.api')->group(function () {
     Route::delete('/favorites/{adId}', [FavoriteController::class, 'destroy']);
     Route::get('/favorites/check/{adId}', [FavoriteController::class, 'check']);
 
-    // Messages
+    // Messages - Protected routes
     Route::get('/messages/conversations', [MessageController::class, 'conversations']);
     Route::get('/messages/conversation/get-or-create', [MessageController::class, 'getOrCreateConversation']);
     Route::get('/messages/{conversationId}', [MessageController::class, 'messages']);
