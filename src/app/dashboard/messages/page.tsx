@@ -953,7 +953,8 @@ export default function MessagesPage() {
               </div>
             ) : (
               messages.map((msg) => {
-                const isMe = msg.sender_id === currentUserId;
+                const isMe = Number(msg.sender_id) === Number(currentUserId);
+                console.log('Debug - msg.sender_id:', msg.sender_id, 'currentUserId:', currentUserId, 'isMe:', isMe);
                 const senderAvatar = msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar;
                 const isRead = msg.is_read || msg.read_at;
                 

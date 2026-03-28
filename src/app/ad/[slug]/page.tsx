@@ -664,25 +664,6 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                   </div>
                 </div>
 
-                {/* Seller Reviews Section */}
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <SellerReviewsSection 
-                    sellerId={displayAd.user?.id}
-                    sellerName={displayAd.user?.name || 'Seller'}
-                    sellerAvatar={(() => {
-                      const avatarFields = [
-                        displayAd.user?.avatar_url,
-                        displayAd.user?.google_avatar,
-                        displayAd.user?.facebook_avatar,
-                        displayAd.user?.avatar,
-                        displayAd.user?.profile_image,
-                        displayAd.user?.image
-                      ];
-                      const avatarSrc = avatarFields.find(f => f && f.trim() !== '');
-                      return avatarSrc ? getImageUrl(avatarSrc) : undefined;
-                    })()}
-                  />
-                </div>
               </div>
 
               {/* View All Ads Link */}
@@ -693,6 +674,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                 View all ads by this seller →
               </Link>
 
+              {/* Contact Seller Section */}
               <div className="space-y-3">
                 <button
                   onClick={() => {
@@ -759,6 +741,26 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                       <span>Chat Seller</span>
                     </button>
                   </div>
+                </div>
+
+                {/* Seller Reviews Section - Moved to bottom of Contact Seller */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <SellerReviewsSection 
+                    sellerId={displayAd.user?.id}
+                    sellerName={displayAd.user?.name || 'Seller'}
+                    sellerAvatar={(() => {
+                      const avatarFields = [
+                        displayAd.user?.avatar_url,
+                        displayAd.user?.google_avatar,
+                        displayAd.user?.facebook_avatar,
+                        displayAd.user?.avatar,
+                        displayAd.user?.profile_image,
+                        displayAd.user?.image
+                      ];
+                      const avatarSrc = avatarFields.find(f => f && f.trim() !== '');
+                      return avatarSrc ? getImageUrl(avatarSrc) : undefined;
+                    })()}
+                  />
                 </div>
               </div>
 

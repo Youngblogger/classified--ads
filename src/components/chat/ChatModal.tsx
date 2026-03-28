@@ -179,11 +179,11 @@ export default function ChatModal({
       try {
         console.log('Initializing conversation with seller:', sellerId, 'ad:', adId);
         
-        // Use POST /messages endpoint which creates conversation and sends initial message
+        // Use POST /messages endpoint which creates conversation (without auto-message)
         const response = await messagesApi.sendMessageNew(
           sellerId,
           adId,
-          'Hello, I am interested in your ad.'
+          ''
         );
         console.log('Conversation initialized:', response.data);
         setConversationId(response.data.conversation_id);
@@ -606,7 +606,8 @@ export default function ChatModal({
             </div>
           ) : (
             messages.map((msg) => {
-              const isMe = msg.sender_id === currentUserId;
+              const isMe = Number(msg.sender_id) === Number(currentUserId);
+              console.log('Debug - msg.sender_id:', msg.sender_id, 'currentUserId:', currentUserId, 'isMe:', isMe);
               const senderAvatar = getImageUrl(msg.sender?.full_avatar_url || msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar);
 
               // Determine message type based on message_type field or content
