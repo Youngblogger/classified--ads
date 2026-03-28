@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Package, Clock, Loader2, Check,
   Bell, CreditCard, TrendingUp, Shield, AlertTriangle,
   ThumbsUp, ThumbsDown, Megaphone, Ban, FileText,
-  Star, ArrowRight
+  Star, ArrowRight, CheckCircle
 } from 'lucide-react';
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
@@ -25,6 +25,8 @@ const NOTIFICATION_ICONS: Record<string, any> = {
   ad_approved: ThumbsUp,
   ad_rejected: ThumbsDown,
   ad_deleted: AlertTriangle,
+  ad_published: CheckCircle,
+  ad_pending: Clock,
   new_message: MessageCircle,
   payment_received: CreditCard,
   payment_approved: CreditCard,
@@ -48,6 +50,8 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   ad_approved: 'bg-green-100 text-green-600',
   ad_rejected: 'bg-red-100 text-red-600',
   ad_deleted: 'bg-red-100 text-red-600',
+  ad_published: 'bg-green-100 text-green-600',
+  ad_pending: 'bg-yellow-100 text-yellow-600',
   new_message: 'bg-blue-100 text-blue-600',
   payment_received: 'bg-green-100 text-green-600',
   payment_approved: 'bg-green-100 text-green-600',
@@ -381,6 +385,8 @@ export default function OLXHeader() {
       case 'ad_approved':
       case 'ad_rejected':
       case 'ad_deleted':
+      case 'ad_published':
+      case 'ad_pending':
         if (notif.data?.ad_slug) {
           router.push(`/ad/${notif.data.ad_slug}`);
         } else if (notif.data?.ad_id) {

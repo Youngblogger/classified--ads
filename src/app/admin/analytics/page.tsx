@@ -61,7 +61,21 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchAnalytics();
     fetchStatesAnalytics();
-  }, [dateRange]);
+    
+    // Real-time polling every 30 seconds for both analytics
+    const analyticsInterval = setInterval(() => {
+      fetchAnalytics();
+    }, 30000);
+    
+    const statesInterval = setInterval(() => {
+      fetchStatesAnalytics();
+    }, 30000);
+    
+    return () => {
+      clearInterval(analyticsInterval);
+      clearInterval(statesInterval);
+    };
+  }, [dateRange, sortConfig]);
 
   const fetchAnalytics = async () => {
     try {

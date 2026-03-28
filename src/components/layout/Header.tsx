@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Search, MapPin, Bell, Heart, User, LogOut, Plus, Phone, MessageCircle, Check, Star, CreditCard, TrendingUp, Shield, AlertTriangle, ThumbsUp, ThumbsDown, Megaphone, Ban, Mail, FileText } from 'lucide-react';
+import { Menu, X, Search, MapPin, Bell, Heart, User, LogOut, Plus, Phone, MessageCircle, Check, Star, CreditCard, TrendingUp, Shield, AlertTriangle, ThumbsUp, ThumbsDown, Megaphone, Ban, Mail, FileText, CheckCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useSWR from 'swr';
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
@@ -252,6 +252,8 @@ export default function Header() {
       case 'ad_approved':
       case 'ad_rejected':
       case 'ad_deleted':
+      case 'ad_published':
+      case 'ad_pending':
         if (notif.data?.ad_slug) {
           router.push(`/ad/${notif.data.ad_slug}`);
         } else if (notif.data?.ad_id) {

@@ -248,8 +248,10 @@ export default function AdsApprovalPage() {
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
               disabled={!approvalSettings.auto_approval_enabled}
             >
+              <option value={0}>Immediately</option>
               <option value={1}>1 minute</option>
               <option value={2}>2 minutes</option>
+              <option value={3}>3 minutes</option>
               <option value={5}>5 minutes</option>
               <option value={10}>10 minutes</option>
               <option value={15}>15 minutes</option>

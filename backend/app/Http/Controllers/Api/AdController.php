@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Ad;
 use App\Models\AdImage;
 use App\Services\ImageProcessingService;
+use App\Services\NotificationService;
 use App\Jobs\ProcessAdImageJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -142,7 +143,15 @@ class AdController extends Controller
 
         $data['slug'] = \Illuminate\Support\Str::slug($request->title) . '-' . time();
         $data['user_id'] = $request->user()->id;
-        $data['status'] = 'active';
+        
+        // Check if admin approval is required (default: true for moderation)
+        $requiresApproval = true;
+        
+        if ($requiresApproval) {
+            $data['status'] = 'pending';
+        } else {
+            $data['status'] = 'active';
+        }
         
         // Save LGA separately if provided
         $lga = $request->input('lga');
@@ -152,6 +161,13 @@ class AdController extends Controller
         
         if ($lga) {
             $ad->update(['lga' => $lga]);
+        }
+        
+        // Send notification to user about ad status
+        if ($ad->status === 'pending') {
+            NotificationService::adPendingReview($ad);
+        } else {
+            NotificationService::adPublished($ad);
         }
 
         // Handle images - Laravel receives 'images[]' as 'images' in FormData
@@ -189,9 +205,14 @@ class AdController extends Controller
             }
         }
 
+        $message = $ad->status === 'pending' 
+            ? 'Ad posted successfully! Pending approval from admin.'
+            : 'Ad posted successfully and is now live!';
+            
         return response()->json([
             'data' => $ad->load('images'),
-            'message' => 'Ad posted successfully! Pending approval from admin.'
+            'message' => $message,
+            'status' => $ad->status
         ], 201);
     }
 

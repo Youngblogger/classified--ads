@@ -235,6 +235,27 @@ class NotificationService
             ]);
     }
 
+    // Ad Status Notifications
+    public static function adPublished($ad)
+    {
+        return self::send($ad->user_id, 'ad_published', '🎉 Your Ad is Live!', 
+            "Great news! Your ad '{$ad->title}' is now live and visible to buyers.", [
+                'ad_id' => $ad->id,
+                'ad_slug' => $ad->slug,
+                'status' => 'published'
+            ]);
+    }
+
+    public static function adPendingReview($ad)
+    {
+        return self::send($ad->user_id, 'ad_pending', '⏳ Ad Pending Review', 
+            "Your ad '{$ad->title}' has been submitted and is awaiting admin approval. You'll be notified once it's reviewed.", [
+                'ad_id' => $ad->id,
+                'ad_slug' => $ad->slug,
+                'status' => 'pending'
+            ]);
+    }
+
     // System Notifications
     public static function systemNotice($userId, $title, $message)
     {

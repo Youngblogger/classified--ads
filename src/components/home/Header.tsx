@@ -12,7 +12,8 @@ import {
   Star, ArrowRight, Grid3X3, HelpCircle, Globe,
   BellOff, ChevronRight, Smartphone, Laptop, Car,
   Home, Briefcase, Shirt, Sofa, TreePine, Gamepad2,
-  BookOpen, Dog, Wrench, Building2, GraduationCap, Baby
+  BookOpen, Dog, Wrench, Building2, GraduationCap, Baby,
+  CheckCircle
 } from 'lucide-react';
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
@@ -45,6 +46,8 @@ const NOTIFICATION_ICONS: Record<string, any> = {
   ad_approved: ThumbsUp,
   ad_rejected: ThumbsDown,
   ad_deleted: AlertTriangle,
+  ad_published: CheckCircle,
+  ad_pending: Clock,
   new_message: MessageCircle,
   payment_received: CreditCard,
   payment_approved: CreditCard,
@@ -68,6 +71,8 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   ad_approved: 'bg-emerald-100 text-emerald-600',
   ad_rejected: 'bg-red-100 text-red-600',
   ad_deleted: 'bg-red-100 text-red-600',
+  ad_published: 'bg-emerald-100 text-emerald-600',
+  ad_pending: 'bg-amber-100 text-amber-600',
   new_message: 'bg-blue-100 text-blue-600',
   payment_received: 'bg-emerald-100 text-emerald-600',
   payment_approved: 'bg-emerald-100 text-emerald-600',
@@ -502,6 +507,8 @@ export default function Header() {
       case 'ad_approved':
       case 'ad_rejected':
       case 'ad_deleted':
+      case 'ad_published':
+      case 'ad_pending':
         if (notif.data?.ad_slug) {
           router.push(`/ad/${notif.data.ad_slug}`);
         } else if (notif.data?.ad_id) {

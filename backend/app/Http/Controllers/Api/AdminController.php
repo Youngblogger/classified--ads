@@ -11,6 +11,7 @@ use App\Models\Notification;
 use App\Models\Transaction;
 use App\Models\Wallet;
 use App\Services\NotificationService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -322,7 +323,13 @@ class AdminController extends Controller
     // Analytics
     public function analytics(Request $request)
     {
-        $days = $request->days ?? 30;
+        $days = match($request->period) {
+            '7days' => 7,
+            '30days' => 30,
+            '90days' => 90,
+            'year' => 365,
+            default => 7,
+        };
         
         $adsByDay = Ad::select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as count'))
             ->where('created_at', '>=', now()->subDays($days))
@@ -341,10 +348,55 @@ class AdminController extends Controller
             ->limit(10)
             ->get();
 
+        // Transform data for frontend charts
+        $userGrowth = $usersByDay->map(function($item) {
+            return [
+                'name' => Carbon::parse($item->date)->format('M d'),
+                'users' => (int) $item->count
+            ];
+        })->toArray();
+
+        $adsPosted = $adsByDay->map(function($item) {
+            return [
+                'name' => Carbon::parse($item->date)->format('M d'),
+                'ads' => (int) $item->count
+            ];
+        })->toArray();
+
+        $categoryColorsArr = ['#0ea5e9', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#6366f1', '#64748b', '#f97316', '#a855f7', '#3b82f6'];
+        $categoryDistribution = $categoryStats->map(function($cat, $index) use ($categoryColorsArr) {
+            return [
+                'name' => $cat->name,
+                'value' => (int) $cat->ads_count,
+                'color' => $categoryColorsArr[$index % count($categoryColorsArr)]
+            ];
+        })->toArray();
+
+        // Ad status distribution
+        $adStatusCounts = Ad::select('status', DB::raw('COUNT(*) as count'))
+            ->groupBy('status')
+            ->get();
+        
+        $statusColors = [
+            'active' => '#10b981',
+            'pending' => '#f59e0b',
+            'rejected' => '#ef4444',
+            'expired' => '#6b7280',
+        ];
+        
+        $adStatus = $adStatusCounts->map(function($status) use ($statusColors) {
+            return [
+                'name' => ucfirst($status->status),
+                'value' => (int) $status->count,
+                'color' => $statusColors[$status->status] ?? '#64748b'
+            ];
+        })->toArray();
+
         return response()->json([
-            'ads_by_day' => $adsByDay,
-            'users_by_day' => $usersByDay,
-            'category_stats' => $categoryStats,
+            'user_growth' => $userGrowth,
+            'ads_posted' => $adsPosted,
+            'category_distribution' => $categoryDistribution,
+            'ad_status' => $adStatus,
         ]);
     }
 
