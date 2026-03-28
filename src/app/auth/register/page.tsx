@@ -107,7 +107,7 @@ export default function RegisterPage() {
     email: '',
     otp: '',
   });
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [timer, setTimer] = useState<number | null>(null);
   const otpInputRefs = useState<HTMLInputElement[]>([]);
@@ -135,6 +135,25 @@ export default function RegisterPage() {
       return;
     }
     
+    // Password strength validation (must match backend)
+    if (formData.password.length < 8) {
+      setFormErrors({ password: 'Password must be at least 8 characters' });
+      toast.error('Password must be at least 8 characters with uppercase and numbers');
+      return;
+    }
+    
+    if (!/[A-Z]/.test(formData.password)) {
+      setFormErrors({ password: 'Password must contain at least one uppercase letter' });
+      toast.error('Password must be at least 8 characters with uppercase and numbers');
+      return;
+    }
+    
+    if (!/[0-9]/.test(formData.password)) {
+      setFormErrors({ password: 'Password must contain at least one number' });
+      toast.error('Password must be at least 8 characters with uppercase and numbers');
+      return;
+    }
+    
     if (formData.password !== formData.password_confirmation) {
       setFormErrors({ password_confirmation: 'Passwords do not match' });
       toast.error('Passwords do not match');
@@ -142,6 +161,8 @@ export default function RegisterPage() {
     }
     
     setIsLoading(true);
+    
+    console.log('Sending registration data:', formData);
     
     try {
       const response = await fetch(`${API_URL}/auth/register-otp`, {
@@ -153,9 +174,19 @@ export default function RegisterPage() {
         body: JSON.stringify(formData),
       });
       
+      console.log('Response status:', response.status);
+      
       const data = await response.json();
       
       if (!response.ok) {
+        // Handle email already registered
+        if (response.status === 409 || data.code === 'email_exists') {
+          setFormErrors({ email: 'Email is already registered' });
+          toast.error('Email is already registered. Please login or verify your email.');
+          setIsLoading(false);
+          return;
+        }
+        
         if (data.errors) {
           const friendlyErrors: FormErrors = {
             name: getFriendlyError(data.errors, 'name'),
@@ -175,9 +206,26 @@ export default function RegisterPage() {
       }
       
       setFormErrors({});
-      toast.success('Registration successful! Please check your email for the verification code.');
-      setOtpData({ email: formData.email, otp: '' });
-      setOtpDigits(['', '', '', '', '', '']);
+      
+      // Show OTP in toast if in development mode (email might fail)
+      if (data.otp) {
+        toast.success(`Registration successful! OTP: ${data.otp}`);
+      } else {
+        toast.success('Registration successful! Please check your email for the verification code.');
+      }
+      
+      setOtpData({ email: formData.email, otp: data.otp || '' });
+      
+      // Pre-fill OTP digits if available
+      if (data.otp) {
+        const otpStr = data.otp.toString();
+        const digits = otpStr.split('').slice(0, 4);
+        while (digits.length < 4) digits.push('');
+        setOtpDigits(digits);
+      } else {
+        setOtpDigits(['', '', '', '']);
+      }
+      
       setStep('verify');
       
       setResendCooldown(60);
@@ -213,17 +261,15 @@ export default function RegisterPage() {
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) {
       // Handle paste
-      const digits = value.replace(/\D/g, '').slice(0, 6).split('');
+      const digits = value.replace(/\D/g, '').slice(0, 4).split('');
       const newDigits = [...otpDigits];
       digits.forEach((digit, i) => {
-        if (index + i < 6) {
+        if (index + i < 4) {
           newDigits[index + i] = digit;
         }
       });
       setOtpDigits(newDigits);
-      
-      // Focus last filled or next empty
-      const nextIndex = Math.min(index + digits.length, 5);
+      const nextIndex = Math.min(index + digits.length, 3);
       const input = document.getElementById(`otp-${nextIndex}`);
       if (input) input.focus();
       return;
@@ -253,8 +299,8 @@ export default function RegisterPage() {
   
   const handleVerify = async () => {
     const otp = otpDigits.join('');
-    if (otp.length !== 6) {
-      toast.error('Please enter all 6 digits');
+    if (otp.length !== 4) {
+      toast.error('Please enter all 4 digits');
       return;
     }
     
@@ -527,7 +573,7 @@ export default function RegisterPage() {
                 </div>
                 <h1 className="text-2xl font-bold text-dark mb-2">Verify Your Email</h1>
                 <p className="text-gray-500">
-                  We&apos;ve sent a 6-digit code to<br />
+                  We&apos;ve sent a 4-digit code to<br />
                   <span className="font-medium text-dark">{otpData.email}</span>
                 </p>
               </div>
@@ -539,7 +585,7 @@ export default function RegisterPage() {
                     id={`otp-${index}`}
                     type="text"
                     inputMode="numeric"
-                    maxLength={6}
+                    maxLength={1}
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
@@ -551,7 +597,7 @@ export default function RegisterPage() {
 
               <button
                 onClick={handleVerify}
-                disabled={isLoading || otpDigits.join('').length !== 6}
+                disabled={isLoading || otpDigits.join('').length !== 4}
                 className="w-full py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
               >
                 {isLoading ? 'Verifying...' : 'Verify Email'}

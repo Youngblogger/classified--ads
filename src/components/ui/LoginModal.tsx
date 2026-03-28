@@ -191,6 +191,13 @@ export default function LoginModal() {
 
       const data = await response.json();
 
+      // Handle unverified users - redirect to OTP verification
+      if (data.requires_verification) {
+        router.push(`/auth/verify?email=${encodeURIComponent(data.email || email)}&user_id=${data.user_id}&from_login=true`);
+        setLoading(false);
+        return;
+      }
+
       if (!response.ok) {
         if (data.code === 'email_not_verified') {
           setError(

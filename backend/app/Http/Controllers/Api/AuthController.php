@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\OtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +14,9 @@ use Laravel\Sanctum\Sanctum;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private OtpService $otpService
+    ) {}
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -60,14 +64,28 @@ class AuthController extends Controller
 
         $user = Auth::user();
         
-        // Check if user is verified (skip for admin users)
-        if (!$user->verified && $user->role !== 'admin') {
-            Auth::logout();
+        // Check if user's email is verified (skip for admin users)
+        $isVerified = $user->role === 'admin' || $user->isEmailVerified();
+        
+        // If not verified, generate OTP and require verification
+        if (!$isVerified) {
+            // Generate OTP for unverified users trying to login
+            $otpData = $this->otpService->createOrUpdateVerification($user);
+            
+            try {
+                $this->otpService->sendOtpEmail($user, $otpData['otp']);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('OTP email failed: ' . $e->getMessage());
+            }
+            
+            // Return requires_verification flag
             return response()->json([
-                'message' => 'Please verify your email before logging in.',
-                'code' => 'email_not_verified',
+                'message' => 'Please verify your email to continue.',
+                'requires_verification' => true,
                 'email' => $user->email,
-            ], 403);
+                'user_id' => $user->id,
+                'expires_at' => $otpData['expires_at']->toIso8601String(),
+            ], 200);
         }
 
         // Check if user is banned/suspended

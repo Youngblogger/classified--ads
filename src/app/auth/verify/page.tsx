@@ -12,9 +12,10 @@ function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const emailFromParams = searchParams.get('email') || '';
+  const fromLogin = searchParams.get('from_login') === 'true';
   
   const [email, setEmail] = useState(emailFromParams);
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [timer, setTimer] = useState<number | null>(null);
@@ -47,15 +48,15 @@ function VerifyPageContent() {
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) {
-      const digits = value.replace(/\D/g, '').slice(0, 6).split('');
+      const digits = value.replace(/\D/g, '').slice(0, 4).split('');
       const newDigits = [...otpDigits];
       digits.forEach((digit, i) => {
-        if (index + i < 6) {
+        if (index + i < 4) {
           newDigits[index + i] = digit;
         }
       });
       setOtpDigits(newDigits);
-      const nextIndex = Math.min(index + digits.length, 5);
+      const nextIndex = Math.min(index + digits.length, 3);
       const input = document.getElementById(`otp-${nextIndex}`);
       if (input) input.focus();
       return;
@@ -67,7 +68,7 @@ function VerifyPageContent() {
     newDigits[index] = value;
     setOtpDigits(newDigits);
 
-    if (value && index < 5) {
+    if (value && index < 3) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       if (nextInput) nextInput.focus();
     }
@@ -82,8 +83,10 @@ function VerifyPageContent() {
 
   const handleVerify = async () => {
     const otp = otpDigits.join('');
-    if (otp.length !== 6) {
-      setError('Please enter all 6 digits');
+    console.log('OTP digits:', otpDigits, 'Joined:', otp, 'Length:', otp.length);
+    
+    if (otp.length !== 4) {
+      setError('Please enter all 4 digits');
       return;
     }
 
@@ -91,12 +94,16 @@ function VerifyPageContent() {
     setError('');
 
     try {
+      const payload = { email, otp };
+      console.log('Sending verification request:', payload);
+      
       const response = await fetch(`${API_URL}/auth/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -113,7 +120,12 @@ function VerifyPageContent() {
       toast.success('Email verified successfully!');
       
       setTimeout(() => {
-        router.push('/login');
+        // If user came from login, redirect to dashboard
+        if (fromLogin) {
+          router.push('/dashboard');
+        } else {
+          router.push('/login');
+        }
       }, 2000);
     } catch (err) {
       console.error('Verification error:', err);
@@ -224,7 +236,7 @@ function VerifyPageContent() {
             </div>
             <h1 className="text-2xl font-bold text-dark mb-2">Verify Your Email</h1>
             <p className="text-gray-500">
-              Enter the 6-digit code sent to<br />
+              Enter the 4-digit code sent to<br />
               <span className="font-medium text-dark">{email || 'your email'}</span>
             </p>
           </div>
@@ -243,7 +255,7 @@ function VerifyPageContent() {
                 id={`otp-${index}`}
                 type="text"
                 inputMode="numeric"
-                maxLength={6}
+                maxLength={1}
                 value={digit}
                 onChange={(e) => handleOtpChange(index, e.target.value)}
                 onKeyDown={(e) => handleOtpKeyDown(index, e)}
@@ -255,7 +267,7 @@ function VerifyPageContent() {
 
           <button
             onClick={handleVerify}
-            disabled={isLoading || otpDigits.join('').length !== 6}
+            disabled={isLoading || otpDigits.join('').length !== 4}
             className="w-full py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (

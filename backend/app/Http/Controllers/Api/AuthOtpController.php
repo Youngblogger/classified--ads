@@ -20,18 +20,43 @@ class AuthOtpController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        // Log incoming request
+        \Illuminate\Support\Facades\Log::info('Register request data: ', $request->all());
+        
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email',
             'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
         ]);
 
         if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('Register validation failed: ', $validator->errors()->toArray());
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $validator->errors(),
             ], 422);
+        }
+
+        // Check if email already exists
+        $existingUser = User::where('email', $request->email)->first();
+        
+        if ($existingUser) {
+            // Check if user is already verified
+            $isVerified = $existingUser->emailVerification && $existingUser->emailVerification->is_verified;
+            
+            if ($isVerified) {
+                // User is verified - cannot register again
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Email is already registered',
+                    'code' => 'email_exists',
+                ], 409);
+            }
+            
+            // User exists but not verified - delete and allow re-registration
+            $existingUser->emailVerification()->delete();
+            $existingUser->delete();
         }
 
         $user = User::create([
@@ -44,9 +69,11 @@ class AuthOtpController extends Controller
         ]);
 
         $otpData = $this->otpService->createOrUpdateVerification($user);
+        $emailSent = false;
 
         try {
             $this->otpService->sendOtpEmail($user, $otpData['otp']);
+            $emailSent = true;
         } catch (\Exception $e) {
             // Log the error but don't fail registration
             \Illuminate\Support\Facades\Log::error('Email send failed: ' . $e->getMessage());
@@ -54,16 +81,19 @@ class AuthOtpController extends Controller
 
         $response = [
             'success' => true,
-            'message' => 'Registration successful! Please check your email for the verification code.',
+            'message' => $emailSent 
+                ? 'Registration successful! Please check your email for the verification code.'
+                : 'Registration successful! Use the OTP code below to verify.',
             'user_id' => $user->id,
             'email' => $user->email,
             'expires_at' => $otpData['expires_at']->toIso8601String(),
+            'email_sent' => $emailSent,
         ];
 
-        // Include OTP in response for development
+        // Always include OTP in response for development
         if (config('app.debug')) {
             $response['otp'] = $otpData['otp'];
-            $response['dev_note'] = 'OTP shown for development only. In production, check your email.';
+            $response['dev_note'] = 'OTP shown for development. In production, check your email.';
         }
 
         return response()->json($response, 201);
@@ -71,12 +101,16 @@ class AuthOtpController extends Controller
 
     public function verifyOtp(Request $request): JsonResponse
     {
+        // Log the incoming request for debugging
+        \Illuminate\Support\Facades\Log::info('Verify OTP request: ', $request->all());
+        
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
-            'otp' => 'required|string|size:6',
+            'otp' => 'required|string|min:4|max:4',
         ]);
 
         if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('OTP validation failed: ', $validator->errors()->toArray());
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
