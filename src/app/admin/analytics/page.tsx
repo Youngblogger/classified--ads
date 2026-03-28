@@ -181,8 +181,8 @@ export default function AnalyticsPage() {
                     outerRadius={100}
                     paddingAngle={2}
                     dataKey="value"
-                    label={({ name, percent }: { name?: string; percent?: number }) => `${name || ''} ${((percent || 0) * 100).toFixed(0)}%`}
                     labelLine={false}
+                    label={false}
                   >
                     {categoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
@@ -190,6 +190,15 @@ export default function AnalyticsPage() {
                   </Pie>
                   <Tooltip
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  />
+                  <Legend 
+                    layout="vertical" 
+                    align="right" 
+                    verticalAlign="middle"
+                    formatter={(value, entry) => {
+                      const data = entry.payload as { value?: number };
+                      return <span className="text-sm text-gray-700">{value} ({data?.value || 0})</span>;
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>

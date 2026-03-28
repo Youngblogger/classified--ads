@@ -222,19 +222,24 @@ export default function AdsApprovalPage() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div>
+            <div className="flex-1">
               <h3 className="font-medium text-gray-900">Auto Approval</h3>
               <p className="text-sm text-gray-500">Auto-approve ads after duration</p>
             </div>
             <button
+              type="button"
               onClick={() => setApprovalSettings({ ...approvalSettings, auto_approval_enabled: !approvalSettings.auto_approval_enabled })}
-              className={`relative w-12 h-6 rounded-full transition-colors ${
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 ${
                 approvalSettings.auto_approval_enabled ? 'bg-sky-600' : 'bg-gray-300'
               }`}
+              role="switch"
+              aria-checked={approvalSettings.auto_approval_enabled}
             >
-              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                approvalSettings.auto_approval_enabled ? 'left-7' : 'left-1'
-              }`} />
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  approvalSettings.auto_approval_enabled ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
             </button>
           </div>
 
