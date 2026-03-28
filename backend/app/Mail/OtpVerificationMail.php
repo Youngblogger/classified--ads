@@ -21,7 +21,7 @@ class OtpVerificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Verification Code',
+            subject: 'Your iList Verification Code',
         );
     }
 

@@ -14,11 +14,11 @@ interface OtpModalProps {
 export default function OtpModal({ isOpen, onClose, phone = '', email = '', onVerified }: OtpModalProps) {
   const isEmailVerification = !!email;
   const targetValue = email || phone;
-  const [otp, setOtp] = useState<string[]>(['', '', '', '']);
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [resendTimer, setResendTimer] = useState(60);
+  const [resendTimer, setResendTimer] = useState(30);
   const [resending, setResending] = useState(false);
   
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -26,15 +26,15 @@ export default function OtpModal({ isOpen, onClose, phone = '', email = '', onVe
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
-      setResendTimer(60);
+      setResendTimer(30);
       setError('');
       setSuccess(false);
-      setOtp(['', '', '', '']);
+      setOtp(['', '', '', '', '', '']);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && resendTimer > 0) {
+    if (isOpen && resendTimer > 0 && !success) {
       const timer = setInterval(() => {
         setResendTimer((prev) => prev - 1);
       }, 1000);

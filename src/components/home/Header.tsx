@@ -18,14 +18,12 @@ import {
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, BACKEND_URL } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useSocket } from '@/hooks/useSocket';
 
 const RECENT_SEARCHES_KEY = 'ilist_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
-
-const BACKEND_URL = 'http://127.0.0.1:8000';
 
 function getFullAvatarUrl(user: any): string | null {
   if (!user) return null;
@@ -224,18 +222,7 @@ export default function Header() {
     }
   }, []);
 
-  if (!hasHydrated) {
-    return (
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="container-app">
-          <div className="h-16 flex items-center justify-between">
-            <div className="h-6 w-24 bg-slate-200 rounded animate-pulse" />
-            <div className="h-6 w-48 bg-slate-200 rounded animate-pulse" />
-          </div>
-        </div>
-      </header>
-    );
-  }
+  const isLoading = !hasHydrated;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -566,6 +553,19 @@ export default function Header() {
     setNotificationOpen(false);
   };
 
+  if (isLoading) {
+    return (
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div className="container-app">
+          <div className="h-16 flex items-center justify-between">
+            <div className="h-6 w-24 bg-slate-200 rounded animate-pulse" />
+            <div className="h-6 w-48 bg-slate-200 rounded animate-pulse" />
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-50">
       {/* TOP BAR */}
@@ -755,12 +755,11 @@ export default function Header() {
           <div className="flex items-center justify-between h-16 gap-4">
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                  <span className="text-primary-600 font-bold text-2xl">i</span>
-                </div>
-                <span className="text-xl font-bold text-white hidden sm:block">iList</span>
-              </div>
+              <img 
+                src="/icons/iList-white.png" 
+                alt="iList" 
+                className="h-10 w-auto"
+              />
             </Link>
 
             {/* Desktop Search Bar */}

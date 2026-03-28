@@ -373,12 +373,14 @@ export default function Header() {
         <div className="flex items-center gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-                <span className="text-[#4B5320] font-bold text-xl">i</span>
-              </div>
-              <span className="text-2xl font-display font-bold text-white">iList</span>
-            </div>
+            <img 
+              src="/icons/iList-white.png" 
+              alt="iList" 
+              className="h-10 w-auto"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </Link>
 
           {/* Search Bar */}

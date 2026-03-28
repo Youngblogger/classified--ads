@@ -338,6 +338,37 @@ export default function LoginModal() {
     }
   };
 
+  const handleFacebookLogin = async () => {
+    setGoogleLoading(true);
+    setError('');
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+      const response = await fetch(`${apiUrl}/auth/facebook`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to initiate Facebook login');
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No redirect URL received');
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Facebook login failed';
+      setError(errorMessage);
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <div className={isLoginModalOpen ? '' : 'hidden'}>
       <div 
@@ -596,11 +627,15 @@ export default function LoginModal() {
                     </svg>
                     <span className="font-medium">{googleLoading ? 'Loading...' : 'Google'}</span>
                   </button>
-                  <button className="flex items-center justify-center gap-2 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                  <button 
+                    onClick={handleFacebookLogin}
+                    disabled={googleLoading}
+                    className="flex items-center justify-center gap-2 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm"
+                  >
                     <svg viewBox="0 0 24 24" className="w-4 h-4">
                       <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
-                    <span className="font-medium">Facebook</span>
+                    <span className="font-medium">{googleLoading ? 'Loading...' : 'Facebook'}</span>
                   </button>
                 </div>
               </>

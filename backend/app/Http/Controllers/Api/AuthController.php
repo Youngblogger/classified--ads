@@ -398,4 +398,121 @@ class AuthController extends Controller
             return response()->json(['message' => 'Google OAuth failed: ' . $e->getMessage()], 401);
         }
     }
+
+    public function facebook(Request $request)
+    {
+        $facebookClientId = config('services.facebook.client_id');
+        $facebookClientSecret = config('services.facebook.client_secret');
+        $appUrl = env('APP_URL', 'http://localhost:3000');
+
+        if (!$facebookClientId) {
+            return response()->json(['message' => 'Facebook OAuth not configured'], 500);
+        }
+
+        // GET request - return redirect URL
+        if ($request->isMethod('GET')) {
+            $redirectUri = rtrim($appUrl, '/') . '/auth/facebook/callback';
+            $state = bin2hex(random_bytes(16));
+            
+            session(['facebook_oauth_state' => $state]);
+            
+            $params = http_build_query([
+                'client_id' => $facebookClientId,
+                'redirect_uri' => $redirectUri,
+                'response_type' => 'code',
+                'scope' => 'email,public_profile',
+                'state' => $state,
+            ]);
+
+            $url = 'https://www.facebook.com/v18.0/dialog/oauth?' . $params;
+
+            return response()->json(['url' => $url]);
+        }
+
+        // POST request - handle callback with authorization code
+        $code = $request->input('code');
+        $error = $request->input('error');
+
+        $callbackUrl = rtrim($appUrl, '/') . '/auth/facebook/callback';
+
+        if ($error) {
+            return response()->json(['message' => $error], 400);
+        }
+
+        if (!$code) {
+            return response()->json(['message' => 'Authorization code required'], 400);
+        }
+
+        // Exchange code for tokens
+        $client = new \GuzzleHttp\Client();
+        $redirectUri = $callbackUrl;
+
+        try {
+            // Exchange code for access token
+            $response = $client->post('https://graph.facebook.com/v18.0/oauth/access_token', [
+                'query' => [
+                    'client_id' => $facebookClientId,
+                    'client_secret' => $facebookClientSecret,
+                    'code' => $code,
+                    'redirect_uri' => $redirectUri,
+                ]
+            ]);
+
+            $tokenData = json_decode($response->getBody()->getContents(), true);
+            $accessToken = $tokenData['access_token'] ?? null;
+
+            if (!$accessToken) {
+                return response()->json(['message' => 'Failed to get access token from Facebook'], 400);
+            }
+
+            // Get user info from Facebook
+            $userResponse = $client->get('https://graph.facebook.com/me', [
+                'query' => [
+                    'fields' => 'id,name,email,picture',
+                    'access_token' => $accessToken,
+                ]
+            ]);
+
+            $facebookUser = json_decode($userResponse->getBody()->getContents(), true);
+
+            if (!isset($facebookUser['email'])) {
+                return response()->json(['message' => 'Email permission required'], 400);
+            }
+
+            // Find or create user
+            $user = User::where('email', $facebookUser['email'])->first();
+            $facebookAvatar = $facebookUser['picture']['data']['url'] ?? null;
+
+            if (!$user) {
+                $user = User::create([
+                    'name' => $facebookUser['name'] ?? 'Facebook User',
+                    'email' => $facebookUser['email'],
+                    'password' => Hash::make(bin2hex(random_bytes(16))),
+                    'facebook_avatar' => $facebookAvatar,
+                ]);
+            } else {
+                // Update Facebook avatar if changed
+                if ($facebookAvatar && $user->facebook_avatar !== $facebookAvatar) {
+                    $user->update(['facebook_avatar' => $facebookAvatar]);
+                }
+            }
+
+            $token = $user->createToken('facebook_token')->plainTextToken;
+
+            return response()->json([
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'facebook_avatar' => $user->facebook_avatar,
+                    'avatar' => $user->avatar,
+                    'avatar_url' => $user->avatar,
+                ],
+                'token' => $token,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Facebook OAuth failed: ' . $e->getMessage()], 401);
+        }
+    }
 }

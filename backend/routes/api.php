@@ -30,6 +30,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('register');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::match(['get', 'post'], '/google', [AuthController::class, 'google']);
+    Route::match(['get', 'post'], '/facebook', [AuthController::class, 'facebook']);
 
     // OTP Verification routes
     Route::post('/register-otp', [AuthOtpController::class, 'register']);

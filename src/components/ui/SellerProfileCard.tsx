@@ -52,13 +52,14 @@ function formatFollowers(count?: number): string {
   return `${count.toLocaleString()} follower${count === 1 ? '' : 's'}`;
 }
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
+
 function getProfileImage(seller: SellerProfileCardProps['seller']): string | null {
-  // Try all possible avatar sources
+  // Try all possible avatar sources - match header order
   const imageSources = [
-    seller.profile_image,
-    seller.avatar,
-    seller.avatar_url,
     seller.full_avatar_url,
+    seller.avatar_url,
+    seller.avatar,
     seller.google_avatar,
     seller.facebook_avatar,
   ];
@@ -70,10 +71,10 @@ function getProfileImage(seller: SellerProfileCardProps['seller']): string | nul
     return image;
   }
   if (image.startsWith('/storage/')) {
-    return `http://127.0.0.1:8000${image}`;
+    return `${BACKEND_URL}${image}`;
   }
   // Handle case where it's just a filename like "avatars/xxx.jpg"
-  return `http://127.0.0.1:8000/storage/${image}`;
+  return `${BACKEND_URL}/storage/${image}`;
 }
 
 function VerifiedBadge({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {

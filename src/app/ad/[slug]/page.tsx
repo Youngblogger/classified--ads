@@ -548,7 +548,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                   <div className="flex items-center gap-3">
                     {/* WhatsApp */}
                     <a
-                      href={`https://wa.me/?text=${encodeURIComponent(`${displayAd.title} - ${window.location.href}`)}`}
+                      href={`https://wa.me/?text=${encodeURIComponent(`${displayAd.title} - ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label="Share on WhatsApp"
@@ -590,14 +590,15 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                       href="#"
                       onClick={(e) => {
                         e.preventDefault();
+                        const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
                         if (navigator.share) {
                           navigator.share({
                             title: displayAd.title,
                             text: `Check out this ad: ${displayAd.title}`,
-                            url: window.location.href,
+                            url: currentUrl,
                           });
                         } else {
-                          navigator.clipboard.writeText(window.location.href);
+                          navigator.clipboard.writeText(currentUrl);
                           toast.success('Link copied to clipboard!');
                         }
                       }}
@@ -762,7 +763,7 @@ export default function AdDetailPage({ params }: { params: { slug: string } }) {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                      Don't Go Alone for High-Value Deals
+                      Don&apos;t Go Alone for High-Value Deals
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />

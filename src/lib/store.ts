@@ -59,7 +59,12 @@ export const useAuthStore = create<AuthStore>()(
           
           // Clear localStorage auth data
           localStorage.removeItem('auth-storage');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
           sessionStorage.clear();
+          
+          // Set flag to prevent auto-login
+          sessionStorage.setItem('just_logged_out', 'true');
         }
         
         set({ user: null, token: null, isAuthenticated: false, isLoading: false });
