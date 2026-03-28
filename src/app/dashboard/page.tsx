@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
-import { adsApi, notificationsApi, messagesApi, walletApi } from '@/lib/api';
-import { Heart, MessageCircle, Eye, CheckCircle, Clock, Plus, FileText, Wallet, TrendingUp, Star, Sparkles, ChevronRight } from 'lucide-react';
+import { adsApi, notificationsApi, messagesApi } from '@/lib/api';
+import { Heart, MessageCircle, Eye, CheckCircle, Clock, Plus, FileText, TrendingUp, Star, Sparkles, ChevronRight } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -19,17 +19,16 @@ export default function DashboardPage() {
     promoted: 0,
     views: 0,
   });
-  const [walletBalance, setWalletBalance] = useState(0);
+
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [adsRes, notificationsRes, walletRes] = await Promise.all([
+        const [adsRes, notificationsRes] = await Promise.all([
           adsApi.getMyAds().catch(() => ({ data: { data: [] } })),
           notificationsApi.getAll().catch(() => ({ data: { data: [] } })),
-          walletApi.getBalance().catch(() => ({ data: { balance: 0 } })),
         ]);
 
         const ads = adsRes.data?.data || adsRes.data || [];
@@ -47,13 +46,6 @@ export default function DashboardPage() {
           promoted: promotedAds.length,
           views: activeAds.reduce((sum: number, a: any) => sum + (a.views || 0), 0),
         });
-
-        // Set wallet balance
-        if (walletRes.data?.balance !== undefined) {
-          setWalletBalance(walletRes.data.balance);
-        } else if (walletRes.data?.wallet?.balance) {
-          setWalletBalance(walletRes.data.wallet.balance);
-        }
 
         const notifications = notificationsRes.data?.data || notificationsRes.data || [];
         setRecentActivity(notifications.slice(0, 5));
@@ -174,13 +166,6 @@ export default function DashboardPage() {
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back, {user?.name || 'User'}!</h2>
               <p className="text-primary-100">Here&apos;s what&apos;s happening with your listings today.</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 min-w-[180px]">
-              <div className="flex items-center gap-2 text-primary-100 mb-1">
-                <Wallet className="w-4 h-4" />
-                <span className="text-sm">Wallet Balance</span>
-              </div>
-              <p className="text-2xl font-bold">₦{walletBalance.toLocaleString()}</p>
             </div>
           </div>
         </div>

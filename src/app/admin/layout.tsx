@@ -30,7 +30,8 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  Building2
+  Building2,
+  Share2
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { api, notificationsApi } from '@/lib/api';
@@ -61,6 +62,8 @@ const navigation: NavItem[] = [
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Search Analytics', href: '/admin/search-analytics', icon: Search },
   { name: 'Broadcasts', href: '/admin/broadcasts', icon: Send },
+  { name: 'Social Posts', href: '/admin/social', icon: Share2 },
+  { name: 'Social Settings', href: '/admin/social-settings', icon: Share2 },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
   { name: 'Watermark Settings', href: '/admin/watermark', icon: Type },
   { name: 'Custom Fonts', href: '/admin/fonts', icon: FileText },

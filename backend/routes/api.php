@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\WatermarkController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\SocialPostController;
+use App\Http\Controllers\Api\SocialSettingsController;
 use Illuminate\Support\Facades\Route;
 
 // Public auth routes
@@ -243,6 +245,23 @@ Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
     Route::put('/banners/{id}', [BannerController::class, 'update']);
     Route::delete('/banners/{id}', [BannerController::class, 'destroy']);
     Route::post('/banners/reorder', [BannerController::class, 'reorder']);
+
+    // Social Media Posts
+    Route::prefix('social')->group(function () {
+        Route::post('/post-ad', [SocialPostController::class, 'postAd']);
+        Route::post('/post-ads-batch', [SocialPostController::class, 'postAdsBatch']);
+        Route::get('/posts', [SocialPostController::class, 'index']);
+        Route::get('/scheduled', [SocialPostController::class, 'scheduled']);
+        Route::post('/retry/{id}', [SocialPostController::class, 'retry']);
+        Route::post('/cancel/{id}', [SocialPostController::class, 'cancel']);
+        Route::get('/stats', [SocialPostController::class, 'stats']);
+        
+        // Settings
+        Route::get('/settings', [SocialSettingsController::class, 'index']);
+        Route::post('/settings', [SocialSettingsController::class, 'store']);
+        Route::post('/settings/test', [SocialSettingsController::class, 'test']);
+        Route::delete('/settings/{platform}', [SocialSettingsController::class, 'destroy']);
+    });
 });
 
 Route::post('/test', function () {

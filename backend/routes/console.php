@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\AutoApproveAdsJob;
+use App\Jobs\ProcessScheduledPostsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -11,3 +12,6 @@ Artisan::command('inspire', function () {
 
 // Auto-approve ads every minute
 Schedule::job(new AutoApproveAdsJob())->everyMinute();
+
+// Process scheduled social media posts every minute
+Schedule::job(new ProcessScheduledPostsJob())->everyMinute();
