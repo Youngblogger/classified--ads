@@ -205,6 +205,7 @@ Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
     Route::get('/reports', [AdminController::class, 'reports']);
     Route::post('/reports/{id}/resolve', [AdminController::class, 'resolveReport']);
     Route::get('/analytics', [AdminController::class, 'analytics']);
+    Route::get('/analytics/states', [AdminController::class, 'statesAnalytics']);
     Route::get('/messages', [AdminController::class, 'messages']);
     Route::get('/broadcasts', [BroadcastController::class, 'index']);
     Route::post('/broadcast', [AdminController::class, 'broadcast']);

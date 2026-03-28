@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { User, Search, Mic, Square, Play, Pause, X, Trash2, ChevronLeft, MoreVertical, Phone, Video, Info } from 'lucide-react';
-import { messagesApi } from '@/lib/api';
+import { messagesApi, adsApi } from '@/lib/api';
 import { useSocket } from '@/hooks/useSocket';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
@@ -13,14 +13,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 function getStorageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  if (url.startsWith('/storage/')) {
-    return `/storage/${url.replace('/storage/', '')}`;
-  } else if (url.startsWith(API_URL.replace('/api', '') + '/storage/')) {
-    return `/storage/${url.replace(API_URL.replace('/api', '') + '/storage/', '')}`;
-  } else if (url.startsWith('http://127.0.0.1:8000/storage/')) {
-    return `/storage/${url.replace('http://127.0.0.1:8000/storage/', '')}`;
+  // Handle full HTTP URLs - return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
   }
-  return url;
+  if (url.startsWith('/storage/')) {
+    return API_URL.replace('/api', '') + url;
+  }
+  if (url.startsWith('storage/')) {
+    return API_URL.replace('/api', '') + '/' + url;
+  }
+  // Default: assume it's a filename
+  return API_URL.replace('/api', '') + '/storage/' + url;
 }
 
 interface Conversation {
@@ -39,10 +43,16 @@ interface Conversation {
   ad?: {
     id: number;
     title: string;
-    image: string;
+    image?: string;
+    images?: { url?: string; full_url?: string; full_thumbnail_url?: string; thumbnail_url?: string; thumbnail?: string; display_url?: string; is_primary?: boolean }[];
     price: number;
     slug: string;
+    thumbnail?: string;
+    thumbnail_url?: string;
+    display_url?: string;
   };
+  ad_id?: number;
+  ad_slug?: string;
   last_message?: string;
   last_message_content?: string;
   latestMessage?: { content: string };
@@ -60,6 +70,7 @@ interface Message {
   content: string;
   message_type?: string;
   attachment_url?: string | null;
+  audio_url?: string | null;
   is_read?: boolean;
   read_at?: string | null;
   created_at: string;
@@ -102,6 +113,7 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [adDetails, setAdDetails] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -133,6 +145,9 @@ export default function MessagesPage() {
   // Long press for delete
   const [longPressMessageId, setLongPressMessageId] = useState<number | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Image fullscreen preview
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   
   const MAX_RECORDING_DURATION = 60; // 60 seconds max
   const SLIDE_CANCEL_THRESHOLD = 100; // pixels to slide to cancel
@@ -176,9 +191,46 @@ export default function MessagesPage() {
 
   useEffect(() => {
     if (selectedConversation) {
+      setAdDetails(null); // Clear previous ad details
       joinConversation(selectedConversation.id.toString());
       fetchMessages(selectedConversation.id);
       markAsRead(selectedConversation.id);
+      
+      // Try to get ad image from conversation ad, or fetch ad details
+      const fetchAdDetails = async () => {
+        const ad = selectedConversation.ad as any;
+        let imageUrl = ad?.image || ad?.thumbnail || ad?.thumbnail_url || ad?.display_url;
+        
+        if (!imageUrl && ad?.images && Array.isArray(ad.images) && ad.images.length > 0) {
+          const primaryImage = ad.images.find((img: any) => img?.is_primary) || ad.images[0];
+          imageUrl = primaryImage?.full_url || primaryImage?.full_thumbnail_url || primaryImage?.url || primaryImage?.thumbnail_url || primaryImage?.thumbnail;
+        }
+        
+        // If no image found, try to fetch ad details using ad_id
+        if (!imageUrl && (selectedConversation.ad_id || ad?.id)) {
+          try {
+            const adId = selectedConversation.ad_id || ad?.id;
+            const adRes = await adsApi.getById(adId);
+            const adData = adRes.data;
+            console.log('Fetched ad details:', adData);
+            
+            // Get image from fetched ad
+            const fetchedAd = adData as any;
+            imageUrl = fetchedAd?.image || fetchedAd?.thumbnail || fetchedAd?.thumbnail_url || fetchedAd?.display_url;
+            
+            if (!imageUrl && fetchedAd?.images && Array.isArray(fetchedAd.images) && fetchedAd.images.length > 0) {
+              const primaryImage = fetchedAd.images.find((img: any) => img?.is_primary) || fetchedAd.images[0];
+              imageUrl = primaryImage?.full_url || primaryImage?.full_thumbnail_url || primaryImage?.url || primaryImage?.thumbnail_url || primaryImage?.thumbnail;
+            }
+            
+            setAdDetails(fetchedAd);
+          } catch (err) {
+            console.error('Failed to fetch ad details:', err);
+          }
+        }
+      };
+      
+      fetchAdDetails();
 
       return () => {
         leaveConversation(selectedConversation.id.toString());
@@ -195,6 +247,7 @@ export default function MessagesPage() {
       setLoading(true);
       const res = await messagesApi.getConversations();
       const data = res.data?.data || res.data || [];
+      console.log('Conversations API response:', JSON.stringify(data, null, 2));
       setConversations(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
@@ -386,7 +439,7 @@ export default function MessagesPage() {
       const optimisticMessage: Message = {
         id: tempId,
         sender_id: currentUserId!,
-        content: 'Voice message',
+        content: '',
         message_type: 'voice',
         attachment_url: audioUrlToSend,
         status: 'sending',
@@ -730,6 +783,7 @@ export default function MessagesPage() {
                           width={48}
                           height={48}
                           className="object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-12 h-12 flex items-center justify-center bg-primary-100">
@@ -792,6 +846,7 @@ export default function MessagesPage() {
                           width={40}
                           height={40}
                           className="object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-10 h-10 flex items-center justify-center bg-primary-100 text-primary-600 font-semibold">
@@ -805,11 +860,13 @@ export default function MessagesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{otherUser?.name || 'Unknown'}</p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <span>{selectedConversation.ad?.title}</span>
-                      <span>•</span>
-                      <span className="font-medium text-primary-600">₦{selectedConversation.ad?.price?.toLocaleString()}</span>
-                    </div>
+                    {selectedConversation.ad && (
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span>{selectedConversation.ad.title}</span>
+                        <span>•</span>
+                        <span className="font-medium text-primary-600">₦{Number(selectedConversation.ad.price || 0).toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
                 </>
               );
@@ -817,29 +874,71 @@ export default function MessagesPage() {
           </div>
 
           {/* Ad Preview */}
-          <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
-              {selectedConversation.ad?.image && (
-                <Image
-                  src={selectedConversation.ad.image}
-                  alt={selectedConversation.ad.title}
-                  width={64}
-                  height={64}
-                  className="object-cover"
-                />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900 truncate">{selectedConversation.ad?.title}</p>
-              <p className="text-primary-600 font-semibold">₦{selectedConversation.ad?.price?.toLocaleString()}</p>
-            </div>
-            <button 
-              onClick={() => router.push(`/ad/${selectedConversation.ad?.slug}`)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700"
-            >
-              View Ad
-            </button>
-          </div>
+          {(() => {
+            // Debug: Log what's available
+            console.log('Conversation ad:', selectedConversation.ad);
+            console.log('Ad details:', adDetails);
+            
+            // Use adDetails if available, otherwise use conversation ad
+            const ad = adDetails || selectedConversation.ad;
+            const adAny = ad as any;
+            
+            // Get image from different sources with fallback
+            let imageUrl = adAny?.image || adAny?.thumbnail || adAny?.thumbnail_url || adAny?.display_url;
+            
+            // Check images array
+            if (!imageUrl && adAny?.images && Array.isArray(adAny.images) && adAny.images.length > 0) {
+              const primaryImage = adAny.images.find((img: any) => img?.is_primary) || adAny.images[0];
+              imageUrl = primaryImage?.full_url || primaryImage?.full_thumbnail_url || primaryImage?.url || primaryImage?.thumbnail_url || primaryImage?.thumbnail;
+            }
+            
+            // Check if imageUrl is actually a user avatar (contains 'avatars')
+            if (imageUrl && imageUrl.includes('avatars')) {
+              console.log('WARNING: Image URL is a user avatar, not ad image!', imageUrl);
+              imageUrl = undefined; // Reset to try other sources
+            }
+            
+            // Get formatted URL or use placeholder
+            const formattedUrl = getStorageUrl(imageUrl);
+            const displayImageUrl = formattedUrl || '/placeholder-image.svg';
+            
+            const adTitle = selectedConversation.ad?.title || adDetails?.title || 'Ad Title';
+            const adPrice = Number(selectedConversation.ad?.price || adDetails?.price || 0).toLocaleString();
+            const adSlug = selectedConversation.ad?.slug || adDetails?.slug || (selectedConversation as any).ad_slug || '';
+            
+            return (
+              <div className="p-3 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
+                {/* Ad Image - Fixed size with object-cover */}
+                <div className="relative w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
+                  <Image
+                    src={displayImageUrl}
+                    alt={adTitle}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                    onError={(e) => {
+                      // Hide broken images
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+                
+                {/* Ad Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 text-sm truncate">{adTitle}</p>
+                  <p className="text-primary-600 font-semibold">₦{adPrice}</p>
+                </div>
+                
+                {/* View Ad Button */}
+                <button 
+                  onClick={() => router.push(`/ad/${adSlug}`)}
+                  className="px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-medium hover:bg-primary-700 flex-shrink-0 whitespace-nowrap"
+                >
+                  View
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -880,7 +979,8 @@ export default function MessagesPage() {
                       </div>
                     )}
                     
-                    {msg.message_type === 'voice' && msg.attachment_url ? (
+                    {/* Voice message - show if message_type is voice OR URL looks like audio */}
+                    {(msg.message_type === 'voice' || (msg.attachment_url && msg.attachment_url.match(/\.(mp3|webm|wav|m4a)$/i))) && msg.attachment_url ? (
                       <div
                         className={`max-w-[80%] px-3 py-2 rounded-2xl ${
                           isMe
@@ -892,7 +992,7 @@ export default function MessagesPage() {
                         <div className="flex items-center gap-3">
                           {/* Play button */}
                           <button
-                            onClick={() => playingAudioId === msg.id ? stopAudio(msg.id) : playAudio(msg.id, getStorageUrl(msg.attachment_url) || '')}
+                            onClick={() => playingAudioId === msg.id ? stopAudio(msg.id) : playAudio(msg.id, msg.audio_url || msg.attachment_url || '')}
                             className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                               isMe 
                                 ? 'bg-[#00a884] hover:bg-[#00897a] text-white' 
@@ -984,15 +1084,31 @@ export default function MessagesPage() {
                         }`}
                         style={{ boxShadow: isMe ? 'none' : '0 1px 0.5px rgba(0,0,0,0.1)' }}
                       >
-                        {msg.message_type === 'image' && msg.attachment_url && (
-                          <img src={getStorageUrl(msg.attachment_url) || ''} alt="attachment" className="rounded-lg max-w-full mb-2" />
+                        {/* Image - show if message_type is image OR if attachment URL looks like an image */}
+                        {(msg.message_type === 'image' || (msg.attachment_url && !msg.attachment_url.match(/\.(mp3|webm|wav|m4a|pdf|doc|docx|xls|xlsx)$/i))) && msg.attachment_url && (
+                          <div className="mb-2">
+                            <img 
+                              src={msg.attachment_url} 
+                              alt="attachment" 
+                              className="rounded-lg max-w-[200px] max-h-[200px] object-cover cursor-pointer hover:opacity-90 transition-opacity" 
+                              onClick={() => msg.attachment_url && setPreviewImage(msg.attachment_url)}
+                              onError={(e) => {
+                                console.log('Image load error:', msg.attachment_url);
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }} 
+                            />
+                          </div>
                         )}
+                        {/* File attachment - show if specifically marked as file */}
                         {msg.message_type === 'file' && msg.attachment_url && (
                           <a href={getStorageUrl(msg.attachment_url) || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:underline mb-2">
                             📎 Download Attachment
                           </a>
                         )}
-                        <p className="text-[15px] leading-[19px]">{msg.content}</p>
+                        {/* Text content - show if there's no attachment or if it's a text-only message */}
+                        {(!msg.attachment_url || msg.message_type === 'text') && msg.content && (
+                          <p className="text-[15px] leading-[19px]">{msg.content}</p>
+                        )}
                         <div className={`flex items-center gap-1 mt-0.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
                           {isMe && (
                             <span className="text-[10px] text-[#6ab383]">
@@ -1208,6 +1324,27 @@ export default function MessagesPage() {
           <p className="text-sm text-[#667781] text-center max-w-md px-4">
             Send and receive messages without keeping your phone online.
           </p>
+        </div>
+      )}
+
+      {/* Fullscreen Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-800 bg-opacity-50 flex items-center justify-center text-white hover:bg-opacity-70 transition-colors"
+            onClick={() => setPreviewImage(null)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={previewImage}
+            alt="Fullscreen preview"
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

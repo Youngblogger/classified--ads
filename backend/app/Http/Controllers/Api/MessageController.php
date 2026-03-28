@@ -8,6 +8,7 @@ use App\Models\Message;
 use App\Models\Ad;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class MessageController extends Controller
@@ -16,7 +17,7 @@ class MessageController extends Controller
     {
         $user = $request->user();
         
-        $conversations = Conversation::with(['sender', 'receiver', 'ad', 'latestMessage'])
+        $conversations = Conversation::with(['sender', 'receiver', 'ad.images', 'latestMessage'])
             ->where(function($q) use ($user) {
                 $q->where('sender_id', $user->id)
                   ->orWhere('receiver_id', $user->id);
@@ -115,7 +116,8 @@ class MessageController extends Controller
     public function sendMessage(Request $request, $conversationId)
     {
         $validated = $request->validate([
-            'content' => 'required|string',
+            'content' => 'string|nullable',
+            'message_type' => 'string|nullable',
             'duration' => 'nullable|integer',
         ]);
 
@@ -201,7 +203,20 @@ class MessageController extends Controller
 
         $message->load('sender');
 
-        return response()->json($message, 201);
+        return response()->json([
+            'id' => $message->id,
+            'conversation_id' => $message->conversation_id,
+            'sender_id' => $message->sender_id,
+            'content' => $message->content,
+            'message_type' => $message->message_type ?? 'text',
+            'attachment_url' => $message->attachment_url ?? null,
+            'audio_url' => $message->message_type === 'voice' ? ($message->attachment_url ?? null) : null,
+            'duration' => $message->duration ?? null,
+            'is_read' => false,
+            'read_at' => null,
+            'created_at' => $message->created_at,
+            'sender' => $message->sender,
+        ], 201);
     }
 
     public function deleteMessage(Request $request, $messageId)
@@ -226,7 +241,7 @@ class MessageController extends Controller
         $validated = $request->validate([
             'receiver_id' => 'required|exists:users,id',
             'ad_id' => 'nullable|exists:ads,id',
-            'message' => 'required|string',
+            'message' => 'string|nullable',
             'message_type' => 'sometimes|string|in:text,image,file,voice',
             'duration' => 'nullable|integer',
         ]);
@@ -272,7 +287,15 @@ class MessageController extends Controller
         ];
 
         // Handle file attachments
+        \Log::info('Store request: hasFile=' . ($request->hasFile('attachment') ? 'true' : 'false') . ', messageType=' . ($validated['message_type'] ?? 'text') . ', allKeys=' . json_encode($request->keys()) . ', files=' . json_encode($request->file()));
+        
         if ($request->hasFile('attachment')) {
+            \Log::info('Attachment received: ' . json_encode([
+                'hasFile' => $request->hasFile('attachment'),
+                'fileName' => $request->file('attachment')->getClientOriginalName(),
+                'fileSize' => $request->file('attachment')->getSize(),
+                'messageType' => $validated['message_type'] ?? 'text',
+            ]));
             $file = $request->file('attachment');
             $messageType = $validated['message_type'] ?? 'file';
             

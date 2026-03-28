@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { MapPin, ImageIcon } from 'lucide-react';
 import { favoritesApi } from '@/lib/api';
+import { formatPrice, getAdImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 // Icons
@@ -18,26 +20,37 @@ const SearchIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const TrashIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
+interface FavoriteImage {
+  url?: string;
+  display_url?: string;
+  thumbnail_url?: string;
+  is_primary?: boolean;
+  full_url?: string;
+  full_thumbnail_url?: string;
+}
+
+interface FavoriteAd {
+  id: number;
+  title: string;
+  slug: string;
+  price: number;
+  currency: string;
+  short_description?: string;
+  images: FavoriteImage[];
+  location?: {
+    id: number;
+    name: string;
+  };
+  lga?: string;
+  user?: {
+    name: string;
+  };
+  created_at: string;
+}
 
 interface Favorite {
   id: number;
-  ad: {
-    id: number;
-    title: string;
-    slug: string;
-    price: string;
-    image?: string;
-    location?: string;
-    user?: {
-      name: string;
-    };
-    created_at: string;
-  };
+  ad: FavoriteAd;
 }
 
 export default function FavoritesPage() {
@@ -73,7 +86,8 @@ export default function FavoritesPage() {
   };
 
   const filteredFavorites = favorites.filter(item => 
-    item.ad?.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    item.ad?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.ad?.short_description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -139,17 +153,23 @@ export default function FavoritesPage() {
             >
               {/* Image */}
               <div className="relative aspect-square bg-gray-100">
-                {item.ad?.image ? (
-                  <img
-                    src={item.ad.image}
-                    alt={item.ad.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">
-                    No Image
-                  </div>
-                )}
+                {(() => {
+                  const imagesArray = Array.isArray(item.ad.images) ? item.ad.images : [];
+                  const primaryImage = imagesArray.find((img: FavoriteImage) => img?.is_primary) || imagesArray[0];
+                  const imageUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
+                  
+                  return imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={item.ad.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                      <ImageIcon className="w-12 h-12 text-gray-300" />
+                    </div>
+                  );
+                })()}
                 <button
                   onClick={() => handleRemoveFavorite(item.ad.id)}
                   className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md text-red-500 hover:bg-red-50 transition-colors"
@@ -162,19 +182,27 @@ export default function FavoritesPage() {
               {/* Content */}
               <div className="p-4">
                 <Link href={`/ad/${item.ad.slug}`}>
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-1 hover:text-primary-600">
+                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-primary-600">
                     {item.ad.title}
                   </h3>
                 </Link>
+                
+                {item.ad.short_description && (
+                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">
+                    {item.ad.short_description}
+                  </p>
+                )}
+                
                 <p className="text-xl font-bold text-primary-600 mb-3">
-                  {item.ad.price}
+                  {formatPrice(item.ad.price, item.ad.currency)}
                 </p>
 
                 {/* Details */}
                 <div className="space-y-1 text-sm text-gray-500 mb-4">
-                  {item.ad.location && (
+                  {(item.ad.location?.name || item.ad.lga) && (
                     <div className="flex items-center gap-1">
-                      <span>{item.ad.location}</span>
+                      <MapPin className="w-3 h-3" />
+                      <span>{item.ad.lga ? `${item.ad.location?.name}, ${item.ad.lga}` : item.ad.location?.name}</span>
                     </div>
                   )}
                   {item.ad.user && (

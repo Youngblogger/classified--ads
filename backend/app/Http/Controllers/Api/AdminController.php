@@ -348,6 +348,51 @@ class AdminController extends Controller
         ]);
     }
 
+    // Top States by Ad Posts with Categories
+    public function statesAnalytics(Request $request)
+    {
+        $limit = $request->limit ?? 20;
+        $sortBy = $request->sort_by ?? 'total_ads';
+        $sortOrder = $request->sort_order ?? 'desc';
+
+        $statesData = Ad::select('locations.name as state_name', 'locations.id as location_id')
+            ->join('locations', 'ads.location_id', '=', 'locations.id')
+            ->where('ads.status', 'active')
+            ->groupBy('locations.id', 'locations.name')
+            ->selectRaw('COUNT(ads.id) as total_ads')
+            ->orderBy('total_ads', 'desc')
+            ->limit($limit)
+            ->get();
+
+        $result = [];
+        foreach ($statesData as $state) {
+            $topCategories = Ad::select('categories.name', 'categories.id')
+                ->join('categories', 'ads.category_id', '=', 'categories.id')
+                ->where('ads.location_id', $state->location_id)
+                ->where('ads.status', 'active')
+                ->groupBy('categories.id', 'categories.name')
+                ->selectRaw('COUNT(ads.id) as ad_count')
+                ->orderBy('ad_count', 'desc')
+                ->limit(3)
+                ->pluck('name')
+                ->toArray();
+
+            $result[] = [
+                'state' => $state->state_name,
+                'total_ads' => (int) $state->total_ads,
+                'top_categories' => $topCategories,
+            ];
+        }
+
+        if ($sortBy === 'total_ads') {
+            usort($result, function ($a, $b) use ($sortOrder) {
+                return $sortOrder === 'desc' ? $b['total_ads'] - $a['total_ads'] : $a['total_ads'] - $b['total_ads'];
+            });
+        }
+
+        return response()->json($result);
+    }
+
     // Messages (Admin view)
     public function messages()
     {

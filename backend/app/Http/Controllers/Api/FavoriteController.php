@@ -14,7 +14,7 @@ class FavoriteController extends Controller
     {
         $favorites = $request->user()
             ->favorites()
-            ->with(['ad.images', 'ad.user'])
+            ->with(['ad.images', 'ad.user', 'ad.location'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 

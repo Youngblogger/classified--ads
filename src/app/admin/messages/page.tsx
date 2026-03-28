@@ -13,7 +13,8 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  X
 } from 'lucide-react';
 import { messagesApi, adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -75,6 +76,7 @@ export default function MessagesPage() {
   const [filter, setFilter] = useState<'all' | 'reported' | 'unread' | 'active'>('all');
   const [stats, setStats] = useState<ChatStats | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConversations();
@@ -420,7 +422,12 @@ export default function MessagesPage() {
                           : 'bg-gray-100 text-gray-900'
                       }`}>
                         {msg.message_type === 'image' && msg.attachment_url && (
-                          <img src={msg.attachment_url} alt="attachment" className="rounded-lg max-w-full mb-2" />
+                          <img 
+                            src={msg.attachment_url} 
+                            alt="attachment" 
+                            className="rounded-lg max-w-full mb-2 cursor-pointer hover:opacity-90 transition-opacity" 
+                            onClick={() => { if (msg.attachment_url) setPreviewImage(msg.attachment_url); }}
+                          />
                         )}
                         {msg.message_type === 'file' && msg.attachment_url && (
                           <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mb-2">
@@ -455,6 +462,27 @@ export default function MessagesPage() {
           )}
         </div>
       </div>
+
+      {/* Fullscreen Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-800 bg-opacity-50 flex items-center justify-center text-white hover:bg-opacity-70 transition-colors"
+            onClick={() => setPreviewImage(null)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={previewImage}
+            alt="Fullscreen preview"
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

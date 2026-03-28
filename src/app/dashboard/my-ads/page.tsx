@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, MapPin, Star, X } from 'lucide-react';
 import { adsApi } from '@/lib/api';
 import { getAdImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 const EditIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -45,6 +46,11 @@ const FilterIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const ZapIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+  </svg>
+);
 
 
 type StatusFilter = 'all' | 'active' | 'pending' | 'sold';
@@ -55,11 +61,33 @@ const statusConfig = {
   sold: { label: 'Sold', class: 'bg-gray-100 text-gray-800' },
 };
 
+const formatPrice = (price: number | string): string => {
+  const numPrice = typeof price === 'number' ? price : parseFloat(String(price) || '0');
+  return `₦${numPrice.toLocaleString('en-US')}`;
+};
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+};
+
 export default function MyAdsPage() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [ads, setAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; adId: number | null; adSlug: string | null; adTitle: string | null }>({
+    show: false,
+    adId: null,
+    adSlug: null,
+    adTitle: null
+  });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchAds();
@@ -83,23 +111,32 @@ export default function MyAdsPage() {
     return matchesSearch;
   });
 
-  const handleDeleteAd = async (adId: number, adSlug: string) => {
-    if (!confirm('Are you sure you want to delete this ad?')) return;
+  const handleDeleteClick = (adId: number, adSlug: string, adTitle: string) => {
+    setDeleteModal({ show: true, adId, adSlug, adTitle });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.adId || !deleteModal.adSlug) return;
     
-    // Optimistic update - immediately remove from UI
+    setDeleting(true);
     const previousAds = [...ads];
-    setAds(prev => prev.filter(ad => ad.id !== adId));
+    setAds(prev => prev.filter(ad => ad.id !== deleteModal.adId));
+    setDeleteModal({ show: false, adId: null, adSlug: null, adTitle: null });
     
     try {
-      // Use slug for delete since backend expects slug
-      await adsApi.delete(adSlug);
+      await adsApi.delete(deleteModal.adSlug);
       toast.success('Ad deleted successfully');
     } catch (error) {
-      // Revert on error
       setAds(previousAds);
       console.error('Failed to delete ad:', error);
       toast.error('Failed to delete ad');
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handlePromote = (adId: number) => {
+    router.push(`/dashboard/promotions?ad_id=${adId}`);
   };
 
   const getStatusCount = (status: StatusFilter) => {
@@ -171,7 +208,9 @@ export default function MyAdsPage() {
               {/* Image */}
               <div className="relative aspect-square bg-gray-100">
                 {(() => {
-                  const imageUrl = getAdImageUrl(ad);
+                  const imagesArray = Array.isArray(ad.images) ? ad.images : [];
+                  const primaryImage = imagesArray.find((img: any) => img?.is_primary) || imagesArray[0];
+                  const imageUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
                   return imageUrl ? (
                     <img
                       src={imageUrl}
@@ -207,8 +246,17 @@ export default function MyAdsPage() {
                 {ad.short_description && (
                   <p className="text-sm text-gray-500 mb-2 line-clamp-2">{ad.short_description}</p>
                 )}
+                
+                {/* Location */}
+                {(ad.location?.name || ad.lga) && (
+                  <div className="flex items-center gap-1 text-sm text-gray-500 mb-2">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name}</span>
+                  </div>
+                )}
+                
                 <p className="text-xl font-bold text-primary-600 mb-3">
-                  ₦{typeof ad.price === 'number' ? ad.price.toLocaleString() : parseFloat(ad.price || 0).toLocaleString()}
+                  {formatPrice(ad.price)}
                 </p>
 
                 {/* Stats */}
@@ -217,32 +265,40 @@ export default function MyAdsPage() {
                     <EyeIcon className="w-4 h-4" />
                     <span>{ad.views || 0} views</span>
                   </div>
-                  <span>{ad.created_at}</span>
+                  <span>{formatDate(ad.created_at)}</span>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Link
                     href={`/ad/${ad.slug}`}
                     target="_blank"
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                    className="flex items-center justify-center gap-1 px-2 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
                   >
                     <EyeIcon className="w-4 h-4" />
-                    Preview
+                    <span>Preview</span>
                   </Link>
                   <Link
                     href={`/ad/edit/${ad.id}`}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                    className="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
                   >
                     <EditIcon className="w-4 h-4" />
-                    Edit
+                    <span>Edit</span>
                   </Link>
                   <button 
-                    onClick={() => handleDeleteAd(ad.id, ad.slug)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    onClick={() => handleDeleteClick(ad.id, ad.slug, ad.title)}
+                    className="flex items-center justify-center gap-1 px-2 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
                   >
                     <TrashIcon className="w-4 h-4" />
+                    <span>Delete</span>
                   </button>
+                  <Link
+                    href={`/dashboard/promotions?ad_id=${ad.id}`}
+                    className="flex items-center justify-center gap-1 px-2 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
+                  >
+                    <ZapIcon className="w-4 h-4" />
+                    <span>Promote</span>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -265,6 +321,41 @@ export default function MyAdsPage() {
           >
             Post Your First Ad
           </Link>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Delete Ad</h3>
+              <button 
+                onClick={() => setDeleteModal({ show: false, adId: null, adSlug: null, adTitle: null })}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete <span className="font-semibold">&quot;{deleteModal.adTitle}&quot;</span>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal({ show: false, adId: null, adSlug: null, adTitle: null })}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

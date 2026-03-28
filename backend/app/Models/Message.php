@@ -31,6 +31,8 @@ class Message extends Model
         'conversation',
     ];
 
+    protected $appends = ['audio_url'];
+
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class);
@@ -51,5 +53,14 @@ class Message extends Model
     public function scopeUnread($query)
     {
         return $query->whereNull('read_at');
+    }
+
+    public function getAudioUrlAttribute(): ?string
+    {
+        // Return audio_url as alias for attachment_url for voice messages
+        if ($this->message_type === 'voice' && $this->attachment_url) {
+            return $this->attachment_url;
+        }
+        return null;
     }
 }

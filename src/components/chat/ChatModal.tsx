@@ -10,18 +10,38 @@ import toast from 'react-hot-toast';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 const BACKEND_URL = API_URL.replace('/api', '');
 
+// Get image URL - handles all URL formats from backend
 function getImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
+  // Handle blob URLs (temporary recordings)
+  if (url.startsWith('blob:')) {
+    return url;
+  }
+  // Handle full HTTP URLs - return as-is
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
+  // Handle /storage/ prefix
   if (url.startsWith('/storage/')) {
     return `${BACKEND_URL}${url}`;
   }
+  // Handle storage/ prefix (without leading slash)
   if (url.startsWith('storage/')) {
     return `${BACKEND_URL}/${url}`;
   }
+  // Default: assume it's a filename
   return `${BACKEND_URL}/storage/${url}`;
+}
+
+// Get audio URL - handles voice messages
+function getAudioUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  // Handle blob URLs (temporary recordings)
+  if (url.startsWith('blob:')) {
+    return url;
+  }
+  // Return as-is for full URLs
+  return url;
 }
 
 const SendIcon = ({ className }: { className?: string }) => (
@@ -37,6 +57,7 @@ interface Message {
   content: string;
   message_type?: string;
   attachment_url?: string | null;
+  audio_url?: string | null;
   is_read?: boolean;
   read_at?: string | null;
   created_at: string;
@@ -291,7 +312,7 @@ export default function ChatModal({
       id: tempId,
       conversation_id: conversationId || -1,
       sender_id: currentUserId!,
-      content: 'Voice message',
+      content: '',
       message_type: 'voice',
       attachment_url: audioUrlToSend,
       status: 'sending',
@@ -325,7 +346,7 @@ export default function ChatModal({
       const response = await messagesApi.sendMessageNew(
         sellerId,
         adId,
-        'Voice message',
+        '',
         'voice',
         audioFile,
         durationToSend
@@ -342,7 +363,14 @@ export default function ChatModal({
       // Debug log
       console.log('Voice message response:', response.data);
 
-      setMessages(prev => prev.map(msg => msg.id === tempId ? { ...response.data, status: 'sent' } : msg));
+      // Update optimistic message - ensure voice type and audio_url are preserved
+      setMessages(prev => prev.map(msg => msg.id === tempId ? { 
+        ...response.data, 
+        status: 'sent',
+        message_type: response.data.message_type || 'voice',
+        audio_url: response.data.audio_url || response.data.attachment_url,
+        attachment_url: response.data.attachment_url || response.data.audio_url
+      } : msg));
 
       const convIdForSocket = response.data.conversation_id?.toString() || conversationId?.toString() || '-1';
       sendMessage({
@@ -502,7 +530,7 @@ export default function ChatModal({
       const response = await messagesApi.sendMessageNew(
         sellerId,
         adId,
-        'Sent an image',
+        '',
         'image',
         file
       );
@@ -512,7 +540,13 @@ export default function ChatModal({
         setConversationId(response.data.conversation_id);
       }
 
-      setMessages(prev => [...prev, response.data]);
+      // Ensure message_type and attachment_url are preserved
+      const newMessage = {
+        ...response.data,
+        message_type: response.data.message_type || 'image',
+      };
+
+      setMessages(prev => [...prev, newMessage]);
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error('Failed to upload file');
@@ -539,28 +573,28 @@ export default function ChatModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4">
-      <div className="bg-[#efeae2] rounded-t-2xl md:rounded-2xl w-full h-screen md:h-[600px] md:max-w-lg flex flex-col overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-[#efeae2] rounded-t-2xl sm:rounded-2xl w-full h-[85vh] sm:h-[600px] sm:w-[90%] md:w-[500px] lg:w-[550px] max-w-[500px] flex flex-col overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="bg-[#f0f2f5] px-4 py-3 flex items-center gap-3 border-b border-[#d1d7db]">
-          <button onClick={onClose} className="p-1 hover:bg-[#d1d7db] rounded-full transition-colors">
-            <X className="w-6 h-6 text-[#54656f]" />
+        <div className="bg-[#f0f2f5] px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 border-b border-[#d1d7db]">
+          <button onClick={onClose} className="p-1.5 sm:p-1 hover:bg-[#d1d7db] rounded-full transition-colors">
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-[#54656f]" />
           </button>
-          <div className="w-10 h-10 rounded-full bg-[#dcf8c6] overflow-hidden flex items-center justify-center">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#dcf8c6] overflow-hidden flex items-center justify-center flex-shrink-0">
             {processedSellerAvatar ? (
               <img src={processedSellerAvatar} alt={sellerName} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-[#54656f] font-medium">{sellerName[0]?.toUpperCase()}</span>
+              <span className="text-[#54656f] font-medium text-sm sm:text-base">{sellerName[0]?.toUpperCase()}</span>
             )}
           </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-[#111b21]">{sellerName}</h3>
-            <p className="text-xs text-[#667781]">Ad: {adTitle}</p>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-[#111b21] text-sm sm:text-base truncate">{sellerName}</h3>
+            <p className="text-xs text-[#667781] truncate">Ad: {adTitle}</p>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-1 sm:space-y-2">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="w-8 h-8 border-4 border-[#00a884] border-t-transparent rounded-full animate-spin" />
@@ -575,6 +609,13 @@ export default function ChatModal({
               const isMe = msg.sender_id === currentUserId;
               const senderAvatar = getImageUrl(msg.sender?.full_avatar_url || msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar);
 
+              // Determine message type based on message_type field or content
+              const isVoiceMessage = msg.message_type === 'voice' || (msg.audio_url || msg.attachment_url)?.includes('.mp3') || (msg.audio_url || msg.attachment_url)?.includes('.webm');
+              const isImageMessage = msg.message_type === 'image' || msg.attachment_url?.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
+              const hasAttachment = msg.attachment_url || msg.audio_url;
+              const showImage = isImageMessage && hasAttachment;
+              const showVoice = isVoiceMessage && hasAttachment && !showImage;
+              
               return (
                 <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
                   {!isMe && (
@@ -589,11 +630,12 @@ export default function ChatModal({
                     </div>
                   )}
 
-                  {msg.message_type === 'voice' && msg.attachment_url ? (
+                  {/* Voice message - show if message_type is voice OR URL looks like audio */}
+                  {(msg.message_type === 'voice' || (msg.attachment_url && msg.attachment_url.match(/\.(mp3|webm|wav|m4a)$/i))) && msg.attachment_url ? (
                     <div className={`max-w-[75%] px-3 py-2 rounded-2xl ${isMe ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm' : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200'}`}>
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => playingAudioId === msg.id ? stopAudio(msg.id) : playAudio(msg.id, getImageUrl(msg.attachment_url) || '')}
+                          onClick={() => playingAudioId === msg.id ? stopAudio(msg.id) : playAudio(msg.id, msg.audio_url || msg.attachment_url || '')}
                           className={`w-10 h-10 rounded-full flex items-center justify-center ${isMe ? 'bg-[#00a884] text-white' : 'bg-[#008069] text-white'}`}
                         >
                           {playingAudioId === msg.id ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
@@ -638,15 +680,23 @@ export default function ChatModal({
                     </div>
                   ) : (
                     <div className={`max-w-[75%] px-3 py-2 rounded-2xl ${isMe ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm' : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200'}`}>
-                      {msg.message_type === 'image' && msg.attachment_url && (
+                      {/* Image - show if message_type is image OR if attachment URL looks like an image */}
+                      {(msg.message_type === 'image' || (msg.attachment_url && !msg.attachment_url.match(/\.(mp3|webm|wav|m4a|pdf|doc|docx|xls|xlsx)$/i))) && msg.attachment_url && (
                         <img 
                           src={msg.attachment_url} 
                           alt="" 
                           className="rounded-lg w-[200px] object-cover mb-2 cursor-pointer hover:opacity-90 transition-opacity" 
                           onClick={() => msg.attachment_url && setPreviewImage(msg.attachment_url)}
+                          onError={(e) => {
+                            console.log('Image load error:', msg.attachment_url);
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
                         />
                       )}
-                      <p className="text-[15px] leading-[19px]">{msg.content}</p>
+                      {/* Text content - hide if there's an attachment */}
+                      {!msg.attachment_url && msg.content && (
+                        <p className="text-[15px] leading-[19px]">{msg.content}</p>
+                      )}
                       <div className={`flex items-center gap-1 mt-0.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <span className={`text-[10px] ${isMe ? 'text-[#6ab383]' : 'text-gray-400'}`}>
                           {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
@@ -709,18 +759,18 @@ export default function ChatModal({
 
           {recordedAudioUrl && !isRecording && (
             <div className="flex justify-end">
-              <div className="flex items-center gap-2 px-3 py-2 bg-[#dcf8c6] rounded-2xl rounded-br-sm border border-[#00a884]">
-                <button onClick={playPreview} className="w-8 h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center">
+              <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#dcf8c6] rounded-2xl rounded-br-sm border border-[#00a884] max-w-[85%] sm:max-w-[75%]">
+                <button onClick={playPreview} className="w-8 h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center flex-shrink-0">
                   {isPlayingPreview ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
                 </button>
-                <div className="flex-1">
-                  <p className="text-sm text-[#00a884] font-medium">Voice message</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-[#00a884] font-medium truncate">Voice message</p>
                   <p className="text-xs text-[#00a884]">{formatDuration(recordingDuration)}</p>
                 </div>
-                <button onClick={sendVoiceNote} className="w-8 h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977]">
+                <button onClick={sendVoiceNote} className="w-8 h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977] flex-shrink-0">
                   <SendIcon className="w-4 h-4" />
                 </button>
-                <button onClick={cancelRecording} className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200">
+                <button onClick={cancelRecording} className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 flex-shrink-0">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -764,8 +814,8 @@ export default function ChatModal({
         </div>
 
         {/* Input */}
-        <div className="p-3 bg-[#f0f2f5] border-t border-[#d1d7db]">
-          <div className="flex items-end gap-2">
+        <div className="p-2 sm:p-3 bg-[#f0f2f5] border-t border-[#d1d7db]">
+          <div className="flex items-end gap-1 sm:gap-2">
             <input
               type="file"
               ref={fileInputRef}
@@ -774,20 +824,20 @@ export default function ChatModal({
               accept="image/*"
             />
 
-            <button onClick={() => fileInputRef.current?.click()} className="p-2.5 text-[#54656f] hover:bg-[#dfe5e7] rounded-full transition-colors">
-              <ImageIcon className="w-6 h-6" />
+            <button onClick={() => fileInputRef.current?.click()} className="p-2 sm:p-2.5 text-[#54656f] hover:bg-[#dfe5e7] rounded-full transition-colors flex-shrink-0">
+              <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <div className="flex-1 bg-white rounded-[20px] px-4 py-2 flex items-center">
+            <div className="flex-1 bg-white rounded-[20px] px-3 sm:px-4 py-1.5 sm:py-2 flex items-center min-w-0">
               {isRecording ? (
-                <div className="flex items-center gap-3 w-full">
-                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-[#54656f] font-medium">{formatDuration(recordingDuration)}</span>
-                  <div className="flex-1 h-6 bg-[#dcf8c6] rounded-full overflow-hidden">
+                <div className="flex items-center gap-2 sm:gap-3 w-full">
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                  <span className="text-[#54656f] font-medium text-sm">{formatDuration(recordingDuration)}</span>
+                  <div className="flex-1 h-5 sm:h-6 bg-[#dcf8c6] rounded-full overflow-hidden min-w-[50px]">
                     <div className="h-full bg-[#00a884] transition-all" style={{ width: `${(recordingDuration / MAX_RECORDING_DURATION) * 100}%` }} />
                   </div>
-                  <span className="text-[10px] text-gray-400">/{MAX_RECORDING_DURATION}s</span>
-                  <button onClick={cancelRecording} className="p-1 text-red-500 hover:bg-red-50 rounded-full">
+                  <span className="text-[10px] text-gray-400 hidden sm:inline">/{MAX_RECORDING_DURATION}s</span>
+                  <button onClick={cancelRecording} className="p-1 text-red-500 hover:bg-red-50 rounded-full flex-shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -799,7 +849,7 @@ export default function ChatModal({
                   onChange={handleInputChange}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="Message"
-                  className="flex-1 py-1 bg-transparent text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none"
+                  className="flex-1 py-1 bg-transparent text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none min-w-0"
                 />
               )}
             </div>
@@ -807,11 +857,11 @@ export default function ChatModal({
             {newMessage.trim() ? (
               <button
                 onClick={handleSendMessage}
-                className="w-11 h-11 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977] transition-colors shadow-md"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977] transition-colors shadow-md flex-shrink-0"
               >
                 <SendIcon className="w-5 h-5" />
               </button>
-            ) : (
+              ) : (
               <button
                 onMouseDown={startRecording}
                 onMouseUp={stopRecording}
@@ -819,7 +869,7 @@ export default function ChatModal({
                 onTouchStart={startRecording}
                 onTouchEnd={stopRecording}
                 onTouchCancel={cancelRecording}
-                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md ${
+                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all shadow-md flex-shrink-0 ${
                   isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-[#00a884] text-white hover:bg-[#009977]'
                 }`}
               >

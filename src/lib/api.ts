@@ -230,7 +230,7 @@ export const messagesApi = {
   },
   sendVoiceMessage: (conversationId: number, audioBlob: Blob, duration: number, onProgress?: (progress: number) => void) => {
     const formData = new FormData();
-    formData.append('content', 'Voice message');
+    formData.append('content', '');
     formData.append('attachment', audioBlob, `voice_${Date.now()}.webm`);
     formData.append('message_type', 'voice');
     formData.append('duration', duration.toString());
@@ -252,7 +252,9 @@ export const messagesApi = {
     if (messageType) formData.append('message_type', messageType);
     if (attachment) formData.append('attachment', attachment);
     if (duration) formData.append('duration', duration.toString());
-    return api.post('/messages', formData);
+    return api.post('/messages', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
   },
   startConversation: (adId: number, content: string) => 
     api.post('/messages/start', { ad_id: adId, content }),
@@ -445,6 +447,7 @@ export const adminApi = {
 
   // Analytics
   getAnalytics: (params?: Record<string, any>) => api.get('/admin/analytics', { params }),
+  getStatesAnalytics: (params?: Record<string, any>) => api.get('/admin/analytics/states', { params }),
 
   // Reviews
   getReviewSummary: (adId: number) => api.get(`/ads/${adId}/reviews/summary`),
