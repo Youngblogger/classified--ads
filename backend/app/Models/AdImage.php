@@ -11,8 +11,11 @@ class AdImage extends Model
         'ad_id',
         'url',
         'original_url',
+        'medium_url',
         'thumbnail_url',
         'file_size',
+        'width',
+        'height',
         'is_primary',
         'sort_order',
     ];
@@ -20,6 +23,8 @@ class AdImage extends Model
     protected $casts = [
         'is_primary' => 'boolean',
         'file_size' => 'integer',
+        'width' => 'integer',
+        'height' => 'integer',
     ];
 
     protected $appends = ['display_url', 'thumbnail', 'full_url', 'full_thumbnail_url'];

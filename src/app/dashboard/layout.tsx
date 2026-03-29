@@ -11,6 +11,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 function getAvatarUrl(url: string | null | undefined): string {
   if (!url) return '';
   let avatarUrl = url;
+  if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+    return avatarUrl;
+  }
   if (avatarUrl.startsWith('/storage/')) {
     avatarUrl = `http://127.0.0.1:8000${avatarUrl}`;
   }
@@ -347,9 +350,9 @@ export default function DashboardLayout({
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                 >
-                  {user && (user as any).avatar ? (
+                  {user && ((user as any).avatar || (user as any).avatar_url || (user as any).full_avatar_url) ? (
                     <img 
-                      src={getAvatarUrl((user as any).avatar_url || (user as any).avatar)} 
+                      src={getAvatarUrl((user as any).full_avatar_url || (user as any).avatar_url || (user as any).avatar)} 
                       alt={(user as any).name || 'User'} 
                       className="w-9 h-9 rounded-full object-cover ring-2 ring-gray-200"
                     />

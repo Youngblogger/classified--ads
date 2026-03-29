@@ -3,46 +3,116 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Encoders\WebpEncoder;
+use Intervention\Image\Encoders\JpegEncoder;
+use Intervention\Image\Encoders\PngEncoder;
 use Symfony\Component\HttpFoundation\File\File;
 
 class ImageProcessingService
 {
+    private ImageManager $imageManager;
+
+    private const MAX_WIDTH = 1200;
+    private const MAX_HEIGHT = 1200;
+    private const THUMBNAIL_WIDTH = 300;
+    private const THUMBNAIL_HEIGHT = 300;
+    private const MEDIUM_WIDTH = 600;
+    private const MEDIUM_HEIGHT = 600;
+    private const LARGE_WIDTH = 1200;
+    private const LARGE_HEIGHT = 1200;
+    private const QUALITY = 80;
+    private const THUMBNAIL_QUALITY = 70;
+
+    public function __construct()
+    {
+        $this->imageManager = new ImageManager(new GdDriver());
+    }
+
     public function processAdImage(UploadedFile|File $file, ?int $adId = null): array
     {
         $uuid = (string) Str::uuid();
-        
-        // Get file extension - try multiple methods
-        $extension = 'jpg';
-        if (method_exists($file, 'getClientOriginalExtension') && $file->getClientOriginalExtension()) {
-            $extension = strtolower($file->getClientOriginalExtension());
-        } elseif ($file->getClientOriginalName()) {
-            $ext = pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);
-            if ($ext) {
-                $extension = strtolower($ext);
-            }
-        }
-        
-        // Ensure valid extension
-        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        if (!in_array($extension, $allowedExts)) {
-            $extension = 'jpg';
-        }
-        
         $basePath = $adId ? "ads/{$adId}" : 'temp';
-        
-        $originalPath = "{$basePath}/{$uuid}_original.{$extension}";
-        $optimizedPath = "{$basePath}/{$uuid}.{$extension}";
-        $thumbnailPath = "{$basePath}/{$uuid}_thumb.{$extension}";
 
         $tempFile = $file->getPathname();
         
-        // Store original image directly
+        try {
+            $image = $this->imageManager->read($tempFile);
+            $originalWidth = $image->width();
+            $originalHeight = $image->height();
+            $originalSize = filesize($tempFile);
+
+            $originalPath = "{$basePath}/{$uuid}_original.webp";
+            $largePath = "{$basePath}/{$uuid}_large.webp";
+            $mediumPath = "{$basePath}/{$uuid}_medium.webp";
+            $thumbnailPath = "{$basePath}/{$uuid}_thumb.webp";
+
+            $image->encode(new WebpEncoder(self::QUALITY));
+            Storage::disk('public')->put($originalPath, (string) $image);
+
+            $large = $this->imageManager->read($tempFile);
+            if ($large->width() > self::LARGE_WIDTH || $large->height() > self::LARGE_HEIGHT) {
+                $large->scaleDown(self::LARGE_WIDTH, self::LARGE_HEIGHT);
+            }
+            $large->encode(new WebpEncoder(self::QUALITY));
+            Storage::disk('public')->put($largePath, (string) $large);
+
+            $medium = $this->imageManager->read($tempFile);
+            if ($medium->width() > self::MEDIUM_WIDTH || $medium->height() > self::MEDIUM_HEIGHT) {
+                $medium->scaleDown(self::MEDIUM_WIDTH, self::MEDIUM_HEIGHT);
+            }
+            $medium->encode(new WebpEncoder(self::QUALITY));
+            Storage::disk('public')->put($mediumPath, (string) $medium);
+
+            $thumbnail = $this->imageManager->read($tempFile);
+            $thumbnail->cover(self::THUMBNAIL_WIDTH, self::THUMBNAIL_HEIGHT);
+            $thumbnail->encode(new WebpEncoder(self::THUMBNAIL_QUALITY));
+            Storage::disk('public')->put($thumbnailPath, (string) $thumbnail);
+
+            $optimizedSize = strlen((string) $large);
+
+            Log::info("Image processed", [
+                'uuid' => $uuid,
+                'original_size' => $originalSize,
+                'optimized_size' => $optimizedSize,
+                'saved' => round((1 - $optimizedSize / $originalSize) * 100) . '%'
+            ]);
+
+            return [
+                'uuid' => $uuid,
+                'original_url' => '/storage/' . ltrim($originalPath, '/'),
+                'url' => '/storage/' . ltrim($largePath, '/'),
+                'medium_url' => '/storage/' . ltrim($mediumPath, '/'),
+                'thumbnail_url' => '/storage/' . ltrim($thumbnailPath, '/'),
+                'file_size' => $optimizedSize,
+                'width' => min($originalWidth, self::LARGE_WIDTH),
+                'height' => min($originalHeight, self::LARGE_HEIGHT),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Image processing failed: " . $e->getMessage());
+            
+            return $this->fallbackProcess($file, $uuid, $basePath, $tempFile);
+        }
+    }
+
+    private function fallbackProcess(UploadedFile|File $file, string $uuid, string $basePath, string $tempFile): array
+    {
+        $extension = 'jpg';
+        if (method_exists($file, 'getClientOriginalExtension') && $file->getClientOriginalExtension()) {
+            $extension = strtolower($file->getClientOriginalExtension());
+        }
+
+        $originalPath = "{$basePath}/{$uuid}_original.{$extension}";
+        $largePath = "{$basePath}/{$uuid}_large.{$extension}";
+        $thumbnailPath = "{$basePath}/{$uuid}_thumb.{$extension}";
+
         Storage::disk('public')->put($originalPath, file_get_contents($tempFile));
-        
-        // Copy original as optimized and thumbnail (no processing)
-        Storage::disk('public')->put($optimizedPath, file_get_contents($tempFile));
+        Storage::disk('public')->put($largePath, file_get_contents($tempFile));
         Storage::disk('public')->put($thumbnailPath, file_get_contents($tempFile));
 
         $fileSize = filesize($tempFile);
@@ -50,7 +120,8 @@ class ImageProcessingService
         return [
             'uuid' => $uuid,
             'original_url' => '/storage/' . ltrim($originalPath, '/'),
-            'url' => '/storage/' . ltrim($optimizedPath, '/'),
+            'url' => '/storage/' . ltrim($largePath, '/'),
+            'medium_url' => '/storage/' . ltrim($largePath, '/'),
             'thumbnail_url' => '/storage/' . ltrim($thumbnailPath, '/'),
             'file_size' => $fileSize,
         ];
@@ -58,13 +129,22 @@ class ImageProcessingService
 
     public function validateImage(UploadedFile $file): array
     {
-        // No validation - accept all files
-        return [
-            'width' => 0,
-            'height' => 0,
-            'size' => $file->getSize(),
-            'format' => 'jpg',
-        ];
+        try {
+            $image = $this->imageManager->read($file->getPathname());
+            return [
+                'width' => $image->width(),
+                'height' => $image->height(),
+                'size' => $file->getSize(),
+                'format' => 'webp',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'width' => 0,
+                'height' => 0,
+                'size' => $file->getSize(),
+                'format' => 'unknown',
+            ];
+        }
     }
 
     public function deleteAdImages(string $adId): void
@@ -83,7 +163,7 @@ class ImageProcessingService
 
     public static function getMaxFileSize(): int
     {
-        return 10 * 1024 * 1024; // 10MB
+        return 10 * 1024 * 1024;
     }
 
     public static function getMaxImagesPerAd(): int

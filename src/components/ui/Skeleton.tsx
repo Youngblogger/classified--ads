@@ -1,10 +1,12 @@
 'use client';
 
+import { memo } from 'react';
+
 interface SkeletonProps {
   className?: string;
 }
 
-export function AdCardSkeleton({ className = '' }: SkeletonProps) {
+const AdCardSkeletonComponent = ({ className = '' }: SkeletonProps) => {
   return (
     <div className={`card ${className}`}>
       <div className="aspect-[4/3] bg-gray-200 animate-pulse" />
@@ -18,9 +20,11 @@ export function AdCardSkeleton({ className = '' }: SkeletonProps) {
       </div>
     </div>
   );
-}
+};
 
-export function AdGridSkeleton({ count = 4 }: { count?: number }) {
+export const AdCardSkeleton = memo(AdCardSkeletonComponent);
+
+const AdGridSkeletonComponent = ({ count = 4 }: { count?: number }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {Array.from({ length: count }).map((_, i) => (
@@ -28,9 +32,11 @@ export function AdGridSkeleton({ count = 4 }: { count?: number }) {
       ))}
     </div>
   );
-}
+};
 
-export function CategorySkeleton() {
+export const AdGridSkeleton = memo(AdGridSkeletonComponent);
+
+const CategorySkeletonComponent = () => {
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200">
       <div className="text-3xl mb-2">
@@ -40,14 +46,32 @@ export function CategorySkeleton() {
       <div className="h-4 bg-gray-200 rounded animate-pulse w-12 mx-auto mt-2" />
     </div>
   );
-}
+};
 
-export function CategoryGridSkeleton({ count = 8 }: { count?: number }) {
+export const CategorySkeleton = memo(CategorySkeletonComponent);
+
+const CategoryGridSkeletonComponent = ({ count = 8 }: { count?: number }) => {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
       {Array.from({ length: count }).map((_, i) => (
         <CategorySkeleton key={i} />
       ))}
+    </div>
+  );
+};
+
+export const CategoryGridSkeleton = memo(CategoryGridSkeletonComponent);
+
+export function BannerSkeleton() {
+  return (
+    <div className="w-full h-48 md:h-64 bg-gray-200 rounded-xl animate-pulse" />
+  );
+}
+
+export function HeroSkeleton() {
+  return (
+    <div className="relative bg-gradient-to-r from-primary-600 to-primary-800 h-[400px] md:h-[500px]">
+      <div className="absolute inset-0 bg-gray-200 animate-pulse opacity-20" />
     </div>
   );
 }

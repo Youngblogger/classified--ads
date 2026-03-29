@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
+import { nigeriaLocations, getLocationBySlug } from '@/lib/nigeriaLocations';
 
 const API_URL = 'http://127.0.0.1:8000';
 
@@ -40,6 +41,12 @@ const LocationIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const ChevronDownIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
 const CameraIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -51,7 +58,7 @@ interface ProfileFormData {
   name: string;
   email: string;
   phone: string;
-  location: string;
+  state: string;
   location_id: number | null;
 }
 
@@ -61,7 +68,7 @@ export default function ProfileSettingsPage() {
     name: '',
     email: '',
     phone: '',
-    location: '',
+    state: '',
     location_id: null,
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -71,11 +78,26 @@ export default function ProfileSettingsPage() {
 
   useEffect(() => {
     if (user) {
+      const userLocation = user.location || '';
+      const locationData = getLocationBySlug(userLocation);
+      
+      let formattedPhone = '+234 ';
+      if (user.phone) {
+        let digits = user.phone.replace(/\D/g, '');
+        if (digits.startsWith('234') && digits.length > 3) {
+          digits = digits.substring(3);
+        } else if (digits.startsWith('0')) {
+          digits = digits.substring(1);
+        }
+        const formatted = digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+        formattedPhone = '+234 ' + formatted;
+      }
+      
       setFormData({
         name: user.name || '',
         email: user.email || '',
-        phone: user.phone || '',
-        location: user.location || '',
+        phone: formattedPhone,
+        state: locationData?.name || userLocation || '',
         location_id: (user as any).location_id || null,
       });
       const avatarUrl = (user as any).avatar_url || user.avatar;
@@ -88,6 +110,62 @@ export default function ProfileSettingsPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const formatPhoneNumber = (value: string): string => {
+    let digits = value.replace(/\D/g, '');
+    
+    if (digits.startsWith('234')) {
+      digits = digits.substring(3);
+    }
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    
+    const formatted = digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+    return formatted.trim();
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    if (value === '+') {
+      setFormData(prev => ({ ...prev, phone: '+234 ' }));
+      return;
+    }
+    
+    let digits = value.replace(/\D/g, '');
+    
+    if (digits === '') {
+      setFormData(prev => ({ ...prev, phone: '+234 ' }));
+      return;
+    }
+    
+    if (digits === '234') {
+      setFormData(prev => ({ ...prev, phone: '+234 ' }));
+      return;
+    }
+    
+    if (digits.startsWith('234') && digits.length > 3) {
+      digits = digits.substring(3);
+    } else if (digits.startsWith('0') && !digits.startsWith('234')) {
+      digits = digits.substring(1);
+    }
+    
+    const formatted = formatPhoneNumber(digits);
+    const finalValue = '+234 ' + formatted;
+    
+    setFormData(prev => ({ ...prev, phone: finalValue }));
+  };
+
+  const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const stateSlug = e.target.value;
+    const stateData = getLocationBySlug(stateSlug);
+    setFormData(prev => ({ 
+      ...prev, 
+      state: stateData?.name || stateSlug,
+      location_id: null
+    }));
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,12 +231,39 @@ export default function ProfileSettingsPage() {
         // Update user with avatar data (include full_avatar_url for header display)
         if (avatarData.user) {
           const userWithFullUrl = {
+            ...user,
             ...avatarData.user,
             full_avatar_url: avatarData.user.full_avatar_url || 
               (avatarData.user.avatar ? `${API_URL}${avatarData.user.avatar}` : null) ||
-              (avatarData.user.google_avatar ? avatarData.user.google_avatar : null),
+              (user?.avatar ? `${API_URL}${user.avatar}` : null) ||
+              (user?.google_avatar ? user.google_avatar : null),
+            avatar: avatarData.user.avatar || user?.avatar,
+            avatar_url: avatarData.user.avatar_url || avatarData.user.avatar || user?.avatar_url || user?.avatar,
           };
           setUser(userWithFullUrl);
+          
+          // Also update localStorage directly to ensure persistence
+          if (typeof window !== 'undefined') {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              try {
+                const parsedUser = JSON.parse(storedUser);
+                const updatedUser = { ...parsedUser, ...userWithFullUrl };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                
+                // Update auth-storage as well
+                const authStorage = localStorage.getItem('auth-storage');
+                if (authStorage) {
+                  const parsed = JSON.parse(authStorage);
+                  parsed.state.user = updatedUser;
+                  localStorage.setItem('auth-storage', JSON.stringify(parsed));
+                }
+              } catch (e) {
+                console.error('Failed to update localStorage user:', e);
+              }
+            }
+          }
+          
           const newAvatarUrl = avatarData.user.avatar_url || avatarData.user.avatar;
           setAvatarPreview(getAvatarUrl(newAvatarUrl));
         }
@@ -167,7 +272,17 @@ export default function ProfileSettingsPage() {
       // Then update other profile fields
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
-      formDataToSend.append('phone', formData.phone || '');
+      formDataToSend.append('email', formData.email);
+      
+      let phoneToSave = formData.phone || '';
+      if (phoneToSave) {
+        const digits = phoneToSave.replace(/\D/g, '');
+        if (digits.length === 13 && digits.startsWith('234')) {
+          phoneToSave = '0' + digits.substring(3);
+        }
+      }
+      formDataToSend.append('phone', phoneToSave);
+      formDataToSend.append('location', formData.state);
       
       if (formData.location_id) {
         formDataToSend.append('location_id', formData.location_id.toString());
@@ -194,6 +309,10 @@ export default function ProfileSettingsPage() {
       const updatedUser = {
         ...user,
         ...data.user,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        location: formData.state,
         avatar: data.user?.avatar || data.user?.avatar_url || user?.avatar || avatarPreview,
         avatar_url: data.user?.avatar_url || data.user?.avatar || user?.avatar_url || user?.avatar || avatarPreview,
         full_avatar_url: data.user?.full_avatar_url || 
@@ -201,6 +320,24 @@ export default function ProfileSettingsPage() {
           (user?.full_avatar_url ? user.full_avatar_url : null),
       };
       setUser(updatedUser);
+      
+      // Also update localStorage directly
+      if (typeof window !== 'undefined') {
+        try {
+          const updatedUserStr = JSON.stringify(updatedUser);
+          localStorage.setItem('user', updatedUserStr);
+          
+          const authStorage = localStorage.getItem('auth-storage');
+          if (authStorage) {
+            const parsed = JSON.parse(authStorage);
+            parsed.state.user = updatedUser;
+            localStorage.setItem('auth-storage', JSON.stringify(parsed));
+          }
+        } catch (e) {
+          console.error('Failed to update localStorage:', e);
+        }
+      }
+      
       if (data.user?.avatar_url || data.user?.avatar) {
         setAvatarPreview(getAvatarUrl(data.user?.avatar_url || data.user?.avatar));
       }
@@ -312,11 +449,10 @@ export default function ProfileSettingsPage() {
                   type="email"
                   name="email"
                   value={formData.email}
-                  disabled
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border border-gray-300 rounded-xl text-sm text-gray-500 cursor-not-allowed"
+                  onChange={handleInputChange}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
             </div>
 
             <div>
@@ -329,7 +465,7 @@ export default function ProfileSettingsPage() {
                   type="tel"
                   name="phone"
                   value={formData.phone}
-                  onChange={handleInputChange}
+                  onChange={handlePhoneChange}
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 />
               </div>
@@ -337,17 +473,24 @@ export default function ProfileSettingsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
+                State
               </label>
               <div className="relative">
                 <LocationIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-                />
+                <select
+                  name="state"
+                  value={nigeriaLocations.find(loc => loc.name === formData.state)?.slug || ''}
+                  onChange={handleStateChange}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 appearance-none cursor-pointer"
+                >
+                  <option value="">Select State</option>
+                  {nigeriaLocations.map((location) => (
+                    <option key={location.id} value={location.slug}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               </div>
             </div>
           </div>

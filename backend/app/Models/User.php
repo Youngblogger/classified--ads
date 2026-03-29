@@ -189,6 +189,19 @@ class User extends Authenticatable
         return $this->hasMany(CreditLedger::class);
     }
 
+    // Recently Viewed Categories
+    public function recentlyViewedCategories()
+    {
+        return $this->belongsToMany(Category::class, 'category_views', 'user_id', 'category_id')
+            ->withPivot('viewed_at')
+            ->orderByPivot('viewed_at', 'desc');
+    }
+
+    public function viewedCategories()
+    {
+        return $this->hasMany(CategoryView::class);
+    }
+
     // Get tier based on referral count
     public function getReferralTier(): string
     {

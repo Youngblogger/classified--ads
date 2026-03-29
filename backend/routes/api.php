@@ -84,6 +84,10 @@ Route::get('/search/recent', [SearchController::class, 'recentSearches']);
 // Public banners
 Route::get('/banners/active', [BannerController::class, 'active']);
 
+// Homepage - aggregated endpoint
+Route::get('/homepage', [App\Http\Controllers\Api\HomepageController::class, 'index']);
+Route::get('/homepage/clear-cache', [App\Http\Controllers\Api\HomepageController::class, 'clearCache']);
+
 Route::prefix('ads')->group(function () {
     Route::get('/', [AdController::class, 'index']);
     Route::get('/featured', [AdController::class, 'featured']);

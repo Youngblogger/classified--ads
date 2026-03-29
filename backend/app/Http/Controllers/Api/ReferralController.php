@@ -40,7 +40,7 @@ class ReferralController extends Controller
         
         return response()->json([
             'referral_code' => $user->referral_code,
-            'referral_link' => config('app.frontend_url', 'https://ilist.com') . '/register?ref=' . $user->referral_code,
+            'referral_link' => config('app.front_url', env('FRONTEND_URL', 'http://localhost:3000')) . '/register?ref=' . $user->referral_code,
             'tier' => $user->getReferralTier(),
             'total_referrals' => $user->referrals()->count(),
             'completed_referrals' => $user->referrals()->where('status', 'completed')->count(),

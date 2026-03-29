@@ -13,7 +13,7 @@ import {
   BellOff, ChevronRight, Smartphone, Laptop, Car,
   Home, Briefcase, Shirt, Sofa, TreePine, Gamepad2,
   BookOpen, Dog, Wrench, Building2, GraduationCap, Baby,
-  CheckCircle, UserPlus, UserMinus
+  CheckCircle, UserPlus, UserMinus, Dumbbell
 } from 'lucide-react';
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
@@ -93,70 +93,92 @@ const NOTIFICATION_COLORS: Record<string, string> = {
 };
 
 const CATEGORIES = [
-  { name: 'Mobile Phones', icon: Smartphone, slug: 'mobile-phones', count: 2340 },
-  { name: 'Electronics', icon: Laptop, slug: 'electronics', count: 1890 },
   { name: 'Vehicles', icon: Car, slug: 'vehicles', count: 1560 },
   { name: 'Property', icon: Home, slug: 'property', count: 980 },
-  { name: 'Jobs', icon: Briefcase, slug: 'jobs', count: 760 },
+  { name: 'Mobile Phones & Tablets', icon: Smartphone, slug: 'mobile-phones', count: 2340 },
+  { name: 'Electronics', icon: Laptop, slug: 'electronics', count: 1890 },
   { name: 'Fashion', icon: Shirt, slug: 'fashion', count: 1450 },
-  { name: 'Home & Furniture', icon: Sofa, slug: 'home-furniture', count: 890 },
-  { name: 'Agriculture', icon: TreePine, slug: 'agriculture', count: 420 },
-  { name: 'Gaming', icon: Gamepad2, slug: 'gaming', count: 670 },
-  { name: 'Education', icon: GraduationCap, slug: 'education', count: 340 },
+  { name: 'Home, Furniture & Appliances', icon: Sofa, slug: 'home-furniture', count: 890 },
+  { name: 'Jobs', icon: Briefcase, slug: 'jobs', count: 760 },
   { name: 'Services', icon: Wrench, slug: 'services', count: 560 },
   { name: 'Pets', icon: Dog, slug: 'pets', count: 230 },
-  { name: 'Babies & Kids', icon: Baby, slug: 'babies-kids', count: 380 },
-  { name: 'Commercial', icon: Building2, slug: 'commercial', count: 180 },
+  { name: 'Health & Beauty', icon: Heart, slug: 'health-beauty', count: 420 },
+  { name: 'Baby & Kids', icon: Baby, slug: 'baby-kids', count: 380 },
+  { name: 'Sports & Outdoors', icon: Dumbbell, slug: 'sports', count: 340 },
 ];
 
 const MEGA_MENU_CATEGORIES = [
   {
-    title: 'Electronics',
-    icon: Smartphone,
-    items: ['Mobile Phones', 'Smartphones', 'iPhones', 'Android Phones', 'Tablets', 'Accessories'],
-    slug: 'electronics'
-  },
-  {
-    title: 'Computers',
-    icon: Laptop,
-    items: ['Laptops', 'Desktops', 'Monitors', 'Keyboards & Mice', 'Printers', 'Storage'],
-    slug: 'computers'
-  },
-  {
     title: 'Vehicles',
     icon: Car,
-    items: ['Cars', 'SUVs', 'Trucks', 'Motorcycles', 'Bicycles', 'Auto Parts'],
+    items: ['Cars', 'Motorcycles', 'Buses & Vans', 'Trucks & Trailers', 'Tricycles', 'Vehicle Parts', 'Vehicle Accessories', 'Heavy Equipment'],
     slug: 'vehicles'
   },
   {
     title: 'Property',
     icon: Home,
-    items: ['Houses', 'Apartments', 'Land', 'Commercial', 'Rentals', 'Short Lets'],
+    items: ['Apartments for Rent', 'Apartments for Sale', 'Houses for Rent', 'Houses for Sale', 'Land & Plots', 'Commercial Property', 'Short Let / Airbnb', 'Event Spaces'],
     slug: 'property'
   },
   {
-    title: 'Jobs',
-    icon: Briefcase,
-    items: ['Full Time', 'Part Time', 'Remote', 'Internships', 'Freelance', 'Contract'],
-    slug: 'jobs'
+    title: 'Mobile Phones & Tablets',
+    icon: Smartphone,
+    items: ['Smartphones', 'Feature Phones', 'Tablets', 'Smartwatches', 'Phone Accessories', 'Power Banks', 'Chargers', 'Screen Protectors'],
+    slug: 'mobile-phones'
+  },
+  {
+    title: 'Electronics',
+    icon: Laptop,
+    items: ['Laptops', 'Desktop Computers', 'Televisions', 'Audio & Music Equipment', 'Gaming Consoles', 'Cameras & Photography', 'Networking Equipment', 'Accessories'],
+    slug: 'electronics'
   },
   {
     title: 'Fashion',
     icon: Shirt,
-    items: ['Clothing', 'Shoes', 'Bags', 'Watches', 'Jewelry', 'Accessories'],
+    items: ["Men's Clothing", "Women's Clothing", 'Shoes', 'Bags', 'Watches', 'Jewelry', 'Sunglasses', 'Underwear & Sleepwear'],
     slug: 'fashion'
   },
   {
-    title: 'Home & Garden',
+    title: 'Home, Furniture & Appliances',
     icon: Sofa,
-    items: ['Furniture', 'Appliances', 'Kitchen', 'Garden', 'Decor', 'Tools'],
-    slug: 'home'
+    items: ['Furniture', 'Home Decor', 'Kitchen Appliances', 'Large Appliances', 'Small Appliances', 'Bedding', 'Lighting', 'Home Accessories'],
+    slug: 'home-furniture'
+  },
+  {
+    title: 'Jobs',
+    icon: Briefcase,
+    items: ['Full-time Jobs', 'Part-time Jobs', 'Remote Jobs', 'Internships', 'Contract Jobs', 'Graduate Jobs', 'Driver Jobs', 'Tech Jobs'],
+    slug: 'jobs'
   },
   {
     title: 'Services',
     icon: Wrench,
-    items: ['Repairs', 'Cleaning', 'Delivery', 'Events', 'Beauty', 'Tutoring'],
+    items: ['Cleaning Services', 'Repair & Maintenance', 'Moving & Logistics', 'Event Services', 'Digital Services', 'Beauty Services', 'Automotive Services', 'Home Services'],
     slug: 'services'
+  },
+  {
+    title: 'Pets',
+    icon: Dog,
+    items: ['Dogs', 'Cats', 'Birds', 'Fish', 'Pet Food', 'Pet Accessories', 'Livestock', 'Veterinary Services'],
+    slug: 'pets'
+  },
+  {
+    title: 'Health & Beauty',
+    icon: Heart,
+    items: ['Skincare', 'Haircare', 'Makeup', 'Fragrances', 'Personal Care', 'Beauty Tools', 'Supplements', 'Medical Supplies'],
+    slug: 'health-beauty'
+  },
+  {
+    title: 'Baby & Kids',
+    icon: Baby,
+    items: ['Baby Clothing', 'Kids Clothing', 'Toys', 'Strollers', 'Car Seats', 'Baby Food', 'School Supplies', 'Maternity'],
+    slug: 'baby-kids'
+  },
+  {
+    title: 'Sports & Outdoors',
+    icon: Dumbbell,
+    items: ['Gym Equipment', 'Fitness Accessories', 'Bicycles', 'Outdoor Gear', 'Sportswear', 'Camping Equipment', 'Football Equipment', 'Water Sports'],
+    slug: 'sports'
   },
 ];
 

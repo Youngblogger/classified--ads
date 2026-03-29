@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
@@ -90,12 +90,14 @@ const hasAnyError = (errors: FormErrors): boolean => {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const { login } = useAuthStore();
   
   const [step, setStep] = useState<'register' | 'verify'>('register');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState<string>('');
 
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
@@ -112,6 +114,13 @@ export default function RegisterPage() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [timer, setTimer] = useState<number | null>(null);
   const otpInputRefs = useState<HTMLInputElement[]>([]);
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setReferralCode(ref);
+    }
+  }, []);
   
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,13 +175,18 @@ export default function RegisterPage() {
     console.log('Sending registration data:', formData);
     
     try {
+      const registrationData = {
+        ...formData,
+        ...(referralCode && { referral_code: referralCode }),
+      };
+      
       const response = await fetch(`${API_URL}/auth/register-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(registrationData),
       });
       
       console.log('Response status:', response.status);

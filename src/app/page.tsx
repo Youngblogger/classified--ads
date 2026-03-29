@@ -185,8 +185,11 @@ export default function HomePage() {
       setRecentAds(prev => pageNum === 1 ? newAds : [...prev, ...newAds]);
       setHasMore(newAds.length === ITEMS_PER_PAGE);
       setAdsError(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch ads:', error);
+      if (error.name === 'AbortError') {
+        console.log('Request was aborted');
+      }
       setAdsError(true);
       setHasMore(false);
     } finally {
@@ -198,6 +201,16 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchAds(1, true);
+    
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.log('Loading timeout - forcing loading to false');
+        setLoading(false);
+        setAdsError(true);
+      }
+    }, 15000);
+    
+    return () => clearTimeout(timeout);
   }, []);
 
   const handleLoadMore = useCallback(() => {

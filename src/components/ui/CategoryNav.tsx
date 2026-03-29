@@ -91,21 +91,18 @@ export default function CategoryNav({ categories }: CategoryNavProps) {
   
   // Reorder categories to show popular ones first
   const popularOrder: Record<string, number> = {
-    'phones-accessibility': 1,
-    'phones-accessories': 1,
+    'mobile-phones-tablets': 1,
     'vehicles': 2,
     'property': 3,
     'electronics': 4,
     'fashion': 5,
     'jobs': 6,
-    'home-furniture': 7,
-    'beauty-health': 8,
-    'computers-laptops': 9,
-    'babies-kids': 10,
-    'sports-fitness': 11,
-    'agriculture': 12,
-    'books-media': 13,
-    'services': 14,
+    'services': 7,
+    'home-furniture-appliances': 8,
+    'agriculture-food': 9,
+    'education': 10,
+    'health-beauty': 11,
+    'other': 12,
   };
   
   const mainCategories = categories

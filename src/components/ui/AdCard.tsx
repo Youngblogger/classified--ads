@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, ImageIcon } from 'lucide-react';
 import { Ad } from '@/types';
 import { formatPrice, getAdImageUrl } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 
 interface AdCardProps {
   ad: Ad;
@@ -12,7 +13,7 @@ interface AdCardProps {
   priority?: boolean;
 }
 
-export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
+function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardProps) {
   const [imgError, setImgError] = useState(false);
   
   const imagesArray = Array.isArray(ad.images) ? ad.images : [];
@@ -40,16 +41,22 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
     return <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClasses}`}>{label}</span>;
   };
 
+  const imageLoader = () => imageUrl;
+
   if (variant === 'horizontal') {
     return (
       <Link href={`/ad/${ad.slug}`} className="card card-hover flex flex-col sm:flex-row">
         <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0 bg-gray-100">
           {imageUrl && !imgError ? (
-            <img
+            <Image
               src={imageUrl}
               alt={ad.title}
-              className="w-full h-full object-cover"
+              fill
+              sizes="(max-width: 768px) 100vw, 192px"
+              className="object-cover"
               onError={() => setImgError(true)}
+              loading={priority ? 'eager' : 'lazy'}
+              priority={priority}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
@@ -81,11 +88,15 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
       <Link href={`/ad/${ad.slug}`} className="card card-hover">
         <div className="relative aspect-square bg-gray-100">
           {imageUrl && !imgError ? (
-            <img
+            <Image
               src={imageUrl}
               alt={ad.title}
-              className="w-full h-full object-cover"
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover"
               onError={() => setImgError(true)}
+              loading={priority ? 'eager' : 'lazy'}
+              priority={priority}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
@@ -112,11 +123,15 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
     <Link href={`/ad/${ad.slug}`} className="card card-hover group">
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
-          <img
+          <Image
             src={imageUrl}
             alt={ad.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
             onError={() => setImgError(true)}
+            loading={priority ? 'eager' : 'lazy'}
+            priority={priority}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
@@ -145,3 +160,13 @@ export default function AdCard({ ad, variant = 'default' }: AdCardProps) {
     </Link>
   );
 }
+
+const AdCard = memo(AdCardComponent, (prevProps, nextProps) => {
+  return prevProps.ad.id === nextProps.ad.id && 
+         prevProps.variant === nextProps.variant &&
+         prevProps.priority === nextProps.priority;
+});
+
+AdCard.displayName = 'AdCard';
+
+export default AdCard;
