@@ -96,6 +96,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
     email: '',
@@ -312,6 +313,7 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           email: otpData.email,
           otp: otp,

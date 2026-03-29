@@ -3,6 +3,23 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
+function setCookie(name: string, value: string, days: number) {
+  if (typeof document === 'undefined') return;
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+}
+
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
@@ -10,6 +27,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     setMounted(true);
     
     if (typeof window !== 'undefined') {
+      // Store referrer from URL to cookie
+      const urlParams = new URLSearchParams(window.location.search);
+      const refCode = urlParams.get('ref');
+      if (refCode && !getCookie('referrer')) {
+        setCookie('referrer', refCode, 30); // Store for 30 days
+      }
+
       // Check if user just logged out - don't auto restore
       const justLoggedOut = sessionStorage.getItem('just_logged_out');
       if (justLoggedOut === 'true') {
@@ -68,10 +92,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       }
     }
   }, []);
-
-  if (!mounted) {
-    return null;
-  }
 
   return <>{children}</>;
 }

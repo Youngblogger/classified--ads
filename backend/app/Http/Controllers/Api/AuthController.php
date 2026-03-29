@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\OtpService;
+use App\Services\ReferralService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,7 +16,8 @@ use Laravel\Sanctum\Sanctum;
 class AuthController extends Controller
 {
     public function __construct(
-        private OtpService $otpService
+        private OtpService $otpService,
+        private ReferralService $referralService
     ) {}
     public function register(Request $request)
     {
@@ -24,11 +26,14 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
+            'referral_code' => 'nullable|string|max:20',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
+
+        $referralCode = $request->input('referral_code');
 
         $user = User::create([
             'name' => $request->name,
@@ -36,6 +41,10 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
         ]);
+
+        if ($referralCode) {
+            $this->referralService->applyReferralCode($referralCode, $user->id);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

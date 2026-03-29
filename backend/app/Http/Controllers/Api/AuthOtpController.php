@@ -15,7 +15,8 @@ use Illuminate\Validation\Rules\Password;
 class AuthOtpController extends Controller
 {
     public function __construct(
-        private OtpService $otpService
+        private OtpService $otpService,
+        private \App\Services\ReferralService $referralService
     ) {}
 
     public function register(Request $request): JsonResponse
@@ -27,6 +28,7 @@ class AuthOtpController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email',
             'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
+            'referral_code' => 'nullable|string|max:20',
         ]);
 
         if ($validator->fails()) {
@@ -67,6 +69,12 @@ class AuthOtpController extends Controller
             'status' => 'active',
             'verified' => false,
         ]);
+
+        // Apply referral code if provided
+        $referralCode = $request->input('referral_code');
+        if ($referralCode) {
+            $this->referralService->applyReferralCode($referralCode, $user->id);
+        }
 
         $otpData = $this->otpService->createOrUpdateVerification($user);
         $emailSent = false;
@@ -142,6 +150,12 @@ class AuthOtpController extends Controller
         }
 
         RateLimiter::clear($rateLimitKey);
+
+        // Apply referral from cookie if user was referred
+        $referrerCode = $request->cookie('referrer');
+        if ($referrerCode && !$user->referred_by) {
+            $this->referralService->applyReferralCode($referrerCode, $user->id);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

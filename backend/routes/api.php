@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\WatermarkController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\ReferralController;
+use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\SocialPostController;
 use App\Http\Controllers\Api\SocialSettingsController;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +32,7 @@ use Illuminate\Support\Facades\Route;
 // Public auth routes
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('register');
+    Route::post('/validate-referral-code', [ReferralController::class, 'validateCode']);
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::match(['get', 'post'], '/google', [AuthController::class, 'google']);
     Route::match(['get', 'post'], '/facebook', [AuthController::class, 'facebook']);
@@ -190,6 +193,23 @@ Route::middleware('auth.api')->group(function () {
     Route::get('/promotions/my-promotions', [PromotionController::class, 'myPromotions']);
     Route::get('/promotions/ad/{adId}', [PromotionController::class, 'adPromotions']);
     Route::post('/promotions/{id}/cancel', [PromotionController::class, 'cancelPromotion']);
+
+    // Referral System
+    Route::get('/referral/my-code', [ReferralController::class, 'myCode']);
+    Route::get('/referral/my-referrals', [ReferralController::class, 'myReferrals']);
+    Route::get('/referral/referred-by-me', [ReferralController::class, 'referredByMe']);
+    Route::get('/referral/stats', [ReferralController::class, 'stats']);
+    Route::get('/referral/leaderboard', [ReferralController::class, 'leaderboard']);
+    Route::post('/referral/apply', [ReferralController::class, 'apply']);
+    Route::post('/referral/reward', [ReferralController::class, 'reward']);
+    Route::post('/referral/validate', [ReferralController::class, 'validateCode']);
+
+    // Credit System
+    Route::get('/credits/balance', [CreditController::class, 'balance']);
+    Route::get('/credits/history', [CreditController::class, 'history']);
+    Route::get('/credits/features', [CreditController::class, 'features']);
+    Route::post('/credits/use', [CreditController::class, 'use']);
+    Route::post('/credits/check-balance', [CreditController::class, 'checkBalance']);
 });
 
 // Webhook routes (no auth required)

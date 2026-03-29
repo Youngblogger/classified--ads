@@ -253,13 +253,16 @@ export default function BatchPostAds({ ads, onSuccess }: BatchPostAdsProps) {
               <div key={adId} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                 <span className="truncate">Ad #{adId}</span>
                 <div className="flex items-center gap-2">
-                  {result.results && Object.entries(result.results).map(([platform, platformResult]) => (
+                  {result.results && Object.entries(result.results).map(([platform, platformResult]) => {
+                    const resultItem = platformResult as { status: 'success' | 'failed' | 'pending' | 'skipped' };
+                    return (
                     <div key={platform} className="flex items-center gap-1">
                       {platform === 'facebook' && <Facebook className="w-3 h-3 text-blue-600" />}
                       {platform === 'instagram' && <Instagram className="w-3 h-3 text-pink-600" />}
-                      {getStatusBadge(platformResult.status)}
+                      {getStatusBadge(resultItem.status)}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}

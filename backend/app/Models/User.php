@@ -37,6 +37,9 @@ class User extends Authenticatable
         'banned_at',
         'suspended_at',
         'ban_reason',
+        'referral_code',
+        'referred_by',
+        'profile_completed',
     ];
 
     /**
@@ -157,5 +160,68 @@ class User extends Authenticatable
         }
         
         return $baseUrl . $avatar;
+    }
+
+    // Referral Relationships
+    public function referrer()
+    {
+        return $this->belongsTo(User::class, 'referred_by');
+    }
+
+    public function referrals()
+    {
+        return $this->hasMany(Referral::class, 'referrer_id');
+    }
+
+    public function referredUsers()
+    {
+        return $this->hasMany(User::class, 'referred_by');
+    }
+
+    // Credit Relationships
+    public function creditBalance()
+    {
+        return $this->hasOne(CreditBalance::class);
+    }
+
+    public function creditLedger()
+    {
+        return $this->hasMany(CreditLedger::class);
+    }
+
+    // Get tier based on referral count
+    public function getReferralTier(): string
+    {
+        $completedReferrals = $this->referrals()->where('status', 'completed')->count();
+        
+        if ($completedReferrals >= 25) {
+            return 'gold';
+        } elseif ($completedReferrals >= 10) {
+            return 'silver';
+        }
+        return 'bronze';
+    }
+
+    // Get tier multiplier
+    public function getReferralMultiplier(): float
+    {
+        return match($this->getReferralTier()) {
+            'gold' => 2.0,
+            'silver' => 1.5,
+            default => 1.0,
+        };
+    }
+
+    // Generate unique referral code
+    public static function generateReferralCode(): string
+    {
+        $code = strtoupper(substr(uniqid(), -6));
+        
+        // Ensure uniqueness
+        while (User::where('referral_code', $code)->exists()) {
+            $code = strtoupper(substr(uniqid(), -6));
+        }
+        
+        return $code;
     }
 }
