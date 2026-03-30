@@ -205,14 +205,15 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
             {ads.map((ad) => (
               <Link
                 key={ad.id}
                 href={`/ad/${ad.slug}`}
                 className="group block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                style={{ minWidth: '280px' }}
               >
-                <div className="relative aspect-[4/3] bg-gray-100">
+                <div className="relative aspect-[4/3] bg-gray-100 h-[180px]">
                   <img
                     src={getAdImageUrl(ad.images?.[0])}
                     alt={ad.title}
@@ -225,20 +226,20 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
                   />
                   {getConditionBadge(ad.condition)}
                 </div>
-                <div className="p-3">
-                  <h4 className="font-medium text-dark text-sm line-clamp-2 group-hover:text-primary-600 transition-colors">
+                <div className="p-4">
+                  <h4 className="font-medium text-dark text-base line-clamp-2 group-hover:text-primary-600 transition-colors">
                     {ad.title}
                   </h4>
-                  <p className="text-lg font-bold text-primary-600 mt-1">
+                  <p className="text-xl font-bold text-primary-600 mt-2">
                     {formatPrice(ad.price, ad.currency)}
                   </p>
                   {(ad.description || ad.short_description) && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                    <p className="text-sm text-gray-500 mt-2 line-clamp-2">
                       {ad.short_description || ad.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                    <MapPin className="w-3 h-3" />
+                  <div className="flex items-center gap-1 text-sm text-gray-500 mt-2">
+                    <MapPin className="w-4 h-4" />
                     <span className="truncate">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</span>
                   </div>
                 </div>
