@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Star, ThumbsUp, ThumbsDown, Flag, Search, Loader2 } from 'lucide-react';
+import { Star, Search, Loader2 } from 'lucide-react';
 import { reviewsApi, adsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -28,7 +28,6 @@ export default function ReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
-  const [helpfulLoading, setHelpfulLoading] = useState<number | null>(null);
 
   useEffect(() => {
     fetchReviews();
@@ -45,22 +44,6 @@ export default function ReviewsPage() {
       toast.error('Failed to load reviews');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleMarkHelpful = async (reviewId: number) => {
-    try {
-      setHelpfulLoading(reviewId);
-      // Optimistically update the UI
-      setReviews(prev => prev.map(r => 
-        r.id === reviewId ? { ...r, is_helpful: true, helpful_count: r.helpful_count + 1 } : r
-      ));
-      toast.success('Marked as helpful');
-    } catch (error) {
-      console.error('Failed to mark helpful:', error);
-      toast.error('Failed to mark as helpful');
-    } finally {
-      setHelpfulLoading(null);
     }
   };
 
@@ -180,26 +163,8 @@ export default function ReviewsPage() {
                 </div>
               </div>
               <p className="mt-4 text-gray-600">{review.comment}</p>
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex items-center justify-end">
                 <p className="text-sm text-gray-400">{getTimeAgo(review.created_at)}</p>
-                <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => handleMarkHelpful(review.id)}
-                    disabled={helpfulLoading === review.id || review.is_helpful}
-                    className={`flex items-center gap-1 text-sm ${review.is_helpful ? 'text-green-600' : 'text-gray-500 hover:text-green-600'} disabled:opacity-50`}
-                  >
-                    {helpfulLoading === review.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ThumbsUp className="w-4 h-4" />
-                    )}
-                    Helpful ({review.helpful_count})
-                  </button>
-                  <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-600">
-                    <Flag className="w-4 h-4" />
-                    Report
-                  </button>
-                </div>
               </div>
             </div>
           ))

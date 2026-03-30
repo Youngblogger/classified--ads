@@ -57,6 +57,47 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const PENDING_AD_KEY = 'pendingAd';
+  const DRAFT_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+  useEffect(() => {
+    const savedDraft = localStorage.getItem(PENDING_AD_KEY);
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        if (draft.timestamp && Date.now() - draft.timestamp < DRAFT_EXPIRY_MS) {
+          setTitle(draft.title || '');
+          setDescription(draft.description || '');
+          setPrice(draft.price || '');
+          setNegotiable(draft.negotiable || false);
+          setCategoryId(draft.categoryId || null);
+          setCategoryBreadcrumb(draft.categoryBreadcrumb || '');
+          setLocationId(draft.locationId || null);
+          setLgaId(draft.lgaId || '');
+          setLocationBreadcrumb(draft.locationBreadcrumb || '');
+          setCondition(draft.condition || '');
+          setPhone(draft.phone || '');
+          setWhatsapp(draft.whatsapp || '');
+          if (draft.step) setStep(Math.min(draft.step, 4));
+          if (draft.imagePreviews?.length > 0) {
+            const restoredImages: ImageFile[] = draft.imagePreviews.map((preview: string, idx: number) => ({
+              id: `restored-${Date.now()}-${idx}`,
+              file: null as any,
+              preview,
+              uploading: false,
+            }));
+            setImages(restoredImages);
+            toast.success('Your previous draft has been restored!');
+          }
+        } else {
+          localStorage.removeItem(PENDING_AD_KEY);
+        }
+      } catch (err) {
+        console.error('Failed to parse saved draft:', err);
+        localStorage.removeItem(PENDING_AD_KEY);
+      }
+    }
+  }, []);
 
   // Local fallback categories (same as homepage)
   const localCategories = [
@@ -318,8 +359,31 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     if (!canSubmit || isLoading) return;
 
     if (!isAuthenticated) {
-      toast.error('Please login to post an ad.');
-      toggleLoginModal();
+      const imagePreviews = images.map(img => img.preview);
+      const pendingAd = {
+        title,
+        description,
+        price,
+        negotiable,
+        categoryId,
+        categoryBreadcrumb,
+        locationId,
+        lgaId,
+        locationBreadcrumb,
+        condition,
+        phone,
+        whatsapp,
+        step,
+        imagePreviews,
+        timestamp: Date.now(),
+      };
+      try {
+        localStorage.setItem(PENDING_AD_KEY, JSON.stringify(pendingAd));
+      } catch (err) {
+        console.error('Failed to save draft:', err);
+      }
+      toast.error('Please login to post an ad. Your data has been saved.');
+      router.push('/login?redirect=/post-ad');
       return;
     }
 
@@ -359,6 +423,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       setLgaId('');
       setCondition('');
       setImages([]);
+      
+      localStorage.removeItem(PENDING_AD_KEY);
       
       // Show success message
       toast.success(

@@ -15,7 +15,9 @@ function getAvatarUrl(url: string | null | undefined): string {
     return avatarUrl;
   }
   if (avatarUrl.startsWith('/storage/')) {
-    avatarUrl = `http://127.0.0.1:8000${avatarUrl}`;
+    avatarUrl = `${API_URL}${avatarUrl}`;
+  } else {
+    avatarUrl = `${API_URL}/storage/${avatarUrl}`;
   }
   return avatarUrl;
 }
@@ -172,7 +174,7 @@ export default function DashboardLayout({
   // Get auth functions from store
   const { user: authUser, logout, isAuthenticated, token } = useAuthStore();
 
-  // Check auth on mount - try to load from localStorage if not in store
+      // Check auth on mount - try to load from localStorage if not in store
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Check zustand persist storage
@@ -182,7 +184,15 @@ export default function DashboardLayout({
           const parsed = JSON.parse(stored);
           if (parsed.state && parsed.state.user && parsed.state.token) {
             console.log('Restored auth from zustand persist:', parsed.state.user);
-            useAuthStore.getState().login(parsed.state.user, parsed.state.token);
+            // Ensure full_avatar_url is constructed
+            const userWithAvatar = {
+              ...parsed.state.user,
+              full_avatar_url: parsed.state.user.full_avatar_url || 
+                (parsed.state.user.avatar ? `${API_URL}/storage/${parsed.state.user.avatar}` : null) ||
+                parsed.state.user.google_avatar ||
+                parsed.state.user.facebook_avatar,
+            };
+            useAuthStore.getState().login(userWithAvatar, parsed.state.token);
             return;
           }
         }
@@ -198,7 +208,15 @@ export default function DashboardLayout({
         if (storedUser && storedToken) {
           try {
             const userData = JSON.parse(storedUser);
-            useAuthStore.getState().login(userData, storedToken);
+            // Ensure full_avatar_url is constructed
+            const userWithAvatar = {
+              ...userData,
+              full_avatar_url: userData.full_avatar_url || 
+                (userData.avatar ? `${API_URL}/storage/${userData.avatar}` : null) ||
+                userData.google_avatar ||
+                userData.facebook_avatar,
+            };
+            useAuthStore.getState().login(userWithAvatar, storedToken);
           } catch (e) {
             console.error('Failed to parse stored user:', e);
           }
@@ -350,9 +368,9 @@ export default function DashboardLayout({
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                 >
-                  {user && ((user as any).avatar || (user as any).avatar_url || (user as any).full_avatar_url) ? (
+                  {user && ((user as any).avatar || (user as any).avatar_url || (user as any).full_avatar_url || (user as any).google_avatar || (user as any).facebook_avatar) ? (
                     <img 
-                      src={getAvatarUrl((user as any).full_avatar_url || (user as any).avatar_url || (user as any).avatar)} 
+                      src={getAvatarUrl((user as any).full_avatar_url || (user as any).avatar_url || (user as any).avatar || (user as any).google_avatar || (user as any).facebook_avatar || '')} 
                       alt={(user as any).name || 'User'} 
                       className="w-9 h-9 rounded-full object-cover ring-2 ring-gray-200"
                     />

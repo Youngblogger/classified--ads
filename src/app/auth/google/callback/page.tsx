@@ -48,7 +48,12 @@ function GoogleCallbackContent() {
         }
 
         login(data.user, data.token);
-        router.push('/');
+        
+        // Read redirect from both localStorage and sessionStorage
+        const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
+        localStorage.removeItem('authRedirect');
+        sessionStorage.removeItem('authRedirect');
+        window.location.href = redirectTo;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
         setError(errorMessage);

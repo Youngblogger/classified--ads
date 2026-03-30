@@ -10,7 +10,7 @@ import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
 const BACKEND_URL = API_URL.replace('/api', '');
 
 function getImageUrl(img: any): string {

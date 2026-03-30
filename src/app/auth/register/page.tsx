@@ -91,6 +91,8 @@ const hasAnyError = (errors: FormErrors): boolean => {
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const urlRedirect = searchParams.get('redirect') || '/dashboard';
+  const redirectUrl = typeof window !== 'undefined' ? (localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || urlRedirect) : urlRedirect;
   const { login } = useAuthStore();
   
   const [step, setStep] = useState<'register' | 'verify'>('register');
@@ -119,6 +121,10 @@ export default function RegisterPage() {
     const ref = searchParams.get('ref');
     if (ref) {
       setReferralCode(ref);
+    }
+    if (typeof window !== 'undefined' && urlRedirect) {
+      localStorage.setItem('authRedirect', urlRedirect);
+      sessionStorage.setItem('authRedirect', urlRedirect);
     }
   }, []);
   
@@ -368,8 +374,10 @@ export default function RegisterPage() {
       // Auto login - use login function which handles zustand persist
       login(data.user, data.token);
       
-      // Full page redirect to ensure auth state is loaded
-      window.location.href = '/dashboard';
+      // Clear auth redirect and redirect to intended page
+      localStorage.removeItem('authRedirect');
+      sessionStorage.removeItem('authRedirect');
+      window.location.href = redirectUrl;
       
     } catch (error) {
       console.error('Verification error:', error);
