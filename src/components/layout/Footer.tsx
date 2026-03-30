@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Facebook,
   Twitter,
@@ -14,6 +14,8 @@ import {
   ArrowRight,
   Search
 } from 'lucide-react';
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 export default function Footer() {
   const [email, setEmail] = useState('');
@@ -30,9 +32,6 @@ export default function Footer() {
       alert('Thank you for subscribing!');
     }, 1000);
   };
-
-  const [currentYear, setCurrentYear] = useState(2024);
-  useEffect(() => { setCurrentYear(new Date().getFullYear()); }, []);
 
   const companyLinks = [
     { label: 'About Us', href: '/about' },
@@ -391,7 +390,7 @@ export default function Footer() {
                 <span className="text-lg font-bold text-white">iList</span>
               </Link>
               <span className="text-slate-500 text-sm">
-                &copy; {currentYear} All rights reserved.
+                &copy; {CURRENT_YEAR} iList. All rights reserved.
               </span>
             </div>
 

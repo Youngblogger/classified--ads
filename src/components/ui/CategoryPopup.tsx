@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { Search, X } from 'lucide-react';
 import { Category } from '@/types';
 import { categoriesApi } from '@/lib/api'; 
 
@@ -14,11 +15,16 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+  const [filteredSubcategories, setFilteredSubcategories] = useState<Category[]>([]);
   const popupRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       setSelectedCategory(null);
+      setSearchQuery('');
       if (categories.length === 0) {
         setLoading(true);
         const fetchCategories = async () => {
@@ -26,6 +32,7 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
             const data = await categoriesApi.getAll();
             const categoriesArray = data.data?.data || data.data || data;
             setCategories(categoriesArray);
+            setFilteredCategories(categoriesArray);
           } catch (error) {
             console.error('Failed to fetch categories:', error);
           } finally {
@@ -33,9 +40,40 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
           }
         };
         fetchCategories();
+      } else {
+        setFilteredCategories(categories);
+      }
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredCategories(categories);
+      setFilteredSubcategories([]);
+    } else {
+      const query = searchQuery.toLowerCase();
+      
+      if (selectedCategory) {
+        const subs = getSubcategories(selectedCategory.id);
+        const filtered = subs.filter(sub => 
+          sub.name.toLowerCase().includes(query) || 
+          sub.slug.toLowerCase().includes(query)
+        );
+        setFilteredSubcategories(filtered);
+      }
+      
+      const filtered = categories.filter(cat => 
+        cat.name.toLowerCase().includes(query) || 
+        cat.slug.toLowerCase().includes(query)
+      );
+      setFilteredCategories(filtered);
+      
+      if (filtered.length === 1 && filtered[0].children && filtered[0].children.length > 0) {
+        setSelectedCategory(filtered[0]);
       }
     }
-  }, [isOpen, categories.length]);
+  }, [searchQuery, categories, selectedCategory]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -55,9 +93,8 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
     };
   }, [isOpen, onClose]);
 
-  const mainCategories = categories.filter(c => !c.parent_id || (c.children && c.children.length > 0 && !c.parent_id));
+  const mainCategories = filteredCategories.filter(c => !c.parent_id || (c.children && c.children.length > 0 && !c.parent_id));
   
-  // Reorder categories to show popular ones first
   const popularOrder: Record<string, number> = {
     'vehicles': 1,
     'property': 2,
@@ -208,6 +245,34 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
           </button>
         </div>
 
+        {/* Search Bar */}
+        <div className="px-4 md:px-6 py-3 border-b border-gray-100 bg-gray-50">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search categories..."
+              className="w-full pl-10 pr-10 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="text-xs text-gray-500 mt-2">
+              {filteredCategories.length} results for "{searchQuery}"
+            </p>
+          )}
+        </div>
+
         {/* Content */}
         <div className="flex flex-col md:flex-row max-h-[calc(100vh-80px)] md:max-h-[calc(80vh-80px)]">
           {/* Categories List */}
@@ -259,7 +324,7 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {getSubcategories(selectedCategory.id).map((sub: Category, index: number) => (
+                  {(searchQuery.trim() !== '' ? filteredSubcategories : getSubcategories(selectedCategory.id)).map((sub: Category, index: number) => (
                     <Link
                       key={sub.id}
                       href={`/category/${selectedCategory.slug}/${sub.slug}`}
@@ -272,6 +337,9 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
                       </span>
                     </Link>
                   ))}
+                  {searchQuery.trim() !== '' && filteredSubcategories.length === 0 && (
+                    <p className="col-span-2 text-center text-gray-500 py-4">No subcategories found for "{searchQuery}"</p>
+                  )}
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-gray-200">

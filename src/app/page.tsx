@@ -359,18 +359,11 @@ export default function HomePage() {
         <section className="py-16 bg-gradient-to-br from-slate-50 via-white to-slate-100">
           <div className="container-app">
             <div className="flex items-center justify-between mb-10">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/30">
-                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold text-slate-900">
-                    <span className="bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">Latest</span> Ads
-                  </h2>
-                  <p className="text-slate-500 mt-1">Fresh listings from sellers near you</p>
-                </div>
+              <div>
+                <h2 className="text-3xl font-bold text-slate-900">
+                  <span className="bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">Latest</span> Ads
+                </h2>
+                <p className="text-slate-500 mt-1">Fresh listings from sellers near you</p>
               </div>
               <Link href="/ads" className="group flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-slate-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all shadow-sm">
                 <span className="font-medium text-slate-700 group-hover:text-primary-600">View All</span>

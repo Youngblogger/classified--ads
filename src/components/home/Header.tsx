@@ -16,14 +16,74 @@ import {
   CheckCircle, UserPlus, UserMinus, Dumbbell
 } from 'lucide-react';
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
-import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
 import { cn, BACKEND_URL } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useSocket } from '@/hooks/useSocket';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+
+interface ApiLocation {
+  id: number;
+  name: string;
+  slug: string;
+  children?: { name: string; slug: string }[];
+}
+
+interface ApiCategory {
+  id: number;
+  name: string;
+  slug: string;
+  icon?: string;
+  children?: ApiCategory[];
+}
+
+const categoryIconMap: Record<string, any> = {
+  Car,
+  Home,
+  Smartphone,
+  Laptop,
+  Shirt,
+  Sofa,
+  Briefcase,
+  Wrench,
+  Dog,
+  Heart,
+  Baby,
+  Dumbbell,
+};
+
+function getCategoryIcon(iconName?: string) {
+  if (!iconName) return Car;
+  return categoryIconMap[iconName] || Car;
+}
+
 const RECENT_SEARCHES_KEY = 'ilist_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
+
+const ICON_MAP: Record<string, any> = {
+  Car,
+  Home,
+  Smartphone,
+  Laptop,
+  Shirt,
+  Sofa,
+  Briefcase,
+  Wrench,
+  Dog,
+  Heart,
+  Baby,
+  Dumbbell,
+  TreePine,
+  Gamepad2,
+  BookOpen,
+  Building2,
+  GraduationCap,
+};
+
+function getIconComponent(iconName?: string): any {
+  return ICON_MAP[iconName || 'Car'] || Car;
+}
 
 function getFullAvatarUrl(user: any): string | null {
   if (!user) return null;
@@ -92,96 +152,6 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   system_notice: 'bg-slate-100 text-slate-600',
 };
 
-const CATEGORIES = [
-  { name: 'Vehicles', icon: Car, slug: 'vehicles', count: 1560 },
-  { name: 'Property', icon: Home, slug: 'property', count: 980 },
-  { name: 'Mobile Phones & Tablets', icon: Smartphone, slug: 'mobile-phones', count: 2340 },
-  { name: 'Electronics', icon: Laptop, slug: 'electronics', count: 1890 },
-  { name: 'Fashion', icon: Shirt, slug: 'fashion', count: 1450 },
-  { name: 'Home, Furniture & Appliances', icon: Sofa, slug: 'home-furniture', count: 890 },
-  { name: 'Jobs', icon: Briefcase, slug: 'jobs', count: 760 },
-  { name: 'Services', icon: Wrench, slug: 'services', count: 560 },
-  { name: 'Pets', icon: Dog, slug: 'pets', count: 230 },
-  { name: 'Health & Beauty', icon: Heart, slug: 'health-beauty', count: 420 },
-  { name: 'Baby & Kids', icon: Baby, slug: 'baby-kids', count: 380 },
-  { name: 'Sports & Outdoors', icon: Dumbbell, slug: 'sports', count: 340 },
-];
-
-const MEGA_MENU_CATEGORIES = [
-  {
-    title: 'Vehicles',
-    icon: Car,
-    items: ['Cars', 'Motorcycles', 'Buses & Vans', 'Trucks & Trailers', 'Tricycles', 'Vehicle Parts', 'Vehicle Accessories', 'Heavy Equipment'],
-    slug: 'vehicles'
-  },
-  {
-    title: 'Property',
-    icon: Home,
-    items: ['Apartments for Rent', 'Apartments for Sale', 'Houses for Rent', 'Houses for Sale', 'Land & Plots', 'Commercial Property', 'Short Let / Airbnb', 'Event Spaces'],
-    slug: 'property'
-  },
-  {
-    title: 'Mobile Phones & Tablets',
-    icon: Smartphone,
-    items: ['Smartphones', 'Feature Phones', 'Tablets', 'Smartwatches', 'Phone Accessories', 'Power Banks', 'Chargers', 'Screen Protectors'],
-    slug: 'mobile-phones'
-  },
-  {
-    title: 'Electronics',
-    icon: Laptop,
-    items: ['Laptops', 'Desktop Computers', 'Televisions', 'Audio & Music Equipment', 'Gaming Consoles', 'Cameras & Photography', 'Networking Equipment', 'Accessories'],
-    slug: 'electronics'
-  },
-  {
-    title: 'Fashion',
-    icon: Shirt,
-    items: ["Men's Clothing", "Women's Clothing", 'Shoes', 'Bags', 'Watches', 'Jewelry', 'Sunglasses', 'Underwear & Sleepwear'],
-    slug: 'fashion'
-  },
-  {
-    title: 'Home, Furniture & Appliances',
-    icon: Sofa,
-    items: ['Furniture', 'Home Decor', 'Kitchen Appliances', 'Large Appliances', 'Small Appliances', 'Bedding', 'Lighting', 'Home Accessories'],
-    slug: 'home-furniture'
-  },
-  {
-    title: 'Jobs',
-    icon: Briefcase,
-    items: ['Full-time Jobs', 'Part-time Jobs', 'Remote Jobs', 'Internships', 'Contract Jobs', 'Graduate Jobs', 'Driver Jobs', 'Tech Jobs'],
-    slug: 'jobs'
-  },
-  {
-    title: 'Services',
-    icon: Wrench,
-    items: ['Cleaning Services', 'Repair & Maintenance', 'Moving & Logistics', 'Event Services', 'Digital Services', 'Beauty Services', 'Automotive Services', 'Home Services'],
-    slug: 'services'
-  },
-  {
-    title: 'Pets',
-    icon: Dog,
-    items: ['Dogs', 'Cats', 'Birds', 'Fish', 'Pet Food', 'Pet Accessories', 'Livestock', 'Veterinary Services'],
-    slug: 'pets'
-  },
-  {
-    title: 'Health & Beauty',
-    icon: Heart,
-    items: ['Skincare', 'Haircare', 'Makeup', 'Fragrances', 'Personal Care', 'Beauty Tools', 'Supplements', 'Medical Supplies'],
-    slug: 'health-beauty'
-  },
-  {
-    title: 'Baby & Kids',
-    icon: Baby,
-    items: ['Baby Clothing', 'Kids Clothing', 'Toys', 'Strollers', 'Car Seats', 'Baby Food', 'School Supplies', 'Maternity'],
-    slug: 'baby-kids'
-  },
-  {
-    title: 'Sports & Outdoors',
-    icon: Dumbbell,
-    items: ['Gym Equipment', 'Fitness Accessories', 'Bicycles', 'Outdoor Gear', 'Sportswear', 'Camping Equipment', 'Football Equipment', 'Water Sports'],
-    slug: 'sports'
-  },
-];
-
 function formatNotificationTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -208,7 +178,7 @@ export default function Header() {
   const [selectedLocationSlug, setSelectedLocationSlug] = useState<string | null>(null);
   const [selectedLGA, setSelectedLGA] = useState<string | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [tempSelectedState, setTempSelectedState] = useState<NigeriaLocation | null>(null);
+  const [tempSelectedState, setTempSelectedState] = useState<ApiLocation | null>(null);
   const [tempSelectedLGA, setTempSelectedLGA] = useState<string | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -225,6 +195,68 @@ export default function Header() {
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'notifications' | 'messages'>('notifications');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [apiCategories, setApiCategories] = useState<ApiCategory[]>([]);
+  const [apiLocations, setApiLocations] = useState<ApiLocation[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [megaMenuSearch, setMegaMenuSearch] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const filteredMegaMenuCategories = megaMenuSearch.trim() === '' 
+    ? apiCategories 
+    : apiCategories.filter(cat => 
+        cat.name.toLowerCase().includes(megaMenuSearch.toLowerCase()) ||
+        cat.slug.toLowerCase().includes(megaMenuSearch.toLowerCase()) ||
+        cat.children?.some(child => 
+          child.name.toLowerCase().includes(megaMenuSearch.toLowerCase())
+        )
+      );
+
+  interface MegaMenuSearchItem {
+    type: 'category' | 'subcategory';
+    categorySlug: string;
+    categoryName: string;
+    categoryIcon?: string;
+    slug: string;
+    name: string;
+  }
+
+  const megaMenuSearchResults: MegaMenuSearchItem[] = megaMenuSearch.trim() === '' 
+    ? []
+    : apiCategories.flatMap(cat => {
+        const results: MegaMenuSearchItem[] = [];
+        
+        if (cat.name.toLowerCase().includes(megaMenuSearch.toLowerCase()) || 
+            cat.slug.toLowerCase().includes(megaMenuSearch.toLowerCase())) {
+          results.push({
+            type: 'category',
+            categorySlug: cat.slug,
+            categoryName: cat.name,
+            categoryIcon: cat.icon,
+            slug: cat.slug,
+            name: cat.name,
+          });
+        }
+        
+        cat.children?.forEach(child => {
+          if (child.name.toLowerCase().includes(megaMenuSearch.toLowerCase()) ||
+              child.slug.toLowerCase().includes(megaMenuSearch.toLowerCase())) {
+            results.push({
+              type: 'subcategory',
+              categorySlug: cat.slug,
+              categoryName: cat.name,
+              categoryIcon: cat.icon,
+              slug: child.slug,
+              name: child.name,
+            });
+          }
+        });
+        
+        return results;
+      });
   
   const searchRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
@@ -244,7 +276,34 @@ export default function Header() {
     }
   }, []);
 
-  const isLoading = !hasHydrated;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [categoriesRes, locationsRes] = await Promise.all([
+          fetch(`${API_URL}/categories`),
+          fetch(`${API_URL}/locations`),
+        ]);
+        
+        const categoriesData = await categoriesRes.json();
+        const locationsData = await locationsRes.json();
+        
+        if (categoriesData.data) {
+          setApiCategories(categoriesData.data);
+        }
+        if (locationsData.data) {
+          setApiLocations(locationsData.data);
+        }
+      } catch (error) {
+        console.error('Error fetching categories/locations:', error);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  const isLoading = !hasHydrated || !isMounted;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -336,7 +395,7 @@ export default function Header() {
     }
   };
 
-  const handleLocationSelect = (location: NigeriaLocation | null) => {
+  const handleLocationSelect = (location: ApiLocation | null) => {
     if (location) {
       setTempSelectedState(location);
       setTempSelectedLGA(null);
@@ -376,7 +435,7 @@ export default function Header() {
 
   const openLocationModal = () => {
     if (selectedLocationSlug) {
-      const currentState = nigeriaLocations.find(l => l.slug === selectedLocationSlug);
+      const currentState = apiLocations.find(l => l.slug === selectedLocationSlug);
       setTempSelectedState(currentState || null);
       setTempSelectedLGA(selectedLGA);
     } else {
@@ -679,7 +738,7 @@ export default function Header() {
                       <span className="font-medium text-slate-900">All Nigeria</span>
                       <ChevronRight className={cn("w-4 h-4 text-slate-400", tempSelectedState && "opacity-0")} />
                     </button>
-                    {nigeriaLocations.map((location) => (
+                    {apiLocations.map((location) => (
                       <button
                         key={location.id}
                         onClick={() => handleLocationSelect(location)}
@@ -690,7 +749,7 @@ export default function Header() {
                       >
                         <div>
                           <span className="font-medium text-slate-900">{location.name}</span>
-                          <span className="text-xs text-slate-500 ml-2">({location.lgas?.length || 0})</span>
+                          <span className="text-xs text-slate-500 ml-2">({location.children?.length || 0})</span>
                         </div>
                         <ChevronRight className={cn("w-4 h-4 text-slate-400", tempSelectedState?.id !== location.id && "opacity-0")} />
                       </button>
@@ -710,20 +769,20 @@ export default function Header() {
                       >
                         <span className="text-slate-700">All areas in {tempSelectedState.name}</span>
                       </button>
-                      {tempSelectedState.lgas?.map((lga) => (
+                      {tempSelectedState.children?.map((lga) => (
                         <button
-                          key={lga}
-                          onClick={() => handleLGASelect(lga)}
+                          key={lga.slug}
+                          onClick={() => handleLGASelect(lga.name)}
                           className={cn(
                             "w-full p-3 rounded-xl text-left hover:bg-slate-50 transition-colors",
-                            tempSelectedLGA === lga && "bg-primary-50 border border-primary-200"
+                            tempSelectedLGA === lga.name && "bg-primary-50 border border-primary-200"
                           )}
                         >
                           <span className={cn(
                             "font-medium",
-                            tempSelectedLGA === lga ? "text-primary-600" : "text-slate-700"
+                            tempSelectedLGA === lga.name ? "text-primary-600" : "text-slate-700"
                           )}>
-                            {lga}
+                            {lga.name}
                           </span>
                         </button>
                       ))}
@@ -1280,41 +1339,86 @@ export default function Header() {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
+                        value={megaMenuSearch}
+                        onChange={(e) => setMegaMenuSearch(e.target.value)}
                         placeholder="Search categories..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm text-slate-900 placeholder-slate-400 transition-all"
                       />
+                      {megaMenuSearch && (
+                        <button
+                          onClick={() => setMegaMenuSearch('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 rounded-full"
+                        >
+                          <X className="w-3 h-3 text-slate-400" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-4 gap-4 p-4">
-                    {MEGA_MENU_CATEGORIES.map((category) => {
-                      const IconComponent = category.icon;
-                      return (
-                        <div key={category.slug} className="space-y-2">
-                          <Link
-                            href={`/ads?category=${category.slug}`}
-                            onClick={() => setShowMegaMenu(false)}
-                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors group"
-                          >
-                            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition-colors">
-                              <IconComponent className="w-5 h-5 text-primary-600" />
-                            </div>
-                            <span className="font-semibold text-slate-900">{category.title}</span>
-                          </Link>
-                          <div className="pl-12 space-y-1">
-                            {category.items.slice(0, 4).map((item) => (
+                    {megaMenuSearch ? (
+                      megaMenuSearchResults.length > 0 ? (
+                        <>
+                          {megaMenuSearchResults.map((item) => {
+                            const IconComponent = getIconComponent(item.categoryIcon);
+                            return (
                               <Link
-                                key={item}
-                                href={`/ads?category=${category.slug}&sub=${item.toLowerCase().replace(/ /g, '-')}`}
-                                onClick={() => setShowMegaMenu(false)}
-                                className="block py-1 text-sm text-slate-600 hover:text-primary-600 transition-colors"
+                                key={`${item.type}-${item.slug}`}
+                                href={item.type === 'category' 
+                                  ? `/ads?category=${item.slug}` 
+                                  : `/ads?category=${item.categorySlug}&sub=${item.slug}`
+                                }
+                                onClick={() => { setShowMegaMenu(false); setMegaMenuSearch(''); }}
+                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors group"
                               >
-                                {item}
+                                <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition-colors">
+                                  <IconComponent className="w-5 h-5 text-primary-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-semibold text-slate-900 block truncate">{item.name}</span>
+                                  <span className="text-xs text-slate-500">
+                                    {item.type === 'category' ? 'Category' : `in ${item.categoryName}`}
+                                  </span>
+                                </div>
                               </Link>
-                            ))}
-                          </div>
+                            );
+                          })}
+                        </>
+                      ) : (
+                        <div className="col-span-4 text-center py-8 text-slate-500">
+                          No results found for "{megaMenuSearch}"
                         </div>
-                      );
-                    })}
+                      )
+                    ) : (
+                      apiCategories.map((category) => {
+                        const IconComponent = getIconComponent(category.icon);
+                        return (
+                          <div key={category.slug} className="space-y-2">
+                            <Link
+                              href={`/ads?category=${category.slug}`}
+                              onClick={() => setShowMegaMenu(false)}
+                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors group"
+                            >
+                              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition-colors">
+                                <IconComponent className="w-5 h-5 text-primary-600" />
+                              </div>
+                              <span className="font-semibold text-slate-900">{category.name}</span>
+                            </Link>
+                            <div className="pl-12 space-y-1">
+                              {category.children?.slice(0, 4).map((item) => (
+                                <Link
+                                  key={item.slug}
+                                  href={`/ads?category=${category.slug}&sub=${item.slug}`}
+                                  onClick={() => setShowMegaMenu(false)}
+                                  className="block py-1 text-sm text-slate-600 hover:text-primary-600 transition-colors"
+                                >
+                                  {item.name}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                   <div className="px-4 py-3 bg-slate-50 rounded-b-2xl border-t border-slate-100">
                     <div className="flex items-center gap-2">
@@ -1337,8 +1441,8 @@ export default function Header() {
 
             {/* Category Pills */}
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1">
-              {CATEGORIES.map((category) => {
-                const IconComponent = category.icon;
+              {apiCategories.map((category) => {
+                const IconComponent = getIconComponent(category.icon);
                 return (
                   <Link
                     key={category.slug}
@@ -1425,8 +1529,8 @@ export default function Header() {
           <div className="p-4 border-b border-slate-200">
             <p className="text-xs font-semibold text-slate-400 uppercase mb-3">Categories</p>
             <div className="grid grid-cols-3 gap-2">
-              {CATEGORIES.slice(0, 9).map((category) => {
-                const IconComponent = category.icon;
+              {apiCategories.slice(0, 9).map((category) => {
+                const IconComponent = getIconComponent(category.icon);
                 return (
                   <Link
                     key={category.slug}
