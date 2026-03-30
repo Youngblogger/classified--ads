@@ -65,7 +65,7 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
     e.preventDefault();
     
     if (rating === 0) {
-      setError('Please select a rating (1-5 stars)');
+      setError('Please select a rating');
       return;
     }
 

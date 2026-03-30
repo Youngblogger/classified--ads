@@ -7,6 +7,8 @@ import { adsApi } from '@/lib/api';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { nigeriaLocations } from '@/lib/nigeriaLocations';
 import toast from 'react-hot-toast';
+import CategorySelector from '@/components/ui/CategorySelector';
+import LocationSelector from '@/components/ui/LocationSelector';
 
 interface ImageFile {
   id: string;
@@ -40,6 +42,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [price, setPrice] = useState('');
   const [negotiable, setNegotiable] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categoryBreadcrumb, setCategoryBreadcrumb] = useState<string>('');
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
+  const [showLocationSelector, setShowLocationSelector] = useState(false);
+  const [locationBreadcrumb, setLocationBreadcrumb] = useState<string>('');
   const [locationId, setLocationId] = useState<number | null>(null);
   const [lgaId, setLgaId] = useState<string>('');
   const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
@@ -412,6 +418,17 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
   const selectedCategory = categories.find(c => c.id === categoryId || c.children?.some((child: any) => child.id === categoryId));
 
+  const handleCategorySelect = (id: number, name: string, breadcrumb: string) => {
+    setCategoryId(id);
+    setCategoryBreadcrumb(breadcrumb);
+  };
+
+  const handleLocationSelect = (stateId: number, stateName: string, lga: string, fullLocation: string) => {
+    setLocationId(stateId);
+    setLgaId(lga);
+    setLocationBreadcrumb(fullLocation);
+  };
+
   const conditionLabels = {
     'new': 'Brand New',
     'like_new': 'Like New',
@@ -449,14 +466,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               Category <span className="text-red-500">*</span>
             </label>
             <button
-              onClick={() => {
-                const modal = document.getElementById('category-modal');
-                if (modal) modal.classList.remove('hidden');
-              }}
-              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors"
+              onClick={() => setShowCategorySelector(true)}
+              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors bg-white"
             >
-              <span className={selectedCategory ? 'text-gray-900' : 'text-gray-400'}>
-                {selectedCategory?.name || 'Select Category'}
+              <span className={categoryBreadcrumb ? 'text-gray-900' : 'text-gray-400'}>
+                {categoryBreadcrumb || 'Select Category'}
               </span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
@@ -468,17 +482,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               Location <span className="text-red-500">*</span>
             </label>
             <button
-              onClick={() => {
-                const modal = document.getElementById('location-modal');
-                if (modal) modal.classList.remove('hidden');
-              }}
-              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors"
+              onClick={() => setShowLocationSelector(true)}
+              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors bg-white"
             >
-              <span className={locationId ? 'text-gray-900' : 'text-gray-400'}>
-                {selectedState?.name || 'Select State'}
-                {lgaId && (
-                  <span className="text-gray-500">{' > '}{lgaId}</span>
-                )}
+              <span className={locationBreadcrumb ? 'text-gray-900' : 'text-gray-400'}>
+                {locationBreadcrumb || 'Select Location'}
               </span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
@@ -501,7 +509,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onClick={handleImageClick}
-              className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+              className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors bg-white ${
                 isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-500'
               }`}
             >
@@ -571,7 +579,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. iPhone 14 Pro Max 256GB"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors bg-white text-gray-900 placeholder-gray-400"
               maxLength={100}
             />
             <p className="text-xs text-gray-400 mt-1 text-right">{title.length}/100</p>
@@ -587,7 +595,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your item in detail..."
               rows={5}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors resize-none"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors resize-none bg-white text-gray-900 placeholder-gray-400"
               maxLength={2000}
             />
             <p className="text-xs text-gray-400 mt-1 text-right">{description.length}/2000</p>
@@ -603,10 +611,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 <button
                   key={cond}
                   onClick={() => setCondition(cond)}
-                  className={`p-3 rounded-xl border-2 text-center transition-all ${
+                  className={`p-3 rounded-xl border-2 text-center transition-all bg-white ${
                     condition === cond
                       ? 'border-primary-600 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 hover:border-gray-300'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-900'
                   }`}
                 >
                   <span className="font-medium text-sm">{conditionLabels[cond]}</span>
@@ -628,7 +636,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="08012345678"
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors bg-white text-gray-900 placeholder-gray-400"
                 />
               </div>
             </div>
@@ -643,7 +651,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="08012345678"
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors bg-white text-gray-900 placeholder-gray-400"
                 />
               </div>
             </div>
@@ -665,7 +673,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 value={formatPrice(price)}
                 onChange={handlePriceChange}
                 placeholder="0"
-                className="w-full pl-10 pr-4 py-4 text-2xl border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors font-bold"
+                className="w-full pl-10 pr-4 py-4 text-2xl border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors font-bold bg-white text-gray-900 placeholder-gray-400"
               />
             </div>
           </div>
@@ -685,44 +693,46 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {/* Step 4: Review */}
       {step === 4 && (
         <div className="space-y-6">
-          <div className="bg-gray-50 rounded-xl p-6 space-y-4">
-            <div className="flex items-start gap-4">
+          <div className="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start gap-4">
               {images[0] && (
-                <img src={images[0].preview} alt="" className="w-24 h-24 rounded-lg object-cover" />
+                <div className="w-full sm:w-24 h-48 sm:h-24 rounded-lg overflow-hidden flex-shrink-0">
+                  <img src={images[0].preview} alt="" className="w-full h-full object-cover" />
+                </div>
               )}
-              <div>
-                <h3 className="font-semibold text-gray-900">{title || 'No title'}</h3>
-                <p className="text-2xl font-bold text-primary-600 mt-1">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-gray-900 text-lg sm:text-base break-words">{title || 'No title'}</h3>
+                <p className="text-xl sm:text-2xl font-bold text-primary-600 mt-1">
                   ₦{formatPrice(price) || '0'}
                   {negotiable && <span className="text-sm font-normal text-gray-500 ml-2">Negotiable</span>}
                 </p>
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
+              <div className="flex flex-wrap gap-1">
                 <span className="text-gray-500">Category:</span>
-                <span className="ml-2 text-gray-900">{selectedCategory?.name}</span>
+                <span className="text-gray-900 font-medium">{selectedCategory?.name || 'N/A'}</span>
               </div>
-              <div>
+              <div className="flex flex-wrap gap-1">
                 <span className="text-gray-500">Location:</span>
-                <span className="ml-2 text-gray-900">
-                  {selectedState?.name}{lgaId ? ` > ${lgaId}` : ''}
+                <span className="text-gray-900 font-medium">
+                  {selectedState?.name || 'N/A'}{lgaId ? ` > ${lgaId}` : ''}
                 </span>
               </div>
-              <div>
+              <div className="flex flex-wrap gap-1">
                 <span className="text-gray-500">Condition:</span>
-                <span className="ml-2 text-gray-900">{condition && conditionLabels[condition as keyof typeof conditionLabels] || 'N/A'}</span>
+                <span className="text-gray-900 font-medium">{condition && conditionLabels[condition as keyof typeof conditionLabels] || 'N/A'}</span>
               </div>
-              <div>
+              <div className="flex flex-wrap gap-1">
                 <span className="text-gray-500">Photos:</span>
-                <span className="ml-2 text-gray-900">{images.length}</span>
+                <span className="text-gray-900 font-medium">{images.length}</span>
               </div>
             </div>
 
             <div>
               <span className="text-gray-500 text-sm">Description:</span>
-              <p className="text-gray-700 mt-1 text-sm line-clamp-3">{description}</p>
+              <p className="text-gray-700 mt-1 text-sm line-clamp-3">{description || 'No description'}</p>
             </div>
           </div>
         </div>
@@ -813,108 +823,24 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         </div>
       </div>
 
-      {/* Location Modal - State/LGA Dependent Dropdown */}
-      <div id="location-modal" className="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
-          <div className="p-4 border-b flex items-center justify-between">
-            <h3 className="font-semibold">
-              {!locationId ? 'Select State' : lgaId ? 'Confirm Location' : 'Select LGA'}
-            </h3>
-            <button onClick={() => {
-              document.getElementById('location-modal')?.classList.add('hidden');
-            }} className="p-1">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="p-4 overflow-y-auto max-h-[60vh]">
-            {!locationId ? (
-              // Step 1: Select State
-              <>
-                <p className="text-sm text-gray-500 mb-4">Select a state to see available LGAs</p>
-                {nigeriaLocations.map((state) => (
-                  <button
-                    key={state.slug}
-                    onClick={() => {
-                      setLocationId(stateSlugToId[state.slug]);
-                      setLgaId('');
-                    }}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg flex justify-between items-center"
-                  >
-                    <span>{state.name}</span>
-                    {state.lgas && state.lgas.length > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
-                  </button>
-                ))}
-              </>
-            ) : !lgaId ? (
-              // Step 2: Select LGA
-              <>
-                <button
-                  onClick={() => {
-                    setLocationId(null);
-                  }}
-                  className="w-full text-left px-4 py-2 mb-3 hover:bg-gray-50 rounded-lg text-sm text-gray-500 flex items-center gap-1"
-                >
-                  ← Change State
-                </button>
-                <p className="text-sm text-gray-600 mb-3">
-                  LGAs in <span className="font-semibold">{selectedState?.name}</span>
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {stateLgas.map((lgaName) => (
-                    <button
-                      key={lgaName}
-                      onClick={() => {
-                        setLgaId(lgaName);
-                        document.getElementById('location-modal')?.classList.add('hidden');
-                      }}
-                      className="text-left px-3 py-2 rounded-lg hover:bg-primary-50 text-sm"
-                    >
-                      {lgaName}
-                    </button>
-                  ))}
-                </div>
-                {/* Skip LGA option */}
-                <button
-                  onClick={() => {
-                    setLgaId('');
-                    document.getElementById('location-modal')?.classList.add('hidden');
-                  }}
-                  className="w-full text-center mt-4 px-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg text-sm"
-                >
-                  Skip LGA (State only)
-                </button>
-              </>
-            ) : (
-              // Step 3: Confirm
-              <>
-                <div className="text-center py-4">
-                  <p className="text-gray-500 text-sm">Selected Location</p>
-                  <p className="text-xl font-semibold">{selectedState?.name}</p>
-                  <p className="text-gray-600">{lgaId}</p>
-                </div>
-                <div className="space-y-3 mt-4">
-                  <button
-                    onClick={() => {
-                      setLgaId('');
-                    }}
-                    className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
-                  >
-                    Change LGA
-                  </button>
-                  <button
-                    onClick={() => {
-                      document.getElementById('location-modal')?.classList.add('hidden');
-                    }}
-                    className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium"
-                  >
-                    Confirm Location
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* Category Selector Modal */}
+      <CategorySelector
+        isOpen={showCategorySelector}
+        onClose={() => setShowCategorySelector(false)}
+        onSelect={handleCategorySelect}
+        selectedCategoryId={categoryId}
+        selectedBreadcrumb={categoryBreadcrumb}
+      />
+
+      {/* Location Selector Modal */}
+      <LocationSelector
+        isOpen={showLocationSelector}
+        onClose={() => setShowLocationSelector(false)}
+        onSelect={handleLocationSelect}
+        selectedStateId={locationId}
+        selectedLga={lgaId}
+        selectedFullLocation={locationBreadcrumb}
+      />
     </div>
   );
 }

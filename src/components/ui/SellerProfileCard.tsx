@@ -134,7 +134,7 @@ function SellerInitials({ name, size = 45 }: { name: string; size?: number }) {
   
   return (
     <div
-      className="bg-primary-500 text-white font-bold flex items-center justify-center"
+      className="bg-primary-500 text-white font-bold flex items-center justify-center rounded-full"
       style={{ width: size, height: size, fontSize }}
     >
       {initials}

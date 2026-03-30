@@ -203,10 +203,9 @@ export default function HomePage() {
     fetchAds(1, true);
     
     const timeout = setTimeout(() => {
-      if (loading) {
+      if (loading && recentAds.length === 0) {
         console.log('Loading timeout - forcing loading to false');
         setLoading(false);
-        setAdsError(true);
       }
     }, 15000);
     
@@ -379,7 +378,7 @@ export default function HomePage() {
               </Link>
             </div>
             
-            {loading || adsError === null ? (
+            {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse shadow-sm">

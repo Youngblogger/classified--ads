@@ -83,17 +83,15 @@ export default function LatestReviews({ adId, adSlug, refreshKey = 0 }: LatestRe
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-24 bg-gray-200 rounded-xl"></div>
-          <div className="h-24 bg-gray-200 rounded-xl"></div>
-        </div>
+      <div className="animate-pulse space-y-4">
+        <div className="h-24 bg-gray-200 rounded-xl"></div>
+        <div className="h-24 bg-gray-200 rounded-xl"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6">
+    <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-dark">Latest Reviews</h3>
         <button

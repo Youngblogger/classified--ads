@@ -51,29 +51,29 @@ class ImageProcessingService
             $mediumPath = "{$basePath}/{$uuid}_medium.webp";
             $thumbnailPath = "{$basePath}/{$uuid}_thumb.webp";
 
-            $image->encode(new WebpEncoder(self::QUALITY));
-            Storage::disk('public')->put($originalPath, (string) $image);
+            $encodedImage = $image->encode(new WebpEncoder(self::QUALITY));
+            Storage::disk('public')->put($originalPath, $encodedImage->toString());
 
             $large = $this->imageManager->read($tempFile);
             if ($large->width() > self::LARGE_WIDTH || $large->height() > self::LARGE_HEIGHT) {
                 $large->scaleDown(self::LARGE_WIDTH, self::LARGE_HEIGHT);
             }
-            $large->encode(new WebpEncoder(self::QUALITY));
-            Storage::disk('public')->put($largePath, (string) $large);
+            $encodedLarge = $large->encode(new WebpEncoder(self::QUALITY));
+            Storage::disk('public')->put($largePath, $encodedLarge->toString());
 
             $medium = $this->imageManager->read($tempFile);
             if ($medium->width() > self::MEDIUM_WIDTH || $medium->height() > self::MEDIUM_HEIGHT) {
                 $medium->scaleDown(self::MEDIUM_WIDTH, self::MEDIUM_HEIGHT);
             }
-            $medium->encode(new WebpEncoder(self::QUALITY));
-            Storage::disk('public')->put($mediumPath, (string) $medium);
+            $encodedMedium = $medium->encode(new WebpEncoder(self::QUALITY));
+            Storage::disk('public')->put($mediumPath, $encodedMedium->toString());
 
             $thumbnail = $this->imageManager->read($tempFile);
             $thumbnail->cover(self::THUMBNAIL_WIDTH, self::THUMBNAIL_HEIGHT);
-            $thumbnail->encode(new WebpEncoder(self::THUMBNAIL_QUALITY));
-            Storage::disk('public')->put($thumbnailPath, (string) $thumbnail);
+            $encodedThumb = $thumbnail->encode(new WebpEncoder(self::THUMBNAIL_QUALITY));
+            Storage::disk('public')->put($thumbnailPath, $encodedThumb->toString());
 
-            $optimizedSize = strlen((string) $large);
+            $optimizedSize = strlen($encodedLarge->toString());
 
             Log::info("Image processed", [
                 'uuid' => $uuid,

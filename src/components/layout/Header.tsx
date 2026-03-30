@@ -148,10 +148,11 @@ export default function Header() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      if (notificationRef.current && !notificationRef.current.contains(target)) {
         setNotificationOpen(false);
       }
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+      if (profileRef.current && !profileRef.current.contains(target)) {
         setIsProfileDropdownOpen(false);
       }
     };

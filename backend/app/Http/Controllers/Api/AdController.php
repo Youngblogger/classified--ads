@@ -95,7 +95,7 @@ class AdController extends Controller
 
             // Explicitly add avatar fields to ensure they're in response
             if ($ad->user) {
-                $ad->user->makeVisible(['avatar', 'google_avatar', 'facebook_avatar']);
+                $ad->user->makeVisible(['avatar', 'google_avatar', 'facebook_avatar', 'verified']);
             }
 
             return response()->json(['data' => $ad]);

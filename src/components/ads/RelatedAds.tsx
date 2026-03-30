@@ -174,7 +174,7 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6">
+    <div className="bg-white rounded-2xl p-6 w-full">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-dark">Similar Ads</h3>
         <span className="text-sm text-gray-500">{ads.length} ads</span>
@@ -217,6 +217,8 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
                     src={getAdImageUrl(ad.images?.[0])}
                     alt={ad.title}
                     className="w-full h-full object-cover"
+                    style={{ imageRendering: 'auto' }}
+                    loading="eager"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/placeholder.jpg';
                     }}
