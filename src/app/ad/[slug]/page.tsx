@@ -76,6 +76,8 @@ export default function AdDetailPage() {
   const [showChat, setShowChat] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
+  const [showSharePopup, setShowSharePopup] = useState(false);
+  const [favoriteAnimating, setFavoriteAnimating] = useState(false);
   const { isAuthenticated } = useAuthStore();
   const { toggleLoginModal } = useUIStore();
 
@@ -160,6 +162,13 @@ export default function AdDetailPage() {
   const toggleFavorite = async () => {
     if (!isAuthenticated) { toggleLoginModal(); return; }
     if (favoriteLoading || !ad) return;
+    
+    // Trigger animation
+    if (!isFavorited) {
+      setFavoriteAnimating(true);
+      setTimeout(() => setFavoriteAnimating(false), 500);
+    }
+    
     setFavoriteLoading(true);
     setIsFavorited(!isFavorited);
     try {
@@ -327,86 +336,6 @@ export default function AdDetailPage() {
                 )}
               </div>
 
-              {/* Additional Info Card - Before Description */}
-              <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-sm border border-gray-200 p-5">
-                {/* Verified Badge */}
-                <div className="flex items-center gap-3 mb-4">
-                  {ad.is_verified && (
-                    <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                      <CheckCircle className="w-4 h-4" />Verified Seller
-                    </span>
-                  )}
-                </div>
-
-                {/* Location and Views */}
-                <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                      <MapPin className="w-4 h-4 text-primary-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Location</p>
-                      <p className="font-medium text-gray-900">{ad.location?.name || 'N/A'}{ad.lga && `, ${ad.lga}`}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                      <Eye className="w-4 h-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Views</p>
-                      <p className="font-medium text-gray-900">{ad.views || 0} views</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Posted</p>
-                      <p className="font-medium text-gray-900">{formatRelativeTime(ad.created_at)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Share Section */}
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-200 mt-4">
-                  <span className="text-sm font-medium text-gray-500">Share:</span>
-                  <a 
-                    href={`https://wa.me/?text=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors"
-                  >
-                    <WhatsAppIcon className="w-4 h-4" />
-                  </a>
-                  <a 
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors"
-                  >
-                    <FacebookIcon className="w-4 h-4" />
-                  </a>
-                  <a 
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this "${ad.title}"`)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors"
-                  >
-                    <XIcon className="w-4 h-4" />
-                  </a>
-                  <a 
-                    href={`mailto:?subject=${encodeURIComponent(`Check out this: ${ad.title}`)}&body=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 bg-gray-600 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors"
-                  >
-                    <EmailIcon className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-
               {/* Price, Title, Description - All in One Card */}
               <div className="bg-white rounded-2xl shadow-sm p-6 space-y-[2px]">
                 {/* Price */}
@@ -416,8 +345,35 @@ export default function AdDetailPage() {
                     <a href="/report-abuse" className="p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
                       <Flag className="w-5 h-5" />
                     </a>
-                    <button onClick={toggleFavorite} className={`p-3 rounded-full ${isFavorited ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'}`}>
-                      <Heart className={`w-6 h-6 ${isFavorited ? 'fill-current' : ''}`} />
+                    <button 
+                      onClick={toggleFavorite} 
+                      className={`relative p-3 rounded-full transition-all duration-300 ${
+                        isFavorited 
+                          ? 'bg-red-100 text-red-500' 
+                          : 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
+                      } ${favoriteAnimating ? 'scale-125' : 'scale-100'}`}
+                    >
+                      <Heart 
+                        className={`w-6 h-6 transition-all duration-300 ${
+                          isFavorited ? 'fill-current' : ''
+                        } ${favoriteAnimating ? 'animate-heartbeat' : ''}`} 
+                      />
+                      {/* Heart particles effect when favorited */}
+                      {favoriteAnimating && (
+                        <>
+                          <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75"></span>
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-bounce"></span>
+                          <span className="absolute -bottom-1 -left-1 w-2 h-2 bg-pink-400 rounded-full animate-bounce delay-75"></span>
+                        </>
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => setShowSharePopup(!showSharePopup)} 
+                      className="p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -444,6 +400,43 @@ export default function AdDetailPage() {
                   ) : (
                     <p>{ad.description || 'No description provided.'}</p>
                   )}
+                </div>
+
+                {/* Separator */}
+                <hr className="border-gray-200 my-4" />
+
+                {/* Additional Info Card */}
+                <div className="py-2">
+                  {/* Verified Badge */}
+                  <div className="flex items-center gap-3 mb-4">
+                    {ad.is_verified && (
+                      <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                        <CheckCircle className="w-4 h-4" />Verified Seller
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Location, Views, Posted */}
+                  <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                        <MapPin className="w-4 h-4 text-primary-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Location</p>
+                        <p className="font-medium text-gray-900">{ad.location?.name || 'N/A'}{ad.lga && `, ${ad.lga}`}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <Eye className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Views</p>
+                        <p className="font-medium text-gray-900">{ad.views || 0} views</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Dynamic Attributes / Specifications */}
@@ -549,6 +542,98 @@ export default function AdDetailPage() {
         sellerId={ad.user?.id || 0}
         sellerName={ad.user?.name || 'Seller'}
       />
+
+      {/* Share Popup - Centered Modal */}
+      {showSharePopup && (
+        <>
+          <div 
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" 
+            onClick={() => setShowSharePopup(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden pointer-events-auto animate-in zoom-in-95 duration-300">
+              {/* Header */}
+              <div className="px-6 pt-6 pb-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xl font-bold text-gray-900">Share this ad</h4>
+                  <button 
+                    onClick={() => setShowSharePopup(false)}
+                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                  >
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Social Buttons Grid */}
+              <div className="px-6 py-4 grid grid-cols-4 gap-4">
+                <a 
+                  href={`https://wa.me/?text=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-green-50 hover:bg-green-100 transition-all group"
+                >
+                  <div className="w-14 h-14 bg-green-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                    <WhatsAppIcon className="w-7 h-7" />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-700">WhatsApp</span>
+                </a>
+                <a 
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-blue-50 hover:bg-blue-100 transition-all group"
+                >
+                  <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                    <FacebookIcon className="w-7 h-7" />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-700">Facebook</span>
+                </a>
+                <a 
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this "${ad.title}"`)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-all group"
+                >
+                  <div className="w-14 h-14 bg-black text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                    <XIcon className="w-7 h-7" />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-700">X</span>
+                </a>
+                <a 
+                  href={`mailto:?subject=${encodeURIComponent(`Check out this: ${ad.title}`)}&body=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-red-50 hover:bg-red-100 transition-all group"
+                >
+                  <div className="w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                    <EmailIcon className="w-7 h-7" />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-700">Email</span>
+                </a>
+              </div>
+              
+              {/* Copy Link */}
+              <div className="px-6 pb-6">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(typeof window !== 'undefined' ? window.location.href : '');
+                    setShowSharePopup(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-2xl transition-all group shadow-lg"
+                >
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span className="text-sm font-bold text-white">Copy Link</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
