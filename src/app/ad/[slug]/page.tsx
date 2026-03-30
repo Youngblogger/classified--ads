@@ -8,6 +8,7 @@ import Footer from '@/components/layout/Footer';
 import SellerProfileCard from '@/components/ui/SellerProfileCard';
 import RelatedAds from '@/components/ads/RelatedAds';
 import LatestReviews from '@/components/reviews/LatestReviews';
+import AdAttributes from '@/components/ads/AdAttributes';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag } from 'lucide-react';
@@ -44,6 +45,12 @@ const InstagramIcon = ({ className }: { className?: string }) => (
 const LinkedInIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+  </svg>
+);
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
   </svg>
 );
 
@@ -277,10 +284,18 @@ export default function AdDetailPage() {
                     <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
                   )}
                   
-                  {/* Badges */}
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    {ad.condition === 'new' && <span className="bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full">New</span>}
-                    {ad.is_featured && <span className="bg-amber-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full">Featured</span>}
+                  {/* Badges - Single Combined Badge */}
+                  <div className="absolute top-4 left-4">
+                    <span className={`px-4 py-2 rounded-full text-sm font-bold text-white shadow-lg ${
+                      ad.condition === 'brand_new' ? 'bg-emerald-500' :
+                      ad.condition === 'like_new' ? 'bg-blue-500' :
+                      ad.condition === 'used' ? 'bg-orange-500' :
+                      'bg-purple-500'
+                    }`}>
+                      {ad.condition === 'brand_new' ? 'Brand New' : 
+                       ad.condition === 'like_new' ? 'Like New' : 
+                       ad.condition === 'used' ? 'Used' : 'Refurbished'}
+                    </span>
                   </div>
 
                   {/* Navigation Arrows */}
@@ -310,6 +325,86 @@ export default function AdDetailPage() {
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Additional Info Card - Before Description */}
+              <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                {/* Verified Badge */}
+                <div className="flex items-center gap-3 mb-4">
+                  {ad.is_verified && (
+                    <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                      <CheckCircle className="w-4 h-4" />Verified Seller
+                    </span>
+                  )}
+                </div>
+
+                {/* Location and Views */}
+                <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-primary-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Location</p>
+                      <p className="font-medium text-gray-900">{ad.location?.name || 'N/A'}{ad.lga && `, ${ad.lga}`}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Eye className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Views</p>
+                      <p className="font-medium text-gray-900">{ad.views || 0} views</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Posted</p>
+                      <p className="font-medium text-gray-900">{formatRelativeTime(ad.created_at)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Share Section */}
+                <div className="flex items-center gap-3 pt-4 border-t border-gray-200 mt-4">
+                  <span className="text-sm font-medium text-gray-500">Share:</span>
+                  <a 
+                    href={`https://wa.me/?text=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors"
+                  >
+                    <WhatsAppIcon className="w-4 h-4" />
+                  </a>
+                  <a 
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors"
+                  >
+                    <FacebookIcon className="w-4 h-4" />
+                  </a>
+                  <a 
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this "${ad.title}"`)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors"
+                  >
+                    <XIcon className="w-4 h-4" />
+                  </a>
+                  <a 
+                    href={`mailto:?subject=${encodeURIComponent(`Check out this: ${ad.title}`)}&body=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 bg-gray-600 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors"
+                  >
+                    <EmailIcon className="w-4 h-4" />
+                  </a>
+                </div>
               </div>
 
               {/* Price, Title, Description - All in One Card */}
@@ -351,73 +446,13 @@ export default function AdDetailPage() {
                   )}
                 </div>
 
-                {/* Location and Views at bottom */}
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 pt-2">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{ad.location?.name}</span>
-                    {ad.lga && <span>, {ad.lga}</span>}
+                {/* Dynamic Attributes / Specifications */}
+                {ad.attributes && (
+                  <div className="mt-4">
+                    <AdAttributes attributes={ad.attributes} />
                   </div>
-                  {ad.is_verified && <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-4 h-4" />Verified</span>}
-                  <div className="flex items-center gap-1"><Eye className="w-4 h-4" /><span>{ad.views || 0} views</span></div>
+                )}
                 </div>
-
-                {/* Share Section - Inline Social Icons */}
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-100 mt-4">
-                  <span className="text-sm text-gray-500">Share:</span>
-                  <a 
-                    href={`https://wa.me/?text=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors"
-                  >
-                    <WhatsAppIcon className="w-4 h-4" />
-                  </a>
-                  <a 
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors"
-                  >
-                    <FacebookIcon className="w-4 h-4" />
-                  </a>
-                  <a 
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}`)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors"
-                  >
-                    <TwitterIcon className="w-4 h-4" />
-                  </a>
-                  <a 
-                    href={`mailto:?subject=${encodeURIComponent(ad.title)}&body=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 bg-gray-600 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors"
-                  >
-                    <EmailIcon className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-
-              {/* Details */}
-              <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
-                <h2 className="font-semibold text-gray-900 mb-4">Details</h2>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-4 bg-gray-100 rounded-lg text-center">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Category</p>
-                    <p className="font-bold text-gray-900">{ad.category?.name || 'N/A'}</p>
-                  </div>
-                  <div className="p-4 bg-gray-100 rounded-lg text-center">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Condition</p>
-                    <p className="font-bold text-gray-900 capitalize">{ad.condition || 'N/A'}</p>
-                  </div>
-                  <div className="p-4 bg-gray-100 rounded-lg text-center">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Ad ID</p>
-                    <p className="font-bold text-gray-900">#{ad.id}</p>
-                  </div>
-                </div>
-              </div>
 
               {/* Related Ads - Full Width */}
               <div className="w-full">

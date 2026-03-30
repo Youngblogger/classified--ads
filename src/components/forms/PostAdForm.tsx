@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, GripVertical, Loader2, Phone, MessageCircle, MapPinned } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, ChevronLeft, GripVertical, Loader2, Phone, MessageCircle, MapPinned, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { adsApi } from '@/lib/api';
 import { useAuthStore, useUIStore } from '@/lib/store';
@@ -9,6 +9,7 @@ import { nigeriaLocations } from '@/lib/nigeriaLocations';
 import toast from 'react-hot-toast';
 import CategorySelector from '@/components/ui/CategorySelector';
 import LocationSelector from '@/components/ui/LocationSelector';
+import DynamicField, { CategoryField } from './DynamicField';
 
 interface ImageFile {
   id: string;
@@ -48,56 +49,59 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [locationBreadcrumb, setLocationBreadcrumb] = useState<string>('');
   const [locationId, setLocationId] = useState<number | null>(null);
   const [lgaId, setLgaId] = useState<string>('');
-  const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
+  const [condition, setCondition] = useState<'brand_new' | 'like_new' | 'used' | 'refurbished' | ''>('');
   const [images, setImages] = useState<ImageFile[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   
+  // Dynamic fields state
+  const [categoryFields, setCategoryFields] = useState<CategoryField[]>([]);
+  const [attributes, setAttributes] = useState<Record<string, any>>({});
+  const [fieldsLoading, setFieldsLoading] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
-  const PENDING_AD_KEY = 'pendingAd';
-  const DRAFT_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
+  // Fetch category fields when category is selected
   useEffect(() => {
-    const savedDraft = localStorage.getItem(PENDING_AD_KEY);
-    if (savedDraft) {
+    const fetchCategoryFields = async () => {
+      if (!categoryId) {
+        setCategoryFields([]);
+        setAttributes({});
+        return;
+      }
+
+      setFieldsLoading(true);
       try {
-        const draft = JSON.parse(savedDraft);
-        if (draft.timestamp && Date.now() - draft.timestamp < DRAFT_EXPIRY_MS) {
-          setTitle(draft.title || '');
-          setDescription(draft.description || '');
-          setPrice(draft.price || '');
-          setNegotiable(draft.negotiable || false);
-          setCategoryId(draft.categoryId || null);
-          setCategoryBreadcrumb(draft.categoryBreadcrumb || '');
-          setLocationId(draft.locationId || null);
-          setLgaId(draft.lgaId || '');
-          setLocationBreadcrumb(draft.locationBreadcrumb || '');
-          setCondition(draft.condition || '');
-          setPhone(draft.phone || '');
-          setWhatsapp(draft.whatsapp || '');
-          if (draft.step) setStep(Math.min(draft.step, 4));
-          if (draft.imagePreviews?.length > 0) {
-            const restoredImages: ImageFile[] = draft.imagePreviews.map((preview: string, idx: number) => ({
-              id: `restored-${Date.now()}-${idx}`,
-              file: null as any,
-              preview,
-              uploading: false,
-            }));
-            setImages(restoredImages);
-            toast.success('Your previous draft has been restored!');
-          }
-        } else {
-          localStorage.removeItem(PENDING_AD_KEY);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/categories/${categoryId}/fields`);
+        const data = await response.json();
+        if (data.flat && Array.isArray(data.flat)) {
+          setCategoryFields(data.flat);
+        } else if (data.fields) {
+          // Handle grouped format
+          const flatFields = Object.values(data.fields as Record<string, CategoryField[]>).flat();
+          setCategoryFields(flatFields);
         }
       } catch (err) {
-        console.error('Failed to parse saved draft:', err);
-        localStorage.removeItem(PENDING_AD_KEY);
+        console.error('Failed to fetch category fields:', err);
+        setCategoryFields([]);
+      } finally {
+        setFieldsLoading(false);
       }
-    }
-  }, []);
+    };
+
+    fetchCategoryFields();
+  }, [categoryId]);
+
+  // Handle attribute change
+  const handleAttributeChange = (name: string, value: any) => {
+    setAttributes(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   // Local fallback categories (same as homepage)
   const localCategories = [
@@ -359,30 +363,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     if (!canSubmit || isLoading) return;
 
     if (!isAuthenticated) {
-      const imagePreviews = images.map(img => img.preview);
-      const pendingAd = {
-        title,
-        description,
-        price,
-        negotiable,
-        categoryId,
-        categoryBreadcrumb,
-        locationId,
-        lgaId,
-        locationBreadcrumb,
-        condition,
-        phone,
-        whatsapp,
-        step,
-        imagePreviews,
-        timestamp: Date.now(),
-      };
-      try {
-        localStorage.setItem(PENDING_AD_KEY, JSON.stringify(pendingAd));
-      } catch (err) {
-        console.error('Failed to save draft:', err);
-      }
-      toast.error('Please login to post an ad. Your data has been saved.');
+      toast.error('Please login to post an ad.');
       router.push('/login?redirect=/post-ad');
       return;
     }
@@ -396,11 +377,17 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       formData.append('price', price);
       formData.append('negotiable', negotiable ? '1' : '0');
       formData.append('category_id', String(categoryId));
+      // locationId can be either a numeric ID or a slug
       formData.append('location_id', String(locationId));
       if (lgaId) formData.append('lga', lgaId);
       formData.append('condition', condition);
       if (phone) formData.append('phone', phone);
       if (whatsapp) formData.append('whatsapp', whatsapp);
+      
+      // Add dynamic attributes
+      if (Object.keys(attributes).length > 0) {
+        formData.append('attributes', JSON.stringify(attributes));
+      }
       
       images.forEach((img, index) => {
         formData.append('images[]', img.file);
@@ -423,8 +410,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       setLgaId('');
       setCondition('');
       setImages([]);
-      
-      localStorage.removeItem(PENDING_AD_KEY);
+      setAttributes({});
+      setCategoryFields([]);
       
       // Show success message
       toast.success(
@@ -496,14 +483,31 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   };
 
   const conditionLabels = {
-    'new': 'Brand New',
+    'brand_new': 'Brand New',
     'like_new': 'Like New',
-    'good': 'Good',
-    'fair': 'Fair'
+    'used': 'Used',
+    'refurbished': 'Refurbished'
+  };
+
+  const goBack = () => {
+    if (step > 1) {
+      prevStep();
+    } else {
+      router.back();
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      <button
+        onClick={goBack}
+        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span className="text-sm font-medium">Back</span>
+      </button>
+
       {/* Progress Steps */}
       <div className="flex items-center justify-center gap-2 mb-8">
         {['Category', 'Details', 'Price', 'Review'].map((s, i) => (
@@ -673,7 +677,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               Condition <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {(['new', 'like_new', 'good', 'fair'] as const).map((cond) => (
+              {(['brand_new', 'like_new', 'used', 'refurbished'] as const).map((cond) => (
                 <button
                   key={cond}
                   onClick={() => setCondition(cond)}
@@ -688,6 +692,56 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               ))}
             </div>
           </div>
+
+          {/* Dynamic Fields */}
+          {categoryFields.length > 0 && (
+            <div className="space-y-4">
+              {fieldsLoading ? (
+                <div className="flex items-center gap-2 text-gray-500 py-4">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Loading category fields...</span>
+                </div>
+              ) : (
+                <>
+                  {categoryFields.filter(f => !f.group_name).map((field) => (
+                    <DynamicField
+                      key={field.name}
+                      field={field}
+                      value={attributes}
+                      onChange={handleAttributeChange}
+                    />
+                  ))}
+                  
+                  {/* Grouped fields */}
+                  {(() => {
+                    const grouped = categoryFields.reduce((acc, field) => {
+                      const group = field.group_name || 'Other';
+                      if (!acc[group]) acc[group] = [];
+                      acc[group].push(field);
+                      return acc;
+                    }, {} as Record<string, CategoryField[]>);
+
+                    return Object.entries(grouped).map(([groupName, fields]) => (
+                      <div key={groupName} className="bg-gray-50 rounded-xl p-4">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">{groupName}</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {fields.map((field) => (
+                            <div key={field.name} className={field.type === 'multi_select' ? 'md:col-span-2' : ''}>
+                              <DynamicField
+                                field={field}
+                                value={attributes}
+                                onChange={handleAttributeChange}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </>
+              )}
+            </div>
+          )}
 
           {/* Contact Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">

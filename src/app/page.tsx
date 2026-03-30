@@ -9,7 +9,7 @@ import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
 const BACKEND_URL = API_URL.replace('/api', '');
 
@@ -46,62 +46,40 @@ function AdCardWithImage({ ad }: { ad: any }) {
   const imageCount = imagesArray.length;
   
   return (
-    <Link href={`/ad/${ad.slug}`} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-      <div className="relative aspect-square overflow-hidden">
+    <Link href={`/ad/${ad.slug}`} className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
+      <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
           <img
             src={imageUrl}
             alt={ad.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-            <ImageIcon className="w-16 h-16 text-slate-300" />
+          <div className="w-full h-full flex items-center justify-center bg-gray-100">
+            <ImageIcon className="w-20 h-20 text-gray-300" />
           </div>
-        )}
-        
-        {ad.condition === 'new' && (
-          <span className="absolute top-3 left-3 bg-emerald-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
-            New
-          </span>
-        )}
-        
-        {ad.is_featured && (
-          <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
-            Featured
-          </span>
         )}
         
         {imageCount > 1 && (
-          <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
-            <ImageIcon className="w-3 h-3" />
+          <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-medium px-2.5 py-1 rounded flex items-center gap-1">
+            <ImageIcon className="w-3.5 h-3.5" />
             {imageCount}
           </div>
         )}
-        
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-slate-900 line-clamp-2 group-hover:text-primary-600 transition-colors text-base">
-            {ad.title}
-          </h3>
-        </div>
+      <div className="p-5">
+        <h3 className="font-semibold text-gray-800 line-clamp-2 group-hover:text-primary-600 transition-colors text-lg leading-snug">
+          {ad.title}
+        </h3>
         
-        {ad.description && (
-          <p className="text-sm text-slate-500 mt-2 line-clamp-2">
-            {ad.description}
-          </p>
-        )}
-        
-        <p className="text-xl font-bold text-primary-600 mt-2">
+        <p className="text-2xl font-bold text-gray-900 mt-3">
           {formatPrice(ad.price, ad.currency)}
         </p>
         
-        <div className="flex items-center gap-1.5 mt-3 text-slate-500 text-sm">
-          <MapPin className="w-4 h-4 flex-shrink-0 text-slate-400" />
+        <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
+          <MapPin className="w-4 h-4 flex-shrink-0" />
           <span className="truncate">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</span>
         </div>
       </div>
@@ -116,13 +94,6 @@ const FEATURED_CATEGORIES = [
   { name: 'Electronics', icon: '💻', count: '1.8k' },
   { name: 'Fashion', icon: '👗', count: '1.4k' },
   { name: 'Jobs', icon: '💼', count: '760' },
-];
-
-const TRUST_FEATURES = [
-  { icon: Shield, title: 'Verified Sellers', description: 'All sellers are verified for your safety' },
-  { icon: Zap, title: 'Fast & Easy', description: 'Post your ad in under 5 minutes' },
-  { icon: Users, title: 'Trusted by Millions', description: "Nigeria's most loved marketplace" },
-  { icon: Star, title: '5-Star Support', description: "We're here to help 24/7" },
 ];
 
 export default function HomePage() {
@@ -154,7 +125,6 @@ export default function HomePage() {
       
       const res = await fetch(`${API_URL}/ads?limit=${ITEMS_PER_PAGE}&page=${pageNum}&_t=${Date.now()}`, {
         cache: 'no-store',
-        credentials: 'include',
         signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -221,7 +191,7 @@ export default function HomePage() {
   }, [loadingMore, hasMore, page]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f5f6f7' }}>
       <Header />
       
       <main className="flex-1">
@@ -335,72 +305,50 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Trust Section */}
-        <section className="py-12 bg-slate-50">
+        {/* Latest Ads - jiji.ng style */}
+        <section className="py-4 bg-white">
           <div className="container-app">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-              {TRUST_FEATURES.map((feature, index) => {
-                const IconComponent = feature.icon;
-                return (
-                  <div key={index} className="flex flex-col items-center text-center p-6 bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                    <div className="w-14 h-14 bg-primary-100 rounded-2xl flex items-center justify-center mb-4">
-                      <IconComponent className="w-7 h-7 text-primary-600" />
-                    </div>
-                    <h3 className="font-semibold text-slate-900 mb-1">{feature.title}</h3>
-                    <p className="text-sm text-slate-500">{feature.description}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Latest Ads */}
-        <section className="py-16 bg-gradient-to-br from-slate-50 via-white to-slate-100">
-          <div className="container-app">
-            <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-3xl font-bold text-slate-900">
-                  <span className="bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">Latest</span> Ads
+                <h2 className="text-xl font-bold text-gray-900">
+                  Latest Ads
                 </h2>
-                <p className="text-slate-500 mt-1">Fresh listings from sellers near you</p>
               </div>
-              <Link href="/ads" className="group flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-slate-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all shadow-sm">
-                <span className="font-medium text-slate-700 group-hover:text-primary-600">View All</span>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-600 group-hover:translate-x-1 transition-all" />
+              <Link href="/ads" className="text-sm text-primary-600 hover:underline font-medium">
+                View All
               </Link>
             </div>
             
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse shadow-sm">
-                    <div className="aspect-square bg-gradient-to-br from-slate-200 to-slate-300" />
-                    <div className="p-4 space-y-3">
-                      <div className="h-4 bg-slate-200 rounded w-3/4" />
-                      <div className="h-5 bg-slate-200 rounded w-1/2" />
-                      <div className="h-4 bg-slate-200 rounded w-2/3" />
+                  <div key={i} className="bg-white rounded-lg overflow-hidden animate-pulse shadow-md border border-gray-200">
+                    <div className="aspect-[3/2] bg-gray-200" />
+                    <div className="p-5 space-y-3">
+                      <div className="h-5 bg-gray-200 rounded w-full" />
+                      <div className="h-5 bg-gray-200 rounded w-3/4" />
+                      <div className="h-6 bg-gray-200 rounded w-1/2" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : adsError ? (
-              <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-slate-100">
-                <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-5">
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-5">
                   <span className="text-4xl">⚠️</span>
                 </div>
-                <h3 className="text-xl font-semibold text-slate-700 mb-2">Unable to load ads</h3>
-                <p className="text-slate-500 mb-5">The server might be temporarily unavailable.</p>
+                <h3 className="text-xl font-semibold text-dark mb-2">Unable to load ads</h3>
+                <p className="text-gray-500 mb-5">The server might be temporarily unavailable.</p>
                 <button 
                   onClick={() => fetchAds(1, true)} 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-primary-500/30"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors"
                 >
                   <span>Try Again</span>
                 </button>
               </div>
             ) : recentAds.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
                   {recentAds.map((ad: any) => (
                     <AdCardWithImage key={ad.id} ad={ad} />
                   ))}
@@ -412,13 +360,13 @@ export default function HomePage() {
                 />
               </>
             ) : (
-              <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-slate-100">
-                <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <ImageIcon className="w-10 h-10 text-slate-400" />
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <ImageIcon className="w-10 h-10 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-700 mb-2">No ads yet</h3>
-                <p className="text-slate-500 mb-5">Be the first to post an ad in your area!</p>
-                <Link href="/post-ad" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-primary-500/30">
+                <h3 className="text-xl font-semibold text-dark mb-2">No ads yet</h3>
+                <p className="text-gray-500 mb-5">Be the first to post an ad in your area!</p>
+                <Link href="/post-ad" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors">
                   <Plus className="w-5 h-5" />
                   <span>Post Your First Ad</span>
                 </Link>
@@ -427,42 +375,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-16 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 relative overflow-hidden">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }} />
-          </div>
-          
-          <div className="container-app relative text-center">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4">
-              Ready to Start Selling?
-            </h2>
-            <p className="text-lg text-primary-100 mb-8 max-w-xl mx-auto">
-              Join thousands of sellers already growing their business on iList. It&apos;s free, fast, and easy!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/post-ad"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-primary-600 rounded-full font-semibold hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-              >
-                <Plus className="w-5 h-5" />
-                <span>Post Your Ad Free</span>
-              </Link>
-              {!isAuthenticated && (
-                <Link
-                  href="/register"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary-500 text-white rounded-full font-semibold hover:bg-primary-400 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                >
-                  <Users className="w-5 h-5" />
-                  <span>Create Account</span>
-                </Link>
-              )}
-            </div>
-          </div>
-        </section>
       </main>
 
       <Footer />

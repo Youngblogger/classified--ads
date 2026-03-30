@@ -51,6 +51,7 @@ const navigation: NavItem[] = [
   { name: 'Ad Approval Settings', href: '/admin/ads/approval', icon: CheckCircle },
   { name: 'Categories', href: '/admin/categories', icon: FolderTree },
   { name: 'Subcategories', href: '/admin/subcategories', icon: FolderTree },
+  { name: 'Category Fields', href: '/admin/category-fields', icon: FolderTree },
   { name: 'Reviews Management', href: '/admin/reviews', icon: Star },
   { name: 'Reports & Abuse', href: '/admin/reports', icon: Flag },
   { name: 'Messages', href: '/admin/messages', icon: MessageSquare },

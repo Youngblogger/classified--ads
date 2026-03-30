@@ -16,6 +16,44 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-semibold text-slate-900;
   }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="number"],
+  textarea,
+  select {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    background-color: #ffffff !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+  }
+
+  ::placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+  }
+
+  ::-webkit-input-placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+  }
+
+  ::-moz-placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+  }
+
+  :-ms-input-placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+  }
 }
 
 @layer components {
@@ -221,8 +259,8 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 248, 250, 252;
-  --background-end-rgb: 248, 250, 252;
+  --background-start-rgb: 245, 246, 247;
+  --background-end-rgb: 245, 246, 247;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -235,12 +273,8 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background-color: #f5f6f7;
+  min-height: 100vh;
 }
 
 @layer utilities {

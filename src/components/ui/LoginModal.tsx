@@ -7,6 +7,12 @@ import { X, Mail, Lock, Eye, EyeOff, Phone, Send, CheckCircle, Loader2 } from 'l
 import { useUIStore, useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
+const isValidPhone = (phone: string): boolean => {
+  if (!phone) return false;
+  const length = phone.replace(/\s/g, '').length;
+  return length >= 11 && length <= 14;
+};
+
 export default function LoginModal() {
   const router = useRouter();
   const { isLoginModalOpen, toggleLoginModal, toggleRegisterModal, closeAllModals } = useUIStore();
@@ -39,10 +45,21 @@ export default function LoginModal() {
   
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [usedEmails, setUsedEmails] = useState<string[]>([]);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [savedPasswords, setSavedPasswords] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const saved = localStorage.getItem('used-emails');
-    if (saved) setUsedEmails(JSON.parse(saved));
+    const savedEmails = localStorage.getItem('used-emails');
+    if (savedEmails) setUsedEmails(JSON.parse(savedEmails));
+    
+    const savedPasswordsData = localStorage.getItem('saved-passwords');
+    if (savedPasswordsData) setSavedPasswords(JSON.parse(savedPasswordsData));
+    
+    const savedRememberEmail = localStorage.getItem('remember-email');
+    if (savedRememberEmail) {
+      setEmail(savedRememberEmail);
+      setRememberMe(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -53,8 +70,8 @@ export default function LoginModal() {
   }, [countdown]);
 
   const handleSendOtp = async () => {
-    if (!phone) {
-      setError('Please enter your phone number');
+    if (!isValidPhone(phone)) {
+      setError('Please enter a valid Nigerian phone number');
       return;
     }
 
@@ -79,7 +96,7 @@ export default function LoginModal() {
       }
 
       setOtpSent(true);
-      setCountdown(60);
+      setCountdown(30);
       setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
       
     } catch (err: unknown) {
@@ -289,6 +306,13 @@ export default function LoginModal() {
           usedEmails.push(email);
           localStorage.setItem('used-emails', JSON.stringify(usedEmails.slice(-5)));
         }
+        
+        if (rememberMe) {
+          localStorage.setItem('remember-email', email);
+          const savedPasswords = JSON.parse(localStorage.getItem('saved-passwords') || '{}');
+          savedPasswords[email] = password;
+          localStorage.setItem('saved-passwords', JSON.stringify(savedPasswords));
+        }
       }
       toast.success(`Welcome back, ${userName}!`);
       closeAllModals();
@@ -326,6 +350,7 @@ export default function LoginModal() {
     setError('');
     setOtpSent(false);
     setOtp(['', '', '', '']);
+    setPhone('');
   };
 
   const handleGoogleLogin = async () => {
@@ -468,16 +493,15 @@ export default function LoginModal() {
             {loginMethod === 'email' && (
               <form onSubmit={handleEmailLogin} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
-                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                      className="w-full pl-11 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-base font-medium text-gray-900 placeholder-gray-400 bg-white"
                       required
                       list="email-suggestions"
                     />
@@ -487,19 +511,37 @@ export default function LoginModal() {
                       ))}
                     </datalist>
                   </div>
+                  {usedEmails.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {usedEmails.slice(-3).map((e: string) => (
+                        <button
+                          key={e}
+                          type="button"
+                          onClick={() => {
+                            setEmail(e);
+                            if (savedPasswords[e]) {
+                              setPassword(savedPasswords[e]);
+                            }
+                          }}
+                          className="text-xs px-2.5 py-1 bg-gray-100 hover:bg-primary-50 text-gray-700 hover:text-primary-600 rounded-full transition-colors border border-gray-200 hover:border-primary-300"
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
-                      className="w-full pl-10 pr-12 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
-                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                      className="w-full pl-11 pr-12 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-base font-medium text-gray-900 placeholder-gray-400 bg-white"
                       required
                     />
                     <button
@@ -513,8 +555,13 @@ export default function LoginModal() {
                 </div>
 
                 <div className="flex justify-between items-center text-sm">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="w-4 h-4 text-primary-600 rounded border-gray-300" />
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500 cursor-pointer" 
+                    />
                     <span className="text-gray-600">Remember me</span>
                   </label>
                   <Link href="/forgot-password" className="text-primary-600 hover:text-primary-700 font-medium">
@@ -550,19 +597,21 @@ export default function LoginModal() {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Enter your phone number"
+                      placeholder="Enter phone number"
                       disabled={otpSent}
-                      className="w-full pl-12 pr-4 py-4 text-base border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:bg-gray-100"
-                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                      className="w-full pl-12 pr-4 py-4 text-xl font-bold border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:bg-gray-100 text-gray-900 placeholder-gray-400 bg-white"
                     />
                   </div>
+                  {!isValidPhone(phone) && phone.length > 0 && (
+                    <p className="text-xs text-red-500 mt-1">Phone number must be 11-14 digits</p>
+                  )}
                 </div>
 
                 {!otpSent ? (
                   <button
                     type="button"
                     onClick={handleSendOtp}
-                    disabled={otpLoading || !phone}
+                    disabled={otpLoading || !isValidPhone(phone)}
                     className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {otpLoading ? (
@@ -651,7 +700,7 @@ export default function LoginModal() {
                     type="button"
                     onClick={handleGoogleLogin}
                     disabled={googleLoading}
-                    className="flex items-center justify-center gap-3 py-3 px-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium text-gray-700"
+                    className="flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 transition-all disabled:opacity-50 text-base font-medium text-gray-800 shadow-sm"
                   >
                     <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -664,7 +713,7 @@ export default function LoginModal() {
                   <button 
                     onClick={handleFacebookLogin}
                     disabled={googleLoading}
-                    className="flex items-center justify-center gap-3 py-3 px-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium text-gray-700"
+                    className="flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 transition-all disabled:opacity-50 text-base font-medium text-gray-800 shadow-sm"
                   >
                     <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0">
                       <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>

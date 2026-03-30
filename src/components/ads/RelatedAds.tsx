@@ -145,12 +145,27 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
   }, [hasMore, loadingMore, loading, page, fetchAds]);
 
   const getConditionBadge = (condition: string) => {
-    const isNew = condition === 'new';
+    const isNew = condition === 'brand_new';
+    const isLikeNew = condition === 'like_new';
+    const isRefurbished = condition === 'refurbished';
+    
+    let badgeClass = 'bg-orange-100 text-orange-700';
+    let label = 'Used';
+    
+    if (isNew) {
+      badgeClass = 'bg-green-100 text-green-700';
+      label = 'Brand New';
+    } else if (isLikeNew) {
+      badgeClass = 'bg-blue-100 text-blue-700';
+      label = 'Like New';
+    } else if (isRefurbished) {
+      badgeClass = 'bg-purple-100 text-purple-700';
+      label = 'Refurbished';
+    }
+    
     return (
-      <span className={`absolute top-2 left-2 px-2 py-1 text-xs font-medium rounded-md ${
-        isNew ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-      }`}>
-        {isNew ? 'New' : 'Used'}
+      <span className={`absolute top-2 left-2 px-2 py-1 text-xs font-medium rounded-md ${badgeClass}`}>
+        {label}
       </span>
     );
   };

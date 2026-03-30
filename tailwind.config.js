@@ -9,17 +9,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        bg: '#f5f6f7',
         primary: {
-          50: '#EFF6FF',
-          100: '#DBEAFE',
-          200: '#BFDBFE',
-          300: '#93C5FD',
-          400: '#60A5FA',
-          500: '#3B82F6',
-          600: '#2563EB',
-          700: '#1D4ED8',
-          800: '#1E40AF',
-          900: '#1E3A8A',
+          50: '#e6f7ff',
+          100: '#b3e0ff',
+          200: '#80c9ff',
+          300: '#4db3ff',
+          400: '#1a9cff',
+          500: '#0085ff',
+          600: '#0066cc',
+          700: '#004d99',
+          800: '#003366',
+          900: '#001a33',
         },
         secondary: {
           50: '#faf5ff',
@@ -69,10 +70,10 @@ module.exports = {
         display: ['Poppins', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        'card': '0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.03)',
-        'card-hover': '0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04)',
-        'dropdown': '0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04)',
-        'header': '0 4px 6px -1px rgba(15, 23, 42, 0.1)',
+        'card': '0 1px 3px rgba(0, 0, 0, 0.08)',
+        'card-hover': '0 4px 12px rgba(0, 0, 0, 0.12)',
+        'dropdown': '0 4px 16px rgba(0, 0, 0, 0.1)',
+        'header': '0 2px 4px rgba(0, 0, 0, 0.05)',
       },
       borderRadius: {
         'xl': '0.75rem',

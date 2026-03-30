@@ -447,6 +447,12 @@ export const adminApi = {
     return api.upload('/admin/watermark/logo', formData);
   },
 
+  // Category Fields
+  getCategoryFields: (params?: Record<string, any>) => api.get('/category-fields', { params }),
+  createCategoryField: (categoryId: number, data: any) => api.post('/category-fields', { ...data, category_id: categoryId }),
+  updateCategoryField: (id: number, data: any) => api.put(`/category-fields/${id}`, data),
+  deleteCategoryField: (id: number) => api.delete(`/category-fields/${id}`),
+
   // Fonts
   getFonts: () => api.get('/admin/fonts'),
   uploadFont: (file: File, name: string) => {

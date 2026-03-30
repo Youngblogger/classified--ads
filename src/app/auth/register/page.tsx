@@ -461,7 +461,7 @@ export default function RegisterPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="text"
                       value={formData.name}
@@ -469,8 +469,8 @@ export default function RegisterPage() {
                         setFormData({ ...formData, name: e.target.value });
                         if (formErrors.name) setFormErrors({ ...formErrors, name: undefined });
                       }}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                        formErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                      className={`w-full pl-11 pr-4 py-3.5 border-2 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base font-medium text-gray-900 placeholder-gray-400 ${
+                        formErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
                       }`}
                       placeholder="John Doe"
                       required
@@ -487,7 +487,7 @@ export default function RegisterPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="email"
                       value={formData.email}
@@ -495,8 +495,8 @@ export default function RegisterPage() {
                         setFormData({ ...formData, email: e.target.value });
                         if (formErrors.email) setFormErrors({ ...formErrors, email: undefined });
                       }}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                        formErrors.email ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                      className={`w-full pl-11 pr-4 py-3.5 border-2 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base font-medium text-gray-900 placeholder-gray-400 ${
+                        formErrors.email ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
                       }`}
                       placeholder="john@example.com"
                       required
@@ -513,7 +513,7 @@ export default function RegisterPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
@@ -521,8 +521,8 @@ export default function RegisterPage() {
                         setFormData({ ...formData, password: e.target.value });
                         if (formErrors.password) setFormErrors({ ...formErrors, password: undefined });
                       }}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                        formErrors.password ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                      className={`w-full pl-11 pr-12 py-3.5 border-2 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base font-medium text-gray-900 placeholder-gray-400 ${
+                        formErrors.password ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
                       }`}
                       placeholder="Min 8 chars, uppercase, lowercase, number"
                       required
@@ -549,7 +549,7 @@ export default function RegisterPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={formData.password_confirmation}
@@ -557,8 +557,8 @@ export default function RegisterPage() {
                         setFormData({ ...formData, password_confirmation: e.target.value });
                         if (formErrors.password_confirmation) setFormErrors({ ...formErrors, password_confirmation: undefined });
                       }}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                        formErrors.password_confirmation ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                      className={`w-full pl-11 pr-12 py-3.5 border-2 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base font-medium text-gray-900 placeholder-gray-400 ${
+                        formErrors.password_confirmation ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
                       }`}
                       placeholder="••••••••"
                       required

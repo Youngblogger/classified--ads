@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthOtpController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\BroadcastController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CategoryFieldController;
 use App\Http\Controllers\Api\FollowController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\FontController;
@@ -58,6 +59,18 @@ Route::prefix('categories')->group(function () {
     Route::get('/', [CategoryController::class, 'index']);
     Route::get('/all', [CategoryController::class, 'getAllCategories']);
     Route::get('/{slug}', [CategoryController::class, 'show']);
+    
+    // Category fields (public - for dynamic forms)
+    Route::get('/{category}/fields', [CategoryFieldController::class, 'forCategory']);
+});
+
+// Category fields management
+Route::prefix('category-fields')->group(function () {
+    Route::get('/', [CategoryFieldController::class, 'index']);
+    Route::post('/', [CategoryFieldController::class, 'store']);
+    Route::put('/{field}', [CategoryFieldController::class, 'update']);
+    Route::delete('/{field}', [CategoryFieldController::class, 'destroy']);
+    Route::post('/reorder', [CategoryFieldController::class, 'reorder']);
 });
 
 Route::prefix('locations')->group(function () {

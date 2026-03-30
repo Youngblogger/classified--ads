@@ -10,11 +10,16 @@ class Ad extends Model
 {
     protected $fillable = [
         'user_id', 'category_id', 'location_id', 'title', 'slug', 'description',
-        'price', 'currency', 'condition', 'status', 'is_featured', 'is_verified',
+        'attributes', 'price', 'currency', 'condition', 'status', 'is_featured', 'is_verified',
         'views', 'phone', 'whatsapp', 'expires_at', 'lga'
     ];
 
-    protected $casts = ['is_featured' => 'boolean', 'is_verified' => 'boolean', 'price' => 'decimal:2'];
+    protected $casts = [
+        'is_featured' => 'boolean',
+        'is_verified' => 'boolean',
+        'price' => 'decimal:2',
+        'attributes' => 'array',
+    ];
 
     public function user(): BelongsTo
     {

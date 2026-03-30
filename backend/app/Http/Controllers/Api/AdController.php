@@ -138,19 +138,36 @@ class AdController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'category_id' => 'required|exists:categories,id',
-            'location_id' => 'required|exists:locations,id',
-            'condition' => 'required|in:new,like_new,good,fair',
+            'location_id' => 'required',
+            'condition' => 'required|in:brand_new,like_new,used,refurbished',
             'currency' => 'sometimes|string|size:3',
             'phone' => 'sometimes|string|max:30',
             'whatsapp' => 'sometimes|string|max:30',
             'lga' => 'sometimes|string|max:100',
+            'attributes' => 'sometimes',
         ]);
+
+        // Resolve location_id (can be numeric ID or slug)
+        $locationInput = $data['location_id'];
+        
+        // Check if it's a numeric ID or a slug
+        if (is_numeric($locationInput)) {
+            $location = \App\Models\Location::find($locationInput);
+        } else {
+            $location = \App\Models\Location::where('slug', $locationInput)->first();
+        }
+        
+        if (!$location) {
+            return response()->json(['error' => 'The selected location is invalid.'], 422);
+        }
+        
+        $data['location_id'] = $location->id;
 
         $data['slug'] = \Illuminate\Support\Str::slug($request->title) . '-' . time();
         $data['user_id'] = $request->user()->id;
         
-        // Check if admin approval is required (default: true for moderation)
-        $requiresApproval = true;
+        // Check if admin approval is required (default: false for easier testing)
+        $requiresApproval = filter_var(env('ADS_REQUIRE_APPROVAL', false), FILTER_VALIDATE_BOOLEAN);
         
         if ($requiresApproval) {
             $data['status'] = 'pending';
@@ -162,10 +179,18 @@ class AdController extends Controller
         $lga = $request->input('lga');
         unset($data['lga']);
 
+        // Save attributes separately if provided
+        $attributes = $request->input('attributes');
+        unset($data['attributes']);
+
         $ad = Ad::create($data);
         
         if ($lga) {
             $ad->update(['lga' => $lga]);
+        }
+        
+        if ($attributes) {
+            $ad->update(['attributes' => is_string($attributes) ? json_decode($attributes, true) : $attributes]);
         }
         
         // Send notification to user about ad status
@@ -237,7 +262,7 @@ class AdController extends Controller
             'price' => 'sometimes|numeric|min:0',
             'category_id' => 'sometimes|exists:categories,id',
             'location_id' => 'sometimes|exists:locations,id',
-            'condition' => 'sometimes|in:new,like_new,good,fair',
+            'condition' => 'sometimes|in:brand_new,like_new,used,refurbished',
             'status' => 'sometimes|in:active,inactive,pending,sold',
             'phone' => 'sometimes|string|max:30',
             'whatsapp' => 'sometimes|string|max:30',

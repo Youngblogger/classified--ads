@@ -103,9 +103,8 @@ export default function LocationSelector({ isOpen, onClose, onSelect, selectedSt
   };
 
   const handleSelect = (state: Location, lga?: string) => {
-    const stateId = stateSlugToId[state.slug];
     const fullLocation = lga ? `${state.name} > ${lga}` : state.name;
-    onSelect(stateId, state.name, lga || '', fullLocation);
+    onSelect(state.slug as any, state.name, lga || '', fullLocation);
     onClose();
   };
 
