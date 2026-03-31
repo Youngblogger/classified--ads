@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { 
   Search, MapPin, X, ChevronDown, Loader2, 
   Clock, TrendingUp, ArrowRight, Navigation 
@@ -10,7 +11,6 @@ import {
 import { useDebounce } from '@/hooks/useDebounce';
 import { api } from '@/lib/api';
 import { useGlobalStore } from '@/lib/store';
-import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
 
 interface SearchResult {
   ads: {
@@ -59,6 +59,8 @@ interface SearchBarProps {
 
 const RECENT_SEARCHES_KEY = 'recent_searches';
 const MAX_RECENT_SEARCHES = 10;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const defaultTrending = [
   { term: 'iPhone', count: 150 },
@@ -145,6 +147,14 @@ export default function SearchBar({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch locations from API
+  const { data: locationsData } = useSWR(
+    `${API_URL}/locations`,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 300000, fallbackData: { data: [] } }
+  );
+  const locations = locationsData?.data || locationsData || [];
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -271,7 +281,7 @@ export default function SearchBar({
   }, []);
 
   // Simple coordinate matching for Nigerian states
-  function matchCoordinatesToNigerianState(lat: number, lng: number): NigeriaLocation | null {
+  function matchCoordinatesToNigerianState(lat: number, lng: number): any | null {
     // Simplified approximate boundaries for Nigerian states
     const states: { name: string; slug: string; minLat: number; maxLat: number; minLng: number; maxLng: number }[] = [
       { name: 'Lagos', slug: 'lagos', minLat: 6.4, maxLat: 6.7, minLng: 3.0, maxLng: 3.5 },
@@ -293,12 +303,12 @@ export default function SearchBar({
 
     for (const state of states) {
       if (lat >= state.minLat && lat <= state.maxLat && lng >= state.minLng && lng <= state.maxLng) {
-        return nigeriaLocations.find(loc => loc.name.trim() === state.name) || null;
+        return locations.find((loc: any) => loc.name.trim() === state.name) || null;
       }
     }
 
     // Default to Lagos if not matched (most likely urban area)
-    return nigeriaLocations.find(loc => loc.name === 'Lagos') || null;
+    return locations.find((loc: any) => loc.name === 'Lagos') || null;
   }
 
   const handleResultClick = (type: 'ad' | 'category' | 'location', item: any) => {
@@ -631,22 +641,22 @@ export default function SearchBar({
                   <MapPin className="w-4 h-4" />
                   <span className="font-medium">All Nigeria</span>
                 </button>
-                {nigeriaLocations.map((state) => (
+                {locations.map((state: any) => (
                   <button
                     key={state.id}
                     onClick={() => {
-                      setSelectedLocationId(state.id.charCodeAt(0));
+                      setSelectedLocationId(state.id);
                       setShowLocationDropdown(false);
                     }}
                     className={`
                       w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-50 text-left
-                      ${selectedLocationId === state.id.charCodeAt(0) ? 'bg-primary-50 text-primary-600' : ''}
+                      ${selectedLocationId === state.id ? 'bg-primary-50 text-primary-600' : ''}
                     `}
                   >
                     <MapPin className="w-4 h-4 text-gray-400" />
                     <span className="flex-1">{state.name}</span>
-                    {state.lgas && state.lgas.length > 0 && (
-                      <span className="text-xs text-gray-400">{state.lgas.length} LGAs</span>
+                    {state.children && state.children.length > 0 && (
+                      <span className="text-xs text-gray-400">{state.children.length} LGAs</span>
                     )}
                   </button>
                 ))}

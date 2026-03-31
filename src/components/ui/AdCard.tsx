@@ -45,7 +45,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
 
   if (variant === 'horizontal') {
     return (
-      <Link href={`/ad/${ad.slug}`} className="card card-hover flex flex-col sm:flex-row">
+      <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row overflow-hidden">
         <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0 bg-gray-100">
           {imageUrl && !imgError ? (
             <Image
@@ -74,6 +74,9 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               </p>
             </div>
           </div>
+          {ad.description && (
+            <p className="text-sm text-gray-500 mt-2 line-clamp-2">{ad.description}</p>
+          )}
           <div className="flex items-center gap-2 mt-2 text-gray-500 text-sm">
             <MapPin className="w-4 h-4" />
             <span>{getLocationDisplay()}</span>
@@ -85,7 +88,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
 
   if (variant === 'compact') {
     return (
-      <Link href={`/ad/${ad.slug}`} className="card card-hover">
+      <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
         <div className="relative aspect-square bg-gray-100">
           {imageUrl && !imgError ? (
             <Image
@@ -120,7 +123,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   }
 
   return (
-    <Link href={`/ad/${ad.slug}`} className="card card-hover group">
+    <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
           <Image

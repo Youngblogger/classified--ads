@@ -171,12 +171,21 @@ export default function Header() {
   const router = useRouter();
   const { isAuthenticated, user, logout, hasHydrated } = useAuthStore();
   const { toggleLoginModal, toggleRegisterModal } = useUIStore();
-  const { selectedLocation } = useGlobalStore();
+  const { selectedLocation, setSelectedLocation } = useGlobalStore();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLocationState, setSelectedLocationState] = useState<string>(selectedLocation?.name || 'All Nigeria');
+  const [selectedLocationState, setSelectedLocationState] = useState<string>('All Nigeria');
   const [selectedLocationSlug, setSelectedLocationSlug] = useState<string | null>(null);
   const [selectedLGA, setSelectedLGA] = useState<string | null>(null);
+
+  // Sync with global store on mount
+  useEffect(() => {
+    if (selectedLocation) {
+      setSelectedLocationState(selectedLocation.lga ? `${selectedLocation.name}, ${selectedLocation.lga}` : selectedLocation.name);
+      setSelectedLocationSlug(selectedLocation.slug);
+      setSelectedLGA(selectedLocation.lga || null);
+    }
+  }, [selectedLocation]);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [tempSelectedState, setTempSelectedState] = useState<ApiLocation | null>(null);
   const [tempSelectedLGA, setTempSelectedLGA] = useState<string | null>(null);
@@ -411,9 +420,17 @@ export default function Header() {
 
   const applyLocationSelection = () => {
     if (tempSelectedState) {
-      setSelectedLocationState(tempSelectedLGA ? `${tempSelectedState.name}, ${tempSelectedLGA}` : tempSelectedState.name);
+      const locationName = tempSelectedLGA ? `${tempSelectedState.name}, ${tempSelectedLGA}` : tempSelectedState.name;
+      setSelectedLocationState(locationName);
       setSelectedLocationSlug(tempSelectedState.slug);
       setSelectedLGA(tempSelectedLGA);
+      
+      // Save to global store
+      setSelectedLocation({
+        name: tempSelectedState.name,
+        slug: tempSelectedState.slug,
+        lga: tempSelectedLGA
+      });
       
       const params = new URLSearchParams();
       if (searchQuery.trim()) {
@@ -428,6 +445,7 @@ export default function Header() {
       setSelectedLocationState('All Nigeria');
       setSelectedLocationSlug(null);
       setSelectedLGA(null);
+      setSelectedLocation(null);
       router.push('/ads');
     }
     setShowLocationModal(false);

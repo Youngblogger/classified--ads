@@ -44,6 +44,18 @@ function AdCardWithImage({ ad }: { ad: any }) {
   }
   const imageUrl = primaryImage ? getImageUrl(primaryImage) : '';
   const imageCount = imagesArray.length;
+
+  const getConditionBadge = () => {
+    if (!ad.condition) return null;
+    const badgeClasses = ad.condition === 'new' ? 'bg-emerald-500 text-white' :
+                         ad.condition === 'like_new' ? 'bg-blue-600 text-white' :
+                         ad.condition === 'good' ? 'bg-amber-500 text-white' :
+                         'bg-orange-500 text-white';
+    const label = ad.condition === 'new' ? 'New' :
+                  ad.condition === 'like_new' ? 'Like New' :
+                  ad.condition === 'good' ? 'Good' : 'Fair';
+    return <span className={`absolute top-2 left-2 px-3 py-1 text-xs font-bold uppercase tracking-wide ${badgeClasses}`}>{label}</span>;
+  };
   
   return (
     <Link href={`/ad/${ad.slug}`} className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
@@ -61,6 +73,8 @@ function AdCardWithImage({ ad }: { ad: any }) {
           </div>
         )}
         
+        {getConditionBadge()}
+        
         {imageCount > 1 && (
           <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-medium px-2.5 py-1 rounded flex items-center gap-1">
             <ImageIcon className="w-3.5 h-3.5" />
@@ -74,7 +88,13 @@ function AdCardWithImage({ ad }: { ad: any }) {
           {ad.title}
         </h3>
         
-        <p className="text-2xl font-bold text-gray-900 mt-3">
+        {(ad.short_description || ad.description) && (
+          <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+            {ad.short_description || ad.description}
+          </p>
+        )}
+        
+        <p className="text-2xl font-bold text-gray-900 mt-2">
           {formatPrice(ad.price, ad.currency)}
         </p>
         
@@ -307,7 +327,7 @@ export default function HomePage() {
 
         {/* Latest Ads - jiji.ng style */}
         <section className="py-4 bg-white">
-          <div className="container-app">
+          <div className="container-app px-[10px]">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
@@ -320,7 +340,7 @@ export default function HomePage() {
             </div>
             
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="bg-white rounded-lg overflow-hidden animate-pulse shadow-md border border-gray-200">
                     <div className="aspect-[3/2] bg-gray-200" />
@@ -348,7 +368,7 @@ export default function HomePage() {
               </div>
             ) : recentAds.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
                   {recentAds.map((ad: any) => (
                     <AdCardWithImage key={ad.id} ad={ad} />
                   ))}

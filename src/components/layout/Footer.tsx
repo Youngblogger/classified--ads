@@ -1,16 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import {
   Facebook,
   Twitter,
   Instagram,
-  Mail,
-  Shield,
-  BadgeCheck,
-  Lock,
-  Send,
   ArrowRight,
   Search
 } from 'lucide-react';
@@ -18,21 +12,6 @@ import {
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function Footer() {
-  const [email, setEmail] = useState('');
-  const [isSubscribing, setIsSubscribing] = useState(false);
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    
-    setIsSubscribing(true);
-    setTimeout(() => {
-      setIsSubscribing(false);
-      setEmail('');
-      alert('Thank you for subscribing!');
-    }, 1000);
-  };
-
   const companyLinks = [
     { label: 'About Us', href: '/about' },
     { label: 'Careers', href: '/careers' },
@@ -224,99 +203,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-slate-700 mt-12 pt-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Trust & Security Section */}
-            <div>
-              <h3 className="text-base font-semibold mb-6 text-white">Trust & Security</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="flex items-center gap-3 p-3 bg-slate-800 rounded-xl">
-                  <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Shield className="w-5 h-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Secure</p>
-                    <p className="text-sm font-medium text-white">Payments</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-800 rounded-xl">
-                  <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <BadgeCheck className="w-5 h-5 text-primary-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Verified</p>
-                    <p className="text-sm font-medium text-white">Sellers</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-800 rounded-xl">
-                  <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Lock className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Fraud</p>
-                    <p className="text-sm font-medium text-white">Protection</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Payment Methods */}
-              <div className="mt-6">
-                <p className="text-xs text-slate-500 mb-3">We accept:</p>
-                <div className="flex items-center gap-3">
-                  <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
-                    <svg viewBox="0 0 50 30" className="h-6">
-                      <rect width="50" height="30" rx="4" fill="#1A1F71"/>
-                      <text x="25" y="20" fill="white" fontSize="12" fontWeight="bold" fontFamily="Arial" textAnchor="middle">VISA</text>
-                    </svg>
-                  </div>
-                  <div className="h-10 px-3 bg-white rounded-lg flex items-center justify-center">
-                    <svg viewBox="0 0 40 30" className="h-6">
-                      <circle cx="15" cy="15" r="12" fill="#EB001B"/>
-                      <circle cx="25" cy="15" r="12" fill="#F79E1B"/>
-                      <path d="M20 6.5a12 12 0 000 17 12 12 0 000-17z" fill="#FF5F00"/>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Newsletter Section */}
-            <div>
-              <h3 className="text-base font-semibold mb-2 text-white">Stay Updated</h3>
-              <p className="text-sm text-slate-400 mb-4">
-                Get latest deals and updates delivered to your inbox
-              </p>
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubscribing}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
-                >
-                  {isSubscribing ? (
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Subscribe
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
 
         {/* Divider */}
         <div className="border-t border-slate-700 mt-12 pt-12">

@@ -11,7 +11,7 @@ import LatestReviews from '@/components/reviews/LatestReviews';
 import AdAttributes from '@/components/ads/AdAttributes';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag } from 'lucide-react';
+import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatPrice, formatRelativeTime, BACKEND_URL } from '@/lib/utils';
 import { getAuthToken } from '@/lib/cookies';
@@ -270,7 +270,7 @@ export default function AdDetailPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-6">
+      <main className="flex-1 container mx-auto px-[5px] py-6">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
           <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
@@ -445,15 +445,11 @@ export default function AdDetailPage() {
                     <AdAttributes attributes={ad.attributes} />
                   </div>
                 )}
-                </div>
-
-              {/* Related Ads - Full Width */}
-              <div className="w-full">
-                <RelatedAds currentAdId={ad.id} categoryId={ad.category?.id} />
               </div>
+
             </div>
 
-            {/* Right Column - Seller & Contact - No Parent Card */}
+            {/* Right Column - Seller & Contact */}
             <div className="space-y-px">
               {/* Seller Card */}
               {ad.user && (
@@ -518,16 +514,34 @@ export default function AdDetailPage() {
               </div>
 
               {/* Safety Tips */}
-              <div className="bg-blue-50 rounded-2xl p-6">
-                <h3 className="font-semibold text-blue-900 mb-2">Safety Tips</h3>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• Meet in public places</li>
-                  <li>Don&apos;t send payments in advance</li>
-                  <li>• Check item before paying</li>
-                  <li>• Report suspicious sellers</li>
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <h3 className="font-semibold text-gray-800 text-base mb-3">Safety Tips</h3>
+                <ul className="space-y-2">
+                  {[
+                    { text: 'Always meet in a secure, public location' },
+                    { text: 'Inspect items carefully before payment' },
+                    { text: 'Avoid upfront payment' },
+                    { text: 'Inspect items before payment' },
+                    { text: 'Avoid rushed or pressured transactions' },
+                    { text: "Don't click unknown links" },
+                    { text: 'Keep communication on the platform' },
+                    { text: 'Test items before buying' },
+                    { text: 'Be cautious with delivery payments' },
+                    { text: 'Report suspicious users immediately' },
+                  ].map((tip, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>{tip.text}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
+          </div>
+
+          {/* Related Ads - Full Width */}
+          <div className="-mx-4 md:mx-0">
+            <RelatedAds currentAdId={ad.id} categoryId={ad.category?.id} />
           </div>
         </div>
       </main>

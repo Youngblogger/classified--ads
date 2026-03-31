@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { adminApi, api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
+import { StatsCardSkeleton, CardSkeleton } from '@/components/ui/Skeleton';
 
 interface DashboardStats {
   total_users: number;
@@ -194,8 +195,17 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600"></div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
       </div>
     );
   }

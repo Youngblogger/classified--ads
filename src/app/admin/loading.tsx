@@ -1,7 +1,21 @@
+'use client';
+
+import { StatsCardSkeleton, CardSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
+
 export default function Loading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600"></div>
+    <div className="space-y-6 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCardSkeleton />
+        <StatsCardSkeleton />
+        <StatsCardSkeleton />
+        <StatsCardSkeleton />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CardSkeleton />
+        <CardSkeleton />
+      </div>
+      <TableSkeleton rows={8} columns={5} />
     </div>
   );
 }

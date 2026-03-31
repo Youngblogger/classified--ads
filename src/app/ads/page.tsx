@@ -7,7 +7,8 @@ import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import AdCard from '@/components/ui/AdCard';
 import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal, MapPin, Loader2 } from 'lucide-react';
-import { nigeriaLocations, NigeriaLocation } from '@/lib/nigeriaLocations';
+import { AdGridSkeleton } from '@/components/ui/Skeleton';
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 const fetcher = async (url: string) => {
@@ -80,7 +81,14 @@ function AdsPageContent() {
     { revalidateOnFocus: false, dedupingInterval: 300000, fallbackData: [], shouldRetryOnError: false }
   );
   
+  const { data: locationsData } = useSWR(
+    `${API_URL}/locations`,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 300000, fallbackData: [], shouldRetryOnError: false }
+  );
+  
   const categories: Category[] = categoriesData?.data || categoriesData || [];
+  const locations = locationsData?.data || locationsData || [];
 
   // Build query params for search API
   const buildQueryParams = useMemo(() => {
@@ -222,15 +230,15 @@ function AdsPageContent() {
             lg:w-64 lg:flex-shrink-0
             ${showFilters ? 'block' : 'hidden lg:block'}
           `}>
-            <div className="lg:sticky lg:top-24 space-y-6">
-            {/* Categories */}
-            <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="lg:sticky lg:top-24 space-y-4">
+              {/* Categories */}
+              <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <button
                   onClick={() => setSelectedCategoryId(null)}
-                  className={`w-full text-left px-3 py-2 rounded-lg ${
-                    !selectedCategoryId ? 'bg-primary-50 text-primary-600' : 'hover:bg-gray-50'
+                  className={`w-full text-left px-3 py-2 rounded-lg text-gray-700 ${
+                    !selectedCategoryId ? 'bg-primary-50 text-primary-600 font-medium' : 'hover:bg-gray-100 bg-gray-50'
                   }`}
                 >
                   All Categories
@@ -239,8 +247,8 @@ function AdsPageContent() {
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategoryId(cat.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 ${
-                      selectedCategoryId === cat.id ? 'bg-primary-50 text-primary-600' : 'hover:bg-gray-50'
+                    className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 text-gray-700 ${
+                      selectedCategoryId === cat.id ? 'bg-primary-50 text-primary-600 font-medium' : 'hover:bg-gray-100 bg-gray-50'
                     }`}
                   >
                     <span>{cat.icon || '📦'}</span>
@@ -262,7 +270,7 @@ function AdsPageContent() {
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg mb-2"
               >
                 <option value="">All Nigeria</option>
-                {nigeriaLocations.map((state) => (
+                {locations.map((state: any) => (
                   <option key={state.id} value={state.slug}>
                     {state.name}
                   </option>
@@ -270,16 +278,16 @@ function AdsPageContent() {
               </select>
               
               {/* LGA Dropdown */}
-              {selectedLocationSlug && nigeriaLocations.find(l => l.slug === selectedLocationSlug)?.lgas && (
+              {selectedLocationSlug && locations.find((l: any) => l.slug === selectedLocationSlug)?.children && (
                 <select
                   value={selectedLGA}
                   onChange={(e) => setSelectedLGA(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
                 >
-                  <option value="">All LGAs in {nigeriaLocations.find(l => l.slug === selectedLocationSlug)?.name}</option>
-                  {nigeriaLocations.find(l => l.slug === selectedLocationSlug)?.lgas?.map((lga) => (
-                    <option key={lga} value={lga}>
-                      {lga}
+                  <option value="">All LGAs in {locations.find((l: any) => l.slug === selectedLocationSlug)?.name}</option>
+                  {locations.find((l: any) => l.slug === selectedLocationSlug)?.children?.map((lga: any) => (
+                    <option key={lga.slug} value={lga.name}>
+                      {lga.name}
                     </option>
                   ))}
                 </select>
@@ -330,15 +338,15 @@ function AdsPageContent() {
             {/* Clear Filters */}
             <button
               onClick={clearFilters}
-              className="w-full px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg"
+              className="w-full px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg bg-white shadow-sm"
             >
               Clear All Filters
             </button>
-          </div>
+            </div>
           </div>
 
           {/* Results */}
-          <div className="flex-1">
+          <div className="flex-1 bg-white rounded-xl p-4 md:p-6 shadow-sm">
             {/* Results Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
@@ -364,16 +372,16 @@ function AdsPageContent() {
                 </select>
 
                 {/* View Mode */}
-                <div className="hidden md:flex bg-white border border-gray-200 rounded-lg p-1">
+                <div className="flex bg-gray-100 border border-gray-200 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded ${viewMode === 'grid' ? 'bg-primary-100 text-primary-600' : ''}`}
+                    className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                   >
                     <Grid className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`p-2 rounded ${viewMode === 'list' ? 'bg-primary-100 text-primary-600' : ''}`}
+                    className={`p-2 rounded ${viewMode === 'list' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                   >
                     <List className="w-4 h-4" />
                   </button>
@@ -395,7 +403,7 @@ function AdsPageContent() {
                 )}
                 {locationSlug && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-600 rounded-full text-sm">
-                    {nigeriaLocations.find(l => l.slug === locationSlug)?.name || locationSlug}
+                    {locations.find((l: any) => l.slug === locationSlug)?.name || locationSlug}
                     {lgaParam && ` - ${lgaParam}`}
                     <button onClick={() => { setSelectedLocationSlug(''); setSelectedLGA(''); handleSearch(); }} className="hover:text-primary-800">
                       <X className="w-3 h-3" />
@@ -407,21 +415,36 @@ function AdsPageContent() {
 
             {/* Ads Grid/List */}
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
-                {[...Array(12)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl h-64 animate-pulse" />
-                ))}
-              </div>
+              viewMode === 'grid' ? (
+                <AdGridSkeleton count={12} />
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-xl p-4 flex gap-4">
+                      <div className="w-48 h-36 bg-gray-200 animate-pulse rounded-lg flex-shrink-0" />
+                      <div className="flex-1 space-y-3">
+                        <div className="h-5 bg-gray-200 rounded w-3/4 animate-pulse" />
+                        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
+                        <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             ) : ads.length > 0 ? (
-              <div className={`
-                ${viewMode === 'grid' 
-                  ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6' 
-                  : 'flex flex-col gap-4'}
-              `}>
-                {ads.map((ad) => (
-                  <AdCard key={ad.id} ad={ad} />
-                ))}
-              </div>
+              viewMode === 'grid' ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                  {ads.map((ad) => (
+                    <AdCard key={ad.id} ad={ad} />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {ads.map((ad) => (
+                    <AdCard key={ad.id} ad={ad} variant="horizontal" />
+                  ))}
+                </div>
+              )
             ) : (
               <div className="bg-white rounded-xl p-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -474,8 +497,8 @@ function AdsPageContent() {
 export default function AdsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      <div className="container mx-auto px-1 py-6">
+        <AdGridSkeleton count={12} />
       </div>
     }>
       <AdsPageContent />

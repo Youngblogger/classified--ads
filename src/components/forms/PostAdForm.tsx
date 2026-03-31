@@ -502,10 +502,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {/* Back Button */}
       <button
         onClick={goBack}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
       >
-        <ArrowLeft className="w-5 h-5" />
-        <span className="text-sm font-medium">Back</span>
+        <ArrowLeft className="w-4 h-4" />
+        <span className="text-sm">Back</span>
       </button>
 
       {/* Progress Steps */}
