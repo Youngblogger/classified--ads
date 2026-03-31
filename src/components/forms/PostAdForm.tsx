@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, ChevronLeft, GripVertical, Loader2, Phone, MessageCircle, MapPinned, ArrowLeft } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, ChevronLeft, GripVertical, Loader2, Phone, MessageCircle, MapPinned, ArrowLeft, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { adsApi } from '@/lib/api';
 import { useAuthStore, useUIStore } from '@/lib/store';
@@ -10,6 +10,24 @@ import toast from 'react-hot-toast';
 import CategorySelector from '@/components/ui/CategorySelector';
 import LocationSelector from '@/components/ui/LocationSelector';
 import DynamicField, { CategoryField } from './DynamicField';
+import structuredCategories from '@/data/structured-categories.json';
+
+interface StructuredCategory {
+  category: string;
+  hasBrand: boolean;
+  brands: Array<{
+    name: string;
+    models: Array<{
+      name: string;
+      presets: string[];
+    }>;
+  }>;
+  fields: Array<{
+    name: string;
+    type: string;
+    options: string[];
+  }>;
+}
 
 interface ImageFile {
   id: string;
@@ -61,6 +79,110 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [attributes, setAttributes] = useState<Record<string, any>>({});
   const [fieldsLoading, setFieldsLoading] = useState(false);
   
+  // Structured category dropdowns
+  const [selectedStructuredCategory, setSelectedStructuredCategory] = useState<StructuredCategory | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [selectedConfig, setSelectedConfig] = useState<string>('');
+  const [modelPresets, setModelPresets] = useState<string[]>([]);
+  
+  // WhatsApp same as phone
+  const [sameAsPhone, setSameAsPhone] = useState<boolean>(true);
+  
+  // Get category name from categoryId
+  const getCategoryName = (id: number | null): string => {
+    if (!id) return '';
+    const cat = categories.find(c => c.id === id || c.children?.some((child: any) => child.id === id));
+    if (cat?.children?.some((child: any) => child.id === id)) {
+      const child = cat.children.find((child: any) => child.id === id);
+      return child?.name || '';
+    }
+    return cat?.name || '';
+  };
+  
+  // Match selected category to structured data
+  useEffect(() => {
+    if (!categoryId) {
+      setSelectedStructuredCategory(null);
+      setSelectedBrand('');
+      setSelectedModel('');
+      setSelectedConfig('');
+      return;
+    }
+    
+    const categoryName = getCategoryName(categoryId);
+    const normalizedName = categoryName.toLowerCase().trim();
+    
+    // Try to find matching category in structured data
+    const matchedCategory = structuredCategories.categories.find(sc => {
+      const scName = sc.category.toLowerCase();
+      // Direct match
+      if (scName === normalizedName) return true;
+      // Partial matches
+      if (normalizedName.includes('mobile') && scName.includes('mobile')) return true;
+      if (normalizedName.includes('phone') && scName.includes('mobile')) return true;
+      if (normalizedName.includes('tablet') && scName.includes('tablet')) return true;
+      if (normalizedName.includes('laptop') && scName.includes('laptop')) return true;
+      if (normalizedName.includes('computer') && scName.includes('laptop')) return true;
+      if (normalizedName.includes('vehicle') && scName.includes('vehicle')) return true;
+      if (normalizedName.includes('car') && scName.includes('vehicle')) return true;
+      if (normalizedName.includes('property') && scName.includes('property')) return true;
+      if (normalizedName.includes('fashion') && scName.includes('fashion')) return true;
+      if (normalizedName.includes('job') && scName.includes('job')) return true;
+      if (normalizedName.includes('service') && scName.includes('service')) return true;
+      if (normalizedName.includes('pet') && scName.includes('pet')) return true;
+      if (normalizedName.includes('health') && scName.includes('health')) return true;
+      if (normalizedName.includes('baby') && scName.includes('baby')) return true;
+      if (normalizedName.includes('sport') && scName.includes('sport')) return true;
+      return false;
+    });
+    
+    setSelectedStructuredCategory(matchedCategory || null);
+    setSelectedBrand('');
+    setSelectedModel('');
+    setSelectedConfig('');
+    setModelPresets([]);
+  }, [categoryId]);
+  
+  // Get brands for selected structured category
+  const getAvailableBrands = (): string[] => {
+    if (!selectedStructuredCategory?.hasBrand) return [];
+    return selectedStructuredCategory.brands.map(b => b.name).sort();
+  };
+  
+  // Get models for selected brand
+  const getAvailableModels = (): string[] => {
+    if (!selectedStructuredCategory || !selectedBrand) return [];
+    const brand = selectedStructuredCategory.brands.find(b => b.name === selectedBrand);
+    return brand?.models.map(m => m.name).sort() || [];
+  };
+  
+  // Handle brand change
+  const handleBrandChange = (brand: string) => {
+    setSelectedBrand(brand);
+    setSelectedModel('');
+    setSelectedConfig('');
+    setModelPresets([]);
+  };
+  
+  // Handle model change
+  const handleModelChange = (model: string) => {
+    setSelectedModel(model);
+    setSelectedConfig('');
+    
+    // Get presets for this model
+    if (selectedStructuredCategory && selectedBrand) {
+      const brand = selectedStructuredCategory.brands.find(b => b.name === selectedBrand);
+      const modelData = brand?.models.find(m => m.name === model);
+      setModelPresets(modelData?.presets || []);
+    }
+  };
+  
+  // Handle config change
+  const handleConfigChange = (config: string) => {
+    setSelectedConfig(config);
+  };
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
@@ -102,6 +224,25 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       [name]: value
     }));
   };
+  
+  // Store brand/model/config in attributes when they change
+  useEffect(() => {
+    if (selectedBrand) {
+      setAttributes(prev => ({ ...prev, brand: selectedBrand }));
+    }
+  }, [selectedBrand]);
+  
+  useEffect(() => {
+    if (selectedModel) {
+      setAttributes(prev => ({ ...prev, model: selectedModel }));
+    }
+  }, [selectedModel]);
+  
+  useEffect(() => {
+    if (selectedConfig) {
+      setAttributes(prev => ({ ...prev, configuration: selectedConfig }));
+    }
+  }, [selectedConfig]);
 
   // Local fallback categories (same as homepage)
   const localCategories = [
@@ -532,33 +673,33 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-base font-semibold text-gray-800 mb-3">
               Category <span className="text-red-500">*</span>
             </label>
             <button
               onClick={() => setShowCategorySelector(true)}
-              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors bg-white"
+              className="w-full flex items-center justify-between p-5 border-2 border-gray-200 rounded-2xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
             >
-              <span className={categoryBreadcrumb ? 'text-gray-900' : 'text-gray-400'}>
+              <span className={`text-lg font-medium ${categoryBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
                 {categoryBreadcrumb || 'Select Category'}
               </span>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
+              <ChevronRight className="w-6 h-6 text-gray-400" />
             </button>
           </div>
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-base font-semibold text-gray-800 mb-3">
               Location <span className="text-red-500">*</span>
             </label>
             <button
               onClick={() => setShowLocationSelector(true)}
-              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 transition-colors bg-white"
+              className="w-full flex items-center justify-between p-5 border-2 border-gray-200 rounded-2xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
             >
-              <span className={locationBreadcrumb ? 'text-gray-900' : 'text-gray-400'}>
+              <span className={`text-lg font-medium ${locationBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
                 {locationBreadcrumb || 'Select Location'}
               </span>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
+              <ChevronRight className="w-6 h-6 text-gray-400" />
             </button>
           </div>
         </div>
@@ -641,7 +782,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-base font-semibold text-gray-800 mb-3">
               Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -649,51 +790,234 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. iPhone 14 Pro Max 256GB"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-5 py-4 text-lg font-bold border-2 border-gray-200 rounded-2xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400"
               maxLength={100}
+              style={{ height: '60px' }}
             />
-            <p className="text-xs text-gray-400 mt-1 text-right">{title.length}/100</p>
+            <p className="text-sm text-gray-400 mt-2 text-right">{title.length}/100</p>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-base font-semibold text-gray-800 mb-3">
               Description <span className="text-red-500">*</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your item in detail..."
-              rows={5}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors resize-none bg-white text-gray-900 placeholder-gray-400"
-              maxLength={2000}
+              placeholder="Describe your item in detail. Include features, condition, and any other relevant information..."
+              rows={6}
+              className="w-full px-5 py-4 text-base font-medium border-2 border-gray-200 rounded-2xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 resize-none bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400"
             />
-            <p className="text-xs text-gray-400 mt-1 text-right">{description.length}/2000</p>
+            <p className="text-sm text-gray-400 mt-2 text-right">{description.length}/2000</p>
           </div>
 
           {/* Condition */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">
               Condition <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {(['brand_new', 'like_new', 'used', 'refurbished'] as const).map((cond) => (
-                <button
-                  key={cond}
-                  onClick={() => setCondition(cond)}
-                  className={`p-3 rounded-xl border-2 text-center transition-all bg-white ${
-                    condition === cond
-                      ? 'border-primary-600 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-900'
-                  }`}
-                >
-                  <span className="font-medium text-sm">{conditionLabels[cond]}</span>
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-3">
+              {([
+                { key: 'brand_new', label: 'Brand New', color: 'emerald' },
+                { key: 'like_new', label: 'Like New', color: 'blue' },
+                { key: 'used', label: 'Used', color: 'amber' },
+                { key: 'refurbished', label: 'Refurbished', color: 'purple' }
+              ] as const).map(({ key, label, color }) => {
+                const isSelected = condition === key;
+                const colorClasses = {
+                  emerald: isSelected ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-700',
+                  blue: isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-blue-700',
+                  amber: isSelected ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-200 hover:border-amber-400 hover:bg-amber-50 text-amber-700',
+                  purple: isSelected ? 'border-purple-500 bg-purple-500 text-white' : 'border-purple-200 hover:border-purple-400 hover:bg-purple-50 text-purple-700',
+                };
+                const checkColor = {
+                  emerald: 'text-emerald-500',
+                  blue: 'text-blue-500',
+                  amber: 'text-amber-500',
+                  purple: 'text-purple-500',
+                };
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setCondition(key)}
+                    className={`group relative px-5 py-3 rounded-xl border-2 transition-all duration-300 ${colorClasses[color]}`}
+                  >
+                    <span className="font-semibold text-sm">{label}</span>
+                    {isSelected && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                        <Check className={`w-3 h-3 ${checkColor[color]}`} />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Dynamic Fields */}
+          {/* Brand/Model/Config for categories with brands */}
+          {selectedStructuredCategory?.hasBrand && getAvailableBrands().length > 0 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Brand */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Brand
+                  </label>
+                  <div className="relative group">
+                    <select
+                      value={selectedBrand}
+                      onChange={(e) => handleBrandChange(e.target.value)}
+                      className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    >
+                      <option value="">Select Brand</option>
+                      {getAvailableBrands().map((brand) => (
+                        <option key={brand} value={brand}>{brand}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
+                  </div>
+                </div>
+
+                {/* Model */}
+                {selectedBrand && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Model
+                    </label>
+                    <div className="relative group">
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => handleModelChange(e.target.value)}
+                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      >
+                        <option value="">Select Model</option>
+                        {getAvailableModels().map((model) => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Configuration */}
+                {selectedModel && modelPresets.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Configuration
+                    </label>
+                    <div className="relative group">
+                      <select
+                        value={selectedConfig}
+                        onChange={(e) => handleConfigChange(e.target.value)}
+                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      >
+                        <option value="">Select Configuration</option>
+                        {modelPresets.map((preset) => (
+                          <option key={preset} value={preset}>{preset}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Vehicle-specific fields: Year, Transmission, Fuel Type */}
+              {selectedStructuredCategory?.category === 'Vehicles' && selectedModel && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                  {/* Year */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Year
+                    </label>
+                    <div className="relative group">
+                      <select
+                        value={attributes['Year'] || ''}
+                        onChange={(e) => handleAttributeChange('Year', e.target.value)}
+                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      >
+                        <option value="">Select Year</option>
+                        {selectedStructuredCategory.fields.find(f => f.name === 'Year')?.options.map((year) => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
+                    </div>
+                  </div>
+
+                  {/* Transmission */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Transmission
+                    </label>
+                    <div className="relative group">
+                      <select
+                        value={attributes['Transmission'] || ''}
+                        onChange={(e) => handleAttributeChange('Transmission', e.target.value)}
+                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      >
+                        <option value="">Select Transmission</option>
+                        {selectedStructuredCategory.fields.find(f => f.name === 'Transmission')?.options.map((trans) => (
+                          <option key={trans} value={trans}>{trans}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
+                    </div>
+                  </div>
+
+                  {/* Fuel Type */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Fuel Type
+                    </label>
+                    <div className="relative group">
+                      <select
+                        value={attributes['Fuel Type'] || ''}
+                        onChange={(e) => handleAttributeChange('Fuel Type', e.target.value)}
+                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      >
+                        <option value="">Select Fuel Type</option>
+                        {selectedStructuredCategory.fields.find(f => f.name === 'Fuel Type')?.options.map((fuel) => (
+                          <option key={fuel} value={fuel}>{fuel}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Dynamic Fields for categories without brands */}
+          {selectedStructuredCategory && !selectedStructuredCategory.hasBrand && selectedStructuredCategory.fields.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {selectedStructuredCategory.fields.map((field) => (
+                <div key={field.name} className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {field.name}
+                  </label>
+                  <div className="relative group">
+                    <select
+                      value={attributes[field.name] || ''}
+                      onChange={(e) => handleAttributeChange(field.name, e.target.value)}
+                      className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    >
+                      <option value="">Select {field.name}</option>
+                      {field.options.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Dynamic Fields from API */}
           {categoryFields.length > 0 && (
             <div className="space-y-4">
               {fieldsLoading ? (
@@ -703,7 +1027,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 </div>
               ) : (
                 <>
-                  {categoryFields.filter(f => !f.group_name).map((field) => (
+                  {categoryFields.filter(f => !f.group_name && !f.name.toLowerCase().includes('display') && !f.name.toLowerCase().includes('screen')).map((field) => (
                     <DynamicField
                       key={field.name}
                       field={field}
@@ -721,22 +1045,30 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       return acc;
                     }, {} as Record<string, CategoryField[]>);
 
-                    return Object.entries(grouped).map(([groupName, fields]) => (
-                      <div key={groupName} className="bg-gray-50 rounded-xl p-4">
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3">{groupName}</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {fields.map((field) => (
-                            <div key={field.name} className={field.type === 'multi_select' ? 'md:col-span-2' : ''}>
-                              <DynamicField
-                                field={field}
-                                value={attributes}
-                                onChange={handleAttributeChange}
-                              />
+                    return Object.entries(grouped)
+                      .filter(([groupName]) => groupName.toLowerCase() !== 'basic info')
+                      .map(([groupName, fields]) => {
+                        const filteredFields = fields.filter(f => !f.name.toLowerCase().includes('display') && !f.name.toLowerCase().includes('screen'));
+                        if (filteredFields.length === 0) return null;
+                        return (
+                          <div key={groupName} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 border border-gray-200">
+                            <div className="flex items-center gap-2 pb-3 border-b border-gray-200 mb-4">
+                              <h4 className="text-sm font-semibold text-gray-900">{groupName}</h4>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    ));
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {filteredFields.map((field) => (
+                                <div key={field.name} className={field.type === 'multi_select' ? 'md:col-span-2' : ''}>
+                                  <DynamicField
+                                    field={field}
+                                    value={attributes}
+                                    onChange={handleAttributeChange}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }).filter(Boolean);
                   })()}
                 </>
               )}
@@ -744,35 +1076,117 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           )}
 
           {/* Contact Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="08012345678"
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors bg-white text-gray-900 placeholder-gray-400"
-                />
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 space-y-5 border border-gray-200">
+            <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+              <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                <Phone className="w-5 h-5 text-green-600" />
               </div>
+              <h4 className="text-lg font-bold text-gray-900">Contact Information</h4>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                WhatsApp (optional)
-              </label>
-              <div className="relative">
-                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="tel"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="08012345678"
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors bg-white text-gray-900 placeholder-gray-400"
-                />
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="space-y-3">
+                <label className="block text-base font-semibold text-gray-800">
+                  Phone Number
+                </label>
+                <div className="relative group">
+                  <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Enter your phone number"
+                    className="w-full pl-14 pr-5 py-5 text-xl font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-2xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 group-hover:border-primary-300"
+                    style={{ height: '70px' }}
+                  />
+                </div>
+              </div>
+              
+              {!sameAsPhone && (
+                <div className="space-y-3 animate-fadeIn">
+                  <label className="block text-base font-semibold text-gray-800">
+                    WhatsApp Number
+                  </label>
+                  <div className="relative group">
+                    <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                    <input
+                      type="tel"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      placeholder="Enter WhatsApp number"
+                      className="w-full pl-14 pr-5 py-5 text-xl font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none focus:ring-4 focus:ring-green-100 transition-all duration-300 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 group-hover:border-green-400"
+                      style={{ height: '70px' }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* WhatsApp Confirmation */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-sm">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  </svg>
+                </div>
+                <span className="text-base font-bold text-gray-900">Is this your WhatsApp number?</span>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSameAsPhone(true)}
+                  className={`flex-1 group relative overflow-hidden px-5 py-3.5 rounded-2xl border-2 transition-all duration-300 ${
+                    sameAsPhone 
+                      ? 'border-green-500 bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-200' 
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-green-400 hover:shadow-md'
+                  }`}
+                >
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative flex items-center justify-center gap-2.5">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                      sameAsPhone ? 'bg-white/20' : 'bg-green-50 group-hover:bg-green-100'
+                    }`}>
+                      <Phone className={`w-5 h-5 ${sameAsPhone ? 'text-white' : 'text-green-600'}`} />
+                    </div>
+                    <span className={`font-semibold text-sm ${sameAsPhone ? 'text-white' : ''}`}>
+                      Yes, same number
+                    </span>
+                    {sameAsPhone && (
+                      <div className="w-5 h-5 rounded-full bg-white/30 flex items-center justify-center ml-1">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => setSameAsPhone(false)}
+                  className={`flex-1 group relative overflow-hidden px-5 py-3.5 rounded-2xl border-2 transition-all duration-300 ${
+                    !sameAsPhone 
+                      ? 'border-primary-600 bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-200' 
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-primary-400 hover:shadow-md'
+                  }`}
+                >
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative flex items-center justify-center gap-2.5">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                      !sameAsPhone ? 'bg-white/20' : 'bg-primary-50 group-hover:bg-primary-100'
+                    }`}>
+                      <MessageCircle className={`w-5 h-5 ${!sameAsPhone ? 'text-white' : 'text-primary-600'}`} />
+                    </div>
+                    <span className={`font-semibold text-sm ${!sameAsPhone ? 'text-white' : ''}`}>
+                      No, different number
+                    </span>
+                    {!sameAsPhone && (
+                      <div className="w-5 h-5 rounded-full bg-white/30 flex items-center justify-center ml-1">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+                </button>
               </div>
             </div>
           </div>
@@ -783,17 +1197,18 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {step === 3 && (
         <div className="max-w-md mx-auto space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-base font-semibold text-gray-800 mb-3">
               Price <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">₦</span>
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-2xl font-bold">₦</span>
               <input
                 type="text"
                 value={formatPrice(price)}
                 onChange={handlePriceChange}
                 placeholder="0"
-                className="w-full pl-10 pr-4 py-4 text-2xl border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors font-bold bg-white text-gray-900 placeholder-gray-400"
+                className="w-full pl-14 pr-5 py-5 text-3xl border-2 border-gray-200 rounded-2xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-bold bg-white text-gray-900 placeholder:text-3xl placeholder:font-bold placeholder:text-gray-300"
+                style={{ height: '80px' }}
               />
             </div>
           </div>

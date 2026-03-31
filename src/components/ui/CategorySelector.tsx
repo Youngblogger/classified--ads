@@ -111,6 +111,79 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
   const searchInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  const localCategories: Category[] = [
+    { id: 1, name: 'Vehicles', slug: 'vehicles', icon: 'Car', children: [
+      { id: 101, name: 'Cars', slug: 'cars' },
+      { id: 102, name: 'Motorcycles', slug: 'motorcycles' },
+      { id: 103, name: 'Buses & Vans', slug: 'buses-vans' },
+      { id: 104, name: 'Trucks & Trailers', slug: 'trucks-trailers' },
+    ]},
+    { id: 2, name: 'Property', slug: 'property', icon: 'Home', children: [
+      { id: 201, name: 'Apartments for Rent', slug: 'apartments-rent' },
+      { id: 202, name: 'Apartments for Sale', slug: 'apartments-sale' },
+      { id: 203, name: 'Houses for Rent', slug: 'houses-rent' },
+      { id: 204, name: 'Houses for Sale', slug: 'houses-sale' },
+    ]},
+    { id: 3, name: 'Mobile Phones & Tablets', slug: 'mobile-phones', icon: 'Smartphone', children: [
+      { id: 301, name: 'Smartphones', slug: 'smartphones' },
+      { id: 302, name: 'Tablets', slug: 'tablets' },
+      { id: 303, name: 'Smartwatches', slug: 'smartwatches' },
+      { id: 304, name: 'Phone Accessories', slug: 'phone-accessories' },
+    ]},
+    { id: 4, name: 'Electronics', slug: 'electronics', icon: 'Monitor', children: [
+      { id: 401, name: 'Laptops', slug: 'laptops' },
+      { id: 402, name: 'Desktop Computers', slug: 'desktops' },
+      { id: 403, name: 'Televisions', slug: 'tvs' },
+      { id: 404, name: 'Gaming Consoles', slug: 'gaming' },
+    ]},
+    { id: 5, name: 'Fashion', slug: 'fashion', icon: 'Shirt', children: [
+      { id: 501, name: "Men's Clothing", slug: 'men-clothing' },
+      { id: 502, name: "Women's Clothing", slug: 'women-clothing' },
+      { id: 503, name: 'Shoes', slug: 'shoes' },
+      { id: 504, name: 'Watches', slug: 'watches' },
+    ]},
+    { id: 6, name: 'Home, Furniture & Appliances', slug: 'home-furniture', icon: 'Sofa', children: [
+      { id: 601, name: 'Furniture', slug: 'furniture' },
+      { id: 602, name: 'Home Decor', slug: 'home-decor' },
+      { id: 603, name: 'Kitchen Appliances', slug: 'kitchen-appliances' },
+      { id: 604, name: 'Bedding', slug: 'bedding' },
+    ]},
+    { id: 7, name: 'Jobs', slug: 'jobs', icon: 'Briefcase', children: [
+      { id: 701, name: 'Full-time Jobs', slug: 'full-time' },
+      { id: 702, name: 'Part-time Jobs', slug: 'part-time' },
+      { id: 703, name: 'Remote Jobs', slug: 'remote' },
+      { id: 704, name: 'Internships', slug: 'internships' },
+    ]},
+    { id: 8, name: 'Services', slug: 'services', icon: 'Wrench', children: [
+      { id: 801, name: 'Cleaning Services', slug: 'cleaning' },
+      { id: 802, name: 'Repair & Maintenance', slug: 'repair' },
+      { id: 803, name: 'Moving & Logistics', slug: 'moving' },
+      { id: 804, name: 'Event Services', slug: 'events' },
+    ]},
+    { id: 9, name: 'Pets', slug: 'pets', icon: 'Dog', children: [
+      { id: 901, name: 'Dogs', slug: 'dogs' },
+      { id: 902, name: 'Cats', slug: 'cats' },
+      { id: 903, name: 'Birds', slug: 'birds' },
+      { id: 904, name: 'Fish', slug: 'fish' },
+    ]},
+    { id: 10, name: 'Health & Beauty', slug: 'health-beauty', icon: 'Heart', children: [
+      { id: 1001, name: 'Skincare', slug: 'skincare' },
+      { id: 1002, name: 'Haircare', slug: 'haircare' },
+      { id: 1003, name: 'Makeup', slug: 'makeup' },
+      { id: 1004, name: 'Fragrances', slug: 'fragrances' },
+    ]},
+    { id: 11, name: 'Baby & Kids', slug: 'baby-kids', icon: 'Baby', children: [
+      { id: 1101, name: 'Toys', slug: 'toys' },
+      { id: 1102, name: 'Baby Gear', slug: 'baby-gear' },
+      { id: 1103, name: "Children's Clothing", slug: 'children-clothing' },
+    ]},
+    { id: 12, name: 'Sports & Outdoors', slug: 'sports-outdoors', icon: 'Dumbbell', children: [
+      { id: 1201, name: 'Gym Equipment', slug: 'gym-equipment' },
+      { id: 1202, name: 'Sports Gear', slug: 'sports-gear' },
+      { id: 1203, name: 'Camping & Hiking', slug: 'camping-hiking' },
+    ]},
+  ];
+
   useEffect(() => {
     if (isOpen) {
       fetchCategories();
@@ -146,13 +219,17 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
       const data = await response.json();
       if (data.success && data.data) {
         const cats = data.data.filter((c: any) => !c.parent_id);
-        setCategories(cats);
+        if (cats.length > 0) {
+          setCategories(cats);
+          setLoading(false);
+          return;
+        }
       }
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch categories, using local fallback:', error);
     }
+    setCategories(localCategories);
+    setLoading(false);
   };
 
   const getCurrentCategories = useMemo(() => {
