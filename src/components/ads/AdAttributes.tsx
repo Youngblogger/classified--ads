@@ -46,7 +46,7 @@ function isBooleanValue(value: any): boolean {
   return typeof value === 'boolean';
 }
 
-export default function AdAttributes({ attributes, title = 'Specifications' }: AdAttributesProps) {
+export default function AdAttributes({ attributes, title }: AdAttributesProps) {
   const attrs = typeof attributes === 'string' ? JSON.parse(attributes) : attributes;
   
   if (!attrs || Object.keys(attrs).length === 0) {
@@ -62,45 +62,44 @@ export default function AdAttributes({ attributes, title = 'Specifications' }: A
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
-      {entries.map(([key, value]) => {
-        const isBoolean = isBooleanValue(value);
-        
-        return (
-          <div 
-            key={key} 
-            className="flex items-center justify-between py-1"
-          >
-            <span className="text-sm font-semibold text-gray-700">
-              {formatLabel(key)}
-            </span>
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Specifications</h3>
+      </div>
+      <table className="w-full">
+        <tbody>
+          {entries.map(([key, value], index) => {
+            const isBoolean = isBooleanValue(value);
+            const isEven = index % 2 === 0;
             
-            {isBoolean ? (
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                value 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-gray-200 text-gray-500'
-              }`}>
-                {value ? (
-                  <>
-                    <Check className="w-3 h-3" />
-                    Yes
-                  </>
-                ) : (
-                  <>
-                    <X className="w-3 h-3" />
-                    No
-                  </>
-                )}
-              </span>
-            ) : (
-              <span className="text-sm font-medium text-gray-900 text-right">
-                {formatValue(key, value)}
-              </span>
-            )}
-          </div>
-        );
-      })}
+            return (
+              <tr key={key} className={isEven ? 'bg-white' : 'bg-gray-50'}>
+                <td className="px-4 py-3 text-sm font-medium text-gray-600 w-1/2 border-r border-gray-100">
+                  {formatLabel(key)}
+                </td>
+                <td className="px-4 py-3 text-sm font-semibold text-gray-900 w-1/2">
+                  <div className="flex items-center gap-2">
+                    {isBoolean ? (
+                      <>
+                        {value ? (
+                          <Check className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <X className="w-4 h-4 text-gray-400" />
+                        )}
+                        <span className={value ? 'text-emerald-700' : 'text-gray-500'}>
+                          {value ? 'Yes' : 'No'}
+                        </span>
+                      </>
+                    ) : (
+                      <span>{formatValue(key, value)}</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

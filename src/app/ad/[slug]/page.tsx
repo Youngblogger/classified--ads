@@ -418,30 +418,20 @@ export default function AdDetailPage() {
 
                   {/* Location, Views, Posted */}
                   <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                        <MapPin className="w-4 h-4 text-primary-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400">Location</p>
-                        <p className="font-medium text-gray-900">{ad.location?.name || 'N/A'}{ad.lga && `, ${ad.lga}`}</p>
-                      </div>
+                    <div>
+                      <span className="text-gray-400">Location: </span>
+                      <span className="font-medium text-gray-900">{ad.location?.name || 'N/A'}{ad.lga && `, ${ad.lga}`}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <Eye className="w-4 h-4 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400">Views</p>
-                        <p className="font-medium text-gray-900">{ad.views || 0} views</p>
-                      </div>
+                    <div>
+                      <span className="text-gray-400">Views: </span>
+                      <span className="font-medium text-gray-900">{ad.views || 0}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Dynamic Attributes / Specifications */}
-                {ad.attributes && (
-                  <div className="mt-4">
+                {/* Specifications Section */}
+                {ad.attributes && Object.keys(ad.attributes).length > 0 && (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
                     <AdAttributes attributes={ad.attributes} />
                   </div>
                 )}
