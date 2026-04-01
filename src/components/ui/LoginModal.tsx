@@ -576,14 +576,7 @@ export default function LoginModal() {
                   disabled={isSubmitting}
                   className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    'Sign In'
-                  )}
+                  Sign In
                 </button>
               </form>
             )}
@@ -617,12 +610,8 @@ export default function LoginModal() {
                     disabled={otpLoading || !isValidPhone(phone)}
                     className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {otpLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                    {otpLoading ? 'Sending...' : 'Send OTP Code'}
+                    <Send className="w-4 h-4" />
+                    Send OTP Code
                   </button>
                 ) : (
                   <>
@@ -660,12 +649,8 @@ export default function LoginModal() {
                       disabled={isSubmitting || otp.join('').length !== 4}
                       className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      {isSubmitting ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <CheckCircle className="w-4 h-4" />
-                      )}
-                      {isSubmitting ? 'Verifying...' : 'Verify & Login'}
+                      <CheckCircle className="w-4 h-4" />
+                      Verify & Login
                     </button>
 
                     <div className="text-center text-sm">

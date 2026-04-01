@@ -69,6 +69,27 @@ module.exports = {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Poppins', 'system-ui', 'sans-serif'],
       },
+      fontSize: {
+        'page-title': ['1.25rem', { lineHeight: '1.3', fontWeight: '600' }],
+        'section-title': ['1rem', { lineHeight: '1.4', fontWeight: '600' }],
+        'ad-title': ['0.9375rem', { lineHeight: '1.4', fontWeight: '500' }],
+        'price': ['1rem', { lineHeight: '1.4', fontWeight: '700' }],
+        'price-lg': ['1.125rem', { lineHeight: '1.4', fontWeight: '700' }],
+        'body': ['0.875rem', { lineHeight: '1.5', fontWeight: '400' }],
+        'small': ['0.75rem', { lineHeight: '1.4', fontWeight: '400' }],
+        'tiny': ['0.6875rem', { lineHeight: '1.4', fontWeight: '400' }],
+        'button': ['0.875rem', { lineHeight: '1.4', fontWeight: '500' }],
+      },
+      lineHeight: {
+        'heading': '1.3',
+        'body': '1.5',
+        'relaxed': '1.6',
+      },
+      letterSpacing: {
+        'tight': '-0.01em',
+        'normal': '0',
+        'wide': '0.01em',
+      },
       boxShadow: {
         'card': '0 1px 3px rgba(0, 0, 0, 0.08)',
         'card-hover': '0 4px 12px rgba(0, 0, 0, 0.12)',

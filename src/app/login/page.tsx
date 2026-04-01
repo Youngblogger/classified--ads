@@ -47,11 +47,14 @@ export default function LoginPage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 mb-4">Loading...</p>
-        </div>
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+            <p className="text-gray-600 mb-4">Loading...</p>
+          </div>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -61,9 +64,8 @@ export default function LoginPage() {
       <Header />
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-gray-600 mb-4">Please wait...</p>
-          <p className="text-sm text-gray-500">You will be redirected to complete your login</p>
+          <p className="text-sm text-gray-500">Complete your login below</p>
         </div>
       </main>
       <Footer />

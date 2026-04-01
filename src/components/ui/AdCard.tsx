@@ -31,14 +31,14 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
 
   const getConditionBadge = () => {
     if (!ad.condition) return null;
-    const badgeClasses = ad.condition === 'new' ? 'bg-green-500 text-white' :
-                         ad.condition === 'like_new' ? 'bg-blue-500 text-white' :
-                         ad.condition === 'good' ? 'bg-yellow-500 text-white' :
-                         'bg-orange-500 text-white';
+    const badgeClasses = ad.condition === 'new' ? 'bg-green-50 text-green-700' :
+                         ad.condition === 'like_new' ? 'bg-blue-50 text-blue-700' :
+                         ad.condition === 'good' ? 'bg-gray-50 text-gray-600' :
+                         'bg-amber-50 text-amber-700';
     const label = ad.condition === 'new' ? 'New' :
                   ad.condition === 'like_new' ? 'Like New' :
                   ad.condition === 'good' ? 'Good' : 'Fair';
-    return <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClasses}`}>{label}</span>;
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClasses}`}>{label}</span>;
   };
 
   const imageLoader = () => imageUrl;
@@ -66,14 +66,10 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           {getConditionBadge()}
         </div>
         <div className="flex-1 p-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-semibold text-dark line-clamp-1">{ad.title}</h3>
-              <p className="text-xl font-bold text-primary-600 mt-1">
-                {formatPrice(ad.price, ad.currency)}
-              </p>
-            </div>
-          </div>
+          <p className="text-xl font-bold text-primary-600 mb-1">
+            {formatPrice(ad.price, ad.currency)}
+          </p>
+          <h3 className="font-semibold text-dark line-clamp-1">{ad.title}</h3>
           {ad.description && (
             <p className="text-sm text-gray-500 mt-2 line-clamp-2">{ad.description}</p>
           )}
@@ -109,10 +105,15 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           {getConditionBadge()}
         </div>
         <div className="p-3">
-          <h3 className="font-medium text-dark text-sm line-clamp-1">{ad.title}</h3>
-          <p className="text-primary-600 font-bold mt-1">
+          <p className="text-primary-600 font-bold mb-1">
             {formatPrice(ad.price, ad.currency)}
           </p>
+          <h3 className="font-medium text-dark text-sm line-clamp-1">{ad.title}</h3>
+          {(ad.short_description || ad.description) && (
+            <p className="text-gray-500 text-xs mt-1 line-clamp-2">
+              {ad.short_description || ad.description}
+            </p>
+          )}
           <div className="flex items-center gap-1 mt-2 text-gray-400 text-xs">
             <MapPin className="w-3 h-3" />
             <span className="truncate">{getLocationDisplay()}</span>
@@ -124,7 +125,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
 
   return (
     <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+      <div className="relative h-auto min-h-[200px] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
           <Image
             src={imageUrl}
@@ -141,23 +142,25 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             <ImageIcon className="w-12 h-12 text-gray-300" />
           </div>
         )}
-        {getConditionBadge()}
       </div>
       <div className="p-4">
+        <p className="text-xl font-bold text-primary-600 mb-1">
+          {formatPrice(ad.price, ad.currency)}
+        </p>
         <h3 className="font-semibold text-dark line-clamp-2 group-hover:text-primary-600 transition-colors">
           {ad.title}
         </h3>
         {(ad.short_description || ad.description) && (
-          <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+          <p className="text-gray-500 text-sm mt-2 line-clamp-2">
             {ad.short_description || ad.description}
           </p>
         )}
-        <p className="text-xl font-bold text-primary-600 mt-2">
-          {formatPrice(ad.price, ad.currency)}
-        </p>
-        <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
-          <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">{getLocationDisplay()}</span>
+        <div className="flex items-center justify-between gap-2 mt-3 text-gray-500 text-sm flex-wrap">
+          <div className="flex items-center gap-1">
+            <MapPin className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">{getLocationDisplay()}</span>
+          </div>
+          {getConditionBadge()}
         </div>
       </div>
     </Link>

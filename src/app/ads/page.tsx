@@ -319,7 +319,7 @@ function AdsPageContent() {
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Condition</h3>
               <div className="space-y-2">
-                {['new', 'used', 'refurbished'].map((cond) => (
+                {['new', 'like_new', 'good', 'fair'].map((cond) => (
                   <label key={cond} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -329,7 +329,7 @@ function AdsPageContent() {
                       onChange={(e) => setCondition(e.target.value)}
                       className="text-primary-600"
                     />
-                    <span className="capitalize">{cond}</span>
+                    <span className="capitalize">{cond === 'new' ? 'Brand New' : cond === 'like_new' ? 'Like New' : cond}</span>
                   </label>
                 ))}
               </div>

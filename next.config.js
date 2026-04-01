@@ -4,17 +4,9 @@ const nextConfig = {
   experimental: {
     optimizeCss: false,
     scrollRestoration: true,
+    cpus: 1,
   },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
-    }
-    return config;
-  },
-  swcMinify: true,
+  swcMinify: false,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -63,8 +55,8 @@ const nextConfig = {
     path: '/_next/image',
   },
   onDemandEntries: {
-    maxInactiveAge: 60 * 1000,
-    pagesBufferLength: 5,
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
   },
   async headers() {
     return [

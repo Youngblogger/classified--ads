@@ -42,7 +42,7 @@ interface PostAdFormProps {
   isStandalone?: boolean;
 }
 
-const MAX_IMAGES = 6;
+const MAX_IMAGES = 20;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_FORMATS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
 
@@ -67,7 +67,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [locationBreadcrumb, setLocationBreadcrumb] = useState<string>('');
   const [locationId, setLocationId] = useState<number | null>(null);
   const [lgaId, setLgaId] = useState<string>('');
-  const [condition, setCondition] = useState<'brand_new' | 'like_new' | 'used' | 'refurbished' | ''>('');
+  const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
   const [images, setImages] = useState<ImageFile[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -501,7 +501,12 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const canSubmit = title && description && price && categoryId && locationId && images.length > 0 && condition;
 
   const handleSubmit = async () => {
-    if (!canSubmit || isLoading) return;
+    if (isLoading) return;
+
+    if (!title || !description || !price || !categoryId || !locationId || images.length === 0 || !condition) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
 
     if (!isAuthenticated) {
       toast.error('Please login to post an ad.');
@@ -624,10 +629,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   };
 
   const conditionLabels = {
-    'brand_new': 'Brand New',
+    'new': 'Brand New',
     'like_new': 'Like New',
-    'used': 'Used',
-    'refurbished': 'Refurbished'
+    'good': 'Good',
+    'fair': 'Fair'
   };
 
   const goBack = () => {
@@ -790,7 +795,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. iPhone 14 Pro Max 256GB"
-              className="w-full px-5 py-4 text-lg font-bold border-2 border-gray-200 rounded-2xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400"
+              className="w-full px-4 py-3 text-base font-bold border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 bg-white text-gray-900 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400"
               maxLength={100}
               style={{ height: '60px' }}
             />
@@ -807,7 +812,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your item in detail. Include features, condition, and any other relevant information..."
               rows={6}
-              className="w-full px-5 py-4 text-base font-medium border-2 border-gray-200 rounded-2xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 resize-none bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400"
+              className="w-full px-4 py-3 text-sm font-medium border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 resize-none bg-white text-gray-900 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400"
             />
             <p className="text-sm text-gray-400 mt-2 text-right">{description.length}/2000</p>
           </div>
@@ -819,10 +824,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             </label>
             <div className="flex flex-wrap gap-3">
               {([
-                { key: 'brand_new', label: 'Brand New', color: 'emerald' },
+                { key: 'new', label: 'Brand New', color: 'emerald' },
                 { key: 'like_new', label: 'Like New', color: 'blue' },
-                { key: 'used', label: 'Used', color: 'amber' },
-                { key: 'refurbished', label: 'Refurbished', color: 'purple' }
+                { key: 'good', label: 'Good', color: 'amber' },
+                { key: 'fair', label: 'Fair', color: 'purple' }
               ] as const).map(({ key, label, color }) => {
                 const isSelected = condition === key;
                 const colorClasses = {
@@ -868,7 +873,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                     <select
                       value={selectedBrand}
                       onChange={(e) => handleBrandChange(e.target.value)}
-                      className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      className="w-full px-3 py-2.5 pr-10 border-2 border-gray-200 rounded-lg bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
                     >
                       <option value="">Select Brand</option>
                       {getAvailableBrands().map((brand) => (
@@ -1017,64 +1022,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             </div>
           )}
 
-          {/* Dynamic Fields from API */}
-          {categoryFields.length > 0 && (
-            <div className="space-y-4">
-              {fieldsLoading ? (
-                <div className="flex items-center gap-2 text-gray-500 py-4">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Loading category fields...</span>
-                </div>
-              ) : (
-                <>
-                  {categoryFields.filter(f => !f.group_name && !f.name.toLowerCase().includes('display') && !f.name.toLowerCase().includes('screen')).map((field) => (
-                    <DynamicField
-                      key={field.name}
-                      field={field}
-                      value={attributes}
-                      onChange={handleAttributeChange}
-                    />
-                  ))}
-                  
-                  {/* Grouped fields */}
-                  {(() => {
-                    const grouped = categoryFields.reduce((acc, field) => {
-                      const group = field.group_name || 'Other';
-                      if (!acc[group]) acc[group] = [];
-                      acc[group].push(field);
-                      return acc;
-                    }, {} as Record<string, CategoryField[]>);
-
-                    return Object.entries(grouped)
-                      .filter(([groupName]) => groupName.toLowerCase() !== 'basic info')
-                      .map(([groupName, fields]) => {
-                        const filteredFields = fields.filter(f => !f.name.toLowerCase().includes('display') && !f.name.toLowerCase().includes('screen'));
-                        if (filteredFields.length === 0) return null;
-                        return (
-                          <div key={groupName} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 border border-gray-200">
-                            <div className="flex items-center gap-2 pb-3 border-b border-gray-200 mb-4">
-                              <h4 className="text-sm font-semibold text-gray-900">{groupName}</h4>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {filteredFields.map((field) => (
-                                <div key={field.name} className={field.type === 'multi_select' ? 'md:col-span-2' : ''}>
-                                  <DynamicField
-                                    field={field}
-                                    value={attributes}
-                                    onChange={handleAttributeChange}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }).filter(Boolean);
-                  })()}
-                </>
-              )}
-            </div>
-          )}
-
           {/* Contact Info */}
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 space-y-5 border border-gray-200">
             <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
@@ -1096,7 +1043,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="Enter your phone number"
-                    className="w-full pl-14 pr-5 py-5 text-xl font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-2xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 group-hover:border-primary-300"
+                    className="w-full pl-12 pr-4 py-4 text-lg font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 group-hover:border-primary-300"
                     style={{ height: '70px' }}
                   />
                 </div>
@@ -1116,7 +1063,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       value={whatsapp}
                       onChange={(e) => setWhatsapp(e.target.value)}
                       placeholder="Enter WhatsApp number"
-                      className="w-full pl-14 pr-5 py-5 text-xl font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none focus:ring-4 focus:ring-green-100 transition-all duration-300 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 group-hover:border-green-400"
+                      className="w-full pl-12 pr-4 py-4 text-lg font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none focus:ring-4 focus:ring-green-100 transition-all duration-300 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 group-hover:border-green-400"
                       style={{ height: '70px' }}
                     />
                   </div>
@@ -1207,7 +1154,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 value={formatPrice(price)}
                 onChange={handlePriceChange}
                 placeholder="0"
-                className="w-full pl-14 pr-5 py-5 text-3xl border-2 border-gray-200 rounded-2xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-bold bg-white text-gray-900 placeholder:text-3xl placeholder:font-bold placeholder:text-gray-300"
+                className="w-full pl-12 pr-4 py-4 text-2xl border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-bold bg-white text-gray-900 placeholder:text-2xl placeholder:font-bold placeholder:text-gray-300"
                 style={{ height: '80px' }}
               />
             </div>
@@ -1297,8 +1244,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         ) : (
           <button
             onClick={handleSubmit}
-            disabled={!canSubmit || isLoading}
-            className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+            disabled={isLoading}
+            className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all flex items-center gap-2 disabled:bg-gray-400"
           >
             {isLoading ? (
               <>

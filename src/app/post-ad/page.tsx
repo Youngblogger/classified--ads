@@ -14,7 +14,7 @@ export default function PostAdPage() {
         <div className="container-app">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Form */}
-            <div className="lg:col-span-2">
+              <div className="lg:col-span-2">
               <div className="bg-white rounded-2xl shadow-card p-6 md:p-8">
                 <h1 className="text-2xl font-bold text-dark mb-2">Post Your Ad</h1>
                 <p className="text-gray-500 mb-8">Fill in the details to list your item for sale</p>

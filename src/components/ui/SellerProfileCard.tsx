@@ -270,7 +270,7 @@ export default function SellerProfileCard({
                 onClick={handleFollow}
                 disabled={isLoading || isInitializing || isOwnProfile}
                 className={`
-                  flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 ml-[10px] sm:ml-[15px]
+                  flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 ml-[10px] sm:ml-[15px]
                   ${isFollowing 
                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300' 
                     : 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm hover:shadow'
@@ -279,15 +279,15 @@ export default function SellerProfileCard({
                 `}
               >
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3 h-3 animate-spin" />
                 ) : isFollowing ? (
                   <>
-                    <UserMinus className="w-4 h-4" />
+                    <UserMinus className="w-3 h-3" />
                     <span>Following</span>
                   </>
                 ) : (
                   <>
-                    <UserPlus className="w-4 h-4" />
+                    <UserPlus className="w-3 h-3" />
                     <span>Follow</span>
                   </>
                 )}

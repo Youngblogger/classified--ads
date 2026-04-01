@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Header from '@/components/home/Header';
@@ -150,7 +150,7 @@ export default function AdDetailPage() {
 
   // Auto-slide images
   useEffect(() => {
-    if (!ad || !ad.images || ad.images.length <= 1) return;
+    if (!ad || !ad.images || !Array.isArray(ad.images) || ad.images.length <= 1) return;
     
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % ad.images.length);
@@ -285,7 +285,7 @@ export default function AdDetailPage() {
             {/* Left Column - Images & Details */}
             <div className="lg:col-span-2 space-y-px">
               {/* Image Gallery */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden border-t-8 border-primary-600">
                 <div className="relative aspect-[4/3] bg-gray-100">
                   {currentImageUrl ? (
                     <img src={currentImageUrl} alt={ad.title} className="w-full h-full object-cover" style={{ imageRendering: 'auto' }} loading="eager" />
@@ -294,18 +294,20 @@ export default function AdDetailPage() {
                   )}
                   
                   {/* Badges - Single Combined Badge */}
-                  <div className="absolute top-4 left-4">
-                    <span className={`px-4 py-2 rounded-full text-sm font-bold text-white shadow-lg ${
-                      ad.condition === 'brand_new' ? 'bg-emerald-500' :
-                      ad.condition === 'like_new' ? 'bg-blue-500' :
-                      ad.condition === 'used' ? 'bg-orange-500' :
-                      'bg-purple-500'
-                    }`}>
-                      {ad.condition === 'brand_new' ? 'Brand New' : 
-                       ad.condition === 'like_new' ? 'Like New' : 
-                       ad.condition === 'used' ? 'Used' : 'Refurbished'}
-                    </span>
-                  </div>
+                  {ad.condition && (
+                    <div className="absolute top-2 left-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        ad.condition === 'new' || ad.condition === 'brand_new' ? 'bg-green-50 text-green-700' :
+                        ad.condition === 'like_new' ? 'bg-blue-50 text-blue-700' :
+                        ad.condition === 'good' ? 'bg-gray-50 text-gray-600' :
+                        'bg-amber-50 text-amber-700'
+                      }`}>
+                        {ad.condition === 'new' || ad.condition === 'brand_new' ? 'New' : 
+                         ad.condition === 'like_new' ? 'Like New' : 
+                         ad.condition === 'good' ? 'Good' : 'Fair'}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Navigation Arrows */}
                   {imagesArray.length > 1 && (
@@ -440,27 +442,24 @@ export default function AdDetailPage() {
             </div>
 
             {/* Right Column - Seller & Contact */}
-            <div className="space-y-px">
+            <div className="space-y-px max-w-sm">
               {/* Seller Card */}
-              {ad.user && (
-                <div className="bg-white rounded-2xl shadow-sm p-6">
-                  <h2 className="font-semibold text-gray-900 mb-4">Seller Info</h2>
-                  <SellerProfileCard
-                    seller={{
-                      id: ad.user.id,
-                      name: ad.user.name,
-                      avatar: ad.user.avatar,
-                      avatar_url: ad.user.avatar_url,
-                      full_avatar_url: ad.user.full_avatar_url || (ad.user.avatar ? `${BACKEND_URL}/storage/${ad.user.avatar}` : null),
-                      google_avatar: ad.user.google_avatar,
-                      facebook_avatar: ad.user.facebook_avatar,
-                      verified: ad.user.verified,
-                      created_at: ad.user.created_at,
-                    }}
-                    showFollowButton={true}
-                    showJoinedDate={true}
-                  />
-                </div>
+              {ad.user && ad.user.id && (
+                <SellerProfileCard
+                  seller={{
+                    id: ad.user.id,
+                    name: ad.user.name || 'Unknown',
+                    avatar: ad.user.avatar,
+                    avatar_url: ad.user.avatar_url,
+                    full_avatar_url: ad.user.full_avatar_url || (ad.user.avatar ? `${BACKEND_URL}/storage/${ad.user.avatar}` : null),
+                    google_avatar: ad.user.google_avatar,
+                    facebook_avatar: ad.user.facebook_avatar,
+                    verified: ad.user.verified,
+                    created_at: ad.user.created_at,
+                  }}
+                  showFollowButton={true}
+                  showJoinedDate={true}
+                />
               )}
 
               {/* Contact Card */}
@@ -492,7 +491,7 @@ export default function AdDetailPage() {
                     </button>
                   )}
                   <button onClick={handleChat} className="py-3 px-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
-                    <MessageCircle className="w-5 h-5" />Chat
+                    <MessageCircle className="w-5 h-5" />Chat seller
                   </button>
                 </div>
 
@@ -511,11 +510,6 @@ export default function AdDetailPage() {
                     { text: 'Always meet in a secure, public location' },
                     { text: 'Inspect items carefully before payment' },
                     { text: 'Avoid upfront payment' },
-                    { text: 'Inspect items before payment' },
-                    { text: 'Avoid rushed or pressured transactions' },
-                    { text: "Don't click unknown links" },
-                    { text: 'Keep communication on the platform' },
-                    { text: 'Test items before buying' },
                     { text: 'Be cautious with delivery payments' },
                     { text: 'Report suspicious users immediately' },
                   ].map((tip, index) => (

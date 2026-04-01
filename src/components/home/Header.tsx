@@ -209,10 +209,40 @@ export default function Header() {
   const [loadingData, setLoadingData] = useState(true);
   const [megaMenuSearch, setMegaMenuSearch] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
+  const placeholderWords = [
+    '"Cars"',
+    '"Mobile Phones"',
+    '"Properties"',
+    '"Laptops"',
+    '"Furnitures"',
+    '"Vehicles"',
+    '"Sports"',
+    '"Health & Beauty"',
+    '"Tech Skills"',
+    '"Educational"',
+    '"Baby & Kids"',
+    '"Jobs"',
+    '"Fashions"',
+    '"Electronics"',
+  ];
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Infinite scrolling placeholder with fade animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsPlaceholderVisible(false);
+      setTimeout(() => {
+        setPlaceholderIndex((prev) => (prev + 1) % placeholderWords.length);
+        setIsPlaceholderVisible(true);
+      }, 300);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [placeholderWords.length]);
 
   const filteredMegaMenuCategories = megaMenuSearch.trim() === '' 
     ? apiCategories 
@@ -868,21 +898,36 @@ export default function Header() {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <Search className="w-5 h-5 text-slate-400 group-focus-within:text-primary-600 transition-colors" />
                   </div>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setShowSearchDropdown(true);
-                    }}
-                    onFocus={() => setShowSearchDropdown(true)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder="Search for cars, phones, properties..."
-                    className="w-full pl-12 pr-24 py-3 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm shadow-sm transition-all duration-300"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    spellCheck="false"
-                  />
+                  <div className="relative w-full">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setShowSearchDropdown(true);
+                      }}
+                      onFocus={() => setShowSearchDropdown(true)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      className="w-full pl-12 pr-24 py-4 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm shadow-sm transition-all duration-300"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck="false"
+                    />
+                    {!searchQuery && (
+                      <span 
+                        className="absolute left-12 top-1/2 -translate-y-1/2 text-lg text-slate-600 font-medium pointer-events-none"
+                      >
+                        Search for{' '}
+                        <span 
+                          className={`inline-block transition-opacity duration-300 ${
+                            isPlaceholderVisible ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          {placeholderWords[placeholderIndex]}
+                        </span>
+                      </span>
+                    )}
+                  </div>
                   {isSearching && (
                     <div className="absolute inset-y-0 right-24 flex items-center">
                       <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />

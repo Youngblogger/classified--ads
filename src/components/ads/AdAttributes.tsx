@@ -47,7 +47,14 @@ function isBooleanValue(value: any): boolean {
 }
 
 export default function AdAttributes({ attributes, title }: AdAttributesProps) {
-  const attrs = typeof attributes === 'string' ? JSON.parse(attributes) : attributes;
+  let attrs = attributes;
+  if (typeof attributes === 'string') {
+    try {
+      attrs = JSON.parse(attributes);
+    } catch (e) {
+      return null;
+    }
+  }
   
   if (!attrs || Object.keys(attrs).length === 0) {
     return null;

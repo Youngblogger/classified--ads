@@ -99,6 +99,70 @@
 }
 
 @layer components {
+  /* Typography System for Classified Marketplace */
+  
+  /* Page Title - 20-24px, font-weight 600-700 */
+  .typography-page-title {
+    @apply text-xl md:text-2xl font-semibold leading-heading tracking-tight text-slate-900;
+  }
+  
+  /* Section Title - 16-18px, font-weight 600 */
+  .typography-section-title {
+    @apply text-base md:text-lg font-semibold leading-heading tracking-tight text-slate-900;
+  }
+  
+  /* Ad Title - 15-17px, font-weight 500-600 */
+  .typography-ad-title {
+    @apply text-sm md:text-base font-medium leading-body text-slate-900;
+  }
+  
+  /* Price - 16-18px, font-weight 700, must stand out */
+  .typography-price {
+    @apply text-base md:text-lg font-bold leading-body text-primary-600;
+  }
+  
+  .typography-price-lg {
+    @apply text-lg md:text-xl font-bold leading-body text-primary-600;
+  }
+  
+  /* Body Text - 14-15px, font-weight 400 */
+  .typography-body {
+    @apply text-sm font-normal leading-relaxed text-slate-600;
+  }
+  
+  .typography-body-sm {
+    @apply text-xs font-normal leading-relaxed text-slate-600;
+  }
+  
+  /* Small Text (location, timestamp) - 12-13px, font-weight 400 */
+  .typography-meta {
+    @apply text-xs font-normal leading-relaxed text-slate-500;
+  }
+  
+  .typography-meta-sm {
+    @apply text-[11px] font-normal leading-relaxed text-slate-400;
+  }
+  
+  /* Button Text - 14-16px, font-weight 500-600 */
+  .typography-button {
+    @apply text-sm font-medium leading-button text-center;
+  }
+  
+  .typography-button-lg {
+    @apply text-base font-semibold leading-button text-center;
+  }
+  
+  /* Label Text */
+  .typography-label {
+    @apply text-sm font-medium leading-body text-slate-700;
+  }
+  
+  /* Caption Text */
+  .typography-caption {
+    @apply text-xs font-normal leading-body text-slate-500;
+  }
+
+  /* Buttons */
   .btn {
     @apply inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
@@ -144,7 +208,7 @@
   }
 
   .input {
-    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
   }
 
   .input-error {
@@ -152,7 +216,7 @@
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1.5;
+    @apply block text-sm font-medium text-gray-700 mb-1.5 leading-body;
   }
 
   .link {

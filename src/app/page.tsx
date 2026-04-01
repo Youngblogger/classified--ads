@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus } from 'lucide-react';
+import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus, Heart, Bookmark } from 'lucide-react';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
+import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
@@ -36,6 +37,8 @@ function getImageUrl(img: any): string {
 
 function AdCardWithImage({ ad }: { ad: any }) {
   const [imgError, setImgError] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   
   const imagesArray = Array.isArray(ad.images) ? ad.images : [];
   let primaryImage = imagesArray.find((img: any) => img?.is_primary);
@@ -45,16 +48,50 @@ function AdCardWithImage({ ad }: { ad: any }) {
   const imageUrl = primaryImage ? getImageUrl(primaryImage) : '';
   const imageCount = imagesArray.length;
 
+  const toggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (favoriteLoading) return;
+    
+    setFavoriteLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to save ads');
+        return;
+      }
+      
+      if (isFavorited) {
+        await fetch(`${API_URL}/favorites/${ad.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        });
+      } else {
+        await fetch(`${API_URL}/favorites`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ad_id: ad.id })
+        });
+      }
+      setIsFavorited(!isFavorited);
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
   const getConditionBadge = () => {
     if (!ad.condition) return null;
-    const badgeClasses = ad.condition === 'new' ? 'bg-emerald-500 text-white' :
-                         ad.condition === 'like_new' ? 'bg-blue-600 text-white' :
-                         ad.condition === 'good' ? 'bg-amber-500 text-white' :
-                         'bg-orange-500 text-white';
+    const badgeClasses = ad.condition === 'new' ? 'bg-green-50 text-green-700' :
+                         ad.condition === 'like_new' ? 'bg-blue-50 text-blue-700' :
+                         ad.condition === 'good' ? 'bg-gray-50 text-gray-600' :
+                         'bg-amber-50 text-amber-700';
     const label = ad.condition === 'new' ? 'New' :
                   ad.condition === 'like_new' ? 'Like New' :
                   ad.condition === 'good' ? 'Good' : 'Fair';
-    return <span className={`absolute top-2 left-2 px-3 py-1 text-xs font-bold uppercase tracking-wide ${badgeClasses}`}>{label}</span>;
+    return <span className={`absolute top-2 left-2 px-2 py-0.5 text-xs font-medium rounded-full ${badgeClasses}`}>{label}</span>;
   };
   
   return (
@@ -75,6 +112,20 @@ function AdCardWithImage({ ad }: { ad: any }) {
         
         {getConditionBadge()}
         
+        <button 
+          onClick={toggleFavorite}
+          disabled={favoriteLoading}
+          className="absolute top-3 right-3 p-2 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 disabled:opacity-50 z-20 border border-gray-200"
+        >
+          <Bookmark 
+            className={`w-5 h-5 transition-colors ${
+              isFavorited 
+                ? 'text-primary-600 fill-primary-600' 
+                : 'text-gray-600 hover:text-primary-600'
+            }`} 
+          />
+        </button>
+        
         {imageCount > 1 && (
           <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-medium px-2.5 py-1 rounded flex items-center gap-1">
             <ImageIcon className="w-3.5 h-3.5" />
@@ -83,20 +134,20 @@ function AdCardWithImage({ ad }: { ad: any }) {
         )}
       </div>
       
-      <div className="p-5">
+      <div className="p-3">
         <h3 className="font-semibold text-gray-800 line-clamp-2 group-hover:text-primary-600 transition-colors text-lg leading-snug">
           {ad.title}
         </h3>
         
+        <p className="text-2xl font-bold text-gray-900 mt-1">
+          {formatPrice(ad.price, ad.currency)}
+        </p>
+        
         {(ad.short_description || ad.description) && (
-          <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+          <p className="text-gray-500 text-sm mt-2 line-clamp-2">
             {ad.short_description || ad.description}
           </p>
         )}
-        
-        <p className="text-2xl font-bold text-gray-900 mt-2">
-          {formatPrice(ad.price, ad.currency)}
-        </p>
         
         <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
           <MapPin className="w-4 h-4 flex-shrink-0" />
@@ -327,7 +378,7 @@ export default function HomePage() {
 
         {/* Latest Ads - jiji.ng style */}
         <section className="py-4 bg-white">
-          <div className="container-app px-[10px]">
+          <div className="px-[15px]">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
@@ -340,7 +391,7 @@ export default function HomePage() {
             </div>
             
             {loading ? (
-<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="bg-white rounded-lg overflow-hidden animate-pulse shadow-md border border-gray-200">
                     <div className="aspect-[3/2] bg-gray-200" />
@@ -368,7 +419,7 @@ export default function HomePage() {
               </div>
             ) : recentAds.length > 0 ? (
               <>
-<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
                   {recentAds.map((ad: any) => (
                     <AdCardWithImage key={ad.id} ad={ad} />
                   ))}

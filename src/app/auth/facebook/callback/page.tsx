@@ -3,14 +3,12 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import { Loader2 } from 'lucide-react';
 
 function FacebookCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const exchangeCodeForToken = async () => {
@@ -20,13 +18,11 @@ function FacebookCallbackContent() {
 
       if (errorParam || errorDescription) {
         setError(errorDescription || errorParam || 'Authentication failed');
-        setLoading(false);
         return;
       }
 
       if (!code) {
         setError('No authorization code received');
-        setLoading(false);
         return;
       }
 
@@ -49,7 +45,6 @@ function FacebookCallbackContent() {
 
         login(data.user, data.token);
         
-        // Read redirect from both localStorage and sessionStorage
         const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
         localStorage.removeItem('authRedirect');
         sessionStorage.removeItem('authRedirect');
@@ -57,7 +52,6 @@ function FacebookCallbackContent() {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
         setError(errorMessage);
-        setLoading(false);
       }
     };
 
@@ -84,7 +78,6 @@ function FacebookCallbackContent() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600 mx-auto mb-4" />
         <p className="text-gray-600">Completing Facebook login...</p>
       </div>
     </div>
@@ -95,7 +88,7 @@ export default function FacebookCallbackPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+        <p className="text-gray-600">Loading...</p>
       </div>
     }>
       <FacebookCallbackContent />
