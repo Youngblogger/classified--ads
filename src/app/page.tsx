@@ -6,9 +6,10 @@ import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, 
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
-import { formatPrice, formatRelativeTime } from '@/lib/utils';
+import { formatPrice, formatRelativeTime, FALLBACK_IMAGE } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
+import seededAds from './seededAds.json';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
@@ -40,13 +41,10 @@ function AdCardWithImage({ ad }: { ad: any }) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   
-  const imagesArray = Array.isArray(ad.images) ? ad.images : [];
-  let primaryImage = imagesArray.find((img: any) => img?.is_primary);
-  if (!primaryImage && imagesArray.length > 0) {
-    primaryImage = imagesArray[0];
-  }
-  const imageUrl = primaryImage ? getImageUrl(primaryImage) : '';
-  const imageCount = imagesArray.length;
+  const imageUrl = ad.images && ad.images.length > 0 ? ad.images[0] : FALLBACK_IMAGE;
+  const imageCount = Array.isArray(ad.images) ? ad.images.length : 0;
+  const sellerName = ad.seller?.name || 'Unknown Seller';
+  const verified = ad.seller?.verified || false;
 
   const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -105,9 +103,11 @@ function AdCardWithImage({ ad }: { ad: any }) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100">
-            <ImageIcon className="w-20 h-20 text-gray-300" />
-          </div>
+          <img
+            src={FALLBACK_IMAGE}
+            alt="No image"
+            className="w-full h-full object-cover"
+          />
         )}
         
         {getConditionBadge()}
@@ -151,7 +151,7 @@ function AdCardWithImage({ ad }: { ad: any }) {
         
         <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
           <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</span>
+          <span className="truncate">{typeof ad.location === 'string' ? ad.location : (ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A')}</span>
         </div>
       </div>
     </Link>
@@ -169,15 +169,25 @@ const FEATURED_CATEGORIES = [
 
 export default function HomePage() {
   const { isAuthenticated, user, hasHydrated } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
   const [recentAds, setRecentAds] = useState<any[]>([]);
-  
-  const [loading, setLoading] = useState(true);
+  const [allAds, setAllAds] = useState<any[]>([]);
+  const [latestAds, setLatestAds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [adsError, setAdsError] = useState<null | boolean>(null);
   const [isFetching, setIsFetching] = useState(false);
-  const ITEMS_PER_PAGE = 8;
+
+  useEffect(() => {
+    setMounted(true);
+    setRecentAds(seededAds);
+    setAllAds(seededAds);
+    setLatestAds(seededAds);
+  }, []);
+  
+  const ITEMS_PER_PAGE = 12;
 
   const fetchAds = useCallback(async (pageNum: number = 1, forceRefresh = false) => {
     if (isFetching) return;
@@ -190,9 +200,8 @@ export default function HomePage() {
     setIsFetching(true);
     
     try {
-      console.log('Fetching ads from:', `${API_URL}/ads?limit=${ITEMS_PER_PAGE}&page=${pageNum}`);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       
       const res = await fetch(`${API_URL}/ads?limit=${ITEMS_PER_PAGE}&page=${pageNum}&_t=${Date.now()}`, {
         cache: 'no-store',
@@ -206,7 +215,6 @@ export default function HomePage() {
       });
       
       clearTimeout(timeoutId);
-      console.log('Response status:', res.status);
       
       if (!res.ok) {
         throw new Error(`Server error: ${res.status}`);
@@ -223,11 +231,15 @@ export default function HomePage() {
         newAds = [];
       }
       
-      setRecentAds(prev => pageNum === 1 ? newAds : [...prev, ...newAds]);
+      setRecentAds(prev => {
+        if (pageNum === 1) {
+          return newAds.length > 0 ? newAds : seededAds;
+        }
+        return [...prev, ...newAds];
+      });
       setHasMore(newAds.length === ITEMS_PER_PAGE);
       setAdsError(false);
     } catch (error: any) {
-      console.error('Failed to fetch ads:', error);
       if (error.name === 'AbortError') {
         console.log('Request was aborted');
       }
@@ -262,10 +274,10 @@ export default function HomePage() {
   }, [loadingMore, hasMore, page]);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f5f6f7' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f5f6f7' }} suppressHydrationWarning>
       <Header />
       
-      <main className="flex-1">
+      <main className="flex-1" suppressHydrationWarning>
         {/* Hero Section */}
         <section className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
           {/* Background Pattern */}
@@ -390,8 +402,8 @@ export default function HomePage() {
               </Link>
             </div>
             
-            {loading ? (
-<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
+            {!mounted || loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="bg-white rounded-lg overflow-hidden animate-pulse shadow-md border border-gray-200">
                     <div className="aspect-[3/2] bg-gray-200" />
@@ -404,19 +416,26 @@ export default function HomePage() {
                 ))}
               </div>
             ) : adsError ? (
-              <div className="text-center py-16">
-                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <span className="text-4xl">⚠️</span>
+              <>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">⚠️</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
+                  <p className="text-gray-500 mb-4">Showing seeded ads instead.</p>
+                  <button 
+                    onClick={() => fetchAds(1, true)} 
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
+                  >
+                    <span>Try Again</span>
+                  </button>
                 </div>
-                <h3 className="text-xl font-semibold text-dark mb-2">Unable to load ads</h3>
-                <p className="text-gray-500 mb-5">The server might be temporarily unavailable.</p>
-                <button 
-                  onClick={() => fetchAds(1, true)} 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors"
-                >
-                  <span>Try Again</span>
-                </button>
-              </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
+                  {seededAds.map((ad: any, index: number) => (
+                    <AdCardWithImage key={`seeded-${index}`} ad={ad} />
+                  ))}
+                </div>
+              </>
             ) : recentAds.length > 0 ? (
               <>
 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
@@ -445,6 +464,10 @@ export default function HomePage() {
             )}
           </div>
         </section>
+
+
+
+
 
       </main>
 

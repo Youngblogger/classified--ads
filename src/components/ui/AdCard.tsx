@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, ImageIcon } from 'lucide-react';
 import { Ad } from '@/types';
-import { formatPrice, getAdImageUrl } from '@/lib/utils';
+import { formatPrice, getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
 import { useState, memo } from 'react';
 
 interface AdCardProps {
@@ -41,7 +41,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClasses}`}>{label}</span>;
   };
 
-  const imageLoader = () => imageUrl;
+  const imageLoader = () => imageUrl || FALLBACK_IMAGE;
 
   if (variant === 'horizontal') {
     return (
@@ -59,13 +59,20 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               priority={priority}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-              <ImageIcon className="w-10 h-10 text-gray-300" />
-            </div>
+            <Image
+              src={FALLBACK_IMAGE}
+              alt="No image"
+              fill
+              sizes="(max-width: 768px) 100vw, 192px"
+              className="object-cover"
+            />
           )}
           {getConditionBadge()}
         </div>
         <div className="flex-1 p-4">
+          {ad.category?.name && (
+            <span className="text-xs text-primary-600 font-medium">{ad.category.name}</span>
+          )}
           <p className="text-xl font-bold text-primary-600 mb-1">
             {formatPrice(ad.price, ad.currency)}
           </p>
@@ -98,13 +105,20 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               priority={priority}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-              <ImageIcon className="w-8 h-8 text-gray-300" />
-            </div>
+            <Image
+              src={FALLBACK_IMAGE}
+              alt="No image"
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover"
+            />
           )}
           {getConditionBadge()}
         </div>
         <div className="p-3">
+          {ad.category?.name && (
+            <span className="text-xs text-primary-600 font-medium">{ad.category.name}</span>
+          )}
           <p className="text-primary-600 font-bold mb-1">
             {formatPrice(ad.price, ad.currency)}
           </p>
@@ -138,12 +152,19 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             priority={priority}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-            <ImageIcon className="w-12 h-12 text-gray-300" />
-          </div>
+          <Image
+            src={FALLBACK_IMAGE}
+            alt="No image"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover"
+          />
         )}
       </div>
       <div className="p-4">
+        {ad.category?.name && (
+          <span className="text-xs text-primary-600 font-medium">{ad.category.name}</span>
+        )}
         <p className="text-xl font-bold text-primary-600 mb-1">
           {formatPrice(ad.price, ad.currency)}
         </p>

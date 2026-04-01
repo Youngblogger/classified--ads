@@ -96,10 +96,10 @@ export default function LatestReviews({ adId, adSlug, refreshKey = 0 }: LatestRe
         <h3 className="text-lg font-bold text-dark">Latest Reviews</h3>
         <button
           onClick={handleWriteReviewClick}
-          className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center shadow-sm hover:shadow"
         >
-          <Star className="w-4 h-4" />
-          Write a Review
+          <Star className="w-4 h-4 fill-white" />
+          <span className="ml-1">Write a Review</span>
         </button>
       </div>
       

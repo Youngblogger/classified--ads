@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { MapPin, Loader2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
-import { formatPrice, getAdImageUrl } from '@/lib/utils';
+import { formatPrice, getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
 
 interface AdImage {
   url?: string;
@@ -44,13 +44,12 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string>('');
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const loadedIdsRef = useRef<Set<number>>(new Set(initialAds?.map(ad => ad.id) || []));
 
   const API_URL = 'http://127.0.0.1:8000/api';
-  const ITEMS_PER_PAGE = 12;
+  const ITEMS_PER_PAGE = 8;
 
   const fetchAds = useCallback(async (pageNum: number, isInitial = false) => {
     try {
@@ -61,8 +60,6 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
       } else {
         setLoadingMore(true);
       }
-
-      setDebugInfo(`Fetching similar ads page ${pageNum}...`);
 
       const params = new URLSearchParams({
         ad_id: currentAdId.toString(),
@@ -79,8 +76,6 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
       if (!Array.isArray(newAds)) {
         newAds = [];
       }
-
-      setDebugInfo(`Got ${newAds.length} similar ads`);
 
       const uniqueAds = newAds.filter((ad: Ad) => {
         if (loadedIdsRef.current.has(ad.id)) {
@@ -101,7 +96,6 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
     } catch (err: any) {
       console.error('Error fetching similar ads:', err);
       setError(err.message || 'Failed to load ads');
-      setDebugInfo(`Error: ${err.message}`);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -145,54 +139,61 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
   }, [hasMore, loadingMore, loading, page, fetchAds]);
 
   const getConditionBadge = (condition: string) => {
-    const isNew = condition === 'brand_new';
+    const isNew = condition === 'new' || condition === 'brand_new';
     const isLikeNew = condition === 'like_new';
-    const isRefurbished = condition === 'refurbished';
+    const isGood = condition === 'good';
     
-    let badgeClass = 'bg-orange-100 text-orange-700';
-    let label = 'Used';
+    let badgeClass = 'bg-amber-50 text-amber-700';
+    let label = 'Fair';
     
     if (isNew) {
-      badgeClass = 'bg-green-100 text-green-700';
-      label = 'Brand New';
+      badgeClass = 'bg-green-50 text-green-700';
+      label = 'New';
     } else if (isLikeNew) {
-      badgeClass = 'bg-blue-100 text-blue-700';
+      badgeClass = 'bg-blue-50 text-blue-700';
       label = 'Like New';
-    } else if (isRefurbished) {
-      badgeClass = 'bg-purple-100 text-purple-700';
-      label = 'Refurbished';
+    } else if (isGood) {
+      badgeClass = 'bg-gray-50 text-gray-600';
+      label = 'Good';
     }
     
     return (
-      <span className={`absolute top-2 left-2 px-2 py-1 text-xs font-medium rounded-md ${badgeClass}`}>
+      <span className={`absolute top-2 left-2 px-2 py-0.5 text-xs font-medium rounded-full ${badgeClass}`}>
         {label}
       </span>
     );
   };
 
+  const getLocationDisplay = (ad: Ad) => {
+    if (!ad.location?.name) return 'N/A';
+    if (ad.lga) return `${ad.location.name}, ${ad.lga}`;
+    return ad.location.name;
+  };
+
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-6">
+      <div className="bg-white rounded-2xl p-4 md:p-6">
         <h3 className="text-lg font-bold text-dark mb-4">Similar Ads</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+          {[...Array(4)].map((_, i) => (
             <div key={i} className="animate-pulse">
-              <div className="h-40 bg-gray-200 rounded-xl mb-2"></div>
+              <div className="aspect-[4/3] bg-gray-200 rounded-lg mb-2"></div>
               <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2 mt-1"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2 mt-1"></div>
             </div>
           ))}
         </div>
-        <p className="text-xs text-gray-400 mt-4 text-center">Loading ads...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 w-full">
+    <div className="bg-white rounded-2xl p-4 md:p-6 w-full overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-dark">Similar Ads</h3>
-        <span className="text-sm text-gray-500">{ads.length} ads</span>
+        {ads.length > 0 && (
+          <span className="text-sm text-gray-500">{ads.length} ads</span>
+        )}
       </div>
       
       {error && (
@@ -220,42 +221,41 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {ads.map((ad) => (
               <Link
                 key={ad.id}
                 href={`/ad/${ad.slug}`}
                 className="group block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-                style={{ minWidth: '280px' }}
               >
-                <div className="relative aspect-[4/3] bg-gray-100 h-[180px]">
-                  <img
-                    src={getAdImageUrl(ad.images?.[0])}
-                    alt={ad.title}
-                    className="w-full h-full object-cover"
-                    style={{ imageRendering: 'auto' }}
-                    loading="eager"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.jpg';
-                    }}
-                  />
+                <div className="relative aspect-[4/3] bg-gray-100">
+                  {getAdImageUrl(ad.images?.[0]) ? (
+                    <img
+                      src={getAdImageUrl(ad.images?.[0])}
+                      alt={ad.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon className="w-10 h-10 text-gray-300" />
+                    </div>
+                  )}
                   {getConditionBadge(ad.condition)}
                 </div>
-                <div className="p-4">
-                  <h4 className="font-medium text-dark text-base line-clamp-2 group-hover:text-primary-600 transition-colors">
+                <div className="p-3">
+                  <h4 className="font-medium text-dark text-sm line-clamp-2 group-hover:text-primary-600 transition-colors">
                     {ad.title}
                   </h4>
-                  <p className="text-xl font-bold text-primary-600 mt-2">
+                  <p className="text-lg font-bold text-primary-600 mt-1">
                     {formatPrice(ad.price, ad.currency)}
                   </p>
-                  {(ad.description || ad.short_description) && (
-                    <p className="text-sm text-gray-500 mt-2 line-clamp-2">
-                      {ad.short_description || ad.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-1 text-sm text-gray-500 mt-2">
-                    <MapPin className="w-4 h-4" />
-                    <span className="truncate">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</span>
+                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-2">
+                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{getLocationDisplay(ad)}</span>
                   </div>
                 </div>
               </Link>
@@ -267,11 +267,11 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
             {loadingMore && (
               <div className="flex items-center justify-center gap-2 text-gray-500">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">Loading more ads...</span>
+                <span className="text-sm">Loading more...</span>
               </div>
             )}
             {!hasMore && ads.length > 0 && (
-              <p className="text-sm text-gray-400">No more ads to show</p>
+              <p className="text-sm text-gray-400">No more ads</p>
             )}
           </div>
         </>

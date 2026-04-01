@@ -40,7 +40,8 @@ class AdController extends Controller
                 });
             }
 
-            $ads = $query->orderBy('created_at', 'desc')->paginate(20);
+            $limit = $request->input('limit', 20);
+            $ads = $query->orderBy('created_at', 'desc')->paginate($limit);
 
             return response()->json($ads);
         } catch (\Exception $e) {
@@ -93,9 +94,11 @@ class AdController extends Controller
 
             $ad->increment('views');
 
-            // Explicitly add avatar fields to ensure they're in response
+            // Explicitly add user fields to ensure they're in response
             if ($ad->user) {
-                $ad->user->makeVisible(['avatar', 'google_avatar', 'facebook_avatar', 'verified']);
+                $ad->user->makeVisible([
+                    'avatar', 'google_avatar', 'facebook_avatar', 'verified', 'phone', 'location'
+                ]);
             }
 
             return response()->json(['data' => $ad]);
@@ -106,18 +109,18 @@ class AdController extends Controller
             return response()->json(['error' => 'Failed to load ad', 'message' => $e->getMessage()], 500);
         }
     }
-    
+
     public function getById($id)
     {
         try {
             $ad = Ad::with(['images', 'category', 'location', 'user'])
                 ->where('id', $id)
                 ->first();
-            
+
             if (!$ad) {
                 return response()->json(['error' => 'Ad not found'], 404);
             }
-            
+
             // Check ownership
             $user = request()->user();
             if ($user && $ad->user_id !== $user->id && $user->role !== 'admin') {
@@ -149,32 +152,32 @@ class AdController extends Controller
 
         // Resolve location_id (can be numeric ID or slug)
         $locationInput = $data['location_id'];
-        
+
         // Check if it's a numeric ID or a slug
         if (is_numeric($locationInput)) {
             $location = \App\Models\Location::find($locationInput);
         } else {
             $location = \App\Models\Location::where('slug', $locationInput)->first();
         }
-        
+
         if (!$location) {
             return response()->json(['error' => 'The selected location is invalid.'], 422);
         }
-        
+
         $data['location_id'] = $location->id;
 
         $data['slug'] = \Illuminate\Support\Str::slug($request->title) . '-' . time();
         $data['user_id'] = $request->user()->id;
-        
+
         // Check if admin approval is required (default: false for easier testing)
         $requiresApproval = filter_var(env('ADS_REQUIRE_APPROVAL', false), FILTER_VALIDATE_BOOLEAN);
-        
+
         if ($requiresApproval) {
             $data['status'] = 'pending';
         } else {
             $data['status'] = 'active';
         }
-        
+
         // Save LGA separately if provided
         $lga = $request->input('lga');
         unset($data['lga']);
@@ -184,15 +187,15 @@ class AdController extends Controller
         unset($data['attributes']);
 
         $ad = Ad::create($data);
-        
+
         if ($lga) {
             $ad->update(['lga' => $lga]);
         }
-        
+
         if ($attributes) {
             $ad->update(['attributes' => is_string($attributes) ? json_decode($attributes, true) : $attributes]);
         }
-        
+
         // Send notification to user about ad status
         if ($ad->status === 'pending') {
             NotificationService::adPendingReview($ad);
@@ -204,9 +207,9 @@ class AdController extends Controller
 
         // Handle images - Laravel receives 'images[]' as 'images' in FormData
         $files = $request->file('images') ?: $request->file('images[]');
-        
+
         Log::info('Image upload - files received: ' . ($files ? 'yes (' . count($files) . ')' : 'none'));
-        
+
         if ($files) {
             $files = is_array($files) ? $files : [$files];
             $imageService = new ImageProcessingService();
@@ -215,7 +218,7 @@ class AdController extends Controller
                 try {
                     // Validate first
                     $imageService->validateImage($file);
-                    
+
                     // Process image
                     $result = $imageService->processAdImage($file, $ad->id);
 
@@ -229,7 +232,7 @@ class AdController extends Controller
                         'is_primary' => $index === 0,
                         'sort_order' => $index,
                     ]);
-                    
+
                     Log::info("Image {$index} saved successfully: " . $result['url']);
                 } catch (\Exception $e) {
                     Log::error("Failed to process image {$index} for ad {$ad->id}: " . $e->getMessage() . " - File: " . ($file ? $file->getClientOriginalName() : 'null'));
@@ -237,10 +240,10 @@ class AdController extends Controller
             }
         }
 
-        $message = $ad->status === 'pending' 
+        $message = $ad->status === 'pending'
             ? 'Ad posted successfully! Pending approval from admin.'
             : 'Ad posted successfully and is now live!';
-            
+
         return response()->json([
             'data' => $ad->load('images'),
             'message' => $message,
@@ -284,7 +287,7 @@ class AdController extends Controller
         // Allow admin to delete any ad, or owner to delete their own ad
         $isAdmin = $request->user()->role === 'admin';
         $isOwner = $request->user()->id === $ad->user_id;
-        
+
         if (!$isAdmin && !$isOwner) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
@@ -297,7 +300,7 @@ class AdController extends Controller
     public function myAds(Request $request)
     {
         $query = Ad::with(['images', 'category', 'location']);
-        
+
         // Admins can see all ads, regular users see only their own
         if ($request->user()->role !== 'admin') {
             $query->where('user_id', $request->user()->id);
@@ -320,20 +323,20 @@ class AdController extends Controller
             $page = $request->page ?? 1;
 
             $currentAd = Ad::find($adId);
-            
+
             if (!$currentAd) {
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
             $keywords = $this->extractKeywords($currentAd->title . ' ' . $currentAd->description);
-            
+
             $query = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
                 ->where('id', '!=', $adId);
 
             $query->where(function($q) use ($currentAd) {
                 $q->where('category_id', $currentAd->category_id);
-                
+
                 if ($currentAd->category && $currentAd->category->parent_id) {
                     $q->orWhereHas('category', function($catQuery) use ($currentAd) {
                         $catQuery->where('parent_id', $currentAd->category->parent_id);
@@ -382,8 +385,8 @@ class AdController extends Controller
         $text = strtolower($text);
         $text = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $text);
         $words = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
-        
-        $stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
+
+        $stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
             'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
             'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
             'may', 'might', 'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'those',
@@ -392,7 +395,7 @@ class AdController extends Controller
             'not', 'no', 'yes', 'all', 'any', 'some', 'much', 'many', 'more', 'most', 'other',
             'such', 'only', 'own', 'same', 'than', 'too', 'very', 's', 't', 'can', 'will',
             'just', 'don', 'should', 'now', 'your', 'my', 'our', 'his', 'her', 'product'];
-        
+
         $filteredWords = array_filter($words, function($word) use ($stopWords) {
             return strlen($word) >= 2 && !in_array($word, $stopWords);
         });

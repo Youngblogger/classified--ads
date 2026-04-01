@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import Header from '@/components/home/Header';
@@ -73,14 +73,23 @@ function AdsPageContent() {
   const [condition, setCondition] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Infinite scroll state
+  const [allAds, setAllAds] = useState<Ad[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  // Fetch data
+  // Fetch categories
   const { data: categoriesData } = useSWR(
     `${API_URL}/categories`,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 300000, fallbackData: [], shouldRetryOnError: false }
   );
   
+  // Fetch locations
   const { data: locationsData } = useSWR(
     `${API_URL}/locations`,
     fetcher,
@@ -91,7 +100,7 @@ function AdsPageContent() {
   const locations = locationsData?.data || locationsData || [];
 
   // Build query params for search API
-  const buildQueryParams = useMemo(() => {
+  const buildQueryParams = useCallback((pageNum: number) => {
     const params = new URLSearchParams();
     if (localQuery) params.set('q', localQuery);
     if (selectedCategoryId) params.set('category_id', selectedCategoryId.toString());
@@ -112,18 +121,63 @@ function AdsPageContent() {
     params.set('sort_by', sortConfig.sort_by);
     params.set('sort_order', sortConfig.sort_order);
     
-    params.set('page', page.toString());
+    params.set('page', pageNum.toString());
+    params.set('per_page', '20');
     return params.toString();
-  }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMin, priceMax, condition, sortBy, page]);
+  }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMin, priceMax, condition, sortBy]);
 
-  const { data: adsData, isLoading, error } = useSWR(
-    `${API_URL}/search?${buildQueryParams}`,
-    fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: { data: [], meta: {} }, shouldRetryOnError: false }
-  );
+  // Fetch ads for current page
+  const fetchAds = async (pageNum: number, reset: boolean = false) => {
+    try {
+      if (pageNum === 1) {
+        setIsInitialLoad(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+      
+      const response = await fetch(`${API_URL}/search?${buildQueryParams(pageNum)}`);
+      const data = await response.json();
+      
+      if (reset || pageNum === 1) {
+        setAllAds(data.data || []);
+      } else {
+        setAllAds(prev => [...prev, ...(data.data || [])]);
+      }
+      
+      setTotalPages(data.meta?.last_page || 1);
+    } catch (error) {
+      console.error('Error fetching ads:', error);
+    } finally {
+      setIsInitialLoad(false);
+      setIsLoadingMore(false);
+    }
+  };
 
-  const ads: Ad[] = adsData?.data || adsData || [];
-  const meta = adsData?.meta || {};
+  // Initial load and when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchAds(1, true);
+  }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMin, priceMax, condition, sortBy]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && currentPage < totalPages && !isLoadingMore) {
+          const nextPage = currentPage + 1;
+          setCurrentPage(nextPage);
+          fetchAds(nextPage);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [currentPage, totalPages, isLoadingMore]);
 
   // Find category by slug
   useEffect(() => {
@@ -354,7 +408,8 @@ function AdsPageContent() {
                   {localQuery ? `Results for "${localQuery}"` : 'All Ads'}
                 </h1>
                 <p className="text-gray-500">
-                  {meta?.total || ads.length} ads found
+                  {allAds.length} ads found
+                  {currentPage < totalPages && ` (showing ${currentPage * 20} of ${totalPages * 20})`}
                 </p>
               </div>
 
@@ -414,7 +469,7 @@ function AdsPageContent() {
             )}
 
             {/* Ads Grid/List */}
-            {isLoading ? (
+            {isInitialLoad ? (
               viewMode === 'grid' ? (
                 <AdGridSkeleton count={12} />
               ) : (
@@ -431,16 +486,16 @@ function AdsPageContent() {
                   ))}
                 </div>
               )
-            ) : ads.length > 0 ? (
+            ) : allAds.length > 0 ? (
               viewMode === 'grid' ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                  {ads.map((ad) => (
+                  {allAds.map((ad) => (
                     <AdCard key={ad.id} ad={ad} />
                   ))}
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {ads.map((ad) => (
+                  {allAds.map((ad) => (
                     <AdCard key={ad.id} ad={ad} variant="horizontal" />
                   ))}
                 </div>
@@ -461,28 +516,18 @@ function AdsPageContent() {
               </div>
             )}
 
-            {/* Pagination */}
-            {meta?.last_page > 1 && (
-              <div className="flex justify-center mt-8">
-                <div className="flex gap-2">
-                  {Array.from({ length: meta.last_page }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      onClick={() => {
-                        const params = new URLSearchParams(window.location.search);
-                        params.set('page', pageNum.toString());
-                        window.history.pushState({}, '', `?${params.toString()}`);
-                      }}
-                      className={`px-4 py-2 rounded-lg ${
-                        pageNum === page 
-                          ? 'bg-primary-600 text-white' 
-                          : 'bg-white border border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-                </div>
+            {/* Infinite Scroll Loading Indicator */}
+            {isLoadingMore && (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary-600 mr-2" />
+                <span className="text-gray-500">Loading more ads...</span>
+              </div>
+            )}
+            
+            {/* Load More Trigger Element */}
+            {currentPage < totalPages && !isLoadingMore && (
+              <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
               </div>
             )}
           </div>

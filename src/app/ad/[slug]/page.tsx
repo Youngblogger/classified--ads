@@ -182,16 +182,31 @@ export default function AdDetailPage() {
     setFavoriteLoading(false);
   };
 
+  const formatNigerianPhone = (phone: string): string => {
+    const clean = phone.replace(/\D/g, '');
+    if (clean.startsWith('234')) {
+      return clean;
+    }
+    if (clean.startsWith('0')) {
+      return '234' + clean.substring(1);
+    }
+    return clean;
+  };
+
   const handleWhatsApp = () => {
     if (!ad) return;
-    const phone = ad.whatsapp || ad.phone;
+    const sellerPhone = ad.user?.phone;
+    const adPhone = ad.whatsapp || ad.phone;
+    const phone = sellerPhone || adPhone;
+    
     if (!phone) {
       toast.error('WhatsApp number not available');
       return;
     }
-    const cleanPhone = phone.replace(/\D/g, '');
+    
+    const formattedPhone = formatNigerianPhone(phone);
     const message = `Hi, I'm interested in: ${ad.title} - ${formatPrice(ad.price, ad.currency)}`;
-    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
   };
 
@@ -230,6 +245,7 @@ export default function AdDetailPage() {
     if (!url) return null;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     if (url.startsWith('/storage/')) return `${BACKEND_URL}${url}`;
+    if (url.startsWith('storage/')) return `${BACKEND_URL}/${url}`;
     return `${BACKEND_URL}/storage/${url}`;
   };
 
@@ -456,9 +472,13 @@ export default function AdDetailPage() {
                     facebook_avatar: ad.user.facebook_avatar,
                     verified: ad.user.verified,
                     created_at: ad.user.created_at,
+                    phone: ad.user.phone,
+                    location: ad.user.location,
                   }}
                   showFollowButton={true}
                   showJoinedDate={true}
+                  showPhone={false}
+                  showLocation={false}
                 />
               )}
 
@@ -466,22 +486,29 @@ export default function AdDetailPage() {
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Contact Seller</h2>
                 
-                {ad.phone ? (
-                  showPhone ? (
-                    <a href={`tel:${ad.phone}`} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3">
-                      <Phone className="w-5 h-5" />{ad.phone}
-                    </a>
-                  ) : (
-                    <button onClick={() => setShowPhone(true)} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3">
-                      <Phone className="w-5 h-5" />Show Phone Number
-                    </button>
-                  )
-                ) : (
-                  <p className="text-sm text-gray-500 mb-3 text-center">No phone number available</p>
-                )}
+                {(() => {
+                  const contactPhone = ad.user?.phone || ad.phone;
+                  if (!contactPhone) {
+                    return <p className="text-sm text-gray-500 mb-3 text-center">No phone number available</p>;
+                  }
+                  
+                  return (
+                    <>
+                      {showPhone ? (
+                        <a href={`tel:${contactPhone}`} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3">
+                          <Phone className="w-5 h-5" />{contactPhone}
+                        </a>
+                      ) : (
+                        <button onClick={() => setShowPhone(true)} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3">
+                          <Phone className="w-5 h-5" />Show Phone Number
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
                 
                 <div className="grid grid-cols-2 gap-3">
-                  {(ad.phone || ad.whatsapp) ? (
+                  {(ad.user?.phone || ad.whatsapp || ad.phone) ? (
                     <button onClick={handleWhatsApp} className="py-3 px-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
                       <WhatsAppIcon className="w-5 h-5" />WhatsApp
                     </button>

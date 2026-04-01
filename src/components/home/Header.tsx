@@ -211,6 +211,7 @@ export default function Header() {
   const [isMounted, setIsMounted] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
+  const [placeholderKey, setPlaceholderKey] = useState(0);
   const placeholderWords = [
     '"Cars"',
     '"Mobile Phones"',
@@ -232,12 +233,12 @@ export default function Header() {
     setIsMounted(true);
   }, []);
 
-  // Infinite scrolling placeholder with fade animation
   useEffect(() => {
     const interval = setInterval(() => {
       setIsPlaceholderVisible(false);
       setTimeout(() => {
         setPlaceholderIndex((prev) => (prev + 1) % placeholderWords.length);
+        setPlaceholderKey(prev => prev + 1);
         setIsPlaceholderVisible(true);
       }, 300);
     }, 3000);
@@ -918,13 +919,16 @@ export default function Header() {
                         className="absolute left-12 top-1/2 -translate-y-1/2 text-lg text-slate-600 font-medium pointer-events-none"
                       >
                         Search for{' '}
-                        <span 
-                          className={`inline-block transition-opacity duration-300 ${
-                            isPlaceholderVisible ? 'opacity-100' : 'opacity-0'
-                          }`}
-                        >
-                          {placeholderWords[placeholderIndex]}
-                        </span>
+                        {isMounted ? (
+                          <span 
+                            key={placeholderKey}
+                            className={`inline-block transition-opacity duration-300 ${
+                              isPlaceholderVisible ? 'opacity-100' : 'opacity-0'
+                            }`}
+                          >
+                            {placeholderWords[placeholderIndex]}
+                          </span>
+                        ) : null}
                       </span>
                     )}
                   </div>

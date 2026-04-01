@@ -6,6 +6,7 @@ import { setCookie } from './cookies';
 interface AuthStore extends AuthState {
   hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
+  _hasHydrated: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
   setUser: (user: User) => void;
@@ -21,6 +22,7 @@ export const useAuthStore = create<AuthStore>()(
       isAuthenticated: false,
       isLoading: false,
       hasHydrated: false,
+      _hasHydrated: false,
       
       setHasHydrated: (state) => set({ hasHydrated: state }),
       
@@ -28,7 +30,6 @@ export const useAuthStore = create<AuthStore>()(
         console.log('Login called with user:', user, 'token:', token);
         setCookie('token', token, 7);
         
-        // Manually persist to localStorage before setting state
         if (typeof window !== 'undefined') {
           const persistData = {
             state: {
@@ -51,19 +52,16 @@ export const useAuthStore = create<AuthStore>()(
       
       logout: () => {
         if (typeof window !== 'undefined') {
-          // Clear all cookies
           document.cookie.split(';').forEach((cookie) => {
             const name = cookie.trim().split('=')[0];
             document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
           });
           
-          // Clear localStorage auth data
           localStorage.removeItem('auth-storage');
           localStorage.removeItem('authToken');
           localStorage.removeItem('user');
           sessionStorage.clear();
           
-          // Set flag to prevent auto-login
           sessionStorage.setItem('just_logged_out', 'true');
         }
         
@@ -71,7 +69,6 @@ export const useAuthStore = create<AuthStore>()(
       },
       
       setUser: (user) => {
-        // Update localStorage when user data changes (e.g., avatar update)
         if (typeof window !== 'undefined' && user) {
           const currentToken = get().token;
           if (currentToken) {
