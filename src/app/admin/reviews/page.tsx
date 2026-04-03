@@ -317,8 +317,36 @@ export default function ReviewsManagementPage() {
 
       {/* Reviews List */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+              <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex-1">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-200"></div>
+                      <div className="space-y-2">
+                        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                        <div className="h-3 w-20 bg-gray-100 rounded"></div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-24 bg-gray-200 rounded"></div>
+                      <div className="h-6 w-12 bg-gray-200 rounded-full"></div>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <div className="h-4 w-full bg-gray-100 rounded"></div>
+                    <div className="h-4 w-3/4 bg-gray-100 rounded"></div>
+                  </div>
+                </div>
+                <div className="lg:w-64 space-y-3">
+                  <div className="h-4 w-16 bg-gray-100 rounded"></div>
+                  <div className="h-10 w-full bg-gray-100 rounded"></div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredReviews.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">

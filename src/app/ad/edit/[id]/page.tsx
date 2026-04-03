@@ -86,12 +86,12 @@ export default function EditAdPage() {
           setCondition(ad.condition || '');
           
           if (ad.images && ad.images.length > 0) {
-            setExistingImages(ad.images.map((img: any) => ({
-              id: img.id,
-              url: img.url,
-              is_primary: img.is_primary,
+            setExistingImages(ad.images.map((img: any, idx: number) => ({
+              id: img.id || `seeded-${idx}`,
+              url: typeof img === 'string' ? img : img.url,
+              is_primary: img.is_primary || idx === 0,
             })));
-            setImagePreview(ad.images.map((img: any) => img.url));
+            setImagePreview(ad.images.map((img: any) => typeof img === 'string' ? img : img.url));
           }
         } else {
           setAdNotFound(true);

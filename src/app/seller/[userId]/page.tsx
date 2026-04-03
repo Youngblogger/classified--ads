@@ -101,6 +101,11 @@ export default function SellerProfilePage() {
       return;
     }
     
+    if (String(user?.id) === String(sellerId)) {
+      toast.error("You can't follow yourself");
+      return;
+    }
+    
     setFollowLoading(true);
     try {
       const response = await followApi.follow(sellerId);

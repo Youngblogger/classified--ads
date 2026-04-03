@@ -1,0 +1,94 @@
+[
+  {
+    "id": "ad_001",
+    "title": "Toyota Corolla 2018 (Foreign Used)",
+    "category": "Vehicles",
+    "subcategory": "Cars",
+    "main_image": "toyota_corolla_2018_front.jpg",
+    "slider_images": [
+      "toyota_corolla_2018_back.jpg",
+      "toyota_corolla_2018_interior.jpg",
+      "toyota_corolla_2018_side.jpg",
+      "toyota_corolla_2018_dashboard.jpg",
+      "toyota_corolla_2018_engine.jpg",
+      "toyota_corolla_2018_wheels.jpg"
+    ],
+    "price": "₦8,500,000",
+    "seller": "Sadiq Bello",
+    "phone": "08036874291",
+    "description": "Very clean foreign used Corolla 2018, first body, all papers complete. Just buy and drive."
+  },
+  {
+    "id": "ad_002",
+    "title": "iPhone 13 Pro 256GB - Sierra Blue",
+    "category": "Electronics",
+    "subcategory": "Mobile Phones",
+    "main_image": "iphone_13_pro_256gb_front.jpg",
+    "slider_images": [
+      "iphone_13_pro_256gb_back.jpg",
+      "iphone_13_pro_256gb_box.jpg",
+      "iphone_13_pro_256gb_screen.jpg",
+      "iphone_13_pro_256gb_camera.jpg",
+      "iphone_13_pro_256gb_side.jpg"
+    ],
+    "price": "₦420,000",
+    "seller": "Ngozi Eze",
+    "phone": "08124578903",
+    "description": "Good condition iPhone 13 Pro, battery health 89%, comes with charger. No scratches on screen."
+  },
+  {
+    "id": "ad_003",
+    "title": "Modern 3-Seater Sofa Set - Brown Leather",
+    "category": "Home & Garden",
+    "subcategory": "Furniture",
+    "main_image": "leather_sofa_3seater_main.jpg",
+    "slider_images": [
+      "leather_sofa_3seater_front.jpg",
+      "leather_sofa_3seater_side.jpg",
+      "leather_sofa_3seater_detail.jpg",
+      "leather_sofa_3seater_back.jpg",
+      "leather_sofa_3seater_cushion.jpg"
+    ],
+    "price": "₦180,000",
+    "seller": "Chidi Okonkwo",
+    "phone": "07051298346",
+    "description": "Quality brown leather sofa set, barely used. Moving out so selling cheap. Firm and comfortable."
+  },
+  {
+    "id": "ad_004",
+    "title": "HP Laptop 15s - Intel Core i5 10th Gen",
+    "category": "Electronics",
+    "subcategory": "Laptops",
+    "main_image": "hp_laptop_15s_intel_front.jpg",
+    "slider_images": [
+      "hp_laptop_15s_intel_back.jpg",
+      "hp_laptop_15s_intel_keyboard.jpg",
+      "hp_laptop_15s_intel_screen.jpg",
+      "hp_laptop_15s_intel_side.jpg",
+      "hp_laptop_15s_intel_ports.jpg",
+      "hp_laptop_15s_intel_touchpad.jpg"
+    ],
+    "price": "₦285,000",
+    "seller": "Folake Adeyemi",
+    "phone": "09078451230",
+    "description": "8GB RAM, 512GB SSD, windows 11 installed. Battery lasts 4 hours. Great for work and studies."
+  },
+  {
+    "id": "ad_005",
+    "title": "Samsung Galaxy A52s 5G - 128GB",
+    "category": "Electronics",
+    "subcategory": "Mobile Phones",
+    "main_image": "samsung_a52s_5g_front.jpg",
+    "slider_images": [
+      "samsung_a52s_5g_back.jpg",
+      "samsung_a52s_5g_box.jpg",
+      "samsung_a52s_5g_screen.jpg",
+      "samsung_a52s_5g_camera.jpg",
+      "samsung_a52s_5g_side.jpg"
+    ],
+    "price": "₦195,000",
+    "seller": "Emeka Obi",
+    "phone": "08094567218",
+    "description": "Excellent condition, no issues. Camera is crisp, battery health perfect. Selling to upgrade."
+  }
+]

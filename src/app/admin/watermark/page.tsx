@@ -145,8 +145,18 @@ export default function WatermarkSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="space-y-6">
+        <div className="h-10 w-48 bg-gray-200 rounded animate-pulse"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-40 bg-gray-100 rounded animate-pulse"></div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-40 bg-gray-100 rounded animate-pulse"></div>
+          </div>
+        </div>
       </div>
     );
   }

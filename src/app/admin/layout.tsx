@@ -261,8 +261,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Show loading while verifying auth (except for login page)
   if (!isLoginPage && (!initialTokenChecked || !authChecked)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-full max-w-md space-y-4 p-8">
+          <div className="h-16 w-16 bg-gray-200 rounded-2xl animate-pulse mx-auto"></div>
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mx-auto"></div>
+          <div className="h-64 bg-gray-200 rounded-xl animate-pulse"></div>
+        </div>
       </div>
     );
   }

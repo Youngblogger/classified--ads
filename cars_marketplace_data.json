@@ -1,0 +1,1140 @@
+[
+  {
+    "id": "toyota_camry_2018_le",
+    "title": "Toyota Camry 2018 LE - Silver",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Tokunbo Toyota Camry 2018 LE in silver. 45,000 km, full option with leather seats, sunroof, and navigation. Accident-free with full service history from Toyota garage. AC ice cold, new tyres. Single owner, all papers intact.",
+    "price": 8200000,
+    "main_image": "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800&h=600&fit=crop"
+    ],
+    "seller": "Chinedu Okafor",
+    "phone": "08035789012",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "toyota_camry_2019_xle",
+    "title": "Toyota Camry 2019 XLE - White",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Toyota Camry 2019 XLE in white. 38,000 km, full option with JBL sound system, wireless charging, and adaptive cruise control. Very clean, well maintained. Registered in Lagos.",
+    "price": 9500000,
+    "main_image": "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600&fit=crop"
+    ],
+    "seller": "Amina Bello",
+    "phone": "08123456789",
+    "location": "Lagos",
+    "condition": "like_new"
+  },
+  {
+    "id": "toyota_camry_2017_se",
+    "title": "Toyota Camry 2017 SE - Black",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Toyota Camry 2017 SE in black. Sport edition with 50,000 km. Standard features, very fuel efficient. AC working perfectly. No accidents, genuine buyers only.",
+    "price": 6500000,
+    "main_image": "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Emeka Nwosu",
+    "phone": "08034567890",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "toyota_corolla_2015_gl",
+    "title": "Toyota Corolla 2015 GL - Silver",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Toyota Corolla 2015 GL in silver. Standard model with 60,000 km. Very reliable and fuel efficient. AC perfect, engine smooth. No hidden issues.",
+    "price": 4800000,
+    "main_image": "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600&fit=crop"
+    ],
+    "seller": "Blessing Eze",
+    "phone": "08162345678",
+    "location": "Ibadan",
+    "condition": "good"
+  },
+  {
+    "id": "toyota_corolla_2016_s",
+    "title": "Toyota Corolla 2016 S - Red",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Toyota Corolla 2016 S in red. Sport trim with 52,000 km. Bluetooth, reverse camera, alloy wheels. Clean title, all documents available.",
+    "price": 5500000,
+    "main_image": "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Kunle Bakare",
+    "phone": "08067890123",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "toyota_corolla_2014_le",
+    "title": "Toyota Corolla 2014 LE - Gold",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Toyota Corolla 2014 LE in gold. 75,000 km, well maintained. Good condition for its age. Engine and gear smooth. Affordable and reliable.",
+    "price": 3800000,
+    "main_image": "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Ngozi Afolabi",
+    "phone": "08123459876",
+    "location": "Port Harcourt",
+    "condition": "used"
+  },
+  {
+    "id": "toyota_prado_2020_tx",
+    "title": "Toyota Prado 2020 TX - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Toyota Prado TX 2020 in white. 42,000 km, full option with leather seats, sunroof, and 360 camera. 4WD, perfect for off-road and family. Registered in Abuja.",
+    "price": 18500000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800&h=600&fit=crop"
+    ],
+    "seller": "Tunde Adebayo",
+    "phone": "08091234567",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "toyota_prado_2019_tx",
+    "title": "Toyota Prado 2019 TX - Black",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Toyota Prado TX 2019 in black. 55,000 km, standard option with fabric seats, diesel engine. 4WD system working perfectly. Great for Nigerian roads.",
+    "price": 15000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Adaobi Nwachukwu",
+    "phone": "08104567890",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "toyota_prado_2018_vx",
+    "title": "Toyota Prado 2018 VX - Gray",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Toyota Prado VX 2018 in gray. Top of the line with 48,000 km. Leather seats, panoramic sunroof, JBL sound, and adaptive suspension. Nigerian used.",
+    "price": 17500000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Obi Kenneth",
+    "phone": "08161234567",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "toyota_highlander_2019_limited",
+    "title": "Toyota Highlander 2019 Limited - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Toyota Highlander Limited 2019 in white. 7-seater with captain seats, 40,000 km. JBL sound, panoramic roof, and adaptive cruise. Registered in Lagos.",
+    "price": 16500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Ifeanyi Okonkwo",
+    "phone": "08145678901",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "toyota_highlander_2020_xle",
+    "title": "Toyota Highlander 2020 XLE - Red",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Toyota Highlander XLE 2020 in red. 35,000 km, full option with 7 seats, power liftgate, and safety sense. AWD system. Clean title.",
+    "price": 19500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Segun Fashola",
+    "phone": "08056789012",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "toyota_rav4_2019_adventure",
+    "title": "Toyota RAV4 2019 Adventure - Blue",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Toyota RAV4 Adventure 2019 in blue. 45,000 km, AWD with off-road mode. Roof rails, towing package. Perfect for Nigerian terrain.",
+    "price": 12500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Halima Mohammed",
+    "phone": "08078901234",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "toyota_venza_2021_xle",
+    "title": "Toyota Venza 2021 XLE - Black",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Toyota Venza XLE 2021 in black. Hybrid model with 30,000 km. Full option with digital display, JBL audio, and power liftgate.",
+    "price": 14500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Uchechi Odozor",
+    "phone": "08189012345",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "honda_accord_2018_sport",
+    "title": "Honda Accord 2018 Sport - Red",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Honda Accord Sport 2018 in red. 48,000 km, V4 turbo engine. Sport-tuned suspension, LED lights, and Honda Sensing. Very clean.",
+    "price": 8500000,
+    "main_image": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Dotun Olatunji",
+    "phone": "08023456789",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "honda_accord_2019_exl",
+    "title": "Honda Accord 2019 EX-L - White",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Honda Accord EX-L 2019 in white. 38,000 km, leather seats, wireless charging, and HondaLink. Top features including抬头显示. Nigerian used.",
+    "price": 9800000,
+    "main_image": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Baba Yusuf",
+    "phone": "08045678901",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "honda_civic_2017_ex",
+    "title": "Honda Civic 2017 EX - Silver",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Honda Civic EX 2017 in silver. 55,000 km, fuel efficient and reliable. Bluetooth, backup camera, and automatic climate control.",
+    "price": 5800000,
+    "main_image": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Sola Balogun",
+    "phone": "08034561234",
+    "location": "Ibadan",
+    "condition": "good"
+  },
+  {
+    "id": "honda_civic_2019_touring",
+    "title": "Honda Civic 2019 Touring - Blue",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Honda Civic Touring 2019 in blue. 35,000 km, full option with Bose audio, navigation, and Honda Sensing suite. Turbo engine.",
+    "price": 7500000,
+    "main_image": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Emmanuel Okoro",
+    "phone": "08178901234",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "honda_crv_2018_ex",
+    "title": "Honda CR-V 2018 EX - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Honda CR-V EX 2018 in white. 50,000 km, AWD, spacious interior with 5 seats. Honda Sensing, Apple CarPlay. Perfect family SUV.",
+    "price": 9800000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Victoria Adeyemi",
+    "phone": "08094567890",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "honda_pilot_2019_elite",
+    "title": "Honda Pilot 2019 Elite - Black",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Honda Pilot Elite 2019 in black. 8-seater with 42,000 km. Full option including rear entertainment, captain seats, and AWD.",
+    "price": 13500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Abubakar Shehu",
+    "phone": "08175678901",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "ford_explorer_2018_xlt",
+    "title": "Ford Explorer 2018 XLT - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Ford Explorer XLT 2018 in white. 52,000 km, 4WD with third row seating. V6 engine, towing package. Very spacious for family.",
+    "price": 11200000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Nkiruka Emmanuel",
+    "phone": "08036789012",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "ford_explorer_2019_platinum",
+    "title": "Ford Explorer 2019 Platinum - Silver",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Ford Explorer Platinum 2019 in silver. 40,000 km, V6 twin-turbo, full option with adaptive cruise and 360 camera. Luxury trim.",
+    "price": 14500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Grace Madu",
+    "phone": "08015678901",
+    "location": "Lagos",
+    "condition": "like_new"
+  },
+  {
+    "id": "ford_escort_2015_gls",
+    "title": "Ford Escort 2015 GLS - Gray",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Ford Escort GLS 2015 in gray. 65,000 km, standard model, fuel efficient. Good condition, reliable for daily commute.",
+    "price": 3500000,
+    "main_image": "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Olusegun Adegoke",
+    "phone": "08138901234",
+    "location": "Ibadan",
+    "condition": "used"
+  },
+  {
+    "id": "ford_edge_2017_sport",
+    "title": "Ford Edge 2017 Sport - Black",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Ford Edge Sport 2017 in black. 48,000 km, V6 twin-turbo, sport-tuned suspension. Leather seats, navigation, and Sony audio.",
+    "price": 8500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Chioma Nwankwo",
+    "phone": "08027890123",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "lexus_rx350_2018_fsport",
+    "title": "Lexus RX350 2018 F-Sport - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Lexus RX350 F-Sport 2018 in white. 45,000 km, full option with adaptive suspension, Mark Levinson audio. Premium build quality.",
+    "price": 16500000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Professor Adeleke",
+    "phone": "08147890123",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "lexus_rx350_2019_standard",
+    "title": "Lexus RX350 2019 - Silver",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Lexus RX350 2019 in silver. 38,000 km, standard model with leather seats, sunroof, and parking sensors. Reliable luxury SUV.",
+    "price": 17500000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Toyin Bamiro",
+    "phone": "08158901234",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "lexus_es350_2018_ultra",
+    "title": "Lexus ES350 2018 Ultra Luxury - Black",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Lexus ES350 Ultra Luxury 2018 in black. 42,000 km, full option with Mark Levinson, ventilated seats, and heads-up display.",
+    "price": 14500000,
+    "main_image": "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "David Okafor",
+    "phone": "08035678901",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "lexus_es250_2019_fsport",
+    "title": "Lexus ES250 2019 F-Sport - Red",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Lexus ES250 F-Sport 2019 in red. 35,000 km, AWD with sport-tuned suspension. Premium audio and navigation included.",
+    "price": 15500000,
+    "main_image": "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Blessing Ogbonna",
+    "phone": "08067891234",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "lexus_nx300_2018_fsport",
+    "title": "Lexus NX300 2018 F-Sport - Blue",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Lexus NX300 F-Sport 2018 in blue. 40,000 km, turbo engine, AWD. Sport seats, premium audio. Compact luxury SUV.",
+    "price": 13500000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Chief Ezeugo",
+    "phone": "08134567812",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "lexus_lx570_2019_sport",
+    "title": "Lexus LX570 2019 Sport - Black",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Lexus LX570 Sport 2019 in black. 38,000 km, full option with triple-beam LED, rear entertainment, and cold weather package.",
+    "price": 35000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Suleiman Musa",
+    "phone": "08023459012",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "lexus_gx460_2017_premium",
+    "title": "Lexus GX460 2017 Premium - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Lexus GX460 Premium 2017 in white. 52,000 km, off-road capable with KDSS. Third row seating, Mark Levinson audio.",
+    "price": 18500000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Samuel Eze",
+    "phone": "08145678923",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "mercedes_c300_2019_amg",
+    "title": "Mercedes-Benz C300 2019 AMG - Silver",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Mercedes-Benz C300 AMG 2019 in silver. 35,000 km, full option with panoramic roof, Burmester audio. Premium build quality.",
+    "price": 22000000,
+    "main_image": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Mrs. Ngozi Onuoha",
+    "phone": "08056781234",
+    "location": "Lagos",
+    "condition": "like_new"
+  },
+  {
+    "id": "mercedes_e350_2018_amg",
+    "title": "Mercedes-Benz E350 2018 AMG - Black",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Mercedes-Benz E350 AMG 2018 in black. 42,000 km, executive sedan with massage seats, executive package. Very comfortable.",
+    "price": 25000000,
+    "main_image": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Ibrahim Tanko",
+    "phone": "08167891234",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "mercedes_gle53_2020_amg",
+    "title": "Mercedes-Benz GLE53 2020 AMG - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Mercedes-Benz GLE53 AMG 2020 in white. 32,000 km, V6 turbo hybrid, full option. AMG body kit, premium interior.",
+    "price": 38000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Adekunle Adeyemi",
+    "phone": "08012345678",
+    "location": "Lagos",
+    "condition": "like_new"
+  },
+  {
+    "id": "mercedes_glc300_2019_amg",
+    "title": "Mercedes-Benz GLC300 2019 AMG - Gray",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Mercedes-Benz GLC300 AMG 2019 in gray. 40,000 km, compact luxury SUV with AMG exterior. Navigation, heated seats.",
+    "price": 28000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Patricia John",
+    "phone": "08189012340",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "bmw_520i_2019_msport",
+    "title": "BMW 520i 2019 M-Sport - Black",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "BMW 520i M-Sport 2019 in black. 38,000 km, full option with heads-up display, Harman Kardon audio. Sporty yet comfortable.",
+    "price": 18500000,
+    "main_image": "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Ebere Chukwu",
+    "phone": "08078901245",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "bmw_530i_2020_msport",
+    "title": "BMW 530i 2020 M-Sport - White",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "BMW 530i M-Sport 2020 in white. 28,000 km, latest model with手势控制, digital key. Executive features.",
+    "price": 24000000,
+    "main_image": "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Ken Obi",
+    "phone": "08145678902",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "bmw_x5_2019_xdrive",
+    "title": "BMW X5 2019 xDrive40i - Silver",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "BMW X5 xDrive40i 2019 in silver. 45,000 km, V6 turbo, full option with off-road package. Spacious and powerful.",
+    "price": 32000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Angela Nwachukwu",
+    "phone": "08045678903",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "bmw_x3_2020_xdrive",
+    "title": "BMW X3 2020 xDrive30i - Blue",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "BMW X3 xDrive30i 2020 in blue. 30,000 km, compact SUV with premium package. Apple CarPlay, parking assistant.",
+    "price": 22000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Olumide Taiwo",
+    "phone": "08156789013",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "audi_a4_2019_premium",
+    "title": "Audi A4 2019 Premium Plus - White",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Audi A4 Premium Plus 2019 in white. 40,000 km, full option with virtual cockpit, Bang & Olufsen audio. Very refined.",
+    "price": 16500000,
+    "main_image": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Nneka Obi",
+    "phone": "08067812345",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "audi_a6_2020_premium",
+    "title": "Audi A6 2020 Premium - Black",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Audi A6 Premium 2020 in black. 32,000 km, executive sedan with dual touchscreen, matrix LED lights. Very tech-forward.",
+    "price": 28000000,
+    "main_image": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Chidi Okafor",
+    "phone": "08134567890",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "audi_q5_2019_premium",
+    "title": "Audi Q5 2019 Premium Plus - Gray",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Audi Q5 Premium Plus 2019 in gray. 42,000 km, Quattro AWD, virtual cockpit. Very comfortable compact SUV.",
+    "price": 19500000,
+    "main_image": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Adaeze Nwoye",
+    "phone": "08089012345",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "audi_q7_2020_premium",
+    "title": "Audi Q7 2020 Premium - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Audi Q7 Premium 2020 in white. 35,000 km, 7-seater with Quattro, panoramic sunroof. Third row available.",
+    "price": 35000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Aisha Danladi",
+    "phone": "08045671234",
+    "location": "Abuja",
+    "condition": "like_new"
+  },
+  {
+    "id": "hyundai_sonata_2018_gls",
+    "title": "Hyundai Sonata 2018 GLS - White",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Hyundai Sonata GLS 2018 in white. 52,000 km, reliable and affordable. AC working, engine smooth. Good for family.",
+    "price": 5500000,
+    "main_image": "https://images.unsplash.com/photo-1629897048514-3dd7414fe72a?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1629897048514-3dd7414fe72a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Obinna Eze",
+    "phone": "08156789012",
+    "location": "Ibadan",
+    "condition": "good"
+  },
+  {
+    "id": "hyundai_tucson_2019_limited",
+    "title": "Hyundai Tucson 2019 Limited - Blue",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Hyundai Tucson Limited 2019 in blue. 45,000 km, full option with panoramic sunroof, AWD. Modern design.",
+    "price": 9500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Jumoke Adesanya",
+    "phone": "08061234567",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "hyundai_elantra_2017_sport",
+    "title": "Hyundai Elantra 2017 Sport - Red",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Hyundai Elantra Sport 2017 in red. 55,000 km, turbo engine, sport-tuned. Bluetooth, rear camera.",
+    "price": 4800000,
+    "main_image": "https://images.unsplash.com/photo-1629897048514-3dd7414fe72a?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1629897048514-3dd7414fe72a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Sola Adeyemi",
+    "phone": "08128901234",
+    "location": "Port Harcourt",
+    "condition": "good"
+  },
+  {
+    "id": "hyundai_santa_fe_2019_premium",
+    "title": "Hyundai Santa Fe 2019 Premium - Black",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Hyundai Santa Fe Premium 2019 in black. 48,000 km, 7-seater with leather seats, wireless charging. Very spacious.",
+    "price": 12500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Fatima Bello",
+    "phone": "08123459876",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "kia_optima_2018_sport",
+    "title": "Kia Optima 2018 Sport - Silver",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Kia Optima Sport 2018 in silver. 50,000 km, turbo engine, leather seats. Great value for money.",
+    "price": 5200000,
+    "main_image": "https://images.unsplash.com/photo-1629897048514-3dd7414fe72a?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1629897048514-3dd7414fe72a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Kingsley Eze",
+    "phone": "08045678904",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "kia_sportage_2019_gt",
+    "title": "Kia Sportage 2019 GT Line - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Kia Sportage GT Line 2019 in white. 42,000 km, sporty design with turbo engine, AWD. Modern features.",
+    "price": 9800000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Chinyere Nwankwo",
+    "phone": "08156789014",
+    "location": "Ibadan",
+    "condition": "good"
+  },
+  {
+    "id": "kia_sorento_2019_premium",
+    "title": "Kia Sorento 2019 Premium - Gray",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Kia Sorento Premium 2019 in gray. 45,000 km, 7-seater with leather, panoramic roof. AWD available.",
+    "price": 11500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Tochukwu Okafor",
+    "phone": "08056789013",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "nissan_altima_2018_sr",
+    "title": "Nissan Altima 2018 SR - White",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Nissan Altima SR 2018 in white. 52,000 km, V4 turbo, sport-tuned suspension. Apple CarPlay, safety features.",
+    "price": 5800000,
+    "main_image": "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&h=600&fit=crop"
+    ],
+    "seller": "Adamu Ibrahim",
+    "phone": "08145678903",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "nissan_pathfinder_2019_sl",
+    "title": "Nissan Pathfinder 2019 SL - Black",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Nissan Pathfinder SL 2019 in black. 48,000 km, 7-seater with V6 engine, 4WD. Navigation, Bose audio.",
+    "price": 11500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Mariam Sanusi",
+    "phone": "08067890124",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "nissan_rogue_2020_sv",
+    "title": "Nissan Rogue 2020 SV - Blue",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Nissan Rogue SV 2020 in blue. 35,000 km, compact SUV with ProPilot assist. Safety suite included.",
+    "price": 10500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Oladipo Ayeni",
+    "phone": "08123456780",
+    "location": "Lagos",
+    "condition": "like_new"
+  },
+  {
+    "id": "jeep_grand_cherokee_2018_limited",
+    "title": "Jeep Grand Cherokee 2018 Limited - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Jeep Grand Cherokee Limited 2018 in white. 50,000 km, V6 engine, full option with leather, navigation. 4WD.",
+    "price": 14500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Ejike Nwosu",
+    "phone": "08034567891",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "jeep_wrangler_2019_unlimited",
+    "title": "Jeep Wrangler 2019 Unlimited Sahara - Red",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Jeep Wrangler Unlimited Sahara 2019 in red. 42,000 km, off-road king with 4 doors. Removable top, heavy duty.",
+    "price": 18500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Tunde Bakare",
+    "phone": "08162345679",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "land_rover_discovery_2018_hse",
+    "title": "Land Rover Discovery 2018 HSE - Silver",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Land Rover Discovery HSE 2018 in silver. 45,000 km, full option with Meridian audio, captain seats. Serious off-road capability.",
+    "price": 28000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Obiageli Eze",
+    "phone": "08067890125",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "land_rover_range_rover_2019_vogue",
+    "title": "Range Rover 2019 Vogue - Black",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Range Rover Vogue 2019 in black. 38,000 km, ultimate luxury SUV with rear entertainment. Top of the line specification.",
+    "price": 65000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop"
+    ],
+    "seller": "Chief Emmanuel Okonkwo",
+    "phone": "08104567891",
+    "location": "Lagos",
+    "condition": "like_new"
+  },
+  {
+    "id": "porsche_cayenne_2019_s",
+    "title": "Porsche Cayenne 2019 S - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Porsche Cayenne S 2019 in white. 40,000 km, V6 twin-turbo, sport chrono package. Porsche Connect, premium audio.",
+    "price": 55000000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Dr. Adebayo Shittu",
+    "phone": "08091234568",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "volkswagen_passat_2018_sel",
+    "title": "Volkswagen Passat 2018 SEL - Silver",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Volkswagen Passat SEL 2018 in silver. 48,000 km, premium features, reliable German engineering. Digital cockpit.",
+    "price": 6800000,
+    "main_image": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Hans Mueller",
+    "phone": "08145678905",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "volkswagen_tiguan_2019_sel",
+    "title": "Volkswagen Tiguan 2019 SEL - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Volkswagen Tiguan SEL 2019 in white. 42,000 km, compact SUV with all-wheel drive. Premium interior, panoramic roof.",
+    "price": 9500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Innocent Okafor",
+    "phone": "08056789014",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "chevrolet_camaro_2018_ss",
+    "title": "Chevrolet Camaro 2018 SS - Yellow",
+    "category": "Cars",
+    "subcategory": "Sedan",
+    "description": "Chevrolet Camaro SS 2018 in yellow. V8 engine, 45,000 km, sport suspension. Muscle car with modern features.",
+    "price": 12500000,
+    "main_image": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Chukwuemeka Nwosu",
+    "phone": "08178901235",
+    "location": "Lagos",
+    "condition": "good"
+  },
+  {
+    "id": "infiniti_qx60_2019_essential",
+    "title": "Infiniti QX60 2019 Essential - Black",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Infiniti QX60 Essential 2019 in black. 44,000 km, 7-seater with premium audio, surround view monitor. Comfortable ride.",
+    "price": 18500000,
+    "main_image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Yusuf Abubakar",
+    "phone": "08034567892",
+    "location": "Abuja",
+    "condition": "good"
+  },
+  {
+    "id": "acura_rdx_2019_technology",
+    "title": "Acura RDX 2019 Technology - White",
+    "category": "Cars",
+    "subcategory": "SUV",
+    "description": "Acura RDX Technology 2019 in white. 40,000 km, turbo engine, ELS audio. AcuraWatch safety suite included.",
+    "price": 14500000,
+    "main_image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+    "slider_images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop"
+    ],
+    "seller": "Ngozi Okonkwo",
+    "phone": "08189012346",
+    "location": "Lagos",
+    "condition": "good"
+  }
+]

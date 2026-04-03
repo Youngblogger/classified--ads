@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
@@ -11,10 +12,11 @@ import LatestReviews from '@/components/reviews/LatestReviews';
 import AdAttributes from '@/components/ads/AdAttributes';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard } from 'lucide-react';
+import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard, ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { formatPrice, formatRelativeTime, BACKEND_URL } from '@/lib/utils';
+import { formatPrice, formatRelativeTime, BACKEND_URL, FALLBACK_IMAGE, getCategoryFallback, getAdImage, getAdImages, getAdImageUrl } from '@/lib/utils';
 import { getAuthToken } from '@/lib/cookies';
+import seededAds from '@/app/seededAds.json';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -73,13 +75,51 @@ export default function AdDetailPage() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentImageError, setCurrentImageError] = useState(false);
+  const [thumbnailErrors, setThumbnailErrors] = useState<Record<number, boolean>>({});
   const [showChat, setShowChat] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
   const [showSharePopup, setShowSharePopup] = useState(false);
   const [favoriteAnimating, setFavoriteAnimating] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const { isAuthenticated } = useAuthStore();
   const { toggleLoginModal } = useUIStore();
+  
+  const getFallbackForAd = useCallback((adData: any) => {
+    const category = adData?.category?.name || adData?.category?.slug || adData?.subcategory || adData?.category;
+    return getCategoryFallback(category);
+  }, []);
+  
+  const getCurrentImageUrl = useCallback((adData: any, index: number): string => {
+    const images = getAdImages(adData);
+    if (images.length === 0) return getFallbackForAd(adData);
+    return images[index] || images[0] || getFallbackForAd(adData);
+  }, [getAdImages, getFallbackForAd]);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe) {
+      nextImage();
+    } else if (isRightSwipe) {
+      prevImage();
+    }
+  };
 
   useEffect(() => {
     if (!slug || slug === '[slug]') {
@@ -87,39 +127,78 @@ export default function AdDetailPage() {
       setError('Invalid ad URL');
       return;
     }
-    
+
+    console.log('[AdDetailPage] ========== RENDERING ==========');
+    console.log('[AdDetailPage] slug from params:', slug);
+    console.log('[AdDetailPage] seededAds count:', seededAds?.length || 0);
+
     let isMounted = true;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-    
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const findSeededAd = (searchSlug: string) => {
+      console.log('[AdDetailPage] Searching seededAds for:', searchSlug);
+
+      // First, try exact match on slug
+      let seededAd = seededAds.find((a: any) => a.slug === searchSlug);
+      console.log('[AdDetailPage] Exact slug match:', seededAd?.title || 'none');
+
+      // If no slug match, try matching by id
+      if (!seededAd) {
+        const searchId = Number(searchSlug) || searchSlug;
+        seededAd = seededAds.find((a: any) => a.id === searchId || String(a.id) === searchSlug);
+        console.log('[AdDetailPage] ID match:', seededAd?.title || 'none');
+      }
+
+      // If still no match, try partial slug match
+      if (!seededAd) {
+        seededAd = seededAds.find((a: any) =>
+          a.slug?.toLowerCase().includes(searchSlug.toLowerCase()) ||
+          searchSlug.toLowerCase().includes(a.slug?.toLowerCase())
+        );
+        console.log('[AdDetailPage] Partial slug match:', seededAd?.title || 'none');
+      }
+
+      return seededAd;
+    };
+
     const fetchAd = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        console.log('[AdDetailPage] Fetching ad:', `${API_URL}/ads/${slug}`);
-        
-        const response = await fetch(`${API_URL}/ads/${slug}`, { 
+        console.log('[AdDetailPage] Fetching from API:', `${API_URL}/ads/${slug}`);
+
+        const response = await fetch(`${API_URL}/ads/${slug}`, {
           headers: { 'Accept': 'application/json' },
           signal: controller.signal
         });
-        
+
         clearTimeout(timeoutId);
-        
-        console.log('[AdDetailPage] Response status:', response.status);
-        
+
+        console.log('[AdDetailPage] API Response status:', response.status);
+
         if (!response.ok) {
           if (response.status === 404) {
+            console.log('[AdDetailPage] API 404, checking seededAds...');
+            const seededAd = findSeededAd(slug);
+            if (seededAd) {
+              if (!isMounted) return;
+              console.log('[AdDetailPage] Found in seededAds:', seededAd.title);
+              setAd(seededAd);
+              setLoading(false);
+              return;
+            }
             throw new Error('Ad not found');
           }
           throw new Error('Failed to load ad');
         }
-        
+
         const data = await response.json();
-        console.log('[AdDetailPage] Received data:', data ? 'success' : 'empty');
-        
+        console.log('[AdDetailPage] API returned data:', data ? 'success' : 'empty');
+
         if (!isMounted) return;
-        
+
         if (data && data.data) {
           setAd(data.data);
         } else if (data && data.id) {
@@ -131,16 +210,24 @@ export default function AdDetailPage() {
       } catch (err: any) {
         console.error('[AdDetailPage] Error:', err);
         if (!isMounted) return;
-        
+
+        const seededAd = findSeededAd(slug);
+        if (seededAd) {
+          console.log('[AdDetailPage] Found in seededAds (catch):', seededAd.title);
+          setAd(seededAd);
+          setLoading(false);
+          return;
+        }
+
         if (err.name === 'AbortError') {
-          setError('Request timed out. Please try again.');
+          setError('Unable to connect to server. Please check your connection.');
         } else {
           setError(err.message || 'Failed to load ad');
         }
         setLoading(false);
       }
     };
-    
+
     fetchAd();
     return () => {
       isMounted = false;
@@ -154,7 +241,7 @@ export default function AdDetailPage() {
     
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % ad.images.length);
-    }, 3000);
+    }, 5000);
     
     return () => clearInterval(interval);
   }, [ad]);
@@ -195,7 +282,7 @@ export default function AdDetailPage() {
 
   const handleWhatsApp = () => {
     if (!ad) return;
-    const sellerPhone = ad.user?.phone;
+    const sellerPhone = ad.user?.phone || ad.sellerPhone;
     const adPhone = ad.whatsapp || ad.phone;
     const phone = sellerPhone || adPhone;
     
@@ -211,8 +298,9 @@ export default function AdDetailPage() {
   };
 
   const handleCall = () => {
-    if (!ad?.phone) return;
-    window.location.href = `tel:${ad.phone}`;
+    if (!ad?.phone && !ad?.sellerPhone) return;
+    const phone = ad.phone || ad.sellerPhone;
+    window.location.href = `tel:${phone}`;
   };
 
   const handleChat = () => {
@@ -241,6 +329,10 @@ export default function AdDetailPage() {
 
   const getImageUrl = (img: any) => {
     if (!img) return null;
+    if (typeof img === 'string') {
+      if (img.startsWith('http://') || img.startsWith('https://')) return img;
+      return img;
+    }
     const url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.original_url;
     if (!url) return null;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -270,18 +362,42 @@ export default function AdDetailPage() {
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto text-center py-16">
+          <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
           <h1 className="text-2xl font-bold mb-4">Ad Not Found</h1>
-          <p className="mb-8">{error || 'This ad may have been removed.'}</p>
-          <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl"><Home className="w-5 h-5" />Back to Home</Link>
+          <p className="mb-8 text-gray-600">{error || 'This ad may have been removed or does not exist.'}</p>
+          <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors">
+            <Home className="w-5 h-5" />Back to Home
+          </Link>
         </div>
       </main>
       <Footer />
     </div>
   );
 
-  const imagesArray = Array.isArray(ad.images) ? ad.images : [];
-  const currentImage = imagesArray[currentImageIndex];
-  const currentImageUrl = currentImage ? getImageUrl(currentImage) : null;
+  // Build slider images - use unique images only, no duplication
+  const getSliderImages = () => {
+    // Use the unified getAdImages function from utils
+    const images = getAdImages(ad);
+    
+    // If still empty, use fallback
+    if (images.length === 0) {
+      return [getFallbackForAd(ad)];
+    }
+    
+    return images;
+  };
+  
+  const sliderImages = getSliderImages();
+  const imagesArray = sliderImages;
+  const imagesUrls = sliderImages;
+  const currentImageUrl = currentImageError ? getFallbackForAd(ad) : (sliderImages[currentImageIndex] || sliderImages[0] || getFallbackForAd(ad));
+  
+  // Show arrows only when multiple UNIQUE images exist
+  const showArrows = sliderImages.length > 1;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -292,7 +408,7 @@ export default function AdDetailPage() {
           <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
             <Link href="/" className="hover:text-primary-600 flex items-center gap-1"><Home className="w-4 h-4" />Home</Link>
             <ChevronRight className="w-4 h-4" />
-            <Link href={`/ads?category=${ad.category?.slug}`} className="hover:text-primary-600">{ad.category?.name || 'Category'}</Link>
+            <Link href={`/ads?category=${ad.category?.slug || ad.category}`} className="hover:text-primary-600">{ad.category?.name || ad.category || 'Category'}</Link>
             <ChevronRight className="w-4 h-4" />
             <span className="text-gray-900 truncate max-w-[200px]">{ad.title}</span>
           </div>
@@ -302,31 +418,62 @@ export default function AdDetailPage() {
             <div className="lg:col-span-2 space-y-px">
               {/* Image Gallery */}
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden border-t-8 border-primary-600">
-                <div className="relative aspect-[4/3] bg-gray-100">
-                  {currentImageUrl ? (
-                    <img src={currentImageUrl} alt={ad.title} className="w-full h-full object-cover" style={{ imageRendering: 'auto' }} loading="eager" />
+                <div 
+                  className="relative aspect-[4/3] bg-gray-100"
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                >
+                  {imagesUrls.length > 0 ? (
+                    <img 
+                      src={currentImageUrl} 
+                      alt={ad.title} 
+                      className="w-full h-full object-cover" 
+                      style={{ imageRendering: 'auto' }} 
+                      loading="lazy"
+                      decoding="async"
+                      onError={() => setCurrentImageError(true)}
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100">
+                      <ImageIcon className="w-16 h-16 text-gray-300 mb-2" />
+                      <span className="text-gray-400 text-sm">No image available</span>
+                    </div>
                   )}
                   
                   {/* Badges - Single Combined Badge */}
                   {ad.condition && (
                     <div className="absolute top-2 left-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        ad.condition === 'new' || ad.condition === 'brand_new' ? 'bg-green-50 text-green-700' :
-                        ad.condition === 'like_new' ? 'bg-blue-50 text-blue-700' :
-                        ad.condition === 'good' ? 'bg-gray-50 text-gray-600' :
-                        'bg-amber-50 text-amber-700'
-                      }`}>
-                        {ad.condition === 'new' || ad.condition === 'brand_new' ? 'New' : 
-                         ad.condition === 'like_new' ? 'Like New' : 
-                         ad.condition === 'good' ? 'Good' : 'Fair'}
-                      </span>
+                      {(() => {
+                        const condition = String(ad.condition).toLowerCase();
+                        let badgeClass = '';
+                        let label = '';
+                        
+                        if (condition === 'new' || condition === 'brand_new' || condition === 'brand new') {
+                          badgeClass = 'bg-green-50 text-green-700';
+                          label = 'New';
+                        } else if (condition === 'like_new' || condition === 'like new') {
+                          badgeClass = 'bg-blue-50 text-blue-700';
+                          label = 'Like New';
+                        } else if (condition === 'good' || condition === 'used') {
+                          badgeClass = 'bg-amber-50 text-amber-700';
+                          label = condition === 'good' ? 'Good' : 'Used';
+                        } else {
+                          badgeClass = 'bg-gray-50 text-gray-600';
+                          label = condition.charAt(0).toUpperCase() + condition.slice(1);
+                        }
+                        
+                        return (
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </div>
                   )}
 
                   {/* Navigation Arrows */}
-                  {imagesArray.length > 1 && (
+                  {showArrows && (
                     <>
                       <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white hover:bg-gray-50 p-2 rounded-full shadow-lg border border-gray-200">
                         <ArrowLeft className="w-5 h-5 text-gray-700" />
@@ -339,15 +486,26 @@ export default function AdDetailPage() {
                 </div>
 
                 {/* Thumbnail Strip */}
-                {imagesArray.length > 1 && (
+                {showArrows && (
                   <div className="flex gap-2 p-4 overflow-x-auto">
-                    {imagesArray.map((img: any, idx: number) => (
+                    {imagesUrls.map((imgUrl: string, idx: number) => (
                       <button
-                        key={img.id || idx}
-                        onClick={() => setCurrentImageIndex(idx)}
+                        key={idx}
+                        onClick={() => {
+                          setCurrentImageIndex(idx);
+                          setCurrentImageError(false);
+                        }}
                         className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${currentImageIndex === idx ? 'border-primary-500' : 'border-transparent'}`}
                       >
-                        <img src={getImageUrl(img) || ''} alt="" className="w-full h-full object-cover" style={{ imageRendering: 'auto' }} loading="eager" />
+                        <img 
+                          src={thumbnailErrors[idx] ? getFallbackForAd(ad) : imgUrl} 
+                          alt="" 
+                          className="w-full h-full object-cover" 
+                          style={{ imageRendering: 'auto' }} 
+                          loading="lazy"
+                          decoding="async"
+                          onError={() => setThumbnailErrors(prev => ({ ...prev, [idx]: true }))}
+                        />
                       </button>
                     ))}
                   </div>
@@ -401,9 +559,9 @@ export default function AdDetailPage() {
 
                 {/* Description with Show More on right */}
                 <div className="text-gray-600 whitespace-pre-wrap pt-2">
-                  {ad.description && ad.description.length > 300 ? (
+                  {ad.description ? (
                     <>
-                      <p className={showFullDescription ? '' : 'line-clamp-2'}>
+                      <p className={showFullDescription ? '' : 'line-clamp-3'}>
                         {ad.description}
                       </p>
                       <div className="flex justify-end">
@@ -416,7 +574,7 @@ export default function AdDetailPage() {
                       </div>
                     </>
                   ) : (
-                    <p>{ad.description || 'No description provided.'}</p>
+                    <p>No description provided.</p>
                   )}
                 </div>
 
@@ -438,7 +596,14 @@ export default function AdDetailPage() {
                   <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-600">
                     <div>
                       <span className="text-gray-400">Location: </span>
-                      <span className="font-medium text-gray-900">{ad.location?.name || 'N/A'}{ad.lga && `, ${ad.lga}`}</span>
+                      <span className="font-medium text-gray-900">
+                        {typeof ad.location === 'string' ? ad.location : (ad.location?.name || ad.location || 'N/A')}
+                        {ad.lga && `, ${ad.lga}`}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Posted: </span>
+                      <span className="font-medium text-gray-900">{formatRelativeTime(ad.created_at || ad.createdAt)}</span>
                     </div>
                     <div>
                       <span className="text-gray-400">Views: </span>
@@ -459,35 +624,35 @@ export default function AdDetailPage() {
 
             {/* Right Column - Seller & Contact */}
             <div className="space-y-px max-w-sm">
-              {/* Seller Card */}
-              {ad.user && ad.user.id && (
+              {/* Seller Card - handle both API and seeded ads */}
+              {(ad.user && ad.user.id) || ad.sellerName ? (
                 <SellerProfileCard
                   seller={{
-                    id: ad.user.id,
-                    name: ad.user.name || 'Unknown',
-                    avatar: ad.user.avatar,
-                    avatar_url: ad.user.avatar_url,
-                    full_avatar_url: ad.user.full_avatar_url || (ad.user.avatar ? `${BACKEND_URL}/storage/${ad.user.avatar}` : null),
-                    google_avatar: ad.user.google_avatar,
-                    facebook_avatar: ad.user.facebook_avatar,
-                    verified: ad.user.verified,
-                    created_at: ad.user.created_at,
-                    phone: ad.user.phone,
-                    location: ad.user.location,
+                    id: ad.user?.id || ad.id || 0,
+                    name: ad.user?.name || ad.sellerName || 'Unknown Seller',
+                    avatar: ad.user?.avatar,
+                    avatar_url: ad.user?.avatar_url,
+                    full_avatar_url: ad.user?.full_avatar_url || (ad.user?.avatar ? `${BACKEND_URL}/storage/${ad.user.avatar}` : null),
+                    google_avatar: ad.user?.google_avatar,
+                    facebook_avatar: ad.user?.facebook_avatar,
+                    verified: ad.user?.verified || ad.is_verified || false,
+                    created_at: ad.user?.created_at || ad.createdAt,
+                    phone: ad.user?.phone || ad.sellerPhone,
+                    location: ad.user?.location,
                   }}
                   showFollowButton={true}
                   showJoinedDate={true}
                   showPhone={false}
                   showLocation={false}
                 />
-              )}
+              ) : null}
 
               {/* Contact Card */}
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Contact Seller</h2>
                 
                 {(() => {
-                  const contactPhone = ad.user?.phone || ad.phone;
+                  const contactPhone = ad.user?.phone || ad.phone || ad.sellerPhone;
                   if (!contactPhone) {
                     return <p className="text-sm text-gray-500 mb-3 text-center">No phone number available</p>;
                   }
@@ -508,7 +673,7 @@ export default function AdDetailPage() {
                 })()}
                 
                 <div className="grid grid-cols-2 gap-3">
-                  {(ad.user?.phone || ad.whatsapp || ad.phone) ? (
+                  {(ad.user?.phone || ad.whatsapp || ad.phone || ad.sellerPhone) ? (
                     <button onClick={handleWhatsApp} className="py-3 px-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
                       <WhatsAppIcon className="w-5 h-5" />WhatsApp
                     </button>
@@ -552,7 +717,7 @@ export default function AdDetailPage() {
 
           {/* Related Ads - Full Width */}
           <div className="-mx-4 md:mx-0">
-            <RelatedAds currentAdId={ad.id} categoryId={ad.category?.id} />
+            <RelatedAds currentAdId={ad.id} categoryId={ad.category?.id || ad.category} />
           </div>
         </div>
       </main>
@@ -565,7 +730,7 @@ export default function AdDetailPage() {
         adId={ad.id}
         adTitle={ad.title}
         sellerId={ad.user?.id || 0}
-        sellerName={ad.user?.name || 'Seller'}
+        sellerName={ad.user?.name || ad.sellerName || 'Seller'}
       />
 
       {/* Share Popup - Centered Modal */}

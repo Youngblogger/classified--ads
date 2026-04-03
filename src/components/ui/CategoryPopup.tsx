@@ -278,8 +278,13 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
           {/* Categories List */}
           <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 bg-gray-50 overflow-y-auto max-h-[35vh] md:max-h-none">
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              <div className="py-4 px-4 space-y-2">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3 bg-white rounded-lg animate-pulse">
+                    <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                    <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="py-2">

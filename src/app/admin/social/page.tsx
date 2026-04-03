@@ -534,11 +534,15 @@ export default function SocialPostsPage() {
                       className="rounded text-primary-600"
                     />
                     <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                      {ad.images?.[0]?.url ? (
-                        <img src={ad.images[0].url} alt={ad.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No img</div>
-                      )}
+                      {(() => {
+                        const firstImg = ad.images?.[0];
+                        const imgUrl = typeof firstImg === 'string' ? firstImg : firstImg?.url;
+                        return imgUrl ? (
+                          <img src={imgUrl} alt={ad.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No img</div>
+                        );
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 truncate">{ad.title}</p>
@@ -686,11 +690,18 @@ export default function SocialPostsPage() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
-                    </td>
-                  </tr>
+                  <>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="px-6 py-4"><div className="h-6 w-8 bg-gray-200 rounded"></div></td>
+                        <td className="px-6 py-4"><div className="h-4 w-32 bg-gray-200 rounded"></div></td>
+                        <td className="px-6 py-4"><div className="h-6 w-16 bg-gray-200 rounded-full"></div></td>
+                        <td className="px-6 py-4"><div className="h-4 w-8 bg-gray-200 rounded"></div></td>
+                        <td className="px-6 py-4"><div className="h-4 w-24 bg-gray-200 rounded"></div></td>
+                        <td className="px-6 py-4"><div className="h-8 w-16 bg-gray-200 rounded"></div></td>
+                      </tr>
+                    ))}
+                  </>
                 ) : posts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">No posts found</td>

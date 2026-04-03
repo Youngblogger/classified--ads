@@ -238,8 +238,16 @@ function NotificationsContent() {
 
       <div className="bg-white rounded-2xl shadow-card overflow-hidden">
         {loading && page === 1 ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+          <div className="p-4 sm:p-6 space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gray-200 animate-pulse"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center">

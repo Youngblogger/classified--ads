@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { MapPin, Loader2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
-import { formatPrice, getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
+import { formatPrice, getAdImage, getAdImageUrl, getAdImages, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
 
 interface AdImage {
   url?: string;
@@ -29,6 +29,7 @@ interface Ad {
   location?: { name: string } | null;
   lga?: string;
   created_at: string;
+  category?: { name?: string; slug?: string } | string;
 }
 
 interface RelatedAdsProps {
@@ -229,21 +230,33 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
                 className="group block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               >
                 <div className="relative aspect-[4/3] bg-gray-100">
-                  {getAdImageUrl(ad.images?.[0]) ? (
-                    <img
-                      src={getAdImageUrl(ad.images?.[0])}
-                      alt={ad.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="w-10 h-10 text-gray-300" />
-                    </div>
-                  )}
+                  {(() => {
+                    const primaryImage = ad.images?.find(img => img?.is_primary) || ad.images?.[0];
+                    const imageUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
+                    const fallbackImage = getCategoryFallback(ad.category);
+                    
+                    if (imageUrl) {
+                      return (
+                        <img
+                          src={imageUrl}
+                          alt={ad.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = fallbackImage;
+                          }}
+                        />
+                      );
+                    }
+                    return (
+                      <img
+                        src={fallbackImage}
+                        alt={ad.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    );
+                  })()}
                   {getConditionBadge(ad.condition)}
                 </div>
                 <div className="p-3">

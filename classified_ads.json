@@ -1,0 +1,775 @@
+[
+  {
+    "id": "toyota_camry_2015_lekki_lagos",
+    "title": "Toyota Camry 2015 - Tokunbo, Full Option",
+    "price": "₦8,500,000",
+    "category": "Vehicles",
+    "location": "Lagos",
+    "sellerName": "Chinedu Okafor",
+    "phone": "08035789012",
+    "thumbnail": "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+      "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800",
+      "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800"
+    ]
+  },
+  {
+    "id": "honda_accord_2016_victoria_island",
+    "title": "Honda Accord 2016 - Clean Title, Leather Interior",
+    "price": "₦9,200,000",
+    "category": "Vehicles",
+    "location": "Lagos",
+    "sellerName": "Amina Bello",
+    "phone": "08123456789",
+    "thumbnail": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800",
+      "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800"
+    ]
+  },
+  {
+    "id": "mercedes_c250_2017_abuja",
+    "title": "Mercedes-Benz C250 2017 AMG - Low Mileage",
+    "price": "₦18,500,000",
+    "category": "Vehicles",
+    "location": "Abuja",
+    "sellerName": "Tunde Adebayo",
+    "phone": "08091234567",
+    "thumbnail": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800",
+      "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800"
+    ]
+  },
+  {
+    "id": "toyota_corolla_2014_surulere",
+    "title": "Toyota Corolla 2014 - Standard, Accident Free",
+    "price": "₦5,800,000",
+    "category": "Vehicles",
+    "location": "Lagos",
+    "sellerName": "Blessing Eze",
+    "phone": "08162345678",
+    "thumbnail": "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800",
+      "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800"
+    ]
+  },
+  {
+    "id": "lexus_rx350_2018_lekki",
+    "title": "Lexus RX350 2018 - Full Option, Sunroof",
+    "price": "₦22,000,000",
+    "category": "Vehicles",
+    "location": "Lagos",
+    "sellerName": "Emeka Nwosu",
+    "phone": "08034567890",
+    "thumbnail": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800",
+      "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800"
+    ]
+  },
+  {
+    "id": "ford_explorer_2016_abuja",
+    "title": "Ford Explorer 2016 - Sport Edition, 4WD",
+    "price": "₦12,500,000",
+    "category": "Vehicles",
+    "location": "Abuja",
+    "sellerName": "Adaobi Nwachukwu",
+    "phone": "08104567890",
+    "thumbnail": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800"
+    ]
+  },
+  {
+    "id": "hyundai_sonata_2015_ibadan",
+    "title": "Hyundai Sonata 2015 - Neat, AC Chilling",
+    "price": "₦6,200,000",
+    "category": "Vehicles",
+    "location": "Ibadan",
+    "sellerName": "Kunle Bakare",
+    "phone": "08067890123",
+    "thumbnail": "https://images.unsplash.com/photo-1629897048514-3dd7414fe72a?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1629897048514-3dd7414fe72a?w=800",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800",
+      "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800"
+    ]
+  },
+  {
+    "id": "audi_a4_2016_victoria_island",
+    "title": "Audi A4 2016 - Quattro, Premium Sound",
+    "price": "₦14,000,000",
+    "category": "Vehicles",
+    "location": "Lagos",
+    "sellerName": "Fatimah Ibrahim",
+    "phone": "08123451234",
+    "thumbnail": "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+      "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800",
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800"
+    ]
+  },
+  {
+    "id": "iphone_15_pro_max_ikeja",
+    "title": "iPhone 15 Pro Max 256GB - Factory Unlocked",
+    "price": "₦1,850,000",
+    "category": "Mobile Phones",
+    "location": "Lagos",
+    "sellerName": "Oluwaseun Adeyemi",
+    "phone": "08098765432",
+    "thumbnail": "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800",
+      "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800",
+      "https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800"
+    ]
+  },
+  {
+    "id": "samsung_s24_ultra_wuse",
+    "title": "Samsung Galaxy S24 Ultra 512GB - Brand New",
+    "price": "₦1,650,000",
+    "category": "Mobile Phones",
+    "location": "Abuja",
+    "sellerName": "Ifeanyi Okonkwo",
+    "phone": "08145678901",
+    "thumbnail": "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800",
+      "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800",
+      "https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800"
+    ]
+  },
+  {
+    "id": "iphone_14_pro_256gb_lekki",
+    "title": "iPhone 14 Pro 256GB - Space Black, Excellent Battery",
+    "price": "₦1,350,000",
+    "category": "Mobile Phones",
+    "location": "Lagos",
+    "sellerName": "Chidinma Eze",
+    "phone": "08056789012",
+    "thumbnail": "https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=800",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800",
+      "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800",
+      "https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800"
+    ]
+  },
+  {
+    "id": "tecno_spark_20_pro_ibadan",
+    "title": "Tecno Spark 20 Pro - 256GB, Nigerian Warranty",
+    "price": "₦185,000",
+    "category": "Mobile Phones",
+    "location": "Ibadan",
+    "sellerName": "Segun Fashola",
+    "phone": "08167890123",
+    "thumbnail": "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800",
+      "https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800",
+      "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800"
+    ]
+  },
+  {
+    "id": "infinix_note_40_pro_yaba",
+    "title": "Infinix Note 40 Pro - 512GB, Fast Charging",
+    "price": "₦220,000",
+    "category": "Mobile Phones",
+    "location": "Lagos",
+    "sellerName": "Halima Mohammed",
+    "phone": "08078901234",
+    "thumbnail": "https://images.unsplash.com/photo-1591462392228-3d5c26d1b01e?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1591462392228-3d5c26d1b01e?w=800",
+      "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800",
+      "https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800"
+    ]
+  },
+  {
+    "id": "google_pixel_8_pro_wuse",
+    "title": "Google Pixel 8 Pro 256GB - Pure Android Experience",
+    "price": "₦950,000",
+    "category": "Mobile Phones",
+    "location": "Abuja",
+    "sellerName": "Uchechi Odozor",
+    "phone": "08189012345",
+    "thumbnail": "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800",
+      "https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800",
+      "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800"
+    ]
+  },
+  {
+    "id": "xiaomi_14_ultra_abuja",
+    "title": "Xiaomi 14 Ultra 512GB - Leica Camera System",
+    "price": "₦780,000",
+    "category": "Mobile Phones",
+    "location": "Abuja",
+    "sellerName": "Dotun Olatunji",
+    "phone": "08023456789",
+    "thumbnail": "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800",
+      "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800",
+      "https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800"
+    ]
+  },
+  {
+    "id": "oppo_find_x7_ultra_lekki",
+    "title": "OPPO Find X7 Ultra - 1TB, Hasselblad Camera",
+    "price": "₦890,000",
+    "category": "Mobile Phones",
+    "location": "Lagos",
+    "sellerName": "Ngozi Afolabi",
+    "phone": "08134567890",
+    "thumbnail": "https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=800",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800",
+      "https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800",
+      "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800"
+    ]
+  },
+  {
+    "id": "macbook_pro_16_m3_ikeja",
+    "title": "MacBook Pro 16\" M3 Max - 1TB, Space Black",
+    "price": "₦4,200,000",
+    "category": "Electronics",
+    "location": "Lagos",
+    "sellerName": "Baba Yusuf",
+    "phone": "08045678901",
+    "thumbnail": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800",
+      "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800",
+      "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800",
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800"
+    ]
+  },
+  {
+    "id": "dell_xps_15_victoria_island",
+    "title": "Dell XPS 15 - Intel i9, 32GB RAM, 1TB SSD",
+    "price": "₦1,850,000",
+    "category": "Electronics",
+    "location": "Lagos",
+    "sellerName": "Timileyin Ogundimu",
+    "phone": "08128901234",
+    "thumbnail": "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800",
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800",
+      "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800",
+      "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800"
+    ]
+  },
+  {
+    "id": "sony_playstation_5_wuse",
+    "title": "PlayStation 5 Disc Edition - With 2 Controllers",
+    "price": "₦680,000",
+    "category": "Electronics",
+    "location": "Abuja",
+    "sellerName": "Jumoke Adesanya",
+    "phone": "08061234567",
+    "thumbnail": "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800",
+      "https://images.unsplash.com/photo-1600080965850-9ad4ce57c86f?w=800",
+      "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=800",
+      "https://images.unsplash.com/photo-1627429095418-78f3b4f01b3e?w=800"
+    ]
+  },
+  {
+    "id": "samsung_65_qled_tv_ibadan",
+    "title": "Samsung 65\" QLED 4K Smart TV - 2024 Model",
+    "price": "₦1,450,000",
+    "category": "Electronics",
+    "location": "Ibadan",
+    "sellerName": "Obinna Eze",
+    "phone": "08156789012",
+    "thumbnail": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800",
+      "https://images.unsplash.com/photo-1461151304267-38535e780c79?w=800",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800",
+      "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=800"
+    ]
+  },
+  {
+    "id": "hp_elitebook_840_g10_abuja",
+    "title": "HP EliteBook 840 G10 - Intel i7, 16GB, 512GB",
+    "price": "₦980,000",
+    "category": "Electronics",
+    "location": "Abuja",
+    "sellerName": "Sola Balogun",
+    "phone": "08034561234",
+    "thumbnail": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800",
+      "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800",
+      "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800",
+      "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800"
+    ]
+  },
+  {
+    "id": "airpod_pro_2_lekki",
+    "title": "Apple AirPods Pro 2nd Gen - Sealed Pack",
+    "price": "₦280,000",
+    "category": "Electronics",
+    "location": "Lagos",
+    "sellerName": "Chinedu Micheal",
+    "phone": "08178901234",
+    "thumbnail": "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800",
+      "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800",
+      "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=800",
+      "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800"
+    ]
+  },
+  {
+    "id": "samsung_galaxy_watch_6_ikeja",
+    "title": "Samsung Galaxy Watch 6 Classic 47mm - Brand New",
+    "price": "₦320,000",
+    "category": "Electronics",
+    "location": "Lagos",
+    "sellerName": "Aisha Danladi",
+    "phone": "08045671234",
+    "thumbnail": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800",
+      "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=800",
+      "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=800",
+      "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=800"
+    ]
+  },
+  {
+    "id": "xbox_series_x_wuse",
+    "title": "Xbox Series X 1TB - With 3 Games",
+    "price": "₦620,000",
+    "category": "Electronics",
+    "location": "Abuja",
+    "sellerName": "Emmanuel Okoro",
+    "phone": "08123459012",
+    "thumbnail": "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=800",
+      "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800",
+      "https://images.unsplash.com/photo-1627429095418-78f3b4f01b3e?w=800",
+      "https://images.unsplash.com/photo-1600080965850-9ad4ce57c86f?w=800"
+    ]
+  },
+  {
+    "id": "3_bedroom_apartment_lekki",
+    "title": "3 Bedroom Flat for Rent - Lekki Phase 1",
+    "price": "₦5,500,000/year",
+    "category": "Property",
+    "location": "Lagos",
+    "sellerName": "Nkiruka Emmanuel",
+    "phone": "08036789012",
+    "thumbnail": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",
+      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",
+      "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800"
+    ]
+  },
+  {
+    "id": "4_bedroom_duplex_abuja",
+    "title": "4 Bedroom Duplex for Sale - Wuse 2, Abuja",
+    "price": "₦180,000,000",
+    "category": "Property",
+    "location": "Abuja",
+    "sellerName": "Abubakar Shehu",
+    "phone": "08175678901",
+    "thumbnail": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",
+      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",
+      "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800"
+    ]
+  },
+  {
+    "id": "2_bedroom_serviced_flat_maitama",
+    "title": "2 Bedroom Serviced Apartment - Maitama, Abuja",
+    "price": "₦3,200,000/year",
+    "category": "Property",
+    "location": "Abuja",
+    "sellerName": "Victoria Adeyemi",
+    "phone": "08094567890",
+    "thumbnail": "https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",
+      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",
+      "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800"
+    ]
+  },
+  {
+    "id": "5_plot_land_ibadan",
+    "title": "5 Plots of Land for Sale - Ring Road, Ibadan",
+    "price": "₦45,000,000",
+    "category": "Property",
+    "location": "Ibadan",
+    "sellerName": "Olusegun Adegoke",
+    "phone": "08138901234",
+    "thumbnail": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800",
+      "https://images.unsplash.com/photo-1628624747186-a941c476b7ef?w=800",
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800",
+      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800"
+    ]
+  },
+  {
+    "id": "studio_apartment_surulere",
+    "title": "Self Contain Studio - Surulere, Lagos",
+    "price": "₦800,000/year",
+    "category": "Property",
+    "location": "Lagos",
+    "sellerName": "Chioma Nwankwo",
+    "phone": "08027890123",
+    "thumbnail": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
+      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",
+      "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800",
+      "https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800"
+    ]
+  },
+  {
+    "id": "commercial_shop_space_victoria_island",
+    "title": "Shop Space for Rent - Victoria Island, Lagos",
+    "price": "₦8,000,000/year",
+    "category": "Property",
+    "location": "Lagos",
+    "sellerName": "Obi Kenneth",
+    "phone": "08161234567",
+    "thumbnail": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800",
+      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800"
+    ]
+  },
+  {
+    "id": "executive_office_wuse",
+    "title": "Executive Office Space - Wuse, Abuja",
+    "price": "₦12,000,000/year",
+    "category": "Property",
+    "location": "Abuja",
+    "sellerName": "Grace Madu",
+    "phone": "08015678901",
+    "thumbnail": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",
+      "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800"
+    ]
+  },
+  {
+    "id": "boys_boarding_school_ibadan",
+    "title": "Boys Boarding School Facility - Ikoyi, Ibadan",
+    "price": "₦350,000,000",
+    "category": "Property",
+    "location": "Ibadan",
+    "sellerName": "Professor Adeleke",
+    "phone": "08147890123",
+    "thumbnail": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",
+      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",
+      "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800"
+    ]
+  },
+  {
+    "id": "ankara_fashion_collection_ikeja",
+    "title": "Premium Ankara Fabric Collection - 20 Designs",
+    "price": "₦85,000",
+    "category": "Fashion",
+    "location": "Lagos",
+    "sellerName": "Funke Adedoyin",
+    "phone": "08048901234",
+    "thumbnail": "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800",
+      "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800",
+      "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800",
+      "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=800"
+    ]
+  },
+  {
+    "id": "louis_vuitton_bag_lekki",
+    "title": "Louis Vuitton Neverfull MM - Authentic, Receipt",
+    "price": "₦680,000",
+    "category": "Fashion",
+    "location": "Lagos",
+    "sellerName": "Toyin Bamiro",
+    "phone": "08158901234",
+    "thumbnail": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800",
+      "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800",
+      "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800",
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800"
+    ]
+  },
+  {
+    "id": "nike_air_max_sneakers_wuse",
+    "title": "Nike Air Max 270 React - Size 42, Brand New",
+    "price": "₦125,000",
+    "category": "Fashion",
+    "location": "Abuja",
+    "sellerName": "David Okafor",
+    "phone": "08035678901",
+    "thumbnail": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800",
+      "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800",
+      "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=800",
+      "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800"
+    ]
+  },
+  {
+    "id": "womens_agbada_set_ibadan",
+    "title": "Designer Agbada Set - For Special Occasions",
+    "price": "₦95,000",
+    "category": "Fashion",
+    "location": "Ibadan",
+    "sellerName": "Alhaji Lamidi",
+    "phone": "08126789012",
+    "thumbnail": "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800",
+      "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800",
+      "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800",
+      "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=800"
+    ]
+  },
+  {
+    "id": "gucci_sunglasses_abuja",
+    "title": "Gucci Women's Sunglasses - GG Logo, New",
+    "price": "₦145,000",
+    "category": "Fashion",
+    "location": "Abuja",
+    "sellerName": "Blessing Ogbonna",
+    "phone": "08067891234",
+    "thumbnail": "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800",
+      "https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800",
+      "https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800",
+      "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800"
+    ]
+  },
+  {
+    "id": "gold_rolex_watch_lagos",
+    "title": "Rolex Datejust 36mm - Yellow Gold, 2022",
+    "price": "₦8,500,000",
+    "category": "Fashion",
+    "location": "Lagos",
+    "sellerName": "Chief Ezeugo",
+    "phone": "08134567812",
+    "thumbnail": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800",
+      "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=800",
+      "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=800",
+      "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=800"
+    ]
+  },
+  {
+    "id": "leather_mens_wallet_yaba",
+    "title": "Premium Leather Men's Wallet - 8 Card Slots",
+    "price": "₦28,000",
+    "category": "Fashion",
+    "location": "Lagos",
+    "sellerName": "Suleiman Musa",
+    "phone": "08023459012",
+    "thumbnail": "https://images.unsplash.com/photo-1627123424574-724758594e93?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1627123424574-724758594e93?w=800",
+      "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800",
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800",
+      "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800"
+    ]
+  },
+  {
+    "id": "suit_tuxedo_3_piece_victoria_island",
+    "title": "3-Piece Wedding Suit Tuxedo - Navy Blue",
+    "price": "₦180,000",
+    "category": "Fashion",
+    "location": "Lagos",
+    "sellerName": "Samuel Eze",
+    "phone": "08145678923",
+    "thumbnail": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800",
+      "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800",
+      "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800",
+      "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800"
+    ]
+  },
+  {
+    "id": "sofa_set_leather_lekki",
+    "title": "7-Seater Leather Sofa Set - Executive Design",
+    "price": "₦850,000",
+    "category": "Furniture",
+    "location": "Lagos",
+    "sellerName": "Mrs. Ngozi Onuoha",
+    "phone": "08056781234",
+    "thumbnail": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800",
+      "https://images.unsplash.com/photo-1550226891-ef816aed4a98?w=800",
+      "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800",
+      "https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800"
+    ]
+  },
+  {
+    "id": "queen_size_bed_frame_wuse",
+    "title": "Queen Size Wooden Bed Frame - With Mattress",
+    "price": "₦280,000",
+    "category": "Furniture",
+    "location": "Abuja",
+    "sellerName": "Ibrahim Tanko",
+    "phone": "08167891234",
+    "thumbnail": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800",
+      "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800",
+      "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800",
+      "https://images.unsplash.com/photo-1617325247661-675ab4b64ae2?w=800"
+    ]
+  },
+  {
+    "id": "dining_table_6_chairs_ibadan",
+    "title": "6-Seater Dining Table Set - Solid Wood",
+    "price": "₦350,000",
+    "category": "Furniture",
+    "location": "Ibadan",
+    "sellerName": "Adekunle Adeyemi",
+    "phone": "08012345678",
+    "thumbnail": "https://images.unsplash.com/photo-1617806118233-18e1de247200?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1617806118233-18e1de247200?w=800",
+      "https://images.unsplash.com/photo-1549497538-303791108f95?w=800",
+      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",
+      "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=800"
+    ]
+  },
+  {
+    "id": "office_executive_desk_wuse",
+    "title": "Executive Office Desk - L-Shape, Walnut",
+    "price": "₦420,000",
+    "category": "Furniture",
+    "location": "Abuja",
+    "sellerName": "Patricia John",
+    "phone": "08189012340",
+    "thumbnail": "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800",
+      "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
+      "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800"
+    ]
+  },
+  {
+    "id": "wardrobe_sliding_lekki",
+    "title": "3-Door Sliding Wardrobe - With Mirror",
+    "price": "₦185,000",
+    "category": "Furniture",
+    "location": "Lagos",
+    "sellerName": "Ebere Chukwu",
+    "phone": "08078901245",
+    "thumbnail": "https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800",
+      "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800",
+      "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800"
+    ]
+  },
+  {
+    "id": "bookshelf_standing_abuja",
+    "title": "5-Tier Standing Bookshelf - Industrial Style",
+    "price": "₦95,000",
+    "category": "Furniture",
+    "location": "Abuja",
+    "sellerName": "Ken Obi",
+    "phone": "08145678902",
+    "thumbnail": "https://images.unsplash.com/photo-1594620302200-9a762244a156?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1594620302200-9a762244a156?w=800",
+      "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800",
+      "https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800",
+      "https://images.unsplash.com/photo-1550226891-ef816aed4a98?w=800"
+    ]
+  },
+  {
+    "id": "garden_patio_set_lekki",
+    "title": "5-Piece Garden Patio Set - Rattan Furniture",
+    "price": "₦220,000",
+    "category": "Furniture",
+    "location": "Lagos",
+    "sellerName": "Angela Nwachukwu",
+    "phone": "08045678903",
+    "thumbnail": "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800",
+      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800",
+      "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800",
+      "https://images.unsplash.com/photo-1550226891-ef816aed4a98?w=800"
+    ]
+  },
+  {
+    "id": "tv_stand_unit_ibadan",
+    "title": "Modern TV Stand Unit - 55 Inch Compatible",
+    "price": "₦125,000",
+    "category": "Furniture",
+    "location": "Ibadan",
+    "sellerName": "Olumide Taiwo",
+    "phone": "08156789013",
+    "thumbnail": "https://images.unsplash.com/photo-1550226891-ef816aed4a98?w=800",
+    "images": [
+      "https://images.unsplash.com/photo-1550226891-ef816aed4a98?w=800",
+      "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800",
+      "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800",
+      "https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=800"
+    ]
+  }
+]

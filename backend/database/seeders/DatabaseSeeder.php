@@ -24,18 +24,18 @@ class DatabaseSeeder extends Seeder
     private function createSampleUsers()
     {
         $nigerianUsers = [
-            ['name' => 'Emeka Okonkwo', 'email' => 'emeka@example.com', 'phone' => '08031234567', 'location' => 'Lagos'],
-            ['name' => 'Chinedu Eze', 'email' => 'chinedu@example.com', 'phone' => '08041234567', 'location' => 'Abuja'],
-            ['name' => 'Olumide Adeyemi', 'email' => 'olumide@example.com', 'phone' => '08051234567', 'location' => 'Ibadan'],
-            ['name' => 'Ngozi Chukwu', 'email' => 'ngozi@example.com', 'phone' => '08061234567', 'location' => 'Port Harcourt'],
-            ['name' => 'Ibrahim Musa', 'email' => 'ibrahim@example.com', 'phone' => '08071234567', 'location' => 'Kano'],
-            ['name' => 'Adaeze Nwankwo', 'email' => 'adaeze@example.com', 'phone' => '08081234567', 'location' => 'Enugu'],
-            ['name' => 'Ayodele Samuel', 'email' => 'ayodele@example.com', 'phone' => '08091234567', 'location' => 'Lagos'],
-            ['name' => 'Blessing Udofia', 'email' => 'blessing@example.com', 'phone' => '08101234567', 'location' => 'Calabar'],
-            ['name' => 'Oluwaseun Johnson', 'email' => 'oluwaseun@example.com', 'phone' => '08111234567', 'location' => 'Benin City'],
-            ['name' => 'Fatima Aliyu', 'email' => 'fatima@example.com', 'phone' => '08121234567', 'location' => 'Kaduna'],
-            ['name' => 'Tunde Bakare', 'email' => 'tunde@example.com', 'phone' => '08131234567', 'location' => 'Ibadan'],
-            ['name' => 'Chiamaka Obi', 'email' => 'chiamaka@example.com', 'phone' => '08141234567', 'location' => 'Lagos'],
+            ['name' => 'Emeka Okonkwo', 'email' => 'emeka@example.com', 'phone' => '08035729184', 'location' => 'Lagos'],
+            ['name' => 'Chinedu Eze', 'email' => 'chinedu@example.com', 'phone' => '08062481753', 'location' => 'Abuja'],
+            ['name' => 'Olumide Adeyemi', 'email' => 'olumide@example.com', 'phone' => '08051392647', 'location' => 'Ibadan'],
+            ['name' => 'Ngozi Chukwu', 'email' => 'ngozi@example.com', 'phone' => '08074618392', 'location' => 'Port Harcourt'],
+            ['name' => 'Ibrahim Musa', 'email' => 'ibrahim@example.com', 'phone' => '08105739284', 'location' => 'Kano'],
+            ['name' => 'Adaeze Nwankwo', 'email' => 'adaeze@example.com', 'phone' => '08026481935', 'location' => 'Enugu'],
+            ['name' => 'Ayodele Samuel', 'email' => 'ayodele@example.com', 'phone' => '08097531846', 'location' => 'Lagos'],
+            ['name' => 'Blessing Udofia', 'email' => 'blessing@example.com', 'phone' => '08123849561', 'location' => 'Calabar'],
+            ['name' => 'Oluwaseun Johnson', 'email' => 'oluwaseun@example.com', 'phone' => '07059283714', 'location' => 'Benin City'],
+            ['name' => 'Fatima Aliyu', 'email' => 'fatima@example.com', 'phone' => '08154927638', 'location' => 'Kaduna'],
+            ['name' => 'Tunde Bakare', 'email' => 'tunde@example.com', 'phone' => '09036472851', 'location' => 'Ibadan'],
+            ['name' => 'Chiamaka Obi', 'email' => 'chiamaka@example.com', 'phone' => '08145839267', 'location' => 'Lagos'],
         ];
 
         foreach ($nigerianUsers as $userData) {
@@ -60,7 +60,7 @@ class DatabaseSeeder extends Seeder
                 'password' => bcrypt('admin123'),
                 'role' => 'admin',
                 'status' => 'active',
-                'phone' => '09091234567',
+                'phone' => '09094826173',
                 'location' => 'Lagos',
                 'verified' => true,
             ]
@@ -281,18 +281,18 @@ class DatabaseSeeder extends Seeder
 
         // Create multiple users with Nigerian names and phone numbers
         $nigerianUsers = [
-            ['name' => 'Emeka Okonkwo', 'email' => 'emeka@example.com', 'phone' => '08031234567', 'location' => 'Lagos'],
-            ['name' => 'Chinedu Eze', 'email' => 'chinedu@example.com', 'phone' => '08052345678', 'location' => 'Abuja'],
-            ['name' => 'Olumide Adeyemi', 'email' => 'olumide@example.com', 'phone' => '08063456789', 'location' => 'Lagos'],
-            ['name' => 'Adaeze Nnamdi', 'email' => 'adaeze@example.com', 'phone' => '08074567890', 'location' => 'Enugu'],
-            ['name' => 'Ibrahim Garba', 'email' => 'ibrahim@example.com', 'phone' => '08085678901', 'location' => 'Kano'],
-            ['name' => 'Blessing Etim', 'email' => 'blessing@example.com', 'phone' => '08096789012', 'location' => 'Port Harcourt'],
-            ['name' => 'Tunde Bakare', 'email' => 'tunde@example.com', 'phone' => '08101234567', 'location' => 'Ibadan'],
-            ['name' => 'Ngozi Obi', 'email' => 'ngozi@example.com', 'phone' => '08112345678', 'location' => 'Lagos'],
-            ['name' => 'Kunle Williams', 'email' => 'kunle@example.com', 'phone' => '08123456789', 'location' => 'Abuja'],
-            ['name' => 'Amaka Umeh', 'email' => 'amaka@example.com', 'phone' => '08134567890', 'location' => 'Onitsha'],
-            ['name' => 'Segun Fashola', 'email' => 'segun@example.com', 'phone' => '08145678901', 'location' => 'Lagos'],
-            ['name' => 'Halima Musa', 'email' => 'halima@example.com', 'phone' => '08156789012', 'location' => 'Kaduna'],
+            ['name' => 'Emeka Okonkwo', 'email' => 'emeka@example.com', 'phone' => '08037192846', 'location' => 'Lagos'],
+            ['name' => 'Chinedu Eze', 'email' => 'chinedu@example.com', 'phone' => '08058264917', 'location' => 'Abuja'],
+            ['name' => 'Olumide Adeyemi', 'email' => 'olumide@example.com', 'phone' => '08064938172', 'location' => 'Lagos'],
+            ['name' => 'Adaeze Nnamdi', 'email' => 'adaeze@example.com', 'phone' => '08073619285', 'location' => 'Enugu'],
+            ['name' => 'Ibrahim Garba', 'email' => 'ibrahim@example.com', 'phone' => '08081749263', 'location' => 'Kano'],
+            ['name' => 'Blessing Etim', 'email' => 'blessing@example.com', 'phone' => '08092846153', 'location' => 'Port Harcourt'],
+            ['name' => 'Tunde Bakare', 'email' => 'tunde@example.com', 'phone' => '08106482937', 'location' => 'Ibadan'],
+            ['name' => 'Ngozi Obi', 'email' => 'ngozi@example.com', 'phone' => '08117593826', 'location' => 'Lagos'],
+            ['name' => 'Kunle Williams', 'email' => 'kunle@example.com', 'phone' => '08129461837', 'location' => 'Abuja'],
+            ['name' => 'Amaka Umeh', 'email' => 'amaka@example.com', 'phone' => '08138259174', 'location' => 'Onitsha'],
+            ['name' => 'Segun Fashola', 'email' => 'segun@example.com', 'phone' => '08149173648', 'location' => 'Lagos'],
+            ['name' => 'Halima Musa', 'email' => 'halima@example.com', 'phone' => '08153748296', 'location' => 'Kaduna'],
         ];
 
         foreach ($nigerianUsers as $userData) {
@@ -317,14 +317,12 @@ class DatabaseSeeder extends Seeder
                 'password' => bcrypt('admin123'),
                 'role' => 'admin',
                 'status' => 'active',
-                'phone' => '09091234567',
+                'phone' => '09083617294',
                 'location' => 'Lagos',
                 'verified' => true,
             ]
         );
 
-        // Create sample ads with images
-        $this->createSampleAds();
     }
 
     private function createSampleAds()
@@ -338,78 +336,67 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        // Reliable product images from picsum.photos
-        $images = [
-            // Phones
-            'https://picsum.photos/seed/phone1/800/600' => 'Phones',
-            'https://picsum.photos/seed/phone2/800/600' => 'Phones',
-            'https://picsum.photos/seed/phone3/800/600' => 'Phones',
-            'https://picsum.photos/seed/phone4/800/600' => 'Phones',
-            'https://picsum.photos/seed/phone5/800/600' => 'Phones',
-            // Cars
-            'https://picsum.photos/seed/car1/800/600' => 'Cars',
-            'https://picsum.photos/seed/car2/800/600' => 'Cars',
-            'https://picsum.photos/seed/car3/800/600' => 'Cars',
-            'https://picsum.photos/seed/car4/800/600' => 'Cars',
-            'https://picsum.photos/seed/car5/800/600' => 'Cars',
-            // Electronics
-            'https://picsum.photos/seed/laptop1/800/600' => 'Laptops',
-            'https://picsum.photos/seed/laptop2/800/600' => 'Laptops',
-            'https://picsum.photos/seed/laptop3/800/600' => 'Laptops',
-            'https://picsum.photos/seed/laptop4/800/600' => 'Laptops',
-            'https://picsum.photos/seed/laptop5/800/600' => 'Laptops',
-            // TVs
-            'https://picsum.photos/seed/tv1/800/600' => 'TVs',
-            'https://picsum.photos/seed/tv2/800/600' => 'TVs',
-            'https://picsum.photos/seed/tv3/800/600' => 'TVs',
-            // Gaming
-            'https://picsum.photos/seed/gaming1/800/600' => 'Gaming',
-            'https://picsum.photos/seed/gaming2/800/600' => 'Gaming',
-            'https://picsum.photos/seed/gaming3/800/600' => 'Gaming',
-            // Furniture
-            'https://picsum.photos/seed/furniture1/800/600' => 'Furniture',
-            'https://picsum.photos/seed/furniture2/800/600' => 'Furniture',
-            'https://picsum.photos/seed/furniture3/800/600' => 'Furniture',
-            'https://picsum.photos/seed/furniture4/800/600' => 'Furniture',
-            // Electronics Appliances
-            'https://picsum.photos/seed/appliance1/800/600' => 'Appliances',
-            'https://picsum.photos/seed/appliance2/800/600' => 'Appliances',
-            'https://picsum.photos/seed/appliance3/800/600' => 'Appliances',
-            // Fashion
-            'https://picsum.photos/seed/fashion1/800/600' => 'Fashion',
-            'https://picsum.photos/seed/fashion2/800/600' => 'Fashion',
-            'https://picsum.photos/seed/fashion3/800/600' => 'Fashion',
-            'https://picsum.photos/seed/fashion4/800/600' => 'Fashion',
-            // Real Estate
-            'https://picsum.photos/seed/realestate1/800/600' => 'Real Estate',
-            'https://picsum.photos/seed/realestate2/800/600' => 'Real Estate',
-            'https://picsum.photos/seed/realestate3/800/600' => 'Real Estate',
-            'https://picsum.photos/seed/realestate4/800/600' => 'Real Estate',
-            // Cameras
-            'https://picsum.photos/seed/camera1/800/600' => 'Cameras',
-            'https://picsum.photos/seed/camera2/800/600' => 'Cameras',
-            // Watches
-            'https://picsum.photos/seed/watch1/800/600' => 'Watches',
-            'https://picsum.photos/seed/watch2/800/600' => 'Watches',
-            // Headphones
-            'https://picsum.photos/seed/headphone1/800/600' => 'Headphones',
-            'https://picsum.photos/seed/headphone2/800/600' => 'Headphones',
-            // Bags
-            'https://picsum.photos/seed/bag1/800/600' => 'Bags',
-            'https://picsum.photos/seed/bag2/800/600' => 'Bags',
-            // Bikes
-            'https://picsum.photos/seed/bike1/800/600' => 'Bikes',
-            'https://picsum.photos/seed/bike2/800/600' => 'Bikes',
-            // Gym
-            'https://picsum.photos/seed/gym1/800/600' => 'Gym',
-            'https://picsum.photos/seed/gym2/800/600' => 'Gym',
-            // Tablets
-            'https://picsum.photos/seed/tablet1/800/600' => 'Tablets',
-            'https://picsum.photos/seed/tablet2/800/600' => 'Tablets',
-            // Other
-            'https://picsum.photos/seed/beauty1/800/600' => 'Beauty',
-            'https://picsum.photos/seed/beauty2/800/600' => 'Beauty',
-            'https://picsum.photos/seed/beauty3/800/600' => 'Beauty',
+        // Reliable product images - Using Unsplash with real product photos
+        // These are high-quality, publicly accessible images with relevant content
+        $categoryImages = [
+            'Cars' => [
+                'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1580273916550-e323be2ed5f6?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop',
+            ],
+            'Smartphones' => [
+                'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1598327105666-5b89351aff70?w=800&h=600&fit=crop',
+            ],
+            'Laptops' => [
+                'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1588702547923-b3c1859b71fa?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=800&h=600&fit=crop',
+            ],
+            'Gaming' => [
+                'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=800&h=600&fit=crop',
+            ],
+            'TVs' => [
+                'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1461151304267-38535e780c79?w=800&h=600&fit=crop',
+            ],
+            'Furniture' => [
+                'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=800&h=600&fit=crop',
+            ],
+            'Appliances' => [
+                'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=800&h=600&fit=crop',
+            ],
+            'Fashion' => [
+                'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&h=600&fit=crop',
+            ],
+            'Cameras' => [
+                'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&h=600&fit=crop',
+            ],
+            'Watches' => [
+                'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=600&fit=crop',
+            ],
+            'Real Estate' => [
+                'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
+            ],
+            'Gym' => [
+                'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=600&fit=crop',
+            ],
+            'Beauty' => [
+                'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&h=600&fit=crop',
+            ],
         ];
 
         $sampleAds = [

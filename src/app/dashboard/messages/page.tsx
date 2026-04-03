@@ -756,8 +756,16 @@ export default function MessagesPage() {
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+            <div className="p-4 space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-start gap-3 p-4 animate-pulse">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                    <div className="h-3 w-48 bg-gray-100 rounded"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredConversations.length === 0 ? (
             <div className="p-4 text-center text-gray-500">No conversations found</div>
@@ -943,8 +951,12 @@ export default function MessagesPage() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {loadingMessages ? (
-              <div className="flex justify-center py-8">
-                <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+              <div className="flex flex-col gap-4 py-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} animate-pulse`}>
+                    <div className={`h-16 ${i % 2 === 0 ? 'w-48' : 'w-40'} bg-gray-200 rounded-2xl`}></div>
+                  </div>
+                ))}
               </div>
             ) : messages.length === 0 ? (
               <div className="text-center py-8 text-gray-500">

@@ -100,8 +100,37 @@ export default function SearchAnalyticsPage() {
         </div>
         
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3"><div className="h-4 w-8 bg-gray-200 rounded animate-pulse"></div></th>
+                  <th className="px-6 py-3"><div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div></th>
+                  <th className="px-6 py-3"><div className="h-4 w-16 bg-gray-200 rounded animate-pulse"></div></th>
+                  <th className="px-6 py-3"><div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4"><div className="h-4 w-6 bg-gray-200 rounded"></div></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4"><div className="h-4 w-12 bg-gray-200 rounded"></div></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 h-2 bg-gray-200 rounded-full"></div>
+                        <div className="h-4 w-8 bg-gray-200 rounded"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : trending.length > 0 ? (
           <div className="overflow-x-auto">

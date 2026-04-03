@@ -48,38 +48,54 @@ export interface Location {
 
 // Ad Types
 export interface Ad {
-  id: number;
+  id: number | string;
   title: string;
   slug: string;
   description?: string;
   short_description?: string;
   price: number;
-  currency: string;
+  currency?: string;
   condition?: string;
   status?: string;
   views?: number;
-  created_at: string;
+  created_at?: string;
+  createdAt?: string;
   updated_at?: string;
   user?: Partial<User>;
-  category?: Category;
-  location?: Location;
+  category?: Category | string;
+  subcategory?: string;
+  location?: Location | string;
   lga?: string;
-  images: AdImage[];
+  images: AdImage[] | string[];
   specifications?: AdSpecification[];
   is_favorited?: boolean;
   is_verified?: boolean;
+  // For seeded ads / alternative format
+  main_image?: string | AdImage;
+  slider_images?: (string | AdImage)[];
+  seller?: string;
+  sellerName?: string;
+  phone?: string;
+  sellerPhone?: string;
+  featured?: boolean;
+  is_featured?: boolean;
 }
 
 export interface AdImage {
-  id: number;
-  url: string;
+  id?: number;
+  url?: string;
   full_url?: string;
   full_thumbnail_url?: string;
   thumbnail_url?: string;
   display_url?: string;
   thumbnail?: string;
-  is_primary: boolean;
+  is_primary?: boolean;
   order?: number;
+  src?: string;
+  original_url?: string;
+  image?: string;
+  path?: string;
+  file?: string;
 }
 
 export interface AdSpecification {

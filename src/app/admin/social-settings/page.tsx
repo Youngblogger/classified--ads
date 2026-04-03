@@ -114,8 +114,28 @@ export default function SocialSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      <div className="space-y-6">
+        <div className="h-10 w-48 bg-gray-200 rounded animate-pulse"></div>
+        <div className="h-16 bg-yellow-100 rounded animate-pulse"></div>
+        <div className="space-y-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 bg-gray-50 animate-pulse">
+                <div className="h-6 w-32 bg-gray-200 rounded"></div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-10 w-full bg-gray-100 rounded animate-pulse"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-10 w-full bg-gray-100 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

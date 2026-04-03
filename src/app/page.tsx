@@ -36,15 +36,65 @@ function getImageUrl(img: any): string {
   return `${BACKEND_URL}/storage/${url}`;
 }
 
-function AdCardWithImage({ ad }: { ad: any }) {
+function LazyImage({ src, alt, className, style, onError }: { src: string; alt: string; className?: string; style?: React.CSSProperties; onError?: () => void }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && imgRef.current) {
+          imgRef.current.src = src;
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '100px' }
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [src]);
+
+  const handleError = () => {
+    setHasError(true);
+    onError?.();
+  };
+
+  return (
+    <img
+      ref={imgRef}
+      alt={alt}
+      className={`${className} ${isLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+      style={style}
+      onLoad={() => setIsLoaded(true)}
+      onError={handleError}
+      loading="lazy"
+    />
+  );
+}
+
+function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const [imgError, setImgError] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   
-  const imageUrl = ad.images && ad.images.length > 0 ? ad.images[0] : FALLBACK_IMAGE;
+  // Handle new seeded ads structure (location as string) vs API (location as object)
+  const imageUrl = ad.images && ad.images.length > 0 
+    ? (typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].url || ad.images[0].full_url)
+    : FALLBACK_IMAGE;
   const imageCount = Array.isArray(ad.images) ? ad.images.length : 0;
-  const sellerName = ad.seller?.name || 'Unknown Seller';
-  const verified = ad.seller?.verified || false;
+  const sellerName = ad.seller?.name || ad.sellerName || 'Unknown Seller';
+  const verified = ad.seller?.verified || ad.is_verified || false;
+
+  const getLocationDisplay = () => {
+    if (!ad.location) return 'N/A';
+    if (typeof ad.location === 'string') return ad.lga ? `${ad.location}, ${ad.lga}` : ad.location;
+    return ad.lga ? `${ad.location.name || ad.location}, ${ad.lga}` : ad.location.name || ad.location;
+  };
 
   const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -82,21 +132,24 @@ function AdCardWithImage({ ad }: { ad: any }) {
 
   const getConditionBadge = () => {
     if (!ad.condition) return null;
-    const badgeClasses = ad.condition === 'new' ? 'bg-green-50 text-green-700' :
-                         ad.condition === 'like_new' ? 'bg-blue-50 text-blue-700' :
-                         ad.condition === 'good' ? 'bg-gray-50 text-gray-600' :
+    const condition = ad.condition.toLowerCase();
+    const badgeClasses = condition === 'new' ? 'bg-green-50 text-green-700' :
+                         condition === 'like_new' || condition === 'like new' ? 'bg-blue-50 text-blue-700' :
+                         condition === 'good' ? 'bg-gray-50 text-gray-600' :
+                         condition === 'used' ? 'bg-amber-50 text-amber-700' :
                          'bg-amber-50 text-amber-700';
-    const label = ad.condition === 'new' ? 'New' :
-                  ad.condition === 'like_new' ? 'Like New' :
-                  ad.condition === 'good' ? 'Good' : 'Fair';
+    const label = condition === 'new' ? 'New' :
+                  condition === 'like_new' || condition === 'like new' ? 'Like New' :
+                  condition === 'good' ? 'Good' :
+                  condition === 'used' ? 'Used' : 'Fair';
     return <span className={`absolute top-2 left-2 px-2 py-0.5 text-xs font-medium rounded-full ${badgeClasses}`}>{label}</span>;
   };
   
   return (
-    <Link href={`/ad/${ad.slug}`} className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
+    <Link href={`/ad/${ad.slug || ad.id}`} className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
       <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
-          <img
+          <LazyImage
             src={imageUrl}
             alt={ad.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -151,7 +204,7 @@ function AdCardWithImage({ ad }: { ad: any }) {
         
         <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
           <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">{typeof ad.location === 'string' ? ad.location : (ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A')}</span>
+          <span className="truncate">{getLocationDisplay()}</span>
         </div>
       </div>
     </Link>
@@ -182,9 +235,7 @@ export default function HomePage() {
 
   useEffect(() => {
     setMounted(true);
-    setRecentAds(seededAds);
-    setAllAds(seededAds);
-    setLatestAds(seededAds);
+    // Seeded ads will be merged with API ads in fetchAds
   }, []);
   
   const ITEMS_PER_PAGE = 12;
@@ -231,12 +282,30 @@ export default function HomePage() {
         newAds = [];
       }
       
-      setRecentAds(prev => {
-        if (pageNum === 1) {
-          return newAds.length > 0 ? newAds : seededAds;
+      // Normalize ads to have images array
+      newAds = newAds.map((ad: any) => {
+        if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
+          // Convert main_image + slider_images format to images array
+          const mainImg = ad.main_image || ad.slider_images[0];
+          return {
+            ...ad,
+            images: [mainImg, ...ad.slider_images.filter((_: any, i: number) => i > 0)]
+          };
         }
-        return [...prev, ...newAds];
+        return ad;
       });
+      
+      // Use API ads only, merge with seeded if any
+      const mergedAds = pageNum === 1 
+        ? [...seededAds, ...newAds]  // Seeded (if any) first, then API
+        : [...recentAds, ...newAds];
+      
+      // Remove duplicates by ID
+      const uniqueAds = mergedAds.filter((ad: any, index: number, self: any[]) => 
+        self.findIndex((a: any) => a.id === ad.id) === index
+      );
+      
+      setRecentAds(uniqueAds);
       setHasMore(newAds.length === ITEMS_PER_PAGE);
       setAdsError(false);
     } catch (error: any) {
@@ -422,7 +491,7 @@ export default function HomePage() {
                     <span className="text-3xl">⚠️</span>
                   </div>
                   <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
-                  <p className="text-gray-500 mb-4">Showing seeded ads instead.</p>
+                  <p className="text-gray-500 mb-4">Showing sample ads instead.</p>
                   <button 
                     onClick={() => fetchAds(1, true)} 
                     className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
@@ -430,17 +499,19 @@ export default function HomePage() {
                     <span>Try Again</span>
                   </button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
-                  {seededAds.map((ad: any, index: number) => (
-                    <AdCardWithImage key={`seeded-${index}`} ad={ad} />
-                  ))}
-                </div>
+                {seededAds.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
+                    {seededAds.map((ad: any, index: number) => (
+                      <AdCardWithImage key={`seeded-${index}`} ad={ad} index={index} />
+                    ))}
+                  </div>
+                )}
               </>
             ) : recentAds.length > 0 ? (
               <>
 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
-                  {recentAds.map((ad: any) => (
-                    <AdCardWithImage key={ad.id} ad={ad} />
+                  {recentAds.map((ad: any, index: number) => (
+                    <AdCardWithImage key={ad.id} ad={ad} index={index} />
                   ))}
                 </div>
                 <LoadMoreButton 
@@ -464,7 +535,6 @@ export default function HomePage() {
             )}
           </div>
         </section>
-
 
 
 

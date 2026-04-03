@@ -166,7 +166,7 @@ export default function PromoteAdPage() {
             <div className="flex items-center gap-4">
               {ad.images?.[0] && (
                 <img
-                  src={ad.images[0].url}
+                  src={typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].url}
                   alt={ad.title}
                   className="w-16 h-16 object-cover rounded-lg"
                 />

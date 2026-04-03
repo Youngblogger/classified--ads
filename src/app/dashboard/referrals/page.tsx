@@ -212,11 +212,15 @@ export default function ReferralsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-          <p className="text-gray-600">Loading...</p>
+      <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+        <div className="h-10 w-64 bg-gray-200 rounded animate-pulse"></div>
+        <div className="bg-gray-200 rounded-xl h-48 animate-pulse"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-gray-200 rounded-xl h-32 animate-pulse"></div>
+          ))}
         </div>
+        <div className="bg-gray-200 rounded-xl h-64 animate-pulse"></div>
       </div>
     );
   }

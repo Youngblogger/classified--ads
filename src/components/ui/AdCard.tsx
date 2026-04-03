@@ -4,8 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, ImageIcon } from 'lucide-react';
 import { Ad } from '@/types';
-import { formatPrice, getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
-import { useState, memo } from 'react';
+import { formatPrice, getAdImage, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
+import { useState, memo, useCallback } from 'react';
 
 interface AdCardProps {
   ad: Ad;
@@ -15,56 +15,104 @@ interface AdCardProps {
 
 function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardProps) {
   const [imgError, setImgError] = useState(false);
+  const [imgSrc, setImgSrc] = useState<string>('');
+  const [retryCount, setRetryCount] = useState(0);
   
-  const imagesArray = Array.isArray(ad.images) ? ad.images : [];
-  let primaryImage = imagesArray.find(img => img?.is_primary);
-  if (!primaryImage && imagesArray.length > 0) {
-    primaryImage = imagesArray[0];
-  }
-  const imageUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
+  // Get image URL - handles both formats
+  const getImageUrl = (): string => {
+    // Try main_image first
+    if (ad.main_image) {
+      if (typeof ad.main_image === 'string') return ad.main_image;
+      return ad.main_image.url || ad.main_image.full_url || ad.main_image.thumbnail || '';
+    }
+    
+    // Try slider_images
+    if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
+      const firstImg = ad.slider_images[0];
+      if (typeof firstImg === 'string') return firstImg;
+      return firstImg.url || firstImg.full_url || firstImg.thumbnail || '';
+    }
+    
+    // Try images array (standard format)
+    if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
+      const firstImg = ad.images[0];
+      if (typeof firstImg === 'string') return firstImg;
+      return firstImg.url || firstImg.full_url || firstImg.thumbnail || '';
+    }
+    
+    return '';
+  };
+  
+  const imageUrl = getImageUrl();
+  
+  const getFallbackImage = useCallback(() => {
+    const category = ad.category?.name || ad.category?.slug || ad.category;
+    return getCategoryFallback(category);
+  }, [ad.category]);
+  
+  const handleImageError = useCallback(() => {
+    if (retryCount < 2) {
+      setImgSrc(getFallbackImage());
+      setRetryCount(prev => prev + 1);
+    } else {
+      setImgError(true);
+    }
+  }, [retryCount, getFallbackImage]);
+  
+  const currentSrc = imgSrc || imageUrl;
+  const showFallback = !currentSrc || imgError;
 
   const getLocationDisplay = () => {
-    if (!ad.location?.name) return 'N/A';
-    if (ad.lga) return `${ad.location.name}, ${ad.lga}`;
-    return ad.location.name;
+    if (!ad.location) return 'N/A';
+    // Handle both string location (seeded) and object location (API)
+    if (typeof ad.location === 'string') {
+      return ad.lga ? `${ad.location}, ${ad.lga}` : ad.location;
+    }
+    // It's an object with name property
+    const locName = ad.location.name || (ad.location as unknown as string);
+    if (ad.lga) return `${locName}, ${ad.lga}`;
+    return locName;
   };
 
   const getConditionBadge = () => {
     if (!ad.condition) return null;
-    const badgeClasses = ad.condition === 'new' ? 'bg-green-50 text-green-700' :
-                         ad.condition === 'like_new' ? 'bg-blue-50 text-blue-700' :
-                         ad.condition === 'good' ? 'bg-gray-50 text-gray-600' :
+    const condition = String(ad.condition).toLowerCase();
+    const badgeClasses = condition === 'new' || condition === 'brand_new' ? 'bg-green-50 text-green-700' :
+                         condition === 'like_new' || condition === 'like new' ? 'bg-blue-50 text-blue-700' :
+                         condition === 'good' ? 'bg-gray-50 text-gray-600' :
+                         condition === 'used' ? 'bg-amber-50 text-amber-700' :
                          'bg-amber-50 text-amber-700';
-    const label = ad.condition === 'new' ? 'New' :
-                  ad.condition === 'like_new' ? 'Like New' :
-                  ad.condition === 'good' ? 'Good' : 'Fair';
+    const label = condition === 'new' || condition === 'brand_new' ? 'New' :
+                  condition === 'like_new' || condition === 'like new' ? 'Like New' :
+                  condition === 'good' ? 'Good' :
+                  condition === 'used' ? 'Used' : 'Fair';
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClasses}`}>{label}</span>;
   };
 
-  const imageLoader = () => imageUrl || FALLBACK_IMAGE;
+  const imageLoader = () => getAdImage(ad) || FALLBACK_IMAGE;
 
   if (variant === 'horizontal') {
     return (
       <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row overflow-hidden">
         <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0 bg-gray-100">
-          {imageUrl && !imgError ? (
+          {showFallback ? (
             <Image
-              src={imageUrl}
-              alt={ad.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 192px"
-              className="object-cover"
-              onError={() => setImgError(true)}
-              loading={priority ? 'eager' : 'lazy'}
-              priority={priority}
-            />
-          ) : (
-            <Image
-              src={FALLBACK_IMAGE}
+              src={getFallbackImage()}
               alt="No image"
               fill
               sizes="(max-width: 768px) 100vw, 192px"
               className="object-cover"
+            />
+          ) : (
+            <Image
+              src={currentSrc}
+              alt={ad.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 192px"
+              className="object-cover"
+              onError={handleImageError}
+              loading={priority ? 'eager' : 'lazy'}
+              priority={priority}
             />
           )}
           {getConditionBadge()}
@@ -93,24 +141,24 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
     return (
       <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
         <div className="relative aspect-square bg-gray-100">
-          {imageUrl && !imgError ? (
+          {showFallback ? (
             <Image
-              src={imageUrl}
-              alt={ad.title}
-              fill
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-              className="object-cover"
-              onError={() => setImgError(true)}
-              loading={priority ? 'eager' : 'lazy'}
-              priority={priority}
-            />
-          ) : (
-            <Image
-              src={FALLBACK_IMAGE}
+              src={getFallbackImage()}
               alt="No image"
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               className="object-cover"
+            />
+          ) : (
+            <Image
+              src={currentSrc}
+              alt={ad.title}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover"
+              onError={handleImageError}
+              loading={priority ? 'eager' : 'lazy'}
+              priority={priority}
             />
           )}
           {getConditionBadge()}
@@ -140,24 +188,24 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   return (
     <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">
       <div className="relative h-auto min-h-[200px] overflow-hidden bg-gray-100">
-        {imageUrl && !imgError ? (
+        {showFallback ? (
           <Image
-            src={imageUrl}
-            alt={ad.title}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={() => setImgError(true)}
-            loading={priority ? 'eager' : 'lazy'}
-            priority={priority}
-          />
-        ) : (
-          <Image
-            src={FALLBACK_IMAGE}
+            src={getFallbackImage()}
             alt="No image"
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover"
+          />
+        ) : (
+          <Image
+            src={currentSrc}
+            alt={ad.title}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={handleImageError}
+            loading={priority ? 'eager' : 'lazy'}
+            priority={priority}
           />
         )}
       </div>

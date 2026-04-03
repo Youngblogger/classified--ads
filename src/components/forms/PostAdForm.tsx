@@ -5,6 +5,7 @@ import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRig
 import { useRouter } from 'next/navigation';
 import { adsApi } from '@/lib/api';
 import { useAuthStore, useUIStore } from '@/lib/store';
+import { getPhoneValidationError } from '@/lib/utils';
 import { nigeriaLocations } from '@/lib/nigeriaLocations';
 import toast from 'react-hot-toast';
 import CategorySelector from '@/components/ui/CategorySelector';
@@ -73,6 +74,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [isDragging, setIsDragging] = useState(false);
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   
   // Dynamic fields state
   const [categoryFields, setCategoryFields] = useState<CategoryField[]>([]);
@@ -756,7 +758,14 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       draggedIndex === index ? 'border-primary-500 opacity-50' : 'border-gray-200'
                     }`}
                   >
-                    <img src={img.preview} alt="" className="w-full h-full object-cover" />
+                    <img 
+                      src={img.preview} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3ENo Preview%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
                     <div className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
                       <GripVertical className="w-3 h-3" />
                     </div>
@@ -1041,11 +1050,27 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                   <input
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Enter your phone number"
-                    className="w-full pl-12 pr-4 py-4 text-lg font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 group-hover:border-primary-300"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                      setPhone(val);
+                      if (val.length === 11) {
+                        setPhoneError(getPhoneValidationError(val));
+                      } else if (val.length > 0) {
+                        setPhoneError(null);
+                      } else {
+                        setPhoneError(null);
+                      }
+                    }}
+                    placeholder="e.g. 08034567890"
+                    className={`w-full pl-12 pr-4 py-4 text-lg font-bold text-gray-900 bg-white border-2 rounded-xl focus:outline-none focus:ring-4 transition-all duration-300 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 group-hover:border-primary-300 ${
+                      phoneError ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-gray-200 focus:border-primary-500 focus:ring-primary-100'
+                    }`}
                     style={{ height: '70px' }}
+                    maxLength={11}
                   />
+                  {phoneError && (
+                    <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{phoneError}</p>
+                  )}
                 </div>
               </div>
               
@@ -1061,10 +1086,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                     <input
                       type="tel"
                       value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
-                      placeholder="Enter WhatsApp number"
+                      onChange={(e) => setWhatsapp(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
+                      placeholder="e.g. 08034567890"
                       className="w-full pl-12 pr-4 py-4 text-lg font-bold text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none focus:ring-4 focus:ring-green-100 transition-all duration-300 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 group-hover:border-green-400"
                       style={{ height: '70px' }}
+                      maxLength={11}
                     />
                   </div>
                 </div>

@@ -36,7 +36,8 @@ export default function PostAdButton({ ad, onSuccess, variant = 'button' }: Post
   });
   const [lastResult, setLastResult] = useState<PlatformStatus | null>(null);
 
-  const primaryImage = ad.images?.find(img => img.is_primary) || ad.images?.[0];
+  const primaryImage = ad.images?.find(img => typeof img !== 'string' && img.is_primary) || ad.images?.[0];
+  const primaryImageUrl = typeof primaryImage === 'string' ? primaryImage : primaryImage?.url;
 
   const handlePost = async (scheduleAt?: string) => {
     setLoading(true);
@@ -131,9 +132,9 @@ export default function PostAdButton({ ad, onSuccess, variant = 'button' }: Post
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {/* Ad Preview */}
         <div className="aspect-video bg-gray-100 relative">
-          {primaryImage?.url ? (
+          {primaryImageUrl ? (
             <img 
-              src={primaryImage.url} 
+              src={primaryImageUrl} 
               alt={ad.title}
               className="w-full h-full object-cover"
             />

@@ -224,13 +224,17 @@ export default function BatchPostAds({ ads, onSuccess }: BatchPostAdsProps) {
                   className="rounded text-primary-600"
                 />
                 <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                  {ad.images?.[0]?.url && (
-                    <img 
-                      src={ad.images[0].url} 
-                      alt={ad.title}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
+                  {(() => {
+                    const firstImg = ad.images?.[0];
+                    const imgUrl = typeof firstImg === 'string' ? firstImg : firstImg?.url;
+                    return imgUrl && (
+                      <img 
+                        src={imgUrl} 
+                        alt={ad.title}
+                        className="w-full h-full object-cover"
+                      />
+                    );
+                  })()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{ad.title}</p>

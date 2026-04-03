@@ -127,8 +127,24 @@ export default function ReviewsPage() {
       {/* Reviews List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse"></div>
+                    <div>
+                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2"></div>
+                      <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredReviews.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">

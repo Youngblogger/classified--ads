@@ -259,8 +259,15 @@ export default function WalletPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="space-y-6">
+        <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gray-200 rounded-2xl h-32 animate-pulse"></div>
+          <div className="bg-gray-200 rounded-2xl h-32 animate-pulse"></div>
+          <div className="bg-gray-200 rounded-2xl h-32 animate-pulse"></div>
+        </div>
+        <div className="bg-gray-200 rounded-2xl h-64 animate-pulse"></div>
+        <div className="bg-gray-200 rounded-2xl h-96 animate-pulse"></div>
       </div>
     );
   }
@@ -369,7 +376,7 @@ export default function WalletPage() {
             {/* Card Payment - Redirect Message */}
             {method === 'card' && paymentDetails?.authorization_url && (
               <div className="text-center py-8">
-                <Loader2 className="w-12 h-12 animate-spin text-primary-600 mx-auto mb-4" />
+                <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse"></div>
                 <p className="text-lg font-medium">Redirecting to payment...</p>
                 <p className="text-gray-500">If not redirected, click below</p>
                 <a
