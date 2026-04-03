@@ -77,6 +77,11 @@ export default function ReferralsPage() {
   }, []);
 
   const fetchData = async () => {
+    const timeoutId = setTimeout(() => {
+      console.log('Referrals fetch timeout - forcing loading to false');
+      setLoading(false);
+    }, 10000);
+    
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
       const token = localStorage.getItem('authToken');
@@ -106,6 +111,7 @@ export default function ReferralsPage() {
       const featuresRes = await fetch(`${API_URL}/credits/features`, { headers }).then(r => r.json()).catch(() => ({ features: [] }));
 
       console.log('Code response:', codeRes);
+      clearTimeout(timeoutId);
 
       if (codeRes.referral_code) {
         const code = codeRes.referral_code.replace('ILIST-', '');
@@ -132,8 +138,10 @@ export default function ReferralsPage() {
         setFeatures(featuresRes.features);
       }
     } catch (e) {
+      clearTimeout(timeoutId);
       console.error('Failed to fetch data:', e);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

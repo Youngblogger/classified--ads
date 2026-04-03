@@ -100,8 +100,14 @@ export default function PromotionsPage() {
   }, [activeTab]);
 
   const fetchPlans = async () => {
+    const timeoutId = setTimeout(() => {
+      console.log('Plans fetch timeout - forcing plansLoaded to true');
+      setPlansLoaded(true);
+    }, 10000);
+    
     try {
       const res = await api.get('/promotions/plans');
+      clearTimeout(timeoutId);
       const plansData = Array.isArray(res.data?.plans) ? res.data.plans : (res.data?.data || []);
       setPlans(plansData.map((plan: any) => {
         let features: string[] = [];
@@ -117,8 +123,10 @@ export default function PromotionsPage() {
         return { ...plan, features };
       }));
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Failed to fetch plans:', error);
     } finally {
+      clearTimeout(timeoutId);
       setPlansLoaded(true);
     }
   };
@@ -133,6 +141,8 @@ export default function PromotionsPage() {
       setMyAds(Array.isArray(adsRes.data) ? adsRes.data : (adsRes.data?.data || adsRes.data?.data?.data || []));
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      setMyPromotions([]);
+      setMyAds([]);
     }
   };
 

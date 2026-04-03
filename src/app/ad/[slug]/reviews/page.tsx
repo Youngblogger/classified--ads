@@ -206,32 +206,38 @@ export default function AdReviewsPage() {
             </div>
 
             {/* Reviews List */}
-            {loading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                        <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Customer Reviews ({reviews.length})
+              </h3>
+              
+              {loading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                          <div className="h-16 bg-gray-200 rounded"></div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : reviews.length > 0 ? (
-              <div className="space-y-4">
-                {reviews.map((review) => (
-                  <ReviewCard key={review.id} review={review} onReport={() => fetchReviews()} />
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <p className="text-gray-500">No reviews found.</p>
-              </div>
-            )}
+                  ))}
+                </div>
+              ) : reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <ReviewCard key={review.id} review={review} onReport={() => fetchReviews()} />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <p className="text-gray-500">No reviews found.</p>
+                </div>
+              )}
+            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (

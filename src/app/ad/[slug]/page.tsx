@@ -451,13 +451,16 @@ export default function AdDetailPage() {
                         
                         if (condition === 'new' || condition === 'brand_new' || condition === 'brand new') {
                           badgeClass = 'bg-green-50 text-green-700';
-                          label = 'New';
+                          label = 'Brand New';
                         } else if (condition === 'like_new' || condition === 'like new') {
                           badgeClass = 'bg-blue-50 text-blue-700';
                           label = 'Like New';
-                        } else if (condition === 'good' || condition === 'used') {
+                        } else if (condition === 'good') {
                           badgeClass = 'bg-amber-50 text-amber-700';
-                          label = condition === 'good' ? 'Good' : 'Used';
+                          label = 'Good';
+                        } else if (condition === 'fair') {
+                          badgeClass = 'bg-orange-50 text-orange-700';
+                          label = 'Fair';
                         } else {
                           badgeClass = 'bg-gray-50 text-gray-600';
                           label = condition.charAt(0).toUpperCase() + condition.slice(1);

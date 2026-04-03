@@ -94,14 +94,23 @@ export default function MyAdsPage() {
   }, [statusFilter]);
 
   const fetchAds = async () => {
+    const timeoutId = setTimeout(() => {
+      console.log('MyAds fetch timeout - forcing loading to false');
+      setLoading(false);
+    }, 10000);
+    
     try {
       setLoading(true);
       const params = statusFilter === 'all' ? {} : { status: statusFilter };
       const res = await adsApi.getMyAds(params);
+      clearTimeout(timeoutId);
       setAds(res.data.data || res.data || []);
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Failed to fetch ads:', error);
+      setAds([]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

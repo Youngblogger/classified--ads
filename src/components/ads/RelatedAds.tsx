@@ -140,22 +140,26 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
   }, [hasMore, loadingMore, loading, page, fetchAds]);
 
   const getConditionBadge = (condition: string) => {
-    const isNew = condition === 'new' || condition === 'brand_new';
-    const isLikeNew = condition === 'like_new';
+    const isNew = condition === 'new' || condition === 'brand_new' || condition === 'brand new';
+    const isLikeNew = condition === 'like_new' || condition === 'like new';
     const isGood = condition === 'good';
+    const isFair = condition === 'fair';
     
-    let badgeClass = 'bg-amber-50 text-amber-700';
-    let label = 'Fair';
+    let badgeClass = 'bg-gray-50 text-gray-600';
+    let label = condition.charAt(0).toUpperCase() + condition.slice(1);
     
     if (isNew) {
       badgeClass = 'bg-green-50 text-green-700';
-      label = 'New';
+      label = 'Brand New';
     } else if (isLikeNew) {
       badgeClass = 'bg-blue-50 text-blue-700';
       label = 'Like New';
     } else if (isGood) {
-      badgeClass = 'bg-gray-50 text-gray-600';
+      badgeClass = 'bg-amber-50 text-amber-700';
       label = 'Good';
+    } else if (isFair) {
+      badgeClass = 'bg-orange-50 text-orange-700';
+      label = 'Fair';
     }
     
     return (

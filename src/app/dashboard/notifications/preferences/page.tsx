@@ -70,14 +70,22 @@ export default function NotificationPreferencesPage() {
   }, []);
 
   const fetchPreferences = async () => {
+    const timeoutId = setTimeout(() => {
+      console.log('Preferences fetch timeout - forcing loading to false');
+      setLoading(false);
+    }, 10000);
+    
     try {
       const res = await api.get('/notifications/preferences');
+      clearTimeout(timeoutId);
       if (res.data) {
         setPreferences(prev => ({ ...prev, ...res.data }));
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Failed to fetch preferences:', error);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

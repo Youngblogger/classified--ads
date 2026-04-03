@@ -25,12 +25,18 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      const timeoutId = setTimeout(() => {
+        console.log('Dashboard fetch timeout - forcing loading to false');
+        setLoading(false);
+      }, 10000);
+      
       try {
         const [adsRes, notificationsRes] = await Promise.all([
           adsApi.getMyAds().catch(() => ({ data: { data: [] } })),
           notificationsApi.getAll().catch(() => ({ data: { data: [] } })),
         ]);
 
+        clearTimeout(timeoutId);
         const ads = adsRes.data?.data || adsRes.data || [];
         
         // Calculate stats
@@ -50,8 +56,10 @@ export default function DashboardPage() {
         const notifications = notificationsRes.data?.data || notificationsRes.data || [];
         setRecentActivity(notifications.slice(0, 5));
       } catch (error) {
+        clearTimeout(timeoutId);
         console.error('Failed to fetch dashboard data:', error);
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     };

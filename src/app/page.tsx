@@ -133,15 +133,15 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const getConditionBadge = () => {
     if (!ad.condition) return null;
     const condition = ad.condition.toLowerCase();
-    const badgeClasses = condition === 'new' ? 'bg-green-50 text-green-700' :
+    const badgeClasses = condition === 'new' || condition === 'brand_new' || condition === 'brand new' ? 'bg-green-50 text-green-700' :
                          condition === 'like_new' || condition === 'like new' ? 'bg-blue-50 text-blue-700' :
-                         condition === 'good' ? 'bg-gray-50 text-gray-600' :
-                         condition === 'used' ? 'bg-amber-50 text-amber-700' :
-                         'bg-amber-50 text-amber-700';
-    const label = condition === 'new' ? 'New' :
+                         condition === 'good' ? 'bg-amber-50 text-amber-700' :
+                         condition === 'fair' ? 'bg-orange-50 text-orange-700' :
+                         'bg-gray-50 text-gray-600';
+    const label = condition === 'new' || condition === 'brand_new' || condition === 'brand new' ? 'Brand New' :
                   condition === 'like_new' || condition === 'like new' ? 'Like New' :
                   condition === 'good' ? 'Good' :
-                  condition === 'used' ? 'Used' : 'Fair';
+                  condition === 'fair' ? 'Fair' : condition.charAt(0).toUpperCase() + condition.slice(1);
     return <span className={`absolute top-2 left-2 px-2 py-0.5 text-xs font-medium rounded-full ${badgeClasses}`}>{label}</span>;
   };
   

@@ -34,15 +34,24 @@ export default function ReviewsPage() {
   }, []);
 
   const fetchReviews = async () => {
+    const timeoutId = setTimeout(() => {
+      console.log('Reviews fetch timeout - forcing loading to false');
+      setLoading(false);
+    }, 10000);
+    
     try {
       setLoading(true);
       const res = await reviewsApi.getMyReviews();
+      clearTimeout(timeoutId);
       const data = res.data?.data || res.data || [];
       setReviews(data);
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Failed to fetch reviews:', error);
       toast.error('Failed to load reviews');
+      setReviews([]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

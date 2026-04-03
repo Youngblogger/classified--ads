@@ -64,13 +64,24 @@ export default function WalletPage() {
   }, []);
 
   const fetchWallet = async () => {
+    const timeoutId = setTimeout(() => {
+      console.log('Wallet fetch timeout - forcing loading to false');
+      setLoading(false);
+    }, 10000);
+    
     try {
+      setLoading(true);
       const res = await api.get('/wallet');
+      clearTimeout(timeoutId);
       setWallet(res.data.wallet);
-      setTransactions(res.data.transactions.data || []);
-    } catch (error) {
+      setTransactions(res.data.transactions?.data || res.data.transactions || []);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error('Failed to fetch wallet:', error);
+      setWallet({ id: 0, balance: '0.00', pending_balance: '0.00' });
+      setTransactions([]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

@@ -63,13 +63,22 @@ export default function FavoritesPage() {
   }, []);
 
   const fetchFavorites = async () => {
+    const timeoutId = setTimeout(() => {
+      console.log('Favorites fetch timeout - forcing loading to false');
+      setLoading(false);
+    }, 10000);
+    
     try {
       setLoading(true);
       const res = await favoritesApi.getAll();
+      clearTimeout(timeoutId);
       setFavorites(res.data.data || res.data || []);
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Failed to fetch favorites:', error);
+      setFavorites([]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

@@ -77,15 +77,15 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   const getConditionBadge = () => {
     if (!ad.condition) return null;
     const condition = String(ad.condition).toLowerCase();
-    const badgeClasses = condition === 'new' || condition === 'brand_new' ? 'bg-green-50 text-green-700' :
+    const badgeClasses = condition === 'new' || condition === 'brand_new' || condition === 'brand new' ? 'bg-green-50 text-green-700' :
                          condition === 'like_new' || condition === 'like new' ? 'bg-blue-50 text-blue-700' :
-                         condition === 'good' ? 'bg-gray-50 text-gray-600' :
-                         condition === 'used' ? 'bg-amber-50 text-amber-700' :
-                         'bg-amber-50 text-amber-700';
-    const label = condition === 'new' || condition === 'brand_new' ? 'New' :
+                         condition === 'good' ? 'bg-amber-50 text-amber-700' :
+                         condition === 'fair' ? 'bg-orange-50 text-orange-700' :
+                         'bg-gray-50 text-gray-600';
+    const label = condition === 'new' || condition === 'brand_new' || condition === 'brand new' ? 'Brand New' :
                   condition === 'like_new' || condition === 'like new' ? 'Like New' :
                   condition === 'good' ? 'Good' :
-                  condition === 'used' ? 'Used' : 'Fair';
+                  condition === 'fair' ? 'Fair' : condition.charAt(0).toUpperCase() + condition.slice(1);
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClasses}`}>{label}</span>;
   };
 

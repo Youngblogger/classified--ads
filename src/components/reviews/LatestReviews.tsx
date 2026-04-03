@@ -93,7 +93,7 @@ export default function LatestReviews({ adId, adSlug, refreshKey = 0 }: LatestRe
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-dark">Latest Reviews</h3>
+        <h3 className="text-lg font-bold text-gray-900">Customer Reviews</h3>
         <button
           onClick={handleWriteReviewClick}
           className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center shadow-sm hover:shadow"

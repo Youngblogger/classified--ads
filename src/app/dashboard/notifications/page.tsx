@@ -89,6 +89,11 @@ function NotificationsContent() {
   }, [typeFilter, readFilter, page]);
 
   const fetchNotifications = async () => {
+    const timeoutId = setTimeout(() => {
+      console.log('Notifications fetch timeout - forcing loading to false');
+      setLoading(false);
+    }, 10000);
+    
     try {
       setLoading(true);
       const params: Record<string, string> = {
@@ -103,6 +108,7 @@ function NotificationsContent() {
       }
       
       const res = await api.get('/notifications', { params });
+      clearTimeout(timeoutId);
       const data = res.data;
       
       if (page === 1) {
@@ -113,9 +119,12 @@ function NotificationsContent() {
       
       setHasMore((data.data?.length || 0) >= 20);
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Failed to fetch notifications:', error);
       toast.error('Failed to load notifications');
+      setNotifications([]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
