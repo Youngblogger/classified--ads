@@ -7,6 +7,7 @@ import WriteAdReviewModal from './WriteAdReviewModal';
 import { Star, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore, useUIStore } from '@/lib/store';
+import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -27,16 +28,18 @@ interface Review {
 interface LatestReviewsProps {
   adId: number;
   adSlug: string;
+  sellerId?: number;
   refreshKey?: number;
 }
 
-export default function LatestReviews({ adId, adSlug, refreshKey = 0 }: LatestReviewsProps) {
+export default function LatestReviews({ adId, adSlug, sellerId, refreshKey = 0 }: LatestReviewsProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWriteReview, setShowWriteReview] = useState(false);
-  const [canWriteReview, setCanWriteReview] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const { toggleLoginModal } = useUIStore();
+
+  const isAdOwner = user && sellerId && user.id === sellerId;
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -74,6 +77,10 @@ export default function LatestReviews({ adId, adSlug, refreshKey = 0 }: LatestRe
       toggleLoginModal();
       return;
     }
+    if (isAdOwner) {
+      toast.error("You can't review your own ad");
+      return;
+    }
     setShowWriteReview(true);
   };
 
@@ -94,13 +101,15 @@ export default function LatestReviews({ adId, adSlug, refreshKey = 0 }: LatestRe
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-gray-900">Customer Reviews</h3>
-        <button
-          onClick={handleWriteReviewClick}
-          className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center shadow-sm hover:shadow"
-        >
-          <Star className="w-4 h-4 fill-white" />
-          <span className="ml-1">Write a Review</span>
-        </button>
+        {!isAdOwner && (
+          <button
+            onClick={handleWriteReviewClick}
+            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center shadow-sm hover:shadow"
+          >
+            <Star className="w-4 h-4 fill-white" />
+            <span className="ml-1">Write a Review</span>
+          </button>
+        )}
       </div>
       
       {reviews.length === 0 ? (

@@ -716,13 +716,6 @@ export default function Header() {
 
             {/* Right - Links */}
             <div className="flex items-center gap-4">
-              <button className="flex items-center gap-1.5 text-slate-600 hover:text-primary-600 transition-colors">
-                <Globe className="w-4 h-4" />
-                <span className="hidden sm:inline">English</span>
-              </button>
-              <Link href="/help" className="text-slate-600 hover:text-primary-600 transition-colors hidden md:block">
-                Help
-              </Link>
               
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">

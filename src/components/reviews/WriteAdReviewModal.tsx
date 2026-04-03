@@ -97,7 +97,12 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to submit review');
+        if (response.status === 403) {
+          toast.error("You can't review your own ad");
+        } else {
+          throw new Error(data.error || data.message || 'Failed to submit review');
+        }
+        return;
       }
 
       toast.success(hasExistingReview ? 'Review updated successfully!' : 'Review submitted successfully!');

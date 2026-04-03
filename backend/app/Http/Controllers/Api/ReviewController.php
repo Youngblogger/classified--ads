@@ -56,6 +56,10 @@ class ReviewController extends Controller
         $ad = Ad::findOrFail($adId);
         $targetUserId = $ad->user_id;
 
+        if ($userId === $targetUserId) {
+            return response()->json(['error' => 'You cannot review your own ad'], 403);
+        }
+
         $existing = Review::where('user_id', $userId)
             ->where('ad_id', $adId)
             ->where('target_user_id', $targetUserId)

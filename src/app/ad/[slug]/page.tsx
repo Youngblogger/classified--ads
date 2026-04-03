@@ -595,7 +595,7 @@ export default function AdDetailPage() {
                     )}
                   </div>
 
-                  {/* Location, Views, Posted */}
+                  {/* Location, Views */}
                   <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-600">
                     <div>
                       <span className="text-gray-400">Location: </span>
@@ -603,10 +603,6 @@ export default function AdDetailPage() {
                         {typeof ad.location === 'string' ? ad.location : (ad.location?.name || ad.location || 'N/A')}
                         {ad.lga && `, ${ad.lga}`}
                       </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Posted: </span>
-                      <span className="font-medium text-gray-900">{formatRelativeTime(ad.created_at || ad.createdAt)}</span>
                     </div>
                     <div>
                       <span className="text-gray-400">Views: </span>
@@ -694,7 +690,7 @@ export default function AdDetailPage() {
 
               {/* Latest Reviews - Separate Card */}
               <div className="bg-white rounded-2xl shadow-sm p-6">
-                <LatestReviews adId={ad.id} adSlug={ad.slug} />
+                <LatestReviews adId={ad.id} adSlug={ad.slug} sellerId={ad.user?.id} />
               </div>
 
               {/* Safety Tips */}
