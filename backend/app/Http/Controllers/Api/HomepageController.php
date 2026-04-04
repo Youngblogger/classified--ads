@@ -93,7 +93,7 @@ class HomepageController extends Controller
                 ->with(['children' => function ($query) {
                     $query->select('id', 'name', 'slug', 'parent_id');
                 }])
-            ->orderBy('position')
+            ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug', 'icon', 'ad_count']);
         });

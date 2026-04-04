@@ -1,1 +1,233 @@
-[]
+[
+  {
+    "id": 1,
+    "title": "Toyota Camry 2022 XLE - Tokunbo",
+    "slug": "toyota-camry-2022-xle-tokunbo",
+    "description": "My Toyota Camry 2022 XLE. First body, no accident at all. I bought it brand new from CFAO. AC is very cold, engine perfect. The leather seats are still clean. Selling because I'm relocating abroad next month. Serious buyers should call me. Price is slightly negotiable.",
+    "price": 22500000,
+    "currency": "NGN",
+    "condition": "good",
+    "status": "active",
+    "category": "Cars",
+    "location": "Lagos, Ikeja",
+    "views": 1250,
+    "is_featured": true,
+    "created_at": "2026-04-01T10:00:00Z",
+    "user": {
+      "name": "Emeka Okonkwo",
+      "phone": "08035729184"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1580273916550-e323be2ed5f6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600&fit=crop"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "iPhone 15 Pro Max 256GB - Titanium Blue",
+    "slug": "iphone-15-pro-max-256gb-titanium-blue",
+    "description": "My iPhone 15 Pro Max 256GB. Titanium Blue color. I've used it for about 3 months, still looks brand new because I've been using a case and screen protector. Battery health is at 98%. Comes with original box and charger. Selling because I'm switching to Android.",
+    "price": 1780000,
+    "currency": "NGN",
+    "condition": "good",
+    "status": "active",
+    "category": "Mobile Phones",
+    "location": "Lagos, Lekki",
+    "views": 3420,
+    "is_featured": true,
+    "created_at": "2026-04-02T14:30:00Z",
+    "user": {
+      "name": "Chinedu Eze",
+      "phone": "08062481753"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600&fit=crop"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Mercedes C300 2023 AMG - First Body",
+    "slug": "mercedes-c300-2023-amg-first-body",
+    "description": "Tokunbo Mercedes C300 AMG line. White color, black interior. Full option with sunroof and burmester sound. I'm the first owner, bought from Mercedes showroom in Lagos. Everything works perfectly. No issues at all. Serious buyers can come and inspect.",
+    "price": 38500000,
+    "currency": "NGN",
+    "condition": "good",
+    "status": "active",
+    "category": "Cars",
+    "location": "Lagos, Victoria Island",
+    "views": 890,
+    "is_featured": true,
+    "created_at": "2026-04-01T08:15:00Z",
+    "user": {
+      "name": "Adeola Bakare",
+      "phone": "08051392647"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600&fit=crop"
+    ]
+  },
+  {
+    "id": 4,
+    "title": "3 Bedroom Flat for Rent - Ajah",
+    "slug": "3-bedroom-flat-for-rent-ajah",
+    "description": "Clean 3 bedroom flat in Ajah, fully tiled, pop ceiling, kitchen cabinet, borehole water, stable electricity. Good for family. Agent fee applies. Available immediately. WhatsApp friendly.",
+    "price": 3500000,
+    "currency": "NGN",
+    "condition": "good",
+    "status": "active",
+    "category": "Property",
+    "location": "Lagos, Ajah",
+    "views": 567,
+    "is_featured": false,
+    "created_at": "2026-03-28T11:00:00Z",
+    "user": {
+      "name": "Mrs. Folake Adeyemi",
+      "phone": "08074618392"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop"
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Samsung 55 inch Crystal UHD 4K Smart TV",
+    "slug": "samsung-55-inch-crystal-uhd-4k-smart-tv",
+    "description": "Samsung 55 inch Crystal UHD 4K Smart TV, 2023 model. Crystal clear picture quality. All apps working - Netflix, YouTube, etc. Original remote. Just 3 months old. Reason relocating abroad.",
+    "price": 320000,
+    "currency": "NGN",
+    "condition": "good",
+    "status": "active",
+    "category": "Electronics",
+    "location": "Ibadan, Bodija",
+    "views": 234,
+    "is_featured": false,
+    "created_at": "2026-03-30T16:45:00Z",
+    "user": {
+      "name": "Dr. Tunde Adebowale",
+      "phone": "08105739284"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1461151304267-38535e780c79?w=800&h=600&fit=crop"
+    ]
+  },
+  {
+    "id": 6,
+    "title": "MacBook Pro M2 14-inch - Space Black",
+    "slug": "macbook-pro-m2-14-inch-space-black",
+    "description": "My MacBook Pro M2 14-inch, Space Black. 512GB SSD, 18GB RAM. I'm a video editor and this machine has been my workhorse. It's powerful, fast, and the battery lasts all day. Includes original charger.",
+    "price": 2780000,
+    "currency": "NGN",
+    "condition": "good",
+    "status": "active",
+    "category": "Electronics",
+    "location": "Lagos, Surulere",
+    "views": 1890,
+    "is_featured": true,
+    "created_at": "2026-04-02T09:20:00Z",
+    "user": {
+      "name": "Segun Ogunleye",
+      "phone": "08026481935"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1588702547923-b3c1859b71fa?w=800&h=600&fit=crop"
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Marketing Manager Needed - Lekki",
+    "slug": "marketing-manager-needed-lekki",
+    "description": "We are hiring a Marketing Manager for our digital agency. Requirements: 3-5 years experience, BSc in Marketing, strong digital skills. Benefits: HMO, pension, performance bonus. Send CV to hr@company.com",
+    "price": 150000,
+    "currency": "NGN",
+    "condition": "good",
+    "status": "active",
+    "category": "Jobs",
+    "location": "Lagos, Lekki",
+    "views": 456,
+    "is_featured": false,
+    "created_at": "2026-04-03T07:00:00Z",
+    "user": {
+      "name": "HR - BrightStar Media",
+      "phone": "08149928765"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1521737711867-e3ab973e98bb?w=800&h=600&fit=crop"
+    ]
+  },
+  {
+    "id": 8,
+    "title": "Toyota Corolla 2020 LE - Low Mileage",
+    "slug": "toyota-corolla-2020-le-low-mileage",
+    "description": "Toyota Corolla 2020 LE. Low mileage, only 35,000 km. Nigerian used, first body. Perfect for someone looking for a reliable car without spending too much. No issues, just service it and drive. I'm a doctor and I'm selling to get an SUV.",
+    "price": 13500000,
+    "currency": "NGN",
+    "condition": "good",
+    "status": "active",
+    "category": "Cars",
+    "location": "Abuja, Gwarinpa",
+    "views": 678,
+    "is_featured": false,
+    "created_at": "2026-03-29T13:30:00Z",
+    "user": {
+      "name": "Dr. Amaka Umeh",
+      "phone": "08138259174"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1580273916550-e323be2ed5f6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop"
+    ]
+  },
+  {
+    "id": 9,
+    "title": "Infinix Note 40 Pro - 256GB",
+    "slug": "infinix-note-40-pro-256gb",
+    "description": "Infinix Note 40 Pro. 256GB storage. Very clean, used for about a month. I received it as a gift but I already have a Samsung. The phone is perfect, no issues. Includes original charger and a nice case.",
+    "price": 310000,
+    "currency": "NGN",
+    "condition": "good",
+    "status": "active",
+    "category": "Mobile Phones",
+    "location": "Port Harcourt",
+    "views": 156,
+    "is_featured": false,
+    "created_at": "2026-04-03T10:15:00Z",
+    "user": {
+      "name": "Blessing Udofia",
+      "phone": "08123849561"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1598327105666-5b89351aff70?w=800&h=600&fit=crop"
+    ]
+  },
+  {
+    "id": 10,
+    "title": "4 Bedroom Duplex for Sale - Banana Island",
+    "slug": "4-bedroom-duplex-for-sale-banana-island",
+    "description": "Luxury 4 bedroom duplex in Banana Island. All en-suite rooms, boy quarters, swimming pool, gym, 2 living areas, modern kitchen. 24/7 security. Title: Government Excision. Agent fee 2%.",
+    "price": 250000000,
+    "currency": "NGN",
+    "condition": "new",
+    "status": "active",
+    "category": "Property",
+    "location": "Lagos, Banana Island",
+    "views": 2340,
+    "is_featured": true,
+    "created_at": "2026-03-27T12:00:00Z",
+    "user": {
+      "name": "Arc. Oluwaseun Martins",
+      "phone": "08091234567"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop"
+    ]
+  }
+]
