@@ -16,7 +16,6 @@ import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, Ch
 import toast from 'react-hot-toast';
 import { formatPrice, formatRelativeTime, BACKEND_URL, FALLBACK_IMAGE, getCategoryFallback, getAdImage, getAdImages, getAdImageUrl } from '@/lib/utils';
 import { getAuthToken } from '@/lib/cookies';
-import seededAds from '@/app/seededAds.json';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -84,6 +83,7 @@ export default function AdDetailPage() {
   const [favoriteAnimating, setFavoriteAnimating] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [currentUrl, setCurrentUrl] = useState<string>('');
   const { isAuthenticated } = useAuthStore();
   const { toggleLoginModal } = useUIStore();
   
@@ -128,47 +128,15 @@ export default function AdDetailPage() {
       return;
     }
 
-    console.log('[AdDetailPage] ========== RENDERING ==========');
-    console.log('[AdDetailPage] slug from params:', slug);
-    console.log('[AdDetailPage] seededAds count:', seededAds?.length || 0);
-
     let isMounted = true;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const findSeededAd = (searchSlug: string) => {
-      console.log('[AdDetailPage] Searching seededAds for:', searchSlug);
-
-      // First, try exact match on slug
-      let seededAd: any = seededAds.find((a: any) => a.slug === searchSlug);
-      console.log('[AdDetailPage] Exact slug match:', seededAd?.title || 'none');
-
-      // If no slug match, try matching by id
-      if (!seededAd) {
-        const searchId = Number(searchSlug) || searchSlug;
-        seededAd = seededAds.find((a: any) => a.id === searchId || String(a.id) === searchSlug);
-        console.log('[AdDetailPage] ID match:', seededAd?.title || 'none');
-      }
-
-      // If still no match, try partial slug match
-      if (!seededAd) {
-        seededAd = seededAds.find((a: any) =>
-          a.slug?.toLowerCase().includes(searchSlug.toLowerCase()) ||
-          searchSlug.toLowerCase().includes(a.slug?.toLowerCase())
-        );
-        console.log('[AdDetailPage] Partial slug match:', seededAd?.title || 'none');
-      }
-
-      return seededAd;
-    };
 
     const fetchAd = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        console.log('[AdDetailPage] Fetching from API:', `${API_URL}/ads/${slug}`);
-
         const response = await fetch(`${API_URL}/ads/${slug}`, {
           headers: { 'Accept': 'application/json' },
           signal: controller.signal
@@ -176,27 +144,11 @@ export default function AdDetailPage() {
 
         clearTimeout(timeoutId);
 
-        console.log('[AdDetailPage] API Response status:', response.status);
-
         if (!response.ok) {
-          if (response.status === 404) {
-            console.log('[AdDetailPage] API 404, checking seededAds...');
-            const seededAd = findSeededAd(slug);
-            if (seededAd) {
-              if (!isMounted) return;
-              console.log('[AdDetailPage] Found in seededAds:', seededAd.title);
-              setAd(seededAd);
-              setLoading(false);
-              return;
-            }
-            throw new Error('Ad not found');
-          }
-          throw new Error('Failed to load ad');
+          throw new Error('Ad not found');
         }
 
         const data = await response.json();
-        console.log('[AdDetailPage] API returned data:', data ? 'success' : 'empty');
-
         if (!isMounted) return;
 
         if (data && data.data) {
@@ -208,17 +160,7 @@ export default function AdDetailPage() {
         }
         setLoading(false);
       } catch (err: any) {
-        console.error('[AdDetailPage] Error:', err);
         if (!isMounted) return;
-
-        const seededAd = findSeededAd(slug);
-        if (seededAd) {
-          console.log('[AdDetailPage] Found in seededAds (catch):', seededAd.title);
-          setAd(seededAd);
-          setLoading(false);
-          return;
-        }
-
         if (err.name === 'AbortError') {
           setError('Unable to connect to server. Please check your connection.');
         } else {
@@ -234,6 +176,13 @@ export default function AdDetailPage() {
       clearTimeout(timeoutId);
     };
   }, [slug]);
+
+  // Set current URL only on client side (not in iframe)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.self === window.top) {
+      setCurrentUrl(window.location.href);
+    }
+  }, []);
 
   // Auto-slide images
   useEffect(() => {
@@ -759,7 +708,7 @@ export default function AdDetailPage() {
               {/* Social Buttons Grid */}
               <div className="px-6 py-4 grid grid-cols-4 gap-4">
                 <a 
-                  href={`https://wa.me/?text=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                  href={`https://wa.me/?text=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${currentUrl}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-green-50 hover:bg-green-100 transition-all group"
@@ -770,7 +719,7 @@ export default function AdDetailPage() {
                   <span className="text-xs font-semibold text-gray-700">WhatsApp</span>
                 </a>
                 <a 
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-blue-50 hover:bg-blue-100 transition-all group"
@@ -781,7 +730,7 @@ export default function AdDetailPage() {
                   <span className="text-xs font-semibold text-gray-700">Facebook</span>
                 </a>
                 <a 
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this "${ad.title}"`)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this "${ad.title}"`)}&url=${encodeURIComponent(currentUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-all group"
@@ -792,7 +741,7 @@ export default function AdDetailPage() {
                   <span className="text-xs font-semibold text-gray-700">X</span>
                 </a>
                 <a 
-                  href={`mailto:?subject=${encodeURIComponent(`Check out this: ${ad.title}`)}&body=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                  href={`mailto:?subject=${encodeURIComponent(`Check out this: ${ad.title}`)}&body=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${currentUrl}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-red-50 hover:bg-red-100 transition-all group"
@@ -808,7 +757,7 @@ export default function AdDetailPage() {
               <div className="px-6 pb-6">
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(typeof window !== 'undefined' ? window.location.href : '');
+                    navigator.clipboard.writeText(currentUrl);
                     setShowSharePopup(false);
                   }}
                   className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-2xl transition-all group shadow-lg"

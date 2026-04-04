@@ -1,14 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { Inter, Poppins } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
-
-const inter = Inter({ subsets: ['latin'] });
-const poppins = Poppins({ 
-  weight: ['400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-  variable: '--font-poppins',
-});
 import LoginModal from '@/components/ui/LoginModal';
 import RegisterModal from '@/components/ui/RegisterModal';
 import LocationModal from '@/components/ui/LocationModal';
@@ -47,7 +39,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen flex flex-col`} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      </head>
+      <body className="min-h-screen flex flex-col" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
         <AuthProvider>
           <Preloader />
           {children}

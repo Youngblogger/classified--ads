@@ -9,8 +9,6 @@ import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { formatPrice, formatRelativeTime, FALLBACK_IMAGE } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
-import seededAds from './seededAds.json';
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
 const BACKEND_URL = API_URL.replace('/api', '');
@@ -295,9 +293,8 @@ export default function HomePage() {
         return ad;
       });
       
-      // Use API ads only, merge with seeded if any
       const mergedAds = pageNum === 1 
-        ? [...seededAds, ...newAds]  // Seeded (if any) first, then API
+        ? newAds
         : [...recentAds, ...newAds];
       
       // Remove duplicates by ID
@@ -499,13 +496,6 @@ export default function HomePage() {
                     <span>Try Again</span>
                   </button>
                 </div>
-                {seededAds.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
-                    {seededAds.map((ad: any, index: number) => (
-                      <AdCardWithImage key={`seeded-${index}`} ad={ad} index={index} />
-                    ))}
-                  </div>
-                )}
               </>
             ) : recentAds.length > 0 ? (
               <>

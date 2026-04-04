@@ -26,7 +26,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     setMounted(true);
     
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.self === window.top) {
       // Store referrer from URL to cookie
       const urlParams = new URLSearchParams(window.location.search);
       const refCode = urlParams.get('ref');

@@ -22,7 +22,7 @@ export default function LoginModal() {
   const [redirectUrl, setRedirectUrl] = useState('/');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.self === window.top) {
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get('redirect');
       if (redirect) {
