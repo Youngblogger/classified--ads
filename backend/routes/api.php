@@ -90,6 +90,7 @@ Route::prefix('icons')->group(function () {
 
 // Search routes
 Route::get('/search', [SearchController::class, 'search']);
+Route::get('/search/advanced', [SearchController::class, 'advancedSearch']);
 Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
 Route::get('/search/trending', [SearchController::class, 'trending']);
 Route::get('/search/recent', [SearchController::class, 'recentSearches']);
@@ -235,8 +236,11 @@ Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'handlePayst
 Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard']);
     Route::get('/ads', [AdminController::class, 'ads']);
+    Route::get('/ads/flagged', [AdminController::class, 'flaggedAds']);
     Route::post('/ads/{id}/approve', [AdminController::class, 'approveAd']);
     Route::post('/ads/{id}/reject', [AdminController::class, 'rejectAd']);
+    Route::post('/ads/{id}/verify', [AdminController::class, 'verifyAd']);
+    Route::post('/ads/{id}/reprocess', [AdminController::class, 'reprocessAd']);
     Route::delete('/ads/{id}', [AdminController::class, 'deleteAd']);
     Route::post('/ads/bulk-delete', [AdminController::class, 'bulkDeleteAds']);
     Route::get('/users', [AdminController::class, 'users']);

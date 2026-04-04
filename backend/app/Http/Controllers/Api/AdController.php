@@ -8,6 +8,7 @@ use App\Models\AdImage;
 use App\Services\ImageProcessingService;
 use App\Services\NotificationService;
 use App\Jobs\ProcessAdImageJob;
+use App\Jobs\ProcessAdJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +20,8 @@ class AdController extends Controller
     {
         try {
             $query = Ad::with(['images', 'category', 'location'])
-                ->where('status', 'active');
+                ->where('status', 'active')
+                ->where('processing_status', 'completed');
 
             if ($request->category) {
                 $query->whereHas('category', function($q) use ($request) {
@@ -56,6 +58,7 @@ class AdController extends Controller
             $limit = $request->limit ?? 8;
             $ads = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
+                ->where('processing_status', 'completed')
                 ->where('is_featured', true)
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
@@ -74,6 +77,7 @@ class AdController extends Controller
             $limit = $request->limit ?? 8;
             $ads = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
+                ->where('processing_status', 'completed')
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
                 ->get();
@@ -186,6 +190,9 @@ class AdController extends Controller
         $attributes = $request->input('attributes');
         unset($data['attributes']);
 
+        $data['processing_status'] = 'pending';
+        $data['verification_status'] = 'pending';
+        
         $ad = Ad::create($data);
 
         if ($lga) {
@@ -239,6 +246,8 @@ class AdController extends Controller
                 }
             }
         }
+
+        ProcessAdJob::dispatch($ad->id);
 
         $message = $ad->status === 'pending'
             ? 'Ad posted successfully! Pending approval from admin.'
@@ -332,6 +341,7 @@ class AdController extends Controller
 
             $query = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
+                ->where('processing_status', 'completed')
                 ->where('id', '!=', $adId);
 
             $query->where(function($q) use ($currentAd) {

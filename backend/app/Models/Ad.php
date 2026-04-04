@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Ad extends Model
 {
     protected $fillable = [
-        'user_id', 'category_id', 'location_id', 'title', 'slug', 'description',
+        'user_id', 'category_id', 'subcategory_id', 'location_id', 'title', 'slug', 'description',
         'attributes', 'price', 'currency', 'condition', 'status', 'is_featured', 'is_verified',
-        'views', 'phone', 'whatsapp', 'expires_at', 'lga'
+        'views', 'phone', 'whatsapp', 'expires_at', 'lga',
+        'tags', 'ai_summary', 'image_validation', 'verification_status', 'processing_status',
+        'ai_category_id', 'ai_confidence', 'is_auto_categorized', 'rejection_reason', 'processed_at'
     ];
 
     protected $casts = [
@@ -19,6 +21,8 @@ class Ad extends Model
         'is_verified' => 'boolean',
         'price' => 'decimal:2',
         'attributes' => 'array',
+        'tags' => 'array',
+        'image_validation' => 'array',
     ];
 
     public function user(): BelongsTo
@@ -29,6 +33,16 @@ class Ad extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function subcategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'subcategory_id');
+    }
+
+    public function aiCategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'ai_category_id');
     }
 
     public function location(): BelongsTo

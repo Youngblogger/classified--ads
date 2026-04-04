@@ -18,6 +18,14 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   const [imgSrc, setImgSrc] = useState<string>('');
   const [retryCount, setRetryCount] = useState(0);
   
+  const getCategoryName = () => {
+    if (!ad.category) return '';
+    if (typeof ad.category === 'string') return ad.category;
+    return ad.category.name || ad.category.slug || '';
+  };
+  
+  const categoryName = getCategoryName();
+  
   // Get image URL - handles both formats
   const getImageUrl = (): string => {
     // Try main_image first
@@ -46,8 +54,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   const imageUrl = getImageUrl();
   
   const getFallbackImage = useCallback(() => {
-    const category = ad.category?.name || ad.category?.slug || ad.category;
-    return getCategoryFallback(category);
+    const categoryName = typeof ad.category === 'object' ? ad.category?.name || ad.category?.slug : ad.category;
+    return getCategoryFallback(categoryName || '');
   }, [ad.category]);
   
   const handleImageError = useCallback(() => {
@@ -118,8 +126,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           {getConditionBadge()}
         </div>
         <div className="flex-1 p-4">
-          {ad.category?.name && (
-            <span className="text-xs text-primary-600 font-medium">{ad.category.name}</span>
+          {categoryName && (
+            <span className="text-xs text-primary-600 font-medium">{categoryName}</span>
           )}
           <p className="text-xl font-bold text-primary-600 mb-1">
             {formatPrice(ad.price, ad.currency)}
@@ -164,8 +172,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           {getConditionBadge()}
         </div>
         <div className="p-3">
-          {ad.category?.name && (
-            <span className="text-xs text-primary-600 font-medium">{ad.category.name}</span>
+          {categoryName && (
+            <span className="text-xs text-primary-600 font-medium">{categoryName}</span>
           )}
           <p className="text-primary-600 font-bold mb-1">
             {formatPrice(ad.price, ad.currency)}
@@ -210,8 +218,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
         )}
       </div>
       <div className="p-4">
-        {ad.category?.name && (
-          <span className="text-xs text-primary-600 font-medium">{ad.category.name}</span>
+        {categoryName && (
+          <span className="text-xs text-primary-600 font-medium">{categoryName}</span>
         )}
         <p className="text-xl font-bold text-primary-600 mb-1">
           {formatPrice(ad.price, ad.currency)}

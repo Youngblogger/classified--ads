@@ -140,7 +140,7 @@ export default function AdDetailPage() {
       console.log('[AdDetailPage] Searching seededAds for:', searchSlug);
 
       // First, try exact match on slug
-      let seededAd = seededAds.find((a: any) => a.slug === searchSlug);
+      let seededAd: any = seededAds.find((a: any) => a.slug === searchSlug);
       console.log('[AdDetailPage] Exact slug match:', seededAd?.title || 'none');
 
       // If no slug match, try matching by id

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Ad;
 use App\Models\Category;
+use App\Services\SearchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -13,122 +14,110 @@ class SearchController extends Controller
     public function search(Request $request)
     {
         try {
-            $query = Ad::with(['images', 'category', 'location', 'user'])
-                ->where('status', 'active');
+            $searchService = app(SearchService::class);
+            
+            $params = [
+                'search_query' => $request->get('q', ''),
+                'category_id' => $request->get('category_id'),
+                'min_price' => $request->get('min_price'),
+                'max_price' => $request->get('max_price'),
+                'location' => $request->get('location'),
+                'limit' => $request->get('per_page', 20),
+            ];
 
-            // Keyword search
-            if ($request->has('q') && $request->q) {
-                $searchTerm = $request->q;
-                $query->where(function($q) use ($searchTerm) {
-                    $q->where('title', 'LIKE', '%' . $searchTerm . '%')
-                      ->orWhere('description', 'LIKE', '%' . $searchTerm . '%');
-                });
-            }
+            $results = $searchService->search($params);
 
-            // Location filter (state)
-            if ($request->has('location') && $request->location) {
-                $locationSlug = $request->location;
-                $query->whereHas('location', function($q) use ($locationSlug) {
-                    $q->where('slug', $locationSlug);
-                });
-            }
+            $perPage = $request->get('per_page', 20);
+            $page = $request->get('page', 1);
+            
+            $paginatedResults = array_slice(
+                $results['results'], 
+                ($page - 1) * $perPage, 
+                $perPage
+            );
 
-            // LGA filter
-            if ($request->has('lga') && $request->lga) {
-                $query->where('lga', $request->lga);
-            }
-
-            // Category filter
-            if ($request->has('category') && $request->category) {
-                $categorySlug = $request->category;
-                $query->whereHas('category', function($q) use ($categorySlug) {
-                    $q->where('slug', $categorySlug);
-                });
-            }
-
-            // Category ID filter
-            if ($request->has('category_id') && $request->category_id) {
-                $query->where('category_id', $request->category_id);
-            }
-
-            // Price range
-            if ($request->has('min_price') && $request->min_price) {
-                $query->where('price', '>=', $request->min_price);
-            }
-            if ($request->has('max_price') && $request->max_price) {
-                $query->where('price', '<=', $request->max_price);
-            }
-
-            // Condition filter
-            if ($request->has('condition') && $request->condition) {
-                $query->where('condition', $request->condition);
-            }
-
-            // Sort by
-            $sortBy = $request->sort_by ?? 'created_at';
-            $sortOrder = $request->sort_order ?? 'desc';
-            $query->orderBy($sortBy, $sortOrder);
-
-            // Pagination
-            $perPage = $request->per_page ?? 20;
-            $ads = $query->paginate($perPage);
-
-            return response()->json($ads);
+            return response()->json([
+                'data' => $paginatedResults,
+                'meta' => [
+                    'current_page' => (int) $page,
+                    'per_page' => (int) $perPage,
+                    'total' => $results['total'],
+                    'query' => $results['query'],
+                ],
+                'related_ads' => $results['related_ads'],
+                'autocomplete_suggestions' => $results['autocomplete_suggestions'],
+            ]);
         } catch (\Exception $e) {
             Log::error('Search failed: ' . $e->getMessage());
             return response()->json(['error' => 'Search failed', 'message' => $e->getMessage()], 500);
         }
     }
 
+    public function advancedSearch(Request $request)
+    {
+        try {
+            $searchService = app(SearchService::class);
+            
+            $params = [
+                'search_query' => $request->get('q', ''),
+                'category_id' => $request->get('category_id'),
+                'min_price' => $request->get('min_price'),
+                'max_price' => $request->get('max_price'),
+                'location' => $request->get('location'),
+                'limit' => $request->get('per_page', 20),
+            ];
+
+            $results = $searchService->search($params);
+
+            return response()->json($results);
+        } catch (\Exception $e) {
+            Log::error('Advanced search failed: ' . $e->getMessage());
+            return response()->json(['error' => 'Search failed', 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function suggestions(Request $request)
     {
-        $query = $request->get('q', '');
+        try {
+            $query = $request->get('q', '');
+            
+            if (strlen($query) < 2) {
+                return response()->json([
+                    'ads' => [],
+                    'categories' => [],
+                ]);
+            }
 
-        if (strlen($query) < 2) {
-            return response()->json([
-                'ads' => [],
-                'categories' => [],
-            ]);
+            $searchService = app(SearchService::class);
+            $suggestions = $searchService->getSuggestions($query);
+
+            return response()->json($suggestions);
+        } catch (\Exception $e) {
+            Log::error('Suggestions failed: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to get suggestions', 'message' => $e->getMessage()], 500);
         }
-
-        // Search ads
-        $ads = Ad::with(['images'])
-            ->where('status', 'active')
-            ->where(function($q) use ($query) {
-                $q->where('title', 'LIKE', '%' . $query . '%')
-                  ->orWhere('description', 'LIKE', '%' . $query . '%');
-            })
-            ->limit(5)
-            ->get();
-
-        // Search categories
-        $categories = Category::where('name', 'LIKE', '%' . $query . '%')
-            ->limit(5)
-            ->get();
-
-        return response()->json([
-            'ads' => $ads,
-            'categories' => $categories,
-        ]);
     }
 
     public function trending(Request $request)
     {
-        // Get trending ads based on views in the last 7 days
-        $trendingAds = Ad::with(['images', 'category', 'location'])
-            ->where('status', 'active')
-            ->where('created_at', '>=', now()->subDays(7))
-            ->orderBy('views', 'desc')
-            ->limit(10)
-            ->get();
+        try {
+            $trendingAds = Ad::with(['images', 'category', 'location'])
+                ->where('status', 'active')
+                ->where('processing_status', 'completed')
+                ->where('created_at', '>=', now()->subDays(7))
+                ->orderBy('views', 'desc')
+                ->limit(10)
+                ->get();
 
-        return response()->json($trendingAds);
+            return response()->json(['data' => $trendingAds]);
+        } catch (\Exception $e) {
+            Log::error('Trending failed: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to get trending ads', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function recentSearches(Request $request)
     {
-        // This would typically come from user history
-        // For now, return popular searches
         return response()->json([
             'searches' => [
                 'iPhone 15',

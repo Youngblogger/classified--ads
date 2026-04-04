@@ -43,7 +43,14 @@ class FraudDetectionService
                 $isSuspicious = true;
             }
         }
-
+function name(){
+    if (!empty($data['proof_hash'])) {
+        $imgFlags = $this->checkDuplicateImage($data['proof_hash']);
+        if ($imgFlags) {
+            $flags = array_merge($flags, $imgFlags);
+            $isSuspicious = true;
+        }
+}
         // Check 4: Rapid submissions
         $rapidFlags = $this->checkRapidSubmissions($data['user_id'] ?? null);
         if ($rapidFlags) {
@@ -84,7 +91,6 @@ class FraudDetectionService
         if ($amount > self::SUSPICIOUS_HIGH_AMOUNT) {
             $flags[] = 'extremely_high_amount';
         }
-
         return $flags;
     }
 
@@ -129,7 +135,7 @@ class FraudDetectionService
         }
 
         $cutoff = now()->subMinutes(self::RAPID_SUBMISSION_THRESHOLD_MINUTES);
-        
+
         $count = Transaction::where('user_id', $userId)
             ->where('payment_method', 'bank_transfer')
             ->where('status', 'pending')

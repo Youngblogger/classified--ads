@@ -172,12 +172,19 @@ class ReviewController extends Controller
     public function adLatestReviews(Request $request, $adId)
     {
         $limit = $request->input('limit', 3);
+        $currentUserId = $request->user() ? $request->user()->id : null;
         
         $reviews = Review::where('ad_id', $adId)
             ->with(['user'])
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();
+
+        $reviews->transform(function ($review) use ($currentUserId) {
+            $review->like_count = $review->likeCount();
+            $review->is_liked_by_user = $currentUserId ? $review->isLikedByUser($currentUserId) : false;
+            return $review;
+        });
 
         return response()->json(['data' => $reviews]);
     }

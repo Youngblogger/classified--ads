@@ -26,6 +26,8 @@ class AdminController extends Controller
             'total_ads' => Ad::count(),
             'active_ads' => Ad::where('status', 'active')->count(),
             'pending_ads' => Ad::where('status', 'pending')->count(),
+            'flagged_ads' => Ad::where('verification_status', 'flagged')->count(),
+            'processing_ads' => Ad::where('processing_status', 'processing')->count(),
             'total_views' => Ad::sum('views'),
             'new_users_today' => User::whereDate('created_at', today())->count(),
             'new_ads_today' => Ad::whereDate('created_at', today())->count(),
@@ -56,6 +58,31 @@ class AdminController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->verification_status && $request->verification_status !== 'all') {
+            $query->where('verification_status', $request->verification_status);
+        }
+
+        if ($request->processing_status && $request->processing_status !== 'all') {
+            $query->where('processing_status', $request->processing_status);
+        }
+
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhere('description', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $ads = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        return response()->json($ads);
+    }
+
+    public function flaggedAds(Request $request)
+    {
+        $query = Ad::with(['user', 'category', 'location', 'images'])
+            ->where('verification_status', 'flagged');
+
         if ($request->search) {
             $query->where(function($q) use ($request) {
                 $q->where('title', 'like', '%' . $request->search . '%')
@@ -83,11 +110,38 @@ class AdminController extends Controller
     {
         $ad = Ad::findOrFail($id);
         $rejectionReason = request('reason', 'Your ad does not meet our listing guidelines.');
-        $ad->update(['status' => 'rejected']);
+        $ad->update([
+            'status' => 'rejected',
+            'rejection_reason' => $rejectionReason,
+        ]);
         
         NotificationService::adRejected($ad, $rejectionReason);
         
         return response()->json(['message' => 'Ad rejected', 'ad' => $ad]);
+    }
+
+    public function verifyAd($id)
+    {
+        $ad = Ad::findOrFail($id);
+        $ad->update([
+            'verification_status' => 'verified',
+            'is_verified' => true,
+        ]);
+        
+        return response()->json(['message' => 'Ad verified', 'ad' => $ad]);
+    }
+
+    public function reprocessAd($id)
+    {
+        $ad = Ad::findOrFail($id);
+        $ad->update([
+            'processing_status' => 'pending',
+            'verification_status' => 'pending',
+        ]);
+        
+        \App\Jobs\ProcessAdJob::dispatch($ad->id);
+        
+        return response()->json(['message' => 'Ad queued for reprocessing', 'ad' => $ad]);
     }
 
     public function deleteAd($id)

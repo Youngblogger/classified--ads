@@ -47,7 +47,7 @@ class HomepageController extends Controller
             'ads.slug',
             'ads.status',
             'ads.created_at',
-            'ads.view_count',
+            'ads.views',
             'categories.name as category_name',
             'categories.slug as category_slug',
             'locations.name as location_name',
@@ -71,7 +71,7 @@ class HomepageController extends Controller
             'ads.slug',
             'ads.status',
             'ads.created_at',
-            'ads.view_count',
+            'ads.views',
             'categories.name as category_name',
             'categories.slug as category_slug',
             'locations.name as location_name',
@@ -93,7 +93,7 @@ class HomepageController extends Controller
                 ->with(['children' => function ($query) {
                     $query->select('id', 'name', 'slug', 'parent_id');
                 }])
-                ->orderBy('sort_order')
+            ->orderBy('position')
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug', 'icon', 'ad_count']);
         });
@@ -110,17 +110,17 @@ class HomepageController extends Controller
 
     private function getBanners()
     {
-        return Banner::where('is_active', true)
+        return Banner::where('status', 'active')
             ->where(function ($query) {
                 $query->whereNull('starts_at')
                     ->orWhere('starts_at', '<=', now());
             })
             ->where(function ($query) {
-                $query->whereNull('ends_at')
-                    ->orWhere('ends_at', '>=', now());
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>=', now());
             })
-            ->orderBy('sort_order')
-            ->get(['id', 'title', 'image_url', 'link_url', 'position']);
+            ->orderBy('position')
+            ->get(['id', 'title', 'image_url', 'link', 'position']);
     }
 
     public function clearCache()
