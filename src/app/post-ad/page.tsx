@@ -1,6 +1,6 @@
 'use client';
 
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import PostAdForm from '@/components/forms/PostAdForm';
 import { Check, Shield, Clock, Star } from 'lucide-react';
@@ -8,7 +8,9 @@ import { Check, Shield, Clock, Star } from 'lucide-react';
 export default function PostAdPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
+      <div className="hidden md:block">
+        <ResponsiveHeader />
+      </div>
       
       <main className="flex-1 py-8">
         <div className="container-app">

@@ -6,6 +6,7 @@ import RegisterModal from '@/components/ui/RegisterModal';
 import LocationModal from '@/components/ui/LocationModal';
 import Preloader from '@/components/ui/Preloader';
 import AuthProvider from '@/components/providers/AuthProvider';
+import BottomNav from '@/components/ui/BottomNav';
 
 export const metadata: Metadata = {
   title: {
@@ -49,6 +50,7 @@ export default function RootLayout({
         <AuthProvider>
           <Preloader />
           {children}
+          <BottomNav />
           <LoginModal />
           <RegisterModal />
           <LocationModal />

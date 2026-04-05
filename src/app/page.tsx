@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus, Heart, Bookmark } from 'lucide-react';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { formatPrice, formatRelativeTime, FALLBACK_IMAGE } from '@/lib/utils';
@@ -332,11 +332,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f5f6f7' }} suppressHydrationWarning>
-      <Header />
+      <ResponsiveHeader />
       
-      <main className="flex-1" suppressHydrationWarning>
-        {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
+      <main className="flex-1 pt-14 md:pt-0 pb-20 md:pb-0" suppressHydrationWarning>
+        {/* Hero Section - Hidden on mobile */}
+        <section className="hidden md:block relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
@@ -448,13 +448,11 @@ export default function HomePage() {
         {/* Latest Ads - jiji.ng style */}
         <section className="py-4 bg-white">
           <div className="px-[15px]">
-            <div className="flex flex-col sm:flex-row items-center justify-between mb-3 sm:mb-4">
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-                  Latest Ads
-                </h2>
-              </div>
-              <Link href="/ads" className="text-sm text-primary-600 hover:underline font-medium">
+            <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 whitespace-nowrap">
+                Latest Ads
+              </h2>
+              <Link href="/ads" className="text-sm text-primary-600 hover:underline font-medium whitespace-nowrap">
                 View All
               </Link>
             </div>

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import SellerProfileCard from '@/components/ui/SellerProfileCard';
 import RelatedAds from '@/components/ads/RelatedAds';
@@ -292,8 +292,8 @@ export default function AdDetailPage() {
 
   if (loading) return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <ResponsiveHeader />
+      <main className="flex-1 container mx-auto px-4 py-8 pt-20 md:pt-8">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white rounded-2xl shadow-sm p-6 animate-pulse">
             <div className="aspect-video max-h-[500px] bg-gray-200 rounded-xl mb-6"></div>
@@ -308,8 +308,8 @@ export default function AdDetailPage() {
 
   if (error || !ad) return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <ResponsiveHeader />
+      <main className="flex-1 container mx-auto px-4 py-8 pt-20 md:pt-8">
         <div className="max-w-6xl mx-auto text-center py-16">
           <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,8 +353,8 @@ export default function AdDetailPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
-      <main className="flex-1 container mx-auto px-[5px] py-6">
+      <ResponsiveHeader />
+      <main className="flex-1 container mx-auto px-[5px] py-6 pt-20 md:pt-6">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
           <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
@@ -622,25 +622,25 @@ export default function AdDetailPage() {
                   );
                 })()}
                 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   {(ad.user?.phone || ad.whatsapp || ad.phone || ad.sellerPhone) ? (
-                    <button onClick={handleWhatsApp} className="py-3 px-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
-                      <WhatsAppIcon className="w-5 h-5" />WhatsApp
+                    <button onClick={handleWhatsApp} className="py-2 px-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                      <WhatsAppIcon className="w-4 h-4" />WhatsApp
                     </button>
                   ) : (
-                    <button disabled className="py-3 px-3 bg-gray-300 text-gray-500 rounded-xl font-medium cursor-not-allowed flex items-center justify-center gap-2">
-                      <WhatsAppIcon className="w-5 h-5" />WhatsApp
+                    <button disabled className="py-2 px-2 bg-gray-300 text-gray-500 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center gap-1">
+                      <WhatsAppIcon className="w-4 h-4" />WhatsApp
                     </button>
                   )}
-                  <button onClick={handleChat} className="py-3 px-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
-                    <MessageCircle className="w-5 h-5" />Chat seller
+                  <button onClick={handleChat} className="py-2 px-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                    <MessageCircle className="w-4 h-4" />Chat
                   </button>
                 </div>
 
               </div>
 
               {/* Latest Reviews - Separate Card */}
-              <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="bg-white rounded-2xl shadow-sm p-4">
                 <LatestReviews adId={ad.id} adSlug={ad.slug} sellerId={ad.user?.id} />
               </div>
 

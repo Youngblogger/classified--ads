@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import LoginModal from '@/components/ui/LoginModal';
 import { useUIStore, useAuthStore } from '@/lib/store';
@@ -48,7 +48,7 @@ export default function LoginPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
-        <Header />
+        <ResponsiveHeader />
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
             <p className="text-gray-600 mb-4">Loading...</p>
@@ -61,7 +61,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
+      <ResponsiveHeader />
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <p className="text-gray-600 mb-4">Please wait...</p>

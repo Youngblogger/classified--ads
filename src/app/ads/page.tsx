@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, Suspense, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import AdCard from '@/components/ui/AdCard';
 import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal, MapPin, Loader2 } from 'lucide-react';
@@ -240,7 +240,7 @@ function AdsPageContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
+      <ResponsiveHeader />
       
       <main className="flex-1 w-full px-4 py-6 md:px-6 lg:px-8">
         {/* Search Header */}
