@@ -123,12 +123,19 @@ class AdminController extends Controller
     public function verifyAd($id)
     {
         $ad = Ad::findOrFail($id);
+        
+        // Toggle verification status
+        $newStatus = !$ad->is_verified;
         $ad->update([
-            'verification_status' => 'verified',
-            'is_verified' => true,
+            'verification_status' => $newStatus ? 'verified' : 'pending',
+            'is_verified' => $newStatus,
         ]);
         
-        return response()->json(['message' => 'Ad verified', 'ad' => $ad]);
+        return response()->json([
+            'message' => $newStatus ? 'Ad verified' : 'Verification removed', 
+            'ad' => $ad,
+            'is_verified' => $newStatus
+        ]);
     }
 
     public function reprocessAd($id)
@@ -149,6 +156,30 @@ class AdminController extends Controller
         $ad = Ad::findOrFail($id);
         $ad->delete();
         return response()->json(['message' => 'Ad deleted']);
+    }
+
+    public function featureAd($id)
+    {
+        $ad = Ad::findOrFail($id);
+        $ad->update(['is_featured' => !$ad->is_featured]);
+        
+        return response()->json([
+            'message' => $ad->is_featured ? 'Ad featured' : 'Ad unfeatured',
+            'ad' => $ad,
+            'is_featured' => $ad->is_featured
+        ]);
+    }
+
+    public function promoteAd($id)
+    {
+        $ad = Ad::findOrFail($id);
+        // Toggle promoted status (you might want to add a separate column for this)
+        $ad->update(['is_featured' => true]);
+        
+        return response()->json([
+            'message' => 'Ad promoted',
+            'ad' => $ad
+        ]);
     }
 
     public function bulkDeleteAds(Request $request)

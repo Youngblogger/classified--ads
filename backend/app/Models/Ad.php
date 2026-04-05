@@ -10,10 +10,10 @@ class Ad extends Model
 {
     protected $fillable = [
         'user_id', 'category_id', 'subcategory_id', 'location_id', 'title', 'slug', 'description',
-        'attributes', 'price', 'currency', 'condition', 'status', 'is_featured', 'is_verified',
+        'short_description', 'attributes', 'currency', 'condition', 'status', 'is_featured', 'is_verified',
         'views', 'phone', 'whatsapp', 'expires_at', 'lga',
         'tags', 'ai_summary', 'image_validation', 'verification_status', 'processing_status',
-        'ai_category_id', 'ai_confidence', 'is_auto_categorized', 'rejection_reason', 'processed_at'
+        'ai_category_id', 'ai_confidence', 'is_auto_categorized', 'rejection_reason', 'processed_at', 'price'
     ];
 
     protected $casts = [

@@ -47,7 +47,8 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'User Management', href: '/admin/users', icon: Users },
-  { name: 'Ads Management', href: '/admin/ads', icon: FileText },
+  { name: 'Ads', href: '/admin/ads', icon: FileText },
+  { name: 'Ad Quality & Moderation', href: '/admin/ads-moderation', icon: CheckCircle },
   { name: 'Ad Approval Settings', href: '/admin/ads/approval', icon: CheckCircle },
   { name: 'Categories', href: '/admin/categories', icon: FolderTree },
   { name: 'Subcategories', href: '/admin/subcategories', icon: FolderTree },

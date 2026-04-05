@@ -1,0 +1,2 @@
+Get-NetTCPConnection -LocalPort 3000,8000,3006 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
+Write-Host "Ports cleared"

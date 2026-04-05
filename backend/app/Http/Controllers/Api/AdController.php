@@ -19,10 +19,14 @@ class AdController extends Controller
     public function index(Request $request)
     {
         try {
+            $limit = $request->input('limit', 20);
+            $page = $request->input('page', 1);
+            $offset = ($page - 1) * $limit;
+            
             $query = Ad::with(['images', 'category', 'location'])
-                ->where('status', 'active')
-                ->where('processing_status', 'completed');
+                ->where('status', 'active');
 
+            // For seeded ads, skip processing_status check
             if ($request->category) {
                 $query->whereHas('category', function($q) use ($request) {
                     $q->where('slug', $request->category);
@@ -42,10 +46,78 @@ class AdController extends Controller
                 });
             }
 
-            $limit = $request->input('limit', 20);
-            $ads = $query->orderBy('created_at', 'desc')->paginate($limit);
+            // Get real ads (not seeded)
+            $realAdsQuery = clone $query;
+            $realAds = $realAdsQuery->where('is_seeded', false)
+                ->where(function($q) {
+                    $q->where('processing_status', 'completed')
+                      ->orWhere('is_seeded', true);
+                })
+                ->orderBy('created_at', 'desc')
+                ->offset($offset)
+                ->limit($limit)
+                ->get();
 
-            return response()->json($ads);
+            // Get seeded ads
+            $seededAdsQuery = clone $query;
+            $seededAds = $seededAdsQuery->where('is_seeded', true)
+                ->orderBy('created_at', 'asc')
+                ->offset($offset)
+                ->limit($limit)
+                ->get();
+
+            // Merge with ratio logic
+            $realCount = $realAds->count();
+            $seededCount = $seededAds->count();
+            
+            $mergedAds = collect();
+            
+            if ($realCount === 0) {
+                // No real ads, use all seeded
+                $mergedAds = $seededAds->take($limit);
+            } elseif ($realCount >= $limit * 0.7) {
+                // Enough real ads: 70% real, 30% seeded (max)
+                $realPortion = (int)($limit * 0.7);
+                $seededPortion = $limit - $realPortion;
+                
+                $mergedReal = $realAds->take($realPortion);
+                $mergedSeeded = $seededAds->take($seededPortion);
+                
+                // Interleave: real, seeded, real, seeded...
+                for ($i = 0; $i < max($realPortion, $seededPortion); $i++) {
+                    if ($i < $mergedReal->count() && $mergedAds->count() < $limit) {
+                        $mergedAds->push($mergedReal[$i]);
+                    }
+                    if ($i < $mergedSeeded->count() && $mergedAds->count() < $limit) {
+                        $mergedAds->push($mergedSeeded[$i]);
+                    }
+                }
+            } else {
+                // Not enough real ads: use all real + fill with seeded
+                $remaining = $limit - $realCount;
+                $mergedAds = $realAds->merge($seededAds->take($remaining));
+            }
+
+            // Ensure images are loaded (they should be from with())
+            $mergedAds->each(function($ad) {
+                $ad->setRelation('images', $ad->images);
+            });
+
+            // Get seeded ads total count (for pagination)
+            $seededTotal = (clone $query)->where('is_seeded', true)->count();
+            $realTotal = (clone $query)->where('is_seeded', false)->count();
+            $totalCount = $seededTotal + $realTotal;
+
+            return response()->json([
+                'data' => $mergedAds->values(),
+                'meta' => [
+                    'total' => $totalCount,
+                    'real_count' => $realCount,
+                    'seeded_count' => $seededTotal,
+                    'current_page' => $page,
+                    'per_page' => $limit,
+                ]
+            ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch ads: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load ads', 'message' => $e->getMessage()], 500);
@@ -56,15 +128,64 @@ class AdController extends Controller
     {
         try {
             $limit = $request->limit ?? 8;
-            $ads = Ad::with(['images', 'category', 'location'])
+            
+            // Get real featured ads
+            $realAds = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
-                ->where('processing_status', 'completed')
+                ->where('is_seeded', false)
+                ->where(function($q) {
+                    $q->where('processing_status', 'completed');
+                })
                 ->where('is_featured', true)
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
                 ->get();
+            
+            // Get seeded featured ads
+            $seededAds = Ad::with(['images', 'category', 'location'])
+                ->where('status', 'active')
+                ->where('is_seeded', true)
+                ->where('is_featured', true)
+                ->orderBy('created_at', 'asc')
+                ->limit($limit)
+                ->get();
+            
+            // Merge with ratio logic
+            $realCount = $realAds->count();
+            $seededCount = $seededAds->count();
+            
+            $mergedAds = collect();
+            
+            if ($realCount === 0) {
+                $mergedAds = $seededAds->take($limit);
+            } elseif ($realCount >= $limit * 0.7) {
+                $realPortion = (int)($limit * 0.7);
+                $seededPortion = $limit - $realPortion;
+                
+                $mergedReal = $realAds->take($realPortion);
+                $mergedSeeded = $seededAds->take($seededPortion);
+                
+                for ($i = 0; $i < max($realPortion, $seededPortion); $i++) {
+                    if ($i < $mergedReal->count() && $mergedAds->count() < $limit) {
+                        $mergedAds->push($mergedReal[$i]);
+                    }
+                    if ($i < $mergedSeeded->count() && $mergedAds->count() < $limit) {
+                        $mergedAds->push($mergedSeeded[$i]);
+                    }
+                }
+            } else {
+                $remaining = $limit - $realCount;
+                $mergedAds = $realAds->merge($seededAds->take($remaining));
+            }
 
-            return response()->json(['data' => $ads]);
+            return response()->json([
+                'data' => $mergedAds->values(),
+                'meta' => [
+                    'total' => $mergedAds->count(),
+                    'real_count' => $realCount,
+                    'seeded_count' => $seededCount,
+                ]
+            ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch featured ads: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load featured ads', 'message' => $e->getMessage()], 500);
@@ -75,14 +196,62 @@ class AdController extends Controller
     {
         try {
             $limit = $request->limit ?? 8;
-            $ads = Ad::with(['images', 'category', 'location'])
+            
+            // Get real recent ads
+            $realAds = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
-                ->where('processing_status', 'completed')
+                ->where('is_seeded', false)
+                ->where(function($q) {
+                    $q->where('processing_status', 'completed');
+                })
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
                 ->get();
+            
+            // Get seeded recent ads
+            $seededAds = Ad::with(['images', 'category', 'location'])
+                ->where('status', 'active')
+                ->where('is_seeded', true)
+                ->orderBy('created_at', 'asc')
+                ->limit($limit)
+                ->get();
+            
+            // Merge with ratio logic
+            $realCount = $realAds->count();
+            $seededCount = $seededAds->count();
+            
+            $mergedAds = collect();
+            
+            if ($realCount === 0) {
+                $mergedAds = $seededAds->take($limit);
+            } elseif ($realCount >= $limit * 0.7) {
+                $realPortion = (int)($limit * 0.7);
+                $seededPortion = $limit - $realPortion;
+                
+                $mergedReal = $realAds->take($realPortion);
+                $mergedSeeded = $seededAds->take($seededPortion);
+                
+                for ($i = 0; $i < max($realPortion, $seededPortion); $i++) {
+                    if ($i < $mergedReal->count() && $mergedAds->count() < $limit) {
+                        $mergedAds->push($mergedReal[$i]);
+                    }
+                    if ($i < $mergedSeeded->count() && $mergedAds->count() < $limit) {
+                        $mergedAds->push($mergedSeeded[$i]);
+                    }
+                }
+            } else {
+                $remaining = $limit - $realCount;
+                $mergedAds = $realAds->merge($seededAds->take($remaining));
+            }
 
-            return response()->json(['data' => $ads]);
+            return response()->json([
+                'data' => $mergedAds->values(),
+                'meta' => [
+                    'total' => $mergedAds->count(),
+                    'real_count' => $realCount,
+                    'seeded_count' => $seededCount,
+                ]
+            ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch recent ads: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load recent ads', 'message' => $e->getMessage()], 500);
@@ -270,6 +439,7 @@ class AdController extends Controller
 
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
+            'short_description' => 'sometimes|string|max:500',
             'description' => 'sometimes|string',
             'price' => 'sometimes|numeric|min:0',
             'category_id' => 'sometimes|exists:categories,id',
@@ -286,7 +456,117 @@ class AdController extends Controller
 
         $ad->update($data);
 
-        return response()->json(['data' => $ad]);
+        // Handle removed images
+        if ($request->has('removed_images')) {
+            $removedIds = $request->input('removed_images');
+            if (is_array($removedIds)) {
+                foreach ($removedIds as $imageId) {
+                    if (is_numeric($imageId)) {
+                        \App\Models\AdImage::where('id', $imageId)->where('ad_id', $ad->id)->delete();
+                    }
+                }
+            }
+        }
+
+        // Handle primary image setting
+        if ($request->has('primary_image_id')) {
+            $primaryId = $request->input('primary_image_id');
+            // First, unset all primary flags for this ad
+            $ad->images()->update(['is_primary' => false]);
+            // Then set the new primary
+            \App\Models\AdImage::where('id', $primaryId)->where('ad_id', $ad->id)->update(['is_primary' => true]);
+        }
+
+        // Handle new image uploads
+        if ($request->hasFile('images')) {
+            $images = $request->file('images');
+            $currentCount = $ad->images()->count();
+            
+            foreach ($images as $index => $image) {
+                if ($currentCount + $index >= 6) break;
+                
+                $path = $image->store('ads', 'public');
+                
+                $ad->images()->create([
+                    'url' => $path,
+                    'original_url' => $path,
+                    'is_primary' => ($request->input('primary_image_id') === 'new_' . $index),
+                    'sort_order' => $currentCount + $index,
+                ]);
+            }
+        }
+
+        return response()->json(['data' => $ad->fresh(['images', 'category', 'location'])]);
+    }
+
+    public function updateById(Request $request, $id)
+    {
+        $ad = Ad::findOrFail($id);
+
+        if ($request->user()->id !== $ad->user_id && $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $data = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'short_description' => 'sometimes|string|max:500',
+            'description' => 'sometimes|string',
+            'price' => 'sometimes|numeric|min:0',
+            'category_id' => 'sometimes|exists:categories,id',
+            'location_id' => 'sometimes|exists:locations,id',
+            'condition' => 'sometimes|in:new,like_new,good,fair',
+            'status' => 'sometimes|in:active,inactive,pending,sold',
+            'phone' => 'sometimes|string|max:30',
+            'whatsapp' => 'sometimes|string|max:30',
+        ]);
+
+        if (isset($data['title'])) {
+            $data['slug'] = \Illuminate\Support\Str::slug($data['title']) . '-' . time();
+        }
+
+        $ad->update($data);
+
+        // Handle removed images
+        if ($request->has('removed_images')) {
+            $removedIds = $request->input('removed_images');
+            if (is_array($removedIds)) {
+                foreach ($removedIds as $imageId) {
+                    if (is_numeric($imageId)) {
+                        \App\Models\AdImage::where('id', $imageId)->where('ad_id', $ad->id)->delete();
+                    }
+                }
+            }
+        }
+
+        // Handle primary image setting
+        if ($request->has('primary_image_id')) {
+            $primaryId = $request->input('primary_image_id');
+            // First, unset all primary flags for this ad
+            $ad->images()->update(['is_primary' => false]);
+            // Then set the new primary
+            \App\Models\AdImage::where('id', $primaryId)->where('ad_id', $ad->id)->update(['is_primary' => true]);
+        }
+
+        // Handle new image uploads
+        if ($request->hasFile('images')) {
+            $images = $request->file('images');
+            $currentCount = $ad->images()->count();
+            
+            foreach ($images as $index => $image) {
+                if ($currentCount + $index >= 6) break;
+                
+                $path = $image->store('ads', 'public');
+                
+                $ad->images()->create([
+                    'url' => $path,
+                    'original_url' => $path,
+                    'is_primary' => ($request->input('primary_image_id') === 'new_' . $index),
+                    'sort_order' => $currentCount + $index,
+                ]);
+            }
+        }
+
+        return response()->json(['data' => $ad->fresh(['images', 'category', 'location'])]);
     }
 
     public function destroy(Request $request, $slug)
@@ -341,7 +621,13 @@ class AdController extends Controller
 
             $query = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
-                ->where('processing_status', 'completed')
+                ->where(function($q) {
+                    $q->where('is_seeded', true)
+                      ->orWhere(function($sq) {
+                          $sq->where('is_seeded', false)
+                             ->where('processing_status', 'completed');
+                      });
+                })
                 ->where('id', '!=', $adId);
 
             $query->where(function($q) use ($currentAd) {

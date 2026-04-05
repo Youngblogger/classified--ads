@@ -37,25 +37,6 @@ function getImageUrl(img: any): string {
 function LazyImage({ src, alt, className, style, onError }: { src: string; alt: string; className?: string; style?: React.CSSProperties; onError?: () => void }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && imgRef.current) {
-          imgRef.current.src = src;
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '100px' }
-    );
-
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [src]);
 
   const handleError = () => {
     setHasError(true);
@@ -63,15 +44,21 @@ function LazyImage({ src, alt, className, style, onError }: { src: string; alt: 
   };
 
   return (
-    <img
-      ref={imgRef}
-      alt={alt}
-      className={`${className} ${isLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
-      style={style}
-      onLoad={() => setIsLoaded(true)}
-      onError={handleError}
-      loading="lazy"
-    />
+    <div className="relative w-full h-full">
+      {!isLoaded && !hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
+          <div className="w-full h-full animate-pulse" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`${className} w-full h-full object-cover ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        style={style}
+        onLoad={() => setIsLoaded(true)}
+        onError={handleError}
+      />
+    </div>
   );
 }
 
@@ -140,7 +127,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
                   condition === 'like_new' || condition === 'like new' ? 'Like New' :
                   condition === 'good' ? 'Good' :
                   condition === 'fair' ? 'Fair' : condition.charAt(0).toUpperCase() + condition.slice(1);
-    return <span className={`absolute top-2 left-2 px-2 py-0.5 text-xs font-medium rounded-full ${badgeClasses}`}>{label}</span>;
+    return <span className={`absolute top-1.5 sm:top-2 left-1.5 sm:left-2 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full ${badgeClasses}`}>{label}</span>;
   };
   
   return (
@@ -166,10 +153,10 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
         <button 
           onClick={toggleFavorite}
           disabled={favoriteLoading}
-          className="absolute top-3 right-3 p-2 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 disabled:opacity-50 z-20 border border-gray-200"
+          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 disabled:opacity-50 z-20 border border-gray-200"
         >
           <Bookmark 
-            className={`w-5 h-5 transition-colors ${
+            className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors ${
               isFavorited 
                 ? 'text-primary-600 fill-primary-600' 
                 : 'text-gray-600 hover:text-primary-600'
@@ -178,30 +165,30 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
         </button>
         
         {imageCount > 1 && (
-          <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-medium px-2.5 py-1 rounded flex items-center gap-1">
-            <ImageIcon className="w-3.5 h-3.5" />
+          <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 bg-black/70 text-white text-[10px] sm:text-xs font-medium px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded flex items-center gap-0.5 sm:gap-1">
+            <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             {imageCount}
           </div>
         )}
       </div>
       
-      <div className="p-3">
-        <h3 className="font-semibold text-gray-800 line-clamp-2 group-hover:text-primary-600 transition-colors text-lg leading-snug">
-          {ad.title}
-        </h3>
-        
-        <p className="text-2xl font-bold text-gray-900 mt-1">
+      <div className="p-2 sm:p-3">
+        <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {formatPrice(ad.price, ad.currency)}
         </p>
         
+        <h3 className="font-semibold text-gray-800 line-clamp-2 group-hover:text-primary-600 transition-colors text-sm sm:text-base md:text-lg leading-snug mt-1">
+          {ad.title}
+        </h3>
+        
         {(ad.short_description || ad.description) && (
-          <p className="text-gray-500 text-sm mt-2 line-clamp-2">
+          <p className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2 line-clamp-1 sm:line-clamp-2">
             {ad.short_description || ad.description}
           </p>
         )}
         
-        <div className="flex items-center gap-2 mt-3 text-gray-500 text-sm">
-          <MapPin className="w-4 h-4 flex-shrink-0" />
+        <div className="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 text-gray-500 text-xs sm:text-sm">
+          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
           <span className="truncate">{getLocationDisplay()}</span>
         </div>
       </div>
@@ -224,9 +211,9 @@ export default function HomePage() {
   const [recentAds, setRecentAds] = useState<any[]>([]);
   const [allAds, setAllAds] = useState<any[]>([]);
   const [latestAds, setLatestAds] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [adsError, setAdsError] = useState<null | boolean>(null);
   const [isFetching, setIsFetching] = useState(false);
@@ -272,12 +259,16 @@ export default function HomePage() {
       const json = await res.json();
       
       let newAds: any[] = [];
+      let totalAds = 0;
       if (Array.isArray(json)) {
         newAds = json;
+        totalAds = json.length;
       } else if (json?.data && Array.isArray(json.data)) {
         newAds = json.data;
+        totalAds = json.meta?.total || json.data.length;
       } else {
         newAds = [];
+        totalAds = 0;
       }
       
       // Normalize ads to have images array
@@ -303,7 +294,7 @@ export default function HomePage() {
       );
       
       setRecentAds(uniqueAds);
-      setHasMore(newAds.length === ITEMS_PER_PAGE);
+      setHasMore(newAds.length >= ITEMS_PER_PAGE);
       setAdsError(false);
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -316,7 +307,7 @@ export default function HomePage() {
       setLoadingMore(false);
       setIsFetching(false);
     }
-  }, [isFetching]);
+  }, [isFetching, recentAds]);
 
   useEffect(() => {
     fetchAds(1, true);
@@ -353,49 +344,49 @@ export default function HomePage() {
             }} />
           </div>
           
-          <div className="container-app relative py-16 md:py-24">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="container-app relative py-8 sm:py-12 md:py-16 lg:py-24">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               {/* Hero Content */}
               <div className="text-center lg:text-left">
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6 leading-tight">
                   Find Anything,<br />
                   <span className="text-accent-400">Sell Everything</span>
                 </h1>
-                <p className="text-lg md:text-xl text-primary-100 mb-8 max-w-lg mx-auto lg:mx-0">
+                <p className="text-base sm:text-lg md:text-xl text-primary-100 mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0">
                   Nigeria&apos;s trusted marketplace for buying and selling. Connect with thousands of buyers and sellers near you.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
                   <Link
                     href="/ads"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-primary-600 rounded-full font-semibold hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                    className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white text-primary-600 rounded-full font-semibold hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-sm sm:text-base"
                   >
-                    <Search className="w-5 h-5" />
+                    <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>Browse Ads</span>
                   </Link>
                   <Link
                     href="/post-ad"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-accent-600 text-white rounded-full font-semibold hover:bg-accent-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                    className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-accent-600 text-white rounded-full font-semibold hover:bg-accent-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-sm sm:text-base"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>Post Free Ad</span>
                   </Link>
                 </div>
                 
                 {/* Stats */}
-                <div className="flex items-center justify-center lg:justify-start gap-8 mt-10 pt-8 border-t border-primary-500/30">
+                <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-8 mt-6 sm:mt-10 pt-6 sm:pt-8 border-t border-primary-500/30">
                   <div className="text-center lg:text-left">
-                    <p className="text-2xl md:text-3xl font-bold text-white">50K+</p>
-                    <p className="text-sm text-primary-200">Active Ads</p>
+                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">50K+</p>
+                    <p className="text-xs sm:text-sm text-primary-200">Active Ads</p>
                   </div>
-                  <div className="w-px h-12 bg-primary-500/30" />
+                  <div className="w-px h-8 sm:h-12 bg-primary-500/30" />
                   <div className="text-center lg:text-left">
-                    <p className="text-2xl md:text-3xl font-bold text-white">100K+</p>
-                    <p className="text-sm text-primary-200">Happy Users</p>
+                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">100K+</p>
+                    <p className="text-xs sm:text-sm text-primary-200">Happy Users</p>
                   </div>
-                  <div className="w-px h-12 bg-primary-500/30" />
+                  <div className="w-px h-8 sm:h-12 bg-primary-500/30" />
                   <div className="text-center lg:text-left">
-                    <p className="text-2xl md:text-3xl font-bold text-white">36</p>
-                    <p className="text-sm text-primary-200">States Covered</p>
+                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">36</p>
+                    <p className="text-xs sm:text-sm text-primary-200">States Covered</p>
                   </div>
                 </div>
               </div>
@@ -457,9 +448,9 @@ export default function HomePage() {
         {/* Latest Ads - jiji.ng style */}
         <section className="py-4 bg-white">
           <div className="px-[15px]">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-3 sm:mb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                   Latest Ads
                 </h2>
               </div>
@@ -473,10 +464,10 @@ export default function HomePage() {
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="bg-white rounded-lg overflow-hidden animate-pulse shadow-md border border-gray-200">
                     <div className="aspect-[3/2] bg-gray-200" />
-                    <div className="p-5 space-y-3">
-                      <div className="h-5 bg-gray-200 rounded w-full" />
-                      <div className="h-5 bg-gray-200 rounded w-3/4" />
-                      <div className="h-6 bg-gray-200 rounded w-1/2" />
+                    <div className="p-2 sm:p-5 space-y-2 sm:space-y-3">
+                      <div className="h-4 sm:h-5 bg-gray-200 rounded w-full" />
+                      <div className="h-4 sm:h-5 bg-gray-200 rounded w-3/4" />
+                      <div className="h-5 sm:h-6 bg-gray-200 rounded w-1/2" />
                     </div>
                   </div>
                 ))}

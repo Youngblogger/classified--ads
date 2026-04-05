@@ -16,9 +16,17 @@ class SearchController extends Controller
         try {
             $searchService = app(SearchService::class);
             
+            // Check if category slug is passed instead of category_id
+            $categoryId = $request->get('category_id');
+            if (!$categoryId && $request->get('category')) {
+                // Find category by slug
+                $category = \App\Models\Category::where('slug', $request->get('category'))->first();
+                $categoryId = $category ? $category->id : null;
+            }
+            
             $params = [
                 'search_query' => $request->get('q', ''),
-                'category_id' => $request->get('category_id'),
+                'category_id' => $categoryId,
                 'min_price' => $request->get('min_price'),
                 'max_price' => $request->get('max_price'),
                 'location' => $request->get('location'),
@@ -103,7 +111,13 @@ class SearchController extends Controller
         try {
             $trendingAds = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
-                ->where('processing_status', 'completed')
+                ->where(function($q) {
+                    $q->where('is_seeded', true)
+                      ->orWhere(function($sq) {
+                          $sq->where('is_seeded', false)
+                             ->where('processing_status', 'completed');
+                      });
+                })
                 ->where('created_at', '>=', now()->subDays(7))
                 ->orderBy('views', 'desc')
                 ->limit(10)

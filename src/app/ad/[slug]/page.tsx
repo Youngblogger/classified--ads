@@ -331,9 +331,12 @@ export default function AdDetailPage() {
   const getSliderImages = () => {
     // Use the unified getAdImages function from utils
     const images = getAdImages(ad);
+    console.log('[AdDetail] Raw ad.images:', ad.images);
+    console.log('[AdDetail] getAdImages result:', images);
     
     // If still empty, use fallback
     if (images.length === 0) {
+      console.log('[AdDetail] No images found, using fallback');
       return [getFallbackForAd(ad)];
     }
     
@@ -465,28 +468,27 @@ export default function AdDetailPage() {
               </div>
 
               {/* Price, Title, Description - All in One Card */}
-              <div className="bg-white rounded-2xl shadow-sm p-6 space-y-[2px]">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 space-y-[2px]">
                 {/* Price */}
-                <div className="flex justify-between items-start gap-4">
-                  <span className="text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+                  <span className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
                   <div className="flex items-center gap-2">
-                    <a href="/report-abuse" className="p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
-                      <Flag className="w-5 h-5" />
+                    <a href="/report-abuse" className="p-2 sm:p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+                      <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
                     </a>
                     <button 
                       onClick={toggleFavorite} 
-                      className={`relative p-3 rounded-full transition-all duration-300 ${
+                      className={`relative p-2 sm:p-3 rounded-full transition-all duration-300 ${
                         isFavorited 
                           ? 'bg-red-100 text-red-500' 
                           : 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
                       } ${favoriteAnimating ? 'scale-125' : 'scale-100'}`}
                     >
                       <Heart 
-                        className={`w-6 h-6 transition-all duration-300 ${
+                        className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${
                           isFavorited ? 'fill-current' : ''
                         } ${favoriteAnimating ? 'animate-heartbeat' : ''}`} 
                       />
-                      {/* Heart particles effect when favorited */}
                       {favoriteAnimating && (
                         <>
                           <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75"></span>
@@ -497,9 +499,9 @@ export default function AdDetailPage() {
                     </button>
                     <button 
                       onClick={() => setShowSharePopup(!showSharePopup)} 
-                      className="p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                      className="p-2 sm:p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-primary-50 hover:text-primary-600 transition-colors"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                       </svg>
                     </button>
@@ -507,19 +509,19 @@ export default function AdDetailPage() {
                 </div>
 
                 {/* Title */}
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{ad.title}</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{ad.title}</h1>
 
                 {/* Description with Show More on right */}
-                <div className="text-gray-600 whitespace-pre-wrap pt-2">
+                <div className="text-gray-600 whitespace-pre-wrap pt-2 text-sm sm:text-base">
                   {ad.description ? (
                     <>
-                      <p className={showFullDescription ? '' : 'line-clamp-3'}>
+                      <p className={showFullDescription ? '' : 'line-clamp-2 sm:line-clamp-3'}>
                         {ad.description}
                       </p>
                       <div className="flex justify-end">
                         <button 
                           onClick={() => setShowFullDescription(!showFullDescription)}
-                          className="text-primary-600 hover:text-primary-700 font-medium inline-flex items-center mt-2"
+                          className="text-primary-600 hover:text-primary-700 font-medium inline-flex items-center mt-1 sm:mt-2 text-sm"
                         >
                           {showFullDescription ? 'Show less' : 'Show more'}
                         </button>

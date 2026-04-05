@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Search,
   Filter,
@@ -18,7 +19,8 @@ import {
   Loader2,
   CheckSquare,
   Square,
-  ImageIcon
+  ImageIcon,
+  Star
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { getAdImageUrl } from '@/lib/utils';
@@ -43,6 +45,7 @@ interface Ad {
 }
 
 export default function AdsPage() {
+  const router = useRouter();
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -103,10 +106,44 @@ export default function AdsPage() {
     try {
       setActionLoading(adId);
       await adminApi.verifyAd(adId);
-      toast.success('Ad verified');
+      toast.success(adId ? 'Ad verified' : 'Verification removed');
       fetchAds();
     } catch (error) {
       toast.error('Failed to verify ad');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleEdit = (adId: number) => {
+    router.push(`/ad/edit/${adId}`);
+  };
+
+  const handleView = (adSlug: string) => {
+    window.open(`/ad/${adSlug}`, '_blank');
+  };
+
+  const handleFeature = async (adId: number) => {
+    try {
+      setActionLoading(adId);
+      await adminApi.featureAd(adId);
+      toast.success('Ad featured status updated');
+      fetchAds();
+    } catch (error) {
+      toast.error('Failed to update featured status');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePromote = async (adId: number) => {
+    try {
+      setActionLoading(adId);
+      await adminApi.promoteAd(adId);
+      toast.success('Ad promoted');
+      fetchAds();
+    } catch (error) {
+      toast.error('Failed to promote ad');
     } finally {
       setActionLoading(null);
     }
@@ -173,11 +210,19 @@ export default function AdsPage() {
   };
 
   const getImageUrl = (ad: Ad): string => {
-    return getAdImageUrl(ad);
+    if (!ad.images || ad.images.length === 0) return '';
+    const primaryImage = ad.images.find((img: any) => img.is_primary) || ad.images[0];
+    return getAdImageUrl(primaryImage);
   };
 
   return (
     <div className="space-y-6">
+      {/* Page Title */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Ads</h1>
+        <span className="text-sm text-gray-500">{ads.length} total ads</span>
+      </div>
+
       {/* Status Tabs */}
       <div className="flex gap-2 border-b border-gray-200 pb-4">
         {Object.entries(statusCounts).map(([status, count]) => (
@@ -376,10 +421,20 @@ export default function AdsPage() {
                     <td className="px-6 py-4 text-sm text-gray-500">{new Date(ad.created_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg" title="View">
+                        <button 
+                          onClick={() => handleView(ad.slug)} 
+                          className="p-2 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg" 
+                          title="View"
+                          disabled={actionLoading === ad.id}
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg" title="Edit">
+                        <button 
+                          onClick={() => handleEdit(ad.id)} 
+                          className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg" 
+                          title="Edit"
+                          disabled={actionLoading === ad.id}
+                        >
                           <Edit className="w-4 h-4" />
                         </button>
                         
@@ -403,6 +458,16 @@ export default function AdsPage() {
                             <ShieldCheck className="w-4 h-4" />
                           </button>
                         )}
+                        
+                        {/* Feature */}
+                        <button 
+                          onClick={() => handleFeature(ad.id)} 
+                          className={`p-2 rounded-lg ${ad.is_featured ? 'text-amber-500 bg-amber-50 hover:bg-amber-100' : 'text-gray-400 hover:text-amber-600 hover:bg-amber-50'}`}
+                          title={ad.is_featured ? 'Unfeature' : 'Feature'}
+                          disabled={actionLoading === ad.id}
+                        >
+                          <Star className="w-4 h-4" />
+                        </button>
                         
                         {/* Status Actions */}
                         {ad.status === 'pending' && (

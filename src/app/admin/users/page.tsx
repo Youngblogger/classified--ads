@@ -139,6 +139,9 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
+      {/* Page Title */}
+      <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex flex-col sm:flex-row gap-3">

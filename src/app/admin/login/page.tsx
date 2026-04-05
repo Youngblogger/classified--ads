@@ -28,6 +28,7 @@ export default function AdminLoginPage() {
         // Store token in cookie
         document.cookie = `token=${response.data.token};path=/;max-age=${7*24*60*60}`;
         localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('admin_token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('auth-storage', JSON.stringify({
           state: {

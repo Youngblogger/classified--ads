@@ -96,6 +96,30 @@ export const CATEGORY_FALLBACK_IMAGES: Record<string, string[]> = {
     'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop',
     'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
   ],
+  'Baby & Kids': [
+    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1596461404969-9ae70f3bf014?w=800&h=600&fit=crop',
+  ],
+  Toys: [
+    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1596461404969-9ae70f3bf014?w=800&h=600&fit=crop',
+  ],
+  Baby: [
+    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1520106212299-d99c443e4568?w=800&h=600&fit=crop',
+  ],
+  'Health & Beauty': [
+    'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
+  ],
+  Services: [
+    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=600&fit=crop',
+  ],
+  Pets: [
+    'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=600&fit=crop',
+  ],
   Generators: [
     'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=800&h=600&fit=crop',
     'https://images.unsplash.com/photo-1626806819282-2c1dc01a5e0c?w=800&h=600&fit=crop',

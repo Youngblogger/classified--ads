@@ -30,7 +30,10 @@ class SearchService
         $limit = $params['limit'] ?? 20;
 
         $ads = $this->buildQuery($query, $categoryId, $minPrice, $maxPrice, $location)
-            ->where('processing_status', 'completed')
+            ->where(function($q) {
+                $q->where('processing_status', 'completed')
+                  ->orWhere('is_seeded', true);
+            })
             ->where('status', 'active')
             ->get();
 
@@ -87,6 +90,15 @@ class SearchService
                   ->orWhere('slug', 'like', '%' . Str::slug($location) . '%');
             });
         }
+
+        // Include seeded ads or real ads with completed processing
+        $baseQuery->where(function($q) {
+            $q->where('is_seeded', true)
+              ->orWhere(function($sq) {
+                  $sq->where('is_seeded', false)
+                     ->where('processing_status', 'completed');
+              });
+        });
 
         return $baseQuery;
     }
@@ -225,8 +237,14 @@ class SearchService
         $firstAd = reset($currentResults);
         
         $query = Ad::with(['images', 'category', 'location'])
-            ->where('processing_status', 'completed')
             ->where('status', 'active')
+            ->where(function($q) {
+                $q->where('is_seeded', true)
+                  ->orWhere(function($sq) {
+                      $sq->where('is_seeded', false)
+                         ->where('processing_status', 'completed');
+                  });
+            })
             ->whereNotIn('id', $adIds);
 
         if ($categoryId) {
@@ -338,8 +356,14 @@ class SearchService
             ->get()
             ->toArray();
 
-        $adSuggestions = Ad::where('processing_status', 'completed')
-            ->where('status', 'active')
+        $adSuggestions = Ad::where('status', 'active')
+            ->where(function($q) {
+                $q->where('is_seeded', true)
+                  ->orWhere(function($sq) {
+                      $sq->where('is_seeded', false)
+                         ->where('processing_status', 'completed');
+                  });
+            })
             ->where(function($q) use ($terms) {
                 foreach ($terms as $term) {
                     $q->orWhere('title', 'like', '%' . $term . '%');

@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\SocialPostController;
 use App\Http\Controllers\Api\SocialSettingsController;
+use App\Http\Controllers\Api\AdModerationController;
 use Illuminate\Support\Facades\Route;
 
 // Public auth routes
@@ -133,6 +134,7 @@ Route::middleware('auth.api')->group(function () {
     // Ads - protected routes (must be before /{slug} wildcard)
     Route::post('/ads', [AdController::class, 'store']);
     Route::get('/ads/{id}', [AdController::class, 'getById'])->where('id', '[0-9]+');
+    Route::put('/ads/{id}', [AdController::class, 'updateById'])->where('id', '[0-9]+');
     Route::put('/ads/{slug}', [AdController::class, 'update']);
     Route::delete('/ads/{slug}', [AdController::class, 'destroy']);
     Route::get('/my-ads', [AdController::class, 'myAds']);
@@ -240,9 +242,24 @@ Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
     Route::post('/ads/{id}/approve', [AdminController::class, 'approveAd']);
     Route::post('/ads/{id}/reject', [AdminController::class, 'rejectAd']);
     Route::post('/ads/{id}/verify', [AdminController::class, 'verifyAd']);
+    Route::post('/ads/{id}/feature', [AdminController::class, 'featureAd']);
+    Route::post('/ads/{id}/promote', [AdminController::class, 'promoteAd']);
     Route::post('/ads/{id}/reprocess', [AdminController::class, 'reprocessAd']);
     Route::delete('/ads/{id}', [AdminController::class, 'deleteAd']);
     Route::post('/ads/bulk-delete', [AdminController::class, 'bulkDeleteAds']);
+    
+    // Ad Moderation & Quality System
+    Route::get('/ads/moderation', [AdModerationController::class, 'index']);
+    Route::get('/ads/moderation/stats', [AdModerationController::class, 'stats']);
+    Route::post('/ads/moderation/analyze', [AdModerationController::class, 'analyzeAll']);
+    Route::post('/ads/moderation/fix-all', [AdModerationController::class, 'fixAllFlagged']);
+    Route::post('/ads/moderation/bulk-fix', [AdModerationController::class, 'fixBulk']);
+    Route::get('/ads/moderation/logs', [AdModerationController::class, 'logs']);
+    Route::get('/ads/{id}', [AdModerationController::class, 'analyze']);
+    Route::post('/ads/{id}/fix', [AdModerationController::class, 'fix']);
+    Route::post('/ads/{id}/delete-images', [AdModerationController::class, 'deleteImages']);
+    Route::post('/ads/{id}/replace-images', [AdModerationController::class, 'replaceImages']);
+    
     Route::get('/users', [AdminController::class, 'users']);
     Route::put('/users/{id}', [AdminController::class, 'updateUser']);
     Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);

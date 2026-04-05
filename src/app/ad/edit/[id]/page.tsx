@@ -1,9 +1,10 @@
 'use client';
 
+import '@/app/globals.css';
 import { useState, useEffect } from 'react';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
-import { Upload, X, MapPin, Tag, FileText, Check, ChevronRight, Loader2 } from 'lucide-react';
+import { Upload, X, MapPin, Tag, FileText, Check, ChevronRight, Loader2, ArrowLeft } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { adsApi, categoriesApi, locationsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -44,6 +45,9 @@ export default function EditAdPage() {
   const [images, setImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<{id: number; url: string; is_primary: boolean}[]>([]);
   const [imagePreview, setImagePreview] = useState<string[]>([]);
+  
+  // Track removed image IDs
+  const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -122,6 +126,11 @@ export default function EditAdPage() {
 
   const removeImage = (index: number) => {
     if (index < existingImages.length) {
+      const img = existingImages[index];
+      // If it's a seeded image (has numeric id), track it for deletion
+      if (typeof img.id === 'number') {
+        setRemovedImageIds(prev => [...prev, img.id]);
+      }
       const newExisting = existingImages.filter((_, i) => i !== index);
       setExistingImages(newExisting);
       setImagePreview(newExisting.map(img => img.url));
@@ -132,6 +141,14 @@ export default function EditAdPage() {
       setImages(newImages);
       setImagePreview(newPreviews);
     }
+  };
+
+  const setPrimaryImage = (index: number) => {
+    const newExisting = existingImages.map((e, i) => ({
+      ...e,
+      is_primary: i === index
+    }));
+    setExistingImages(newExisting);
   };
 
   const handleSubmit = async () => {
@@ -146,15 +163,34 @@ export default function EditAdPage() {
       if (locationId) formData.append('location_id', locationId.toString());
       if (condition) formData.append('condition', condition);
       
+      // Add removed image IDs
+      if (removedImageIds.length > 0) {
+        formData.append('removed_images', JSON.stringify(removedImageIds));
+      }
+      
+      // Add new images
       images.forEach((img) => {
         formData.append('images[]', img);
+      });
+
+      // Add primary image info
+      const primaryIndex = existingImages.findIndex(img => img.is_primary);
+      if (primaryIndex >= 0) {
+        formData.append('primary_image_id', String(existingImages[primaryIndex].id));
+      }
+
+      console.log('Submitting ad update with:', {
+        title, description, price, categoryId, locationId, condition,
+        removedImages: removedImageIds,
+        newImagesCount: images.length,
+        primaryImageId: primaryIndex >= 0 ? existingImages[primaryIndex].id : null
       });
 
       await adsApi.update(adId, formData);
       toast.success('Ad updated successfully!');
       router.push('/dashboard/my-ads');
     } catch (error: any) {
-      console.error('Error:', error);
+      console.error('Error updating ad:', error);
       const message = error.response?.data?.message || 'Failed to update ad';
       toast.error(message);
     } finally {
@@ -203,6 +239,15 @@ export default function EditAdPage() {
       <main className="flex-1 py-8">
         <div className="container-app">
           <div className="max-w-4xl mx-auto">
+            {/* Back Button */}
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>Back</span>
+            </button>
+
             <div className="mb-8">
               <h1 className="text-3xl font-display font-bold text-gray-900">Edit Your Ad</h1>
               <p className="text-gray-500 mt-2">Update your listing details</p>
@@ -261,6 +306,100 @@ export default function EditAdPage() {
                           className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                         />
                       </div>
+                    </div>
+
+                    {/* Images Section */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Images (Max 6)
+                        <span className="text-gray-400 font-normal ml-2">
+                          - Current: {existingImages.length} | New: {images.length} | Remaining: {remainingSlots}
+                        </span>
+                      </label>
+                      
+                      {/* Existing Images */}
+                      {existingImages.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-500 mb-2">Current Images (click to set primary or remove):</p>
+                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                            {existingImages.map((img, index) => (
+                              <div key={img.id} className="relative group">
+                                <img
+                                  src={img.url}
+                                  alt={`Image ${index + 1}`}
+                                  className={`w-full h-24 object-cover rounded-lg border-2 ${
+                                    img.is_primary ? 'border-primary-500' : 'border-gray-200'
+                                  }`}
+                                />
+                                {img.is_primary && (
+                                  <span className="absolute top-1 left-1 bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded">
+                                    Primary
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setPrimaryImage(index)}
+                                  className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/50 hover:bg-black/70 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                                >
+                                  {img.is_primary ? 'Primary' : 'Set Primary'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(index)}
+                                  className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* New Images Upload */}
+                      {remainingSlots > 0 && (
+                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors">
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                            <p className="text-sm text-gray-500">
+                              <span className="font-semibold">Click to upload</span> or drag and drop
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 10MB</p>
+                          </div>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                      
+                      {/* New Image Previews */}
+                      {imagePreview.length > existingImages.length && (
+                        <div className="mt-4">
+                          <p className="text-sm text-gray-500 mb-2">New images to upload:</p>
+                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                            {imagePreview.slice(existingImages.length).map((url, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={url}
+                                  alt={`New ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded-lg border-2 border-gray-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(existingImages.length + index)}
+                                  className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div>
