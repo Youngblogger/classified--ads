@@ -241,15 +241,15 @@ export default function HomePage() {
   
   const ITEMS_PER_PAGE = 12;
 
-  const fetchAds = useCallback(async (pageNum: number = 1, forceRefresh = false) => {
+  const fetchAds = useCallback(async (pageNum: number = 1) => {
     if (isFetching) return;
+    setIsFetching(true);
     
     if (pageNum === 1) {
       setLoading(true);
     } else {
       setLoadingMore(true);
     }
-    setIsFetching(true);
     
     try {
       const controller = new AbortController();
@@ -275,22 +275,15 @@ export default function HomePage() {
       const json = await res.json();
       
       let newAds: any[] = [];
-      let totalAds = 0;
       if (Array.isArray(json)) {
         newAds = json;
-        totalAds = json.length;
       } else if (json?.data && Array.isArray(json.data)) {
         newAds = json.data;
-        totalAds = json.meta?.total || json.data.length;
-      } else {
-        newAds = [];
-        totalAds = 0;
       }
       
       // Normalize ads to have images array
       newAds = newAds.map((ad: any) => {
         if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
-          // Convert main_image + slider_images format to images array
           const mainImg = ad.main_image || ad.slider_images[0];
           return {
             ...ad,
@@ -300,16 +293,15 @@ export default function HomePage() {
         return ad;
       });
       
-      const mergedAds = pageNum === 1 
-        ? newAds
-        : [...recentAds, ...newAds];
-      
-      // Remove duplicates by ID
-      const uniqueAds = mergedAds.filter((ad: any, index: number, self: any[]) => 
-        self.findIndex((a: any) => a.id === ad.id) === index
-      );
-      
-      setRecentAds(uniqueAds);
+      // Use functional update to avoid dependency on recentAds
+      setRecentAds((prevAds) => {
+        const mergedAds = pageNum === 1 ? newAds : [...prevAds, ...newAds];
+        // Remove duplicates by ID
+        const uniqueAds = mergedAds.filter((ad: any, index: number, self: any[]) => 
+          self.findIndex((a: any) => a.id === ad.id) === index
+        );
+        return uniqueAds;
+      });
       setHasMore(newAds.length >= ITEMS_PER_PAGE);
       setAdsError(false);
     } catch (error: any) {
@@ -323,10 +315,10 @@ export default function HomePage() {
       setLoadingMore(false);
       setIsFetching(false);
     }
-  }, [isFetching, recentAds]);
+  }, [isFetching]);
 
   useEffect(() => {
-    fetchAds(1, true);
+    fetchAds(1);
     
     const timeout = setTimeout(() => {
       if (loading && recentAds.length === 0) {
@@ -339,12 +331,12 @@ export default function HomePage() {
   }, []);
 
   const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchAds(nextPage);
-    }
-  }, [loadingMore, hasMore, page]);
+    if (loadingMore || !hasMore || isFetching) return;
+    
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchAds(nextPage);
+  }, [loadingMore, hasMore, page, isFetching]);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f5f6f7' }} suppressHydrationWarning>
@@ -495,7 +487,7 @@ export default function HomePage() {
                   <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
                   <p className="text-gray-500 mb-4">Showing sample ads instead.</p>
                   <button 
-                    onClick={() => fetchAds(1, true)} 
+                    onClick={() => fetchAds(1)} 
                     className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
                   >
                     <span>Try Again</span>

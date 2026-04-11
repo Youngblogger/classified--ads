@@ -170,7 +170,7 @@ function formatNotificationTime(dateString: string): string {
 export default function Header() {
   const router = useRouter();
   const { isAuthenticated, user, logout, hasHydrated } = useAuthStore();
-  const { toggleLoginModal, toggleRegisterModal } = useUIStore();
+  const { toggleLoginModal, toggleRegisterModal, toggleLocationModal } = useUIStore();
   const { selectedLocation, setSelectedLocation } = useGlobalStore();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -178,17 +178,19 @@ export default function Header() {
   const [selectedLocationSlug, setSelectedLocationSlug] = useState<string | null>(null);
   const [selectedLGA, setSelectedLGA] = useState<string | null>(null);
 
-  // Sync with global store on mount
+  // Sync with global store on mount and when it changes
   useEffect(() => {
     if (selectedLocation) {
-      setSelectedLocationState(selectedLocation.lga ? `${selectedLocation.name}, ${selectedLocation.lga}` : selectedLocation.name);
+      console.log('Selected location updated:', selectedLocation);
+      setSelectedLocationState(selectedLocation.lga ? `${selectedLocation.lga}, ${selectedLocation.name}` : selectedLocation.name);
       setSelectedLocationSlug(selectedLocation.slug);
       setSelectedLGA(selectedLocation.lga || null);
+    } else {
+      setSelectedLocationState('All Nigeria');
+      setSelectedLocationSlug(null);
+      setSelectedLGA(null);
     }
   }, [selectedLocation]);
-  const [showLocationModal, setShowLocationModal] = useState(false);
-  const [tempSelectedState, setTempSelectedState] = useState<ApiLocation | null>(null);
-  const [tempSelectedLGA, setTempSelectedLGA] = useState<string | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -347,9 +349,6 @@ export default function Header() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (locationRef.current && !locationRef.current.contains(e.target as Node) && showLocationModal) {
-        setShowLocationModal(false);
-      }
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowSearchDropdown(false);
       }
@@ -435,63 +434,8 @@ export default function Header() {
     }
   };
 
-  const handleLocationSelect = (location: ApiLocation | null) => {
-    if (location) {
-      setTempSelectedState(location);
-      setTempSelectedLGA(null);
-    } else {
-      setTempSelectedState(null);
-      setTempSelectedLGA(null);
-    }
-  };
-
-  const handleLGASelect = (lga: string | null) => {
-    setTempSelectedLGA(lga);
-  };
-
-  const applyLocationSelection = () => {
-    if (tempSelectedState) {
-      const locationName = tempSelectedLGA ? `${tempSelectedState.name}, ${tempSelectedLGA}` : tempSelectedState.name;
-      setSelectedLocationState(locationName);
-      setSelectedLocationSlug(tempSelectedState.slug);
-      setSelectedLGA(tempSelectedLGA);
-      
-      // Save to global store
-      setSelectedLocation({
-        name: tempSelectedState.name,
-        slug: tempSelectedState.slug,
-        lga: tempSelectedLGA
-      });
-      
-      const params = new URLSearchParams();
-      if (searchQuery.trim()) {
-        params.append('q', searchQuery.trim());
-      }
-      params.append('location', tempSelectedState.slug);
-      if (tempSelectedLGA) {
-        params.append('lga', tempSelectedLGA);
-      }
-      router.push(`/ads?${params.toString()}`);
-    } else {
-      setSelectedLocationState('All Nigeria');
-      setSelectedLocationSlug(null);
-      setSelectedLGA(null);
-      setSelectedLocation(null);
-      router.push('/ads');
-    }
-    setShowLocationModal(false);
-  };
-
   const openLocationModal = () => {
-    if (selectedLocationSlug) {
-      const currentState = apiLocations.find(l => l.slug === selectedLocationSlug);
-      setTempSelectedState(currentState || null);
-      setTempSelectedLGA(selectedLGA);
-    } else {
-      setTempSelectedState(null);
-      setTempSelectedLGA(null);
-    }
-    setShowLocationModal(true);
+    toggleLocationModal();
   };
 
   const handleLogout = async () => {
@@ -746,131 +690,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Location Modal */}
-        {showLocationModal && (
-          <div className="fixed inset-0 z-[100] flex items-start justify-center pt-16">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setShowLocationModal(false)}></div>
-            <div className="relative w-full max-w-4xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">Select Location</h3>
-                  {tempSelectedState && (
-                    <p className="text-sm text-slate-500">
-                      {tempSelectedLGA ? `${tempSelectedState.name} > ${tempSelectedLGA}` : tempSelectedState.name}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowLocationModal(false)}
-                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5 text-slate-500" />
-                </button>
-              </div>
-              
-              <div className="flex" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-                <div className="w-1/2 border-r border-slate-200 overflow-y-auto">
-                  <div className="p-2">
-                    <button
-                      onClick={() => handleLocationSelect(null)}
-                      className={cn(
-                        "w-full p-3 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between",
-                        !tempSelectedState && "bg-primary-50 border border-primary-200"
-                      )}
-                    >
-                      <span className="font-medium text-slate-900">All Nigeria</span>
-                      <ChevronRight className={cn("w-4 h-4 text-slate-400", tempSelectedState && "opacity-0")} />
-                    </button>
-                    {apiLocations.map((location) => (
-                      <button
-                        key={location.id}
-                        onClick={() => handleLocationSelect(location)}
-                        className={cn(
-                          "w-full p-3 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between",
-                          tempSelectedState?.id === location.id && "bg-primary-50 border border-primary-200"
-                        )}
-                      >
-                        <div>
-                          <span className="font-medium text-slate-900">{location.name}</span>
-                          <span className="text-xs text-slate-500 ml-2">({location.children?.length || 0})</span>
-                        </div>
-                        <ChevronRight className={cn("w-4 h-4 text-slate-400", tempSelectedState?.id !== location.id && "opacity-0")} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="w-1/2 overflow-y-auto bg-white">
-                  {tempSelectedState ? (
-                    <div className="p-2">
-                      <button
-                        onClick={() => handleLGASelect(null)}
-                        className={cn(
-                          "w-full p-3 rounded-xl text-left hover:bg-slate-50 transition-colors",
-                          !tempSelectedLGA && "bg-primary-50 border border-primary-200"
-                        )}
-                      >
-                        <span className="text-slate-700">All areas in {tempSelectedState.name}</span>
-                      </button>
-                      {tempSelectedState.children?.map((lga) => (
-                        <button
-                          key={lga.slug}
-                          onClick={() => handleLGASelect(lga.name)}
-                          className={cn(
-                            "w-full p-3 rounded-xl text-left hover:bg-slate-50 transition-colors",
-                            tempSelectedLGA === lga.name && "bg-primary-50 border border-primary-200"
-                          )}
-                        >
-                          <span className={cn(
-                            "font-medium",
-                            tempSelectedLGA === lga.name ? "text-primary-600" : "text-slate-700"
-                          )}>
-                            {lga.name}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-slate-400 p-8 text-center">
-                      <div>
-                        <MapPin className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                        <p className="text-sm">Select a state to see LGAs</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50">
-                <div className="text-sm text-slate-500">
-                  {tempSelectedState ? (
-                    <span>
-                      Selected: <span className="font-medium text-slate-700">
-                        {tempSelectedLGA ? `${tempSelectedState.name}, ${tempSelectedLGA}` : tempSelectedState.name}
-                      </span>
-                    </span>
-                  ) : (
-                    <span>All Nigeria</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setShowLocationModal(false)}
-                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={applyLocationSelection}
-                    className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       {/* MAIN HEADER */}
       <div className="bg-primary-600 shadow-header sticky top-0 z-50 h-16">
         <div className="container-app">

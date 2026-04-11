@@ -9,10 +9,16 @@ interface LoadMoreButtonProps {
 export default function LoadMoreButton({ loading, hasMore, onLoadMore }: LoadMoreButtonProps) {
   if (!hasMore) return null;
 
+  const handleClick = () => {
+    if (!loading && hasMore) {
+      onLoadMore();
+    }
+  };
+
   return (
     <div className="flex justify-center mt-10">
       <button
-        onClick={onLoadMore}
+        onClick={handleClick}
         disabled={loading}
         className="
           group relative flex items-center justify-center gap-2.5
