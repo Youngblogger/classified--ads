@@ -336,15 +336,103 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        // Reliable product images - Using Unsplash with real product photos
-        // These are high-quality, publicly accessible images with relevant content
-        $categoryImages = [
+        // SPECIFIC PRODUCT IMAGES - Exact match to product titles
+        // Key is product keyword, value is array of relevant Unsplash images
+        $productImages = [
+            // SMARTPHONES - Exact iPhone/Samsung models
+            'iPhone 15 Pro' => ['https://images.unsplash.com/photo-1592750475338-74b7b2105b125?w=800&h=600', 'https://images.unsplash.com/photo-1695048133142-1a13154ebc44?w=800&h=600'],
+            'iPhone 15' => ['https://images.unsplash.com/photo-1695048133142-1a13154ebc44?w=800&h=600', 'https://images.unsplash.com/photo-1592750475338-74b7b2105b125?w=800&h=600'],
+            'iPhone 14 Pro' => ['https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600', 'https://images.unsplash.com/photo-1598327105666-5b89351aff70?w=800&h=600'],
+            'iPhone 14' => ['https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600', 'https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800&h=600'],
+            'iPhone 13' => ['https://images.unsplash.com/photo-1632661674596-df6be585f3c83?w=800&h=600', 'https://images.unsplash.com/photo-1622769887660-2f6e96f3798d?w=800&h=600'],
+            'iPhone 12' => ['https://images.unsplash.com/photo-1616348436123-6c4fd7e004c2?w=800&h=600', 'https://images.unsplash.com/photo-1609587312208-cea1b979846a?w=800&h=600'],
+            'iPhone SE' => ['https://images.unsplash.com/photo-1610945265064-0e34e5519c1f?w=800&h=600'],
+            'Samsung S24 Ultra' => ['https://images.unsplash.com/photo-1610945415299-d9bedc9d2c97?w=800&h=600', 'https://images.unsplash.com/photo-1610945265064-0e34e5519c1f?w=800&h=600'],
+            'Samsung S24' => ['https://images.unsplash.com/photo-1610945415299-d9bedc9d2c97?w=800&h=600'],
+            'Samsung S23 Ultra' => ['https://images.unsplash.com/photo-1610945415299-d9bedc9d2c97?w=800&h=600'],
+            'Samsung S23' => ['https://images.unsplash.com/photo-1611173859644-d1cb766a9301?w=800&h=600'],
+            'Samsung Galaxy S22' => ['https://images.unsplash.com/photo-1611173859644-d1cb766a9301?w=800&h=600'],
+            'Samsung Galaxy A54' => ['https://images.unsplash.com/photo-1598327105666-5b89351aff70?w=800&h=600'],
+            'Samsung Galaxy A34' => ['https://images.unsplash.com/photo-1598327105666-5b89351aff70?w=800&h=600'],
+            'Samsung Z Flip' => ['https://images.unsplash.com/photo-1622618668707-85ec8c4c74cd?w=800&h=600', 'https://images.unsplash.com/photo-1622618668707-85ec8c4c74cd?w=800&h=600'],
+            'Samsung Z Fold' => ['https://images.unsplash.com/photo-1622618668707-85ec8c4c74cd?w=800&h=600'],
+            'Tecno Spark' => ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600'],
+            'Tecno Camon' => ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600'],
+            'Infinix Note' => ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600'],
+            'Infinix Hot' => ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600'],
+            'Infinix Zero' => ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600'],
+            'OPPO Reno' => ['https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800&h=600'],
+            'OPPO A78' => ['https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800&h=600'],
+            'Vivo V30' => ['https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800&h=600'],
+            'Vivo Y27' => ['https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800&h=600'],
+            'Xiaomi' => ['https://images.unsplash.com/photo-1598327105666-5b89351aff70?w=800&h=600'],
+            'Poco' => ['https://images.unsplash.com/photo-1598327105666-5b89351aff70?w=800&h=600'],
+            'Pixel' => ['https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600', 'https://images.unsplash.com/photo-1585790050230-80c3f8f3350c?w=800&h=600'],
+            'Nokia G42' => ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600'],
+            
+            // CARS - Exact models
+            'Toyota Camry' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600', 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600'],
+            'Toyota Corolla' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Toyota RAV4' => ['https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600'],
+            'Toyota Highlander' => ['https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600'],
+            'Toyota Land Cruiser' => ['https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600'],
+            'Honda Civic' => ['https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600'],
+            'Honda Accord' => ['https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600'],
+            'Honda CR-V' => ['https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600'],
+            'Mercedes C300' => ['https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&h=600', 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Mercedes GLE' => ['https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&h=600'],
+            'Lexus RX' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'BMW X5' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'BMW X3' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Audi Q5' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Hyundai Tucson' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Ford Explorer' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Mazda CX-5' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Kia Sorento' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Nissan' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Volkswagen' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Porsche' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Range Rover' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            'Chevrolet' => ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600'],
+            
+            // LAPTOPS - Exact models
+            'MacBook Pro' => ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=600', 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=600'],
+            'MacBook Air' => ['https://images.unsplash.com/photo-1611186871348-b1ce6962c6fd?w=800&h=600'],
+            'Dell XPS' => ['https://images.unsplash.com/photo-1593642632559-0c6d3fc62b2e?w=800&h=600'],
+            'HP Omen' => ['https://images.unsplash.com/photo-1608231617344-851427f63d1a?w=800&h=600'],
+            'HP Laptop' => ['https://images.unsplash.com/photo-1588702547923-b3c1859b71fa?w=800&h=600'],
+            'Lenovo ThinkPad' => ['https://images.unsplash.com/photo-1588872657578-7efd1f9cd1d9?w=800&h=600'],
+            'Lenovo Legion' => ['https://images.unsplash.com/photo-1588872657578-7efd1f9cd1d9?w=800&h=600'],
+            'ASUS ROG' => ['https://images.unsplash.com/photo-1608231617344-851427f63d1a?w=800&h=600'],
+            'ASUS ZenBook' => ['https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600'],
+            'Acer Nitro' => ['https://images.unsplash.com/photo-1593642532973-d31b2c7a5c18?w=800&h=600'],
+            'Acer Aspire' => ['https://images.unsplash.com/photo-1588702547923-b3c1859b71fa?w=800&h=600'],
+            'MSI' => ['https://images.unsplash.com/photo-1608231617344-851427f63d1a?w=800&h=600'],
+            'LG Gram' => ['https://images.unsplash.com/photo-1588702547923-b3c1859b71fa?w=800&h=600'],
+            
+            // TVs
+            'Samsung 65 inch' => ['https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600'],
+            'LG 55 inch' => ['https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600'],
+            'Sony TV' => ['https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600'],
+            
+            // GAMING
+            'PlayStation 5' => ['https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=600'],
+            'PS5' => ['https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=600'],
+            'Nintendo Switch' => ['https://images.unsplash.com/photo-1578303512597-81eec79c7062?w=800&h=600'],
+            'Xbox' => ['https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=800&h=600'],
+            
+            // FURNITURE
+            'Dining Table' => ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600'],
+            'Sofa' => ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600'],
+            'Bed' => ['https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&h=600'],
+            'Office Chair' => ['https://images.unsplash.com/photo-1580480055273-228a8ef8d4e0?w=800&h=600'],
+            
+            // Default category fallback images
             'Cars' => [
                 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop',
                 'https://images.unsplash.com/photo-1580273916550-e323be2ed5f6?w=800&h=600&fit=crop',
                 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600&fit=crop',
                 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop',
             ],
             'Smartphones' => [
                 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600&fit=crop',

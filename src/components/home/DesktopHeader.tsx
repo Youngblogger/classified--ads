@@ -168,12 +168,12 @@ export default function DesktopHeader() {
         }
       `}</style>
 
-      <header className="desktop-header hidden md:block">
-        <div className="flex items-center justify-between h-16 px-4 lg:px-8 gap-4">
+      <header className="desktop-header hidden md:block w-full">
+        <div className="flex items-center justify-between h-16 px-[15px] gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 flex items-center gap-1">
-            <span className="text-2xl font-bold text-primary-600">i</span>
-            <span className="text-2xl font-bold text-gray-900">List</span>
+            <span className="text-xl sm:text-2xl font-bold text-primary-600">i</span>
+            <span className="text-xl sm:text-2xl font-bold text-gray-900">List</span>
           </Link>
 
           {/* Search Bar - Desktop */}
@@ -185,8 +185,8 @@ export default function DesktopHeader() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Search for anything..."
-                className="search-input w-full pl-12 pr-4 py-3 bg-gray-100 rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                placeholder="Search..."
+                className="search-input w-full pl-10 pr-4 py-2 sm:py-3 bg-gray-100 rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-500 text-xs sm:text-sm"
               />
               {searchQuery && (
                 <button
@@ -198,7 +198,7 @@ export default function DesktopHeader() {
               )}
               <button
                 onClick={handleSearch}
-                className="action-btn ml-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-full font-medium transition-colors"
+                className="action-btn ml-2 px-4 sm:px-5 py-2 sm:py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-full font-medium transition-colors text-xs sm:text-sm"
               >
                 Search
               </button>
@@ -235,11 +235,11 @@ export default function DesktopHeader() {
                 </Link>
               </>
             ) : (
-              <div className="flex items-center gap-3">
-                <Link href="/login" className="text-gray-600 hover:text-primary-600 font-medium">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Link href="/login" className="text-gray-600 hover:text-primary-600 font-medium text-xs sm:text-sm">
                   Login
                 </Link>
-                <Link href="/register" className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-full font-medium">
+                <Link href="/register" className="px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-full font-medium text-xs sm:text-sm">
                   Register
                 </Link>
               </div>

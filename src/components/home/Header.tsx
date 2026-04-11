@@ -699,14 +699,14 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50">
       {/* TOP BAR */}
-      <div className="bg-slate-100 border-b border-slate-200">
+      <div className="bg-primary-600">
         <div className="container-app">
           <div className="flex items-center justify-between h-10 text-sm">
             {/* Left - Location */}
             <div className="flex items-center gap-4">
               <button
                 onClick={openLocationModal}
-                className="flex items-center gap-1.5 text-slate-600 hover:text-primary-600 transition-colors"
+                className="flex items-center gap-1.5 text-white hover:text-primary-100 transition-colors"
               >
                 <MapPin className="w-4 h-4" />
                 <span className="hidden sm:inline">{selectedLocationState}</span>
@@ -719,23 +719,23 @@ export default function Header() {
               
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400">|</span>
-                  <Link href="/dashboard" className="text-slate-600 hover:text-primary-600 transition-colors">
+                  <span className="text-white/50">|</span>
+                  <Link href="/dashboard" className="text-white hover:text-primary-100 transition-colors">
                     {user?.name?.split(' ')[0]}
                   </Link>
                 </div>
               ) : (
                 <>
-                  <span className="text-slate-400 hidden sm:block">|</span>
+                  <span className="text-white/50 hidden sm:block">|</span>
                   <button
                     onClick={toggleLoginModal}
-                    className="text-slate-600 hover:text-primary-600 transition-colors"
+                    className="text-white hover:text-primary-100 transition-colors"
                   >
                     Login
                   </button>
                   <button
                     onClick={toggleRegisterModal}
-                    className="text-primary-600 hover:text-primary-700 font-medium transition-colors"
+                    className="text-white hover:text-primary-100 font-medium transition-colors"
                   >
                     Register
                   </button>
@@ -744,8 +744,9 @@ export default function Header() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Location Modal */}
+      {/* Location Modal */}
         {showLocationModal && (
           <div className="fixed inset-0 z-[100] flex items-start justify-center pt-16">
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowLocationModal(false)}></div>
@@ -870,10 +871,8 @@ export default function Header() {
             </div>
           </div>
         )}
-      </div>
-
       {/* MAIN HEADER */}
-      <div className="bg-primary-600 shadow-header">
+      <div className="bg-primary-600 shadow-header sticky top-0 z-50 h-16">
         <div className="container-app">
           <div className="flex items-center justify-between h-16 gap-4">
             {/* Logo */}
@@ -902,7 +901,7 @@ export default function Header() {
                       }}
                       onFocus={() => setShowSearchDropdown(true)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="w-full pl-12 pr-24 py-4 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm shadow-sm transition-all duration-300"
+                      className="w-full pl-12 pr-14 py-4 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm shadow-sm transition-all duration-300"
                       autoComplete="off"
                       autoCorrect="off"
                       spellCheck="false"
@@ -926,28 +925,31 @@ export default function Header() {
                     )}
                   </div>
                   {isSearching && (
-                    <div className="absolute inset-y-0 right-24 flex items-center">
+                    <div className="absolute inset-y-0 right-28 flex items-center">
                       <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
                     </div>
                   )}
-                  {searchQuery && (
+                  {searchQuery ? (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute inset-y-0 right-24 flex items-center pr-2 hover:bg-slate-100 rounded-full transition-colors"
+                      type="button"
+                      className="absolute inset-y-0 right-28 flex items-center pr-2 rounded-full transition-colors"
                     >
-                      <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                      <X className="w-4 h-4 text-slate-400" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSearch}
+                      type="button"
+                      className="absolute inset-y-0 right-3 flex items-center pr-1 rounded-full transition-colors"
+                    >
+                      <Search className="w-5 h-5 text-slate-400" />
                     </button>
                   )}
                 </div>
                 
-                {/* Search Button */}
-                <button
-                  onClick={handleSearch}
-                  className="ml-2 px-6 py-3 bg-accent-600 hover:bg-accent-700 text-white rounded-full font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 group flex-shrink-0 z-20"
-                >
-                  <Search className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  <span>Search</span>
-                </button>
+                {/* Search Button - now inside input */}
+                {/* Search Button removed - now inside search input */}
                 
                 {/* Search Dropdown */}
                 {showSearchDropdown && (
@@ -958,7 +960,7 @@ export default function Header() {
                           {searchResults.ads?.length > 0 && (
                             <div className="p-3">
                               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 py-2 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 bg-primary-600 rounded-full"></span>
+                                <span className="w-1.5 h-1.5 bg-accent-600 rounded-full"></span>
                                 ADS
                               </p>
                               {searchResults.ads.slice(0, 5).map((ad: any) => (
@@ -1353,10 +1355,10 @@ export default function Header() {
               {/* Post Ad Button */}
               <Link
                 href="/post-ad"
-                className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-accent-600 hover:bg-accent-700 text-white rounded-full font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-accent-400"
               >
                 <Plus className="w-4 h-4" />
-                <span>Post Ad</span>
+                <span>SELL</span>
               </Link>
 
               {/* Mobile Menu Toggle */}
@@ -1445,7 +1447,7 @@ export default function Header() {
                         </>
                       ) : (
                         <div className="col-span-4 text-center py-8 text-slate-500">
-                          No results found for "{megaMenuSearch}"
+                          No results found for &quot;{megaMenuSearch}&quot;
                         </div>
                       )
                     ) : (
@@ -1676,10 +1678,10 @@ export default function Header() {
             <Link
               href="/post-ad"
               onClick={() => setShowMobileMenu(false)}
-              className="flex items-center justify-center gap-2 w-full py-3.5 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-semibold transition-colors"
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-xl font-bold tracking-wide transition-all duration-300 shadow-lg border-2 border-accent-400"
             >
               <Plus className="w-5 h-5" />
-              <span>Post Your Ad</span>
+              <span>SELL</span>
             </Link>
           </div>
         </div>

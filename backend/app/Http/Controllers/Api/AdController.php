@@ -5,10 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Ad;
 use App\Models\AdImage;
-use App\Services\ImageProcessingService;
-use App\Services\NotificationService;
-use App\Jobs\ProcessAdImageJob;
-use App\Jobs\ProcessAdJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -26,7 +22,6 @@ class AdController extends Controller
             $query = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active');
 
-            // For seeded ads, skip processing_status check
             if ($request->category) {
                 $query->whereHas('category', function($q) use ($request) {
                     $q->where('slug', $request->category);
@@ -46,74 +41,22 @@ class AdController extends Controller
                 });
             }
 
-            // Get real ads (not seeded)
-            $realAdsQuery = clone $query;
-            $realAds = $realAdsQuery->where('is_seeded', false)
-                ->where(function($q) {
-                    $q->where('processing_status', 'completed')
-                      ->orWhere('is_seeded', true);
-                })
+            $allAds = $query
                 ->orderBy('created_at', 'desc')
                 ->offset($offset)
                 ->limit($limit)
                 ->get();
 
-            // Get seeded ads
-            $seededAdsQuery = clone $query;
-            $seededAds = $seededAdsQuery->where('is_seeded', true)
-                ->orderBy('created_at', 'asc')
-                ->offset($offset)
-                ->limit($limit)
-                ->get();
-
-            // Merge with ratio logic
-            $realCount = $realAds->count();
-            $seededCount = $seededAds->count();
-            
-            $mergedAds = collect();
-            
-            if ($realCount === 0) {
-                // No real ads, use all seeded
-                $mergedAds = $seededAds->take($limit);
-            } elseif ($realCount >= $limit * 0.7) {
-                // Enough real ads: 70% real, 30% seeded (max)
-                $realPortion = (int)($limit * 0.7);
-                $seededPortion = $limit - $realPortion;
-                
-                $mergedReal = $realAds->take($realPortion);
-                $mergedSeeded = $seededAds->take($seededPortion);
-                
-                // Interleave: real, seeded, real, seeded...
-                for ($i = 0; $i < max($realPortion, $seededPortion); $i++) {
-                    if ($i < $mergedReal->count() && $mergedAds->count() < $limit) {
-                        $mergedAds->push($mergedReal[$i]);
-                    }
-                    if ($i < $mergedSeeded->count() && $mergedAds->count() < $limit) {
-                        $mergedAds->push($mergedSeeded[$i]);
-                    }
-                }
-            } else {
-                // Not enough real ads: use all real + fill with seeded
-                $remaining = $limit - $realCount;
-                $mergedAds = $realAds->merge($seededAds->take($remaining));
-            }
-
-            // Ensure images are loaded (they should be from with())
-            $mergedAds->each(function($ad) {
+            $allAds->each(function($ad) {
                 $ad->setRelation('images', $ad->images);
             });
 
-            // Get seeded ads total count (for pagination)
-            $seededTotal = (clone $query)->where('is_seeded', true)->count();
-            $realTotal = (clone $query)->where('is_seeded', false)->count();
-            $totalCount = $seededTotal + $realTotal;
+            $totalCount = (clone $query)->count();
 
             return response()->json([
-                'data' => $mergedAds->values(),
+                'data' => $allAds->values(),
                 'meta' => [
                     'total' => $totalCount,
-                    'real_count' => $realCount,
-                    'seeded_count' => $seededTotal,
                     'current_page' => $page,
                     'per_page' => $limit,
                 ]
@@ -129,577 +72,350 @@ class AdController extends Controller
         try {
             $limit = $request->limit ?? 8;
             
-            // Get real featured ads
-            $realAds = Ad::with(['images', 'category', 'location'])
+            $featuredAds = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
-                ->where('is_seeded', false)
-                ->where(function($q) {
-                    $q->where('processing_status', 'completed');
-                })
                 ->where('is_featured', true)
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
                 ->get();
-            
-            // Get seeded featured ads
-            $seededAds = Ad::with(['images', 'category', 'location'])
-                ->where('status', 'active')
-                ->where('is_seeded', true)
-                ->where('is_featured', true)
-                ->orderBy('created_at', 'asc')
-                ->limit($limit)
-                ->get();
-            
-            // Merge with ratio logic
-            $realCount = $realAds->count();
-            $seededCount = $seededAds->count();
-            
-            $mergedAds = collect();
-            
-            if ($realCount === 0) {
-                $mergedAds = $seededAds->take($limit);
-            } elseif ($realCount >= $limit * 0.7) {
-                $realPortion = (int)($limit * 0.7);
-                $seededPortion = $limit - $realPortion;
-                
-                $mergedReal = $realAds->take($realPortion);
-                $mergedSeeded = $seededAds->take($seededPortion);
-                
-                for ($i = 0; $i < max($realPortion, $seededPortion); $i++) {
-                    if ($i < $mergedReal->count() && $mergedAds->count() < $limit) {
-                        $mergedAds->push($mergedReal[$i]);
-                    }
-                    if ($i < $mergedSeeded->count() && $mergedAds->count() < $limit) {
-                        $mergedAds->push($mergedSeeded[$i]);
-                    }
-                }
-            } else {
-                $remaining = $limit - $realCount;
-                $mergedAds = $realAds->merge($seededAds->take($remaining));
-            }
 
             return response()->json([
-                'data' => $mergedAds->values(),
-                'meta' => [
-                    'total' => $mergedAds->count(),
-                    'real_count' => $realCount,
-                    'seeded_count' => $seededCount,
-                ]
+                'data' => $featuredAds->values(),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch featured ads: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to load featured ads', 'message' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to load featured ads'], 500);
         }
     }
 
-    public function recent(Request $request)
-    {
-        try {
-            $limit = $request->limit ?? 8;
-            
-            // Get real recent ads
-            $realAds = Ad::with(['images', 'category', 'location'])
-                ->where('status', 'active')
-                ->where('is_seeded', false)
-                ->where(function($q) {
-                    $q->where('processing_status', 'completed');
-                })
-                ->orderBy('created_at', 'desc')
-                ->limit($limit)
-                ->get();
-            
-            // Get seeded recent ads
-            $seededAds = Ad::with(['images', 'category', 'location'])
-                ->where('status', 'active')
-                ->where('is_seeded', true)
-                ->orderBy('created_at', 'asc')
-                ->limit($limit)
-                ->get();
-            
-            // Merge with ratio logic
-            $realCount = $realAds->count();
-            $seededCount = $seededAds->count();
-            
-            $mergedAds = collect();
-            
-            if ($realCount === 0) {
-                $mergedAds = $seededAds->take($limit);
-            } elseif ($realCount >= $limit * 0.7) {
-                $realPortion = (int)($limit * 0.7);
-                $seededPortion = $limit - $realPortion;
-                
-                $mergedReal = $realAds->take($realPortion);
-                $mergedSeeded = $seededAds->take($seededPortion);
-                
-                for ($i = 0; $i < max($realPortion, $seededPortion); $i++) {
-                    if ($i < $mergedReal->count() && $mergedAds->count() < $limit) {
-                        $mergedAds->push($mergedReal[$i]);
-                    }
-                    if ($i < $mergedSeeded->count() && $mergedAds->count() < $limit) {
-                        $mergedAds->push($mergedSeeded[$i]);
-                    }
-                }
-            } else {
-                $remaining = $limit - $realCount;
-                $mergedAds = $realAds->merge($seededAds->take($remaining));
-            }
-
-            return response()->json([
-                'data' => $mergedAds->values(),
-                'meta' => [
-                    'total' => $mergedAds->count(),
-                    'real_count' => $realCount,
-                    'seeded_count' => $seededCount,
-                ]
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch recent ads: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to load recent ads', 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    public function show($slug)
+    public function show(Request $request, $slug)
     {
         try {
             $ad = Ad::with(['images', 'category', 'location', 'user'])
                 ->where('slug', $slug)
-                ->firstOrFail();
-
-            $ad->increment('views');
-
-            // Explicitly add user fields to ensure they're in response
-            if ($ad->user) {
-                $ad->user->makeVisible([
-                    'avatar', 'google_avatar', 'facebook_avatar', 'verified', 'phone', 'location'
-                ]);
-            }
-
-            return response()->json(['data' => $ad]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['error' => 'Ad not found'], 404);
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch ad: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to load ad', 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    public function getById($id)
-    {
-        try {
-            $ad = Ad::with(['images', 'category', 'location', 'user'])
-                ->where('id', $id)
+                ->where('status', 'active')
                 ->first();
 
             if (!$ad) {
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
-            // Check ownership
-            $user = request()->user();
-            if ($user && $ad->user_id !== $user->id && $user->role !== 'admin') {
-                return response()->json(['error' => 'You do not have permission to edit this ad'], 403);
+            $ad->increment('views');
+
+            return response()->json([
+                'data' => $ad,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch ad: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load ad'], 500);
+        }
+    }
+
+    public function showById(Request $request, $id)
+    {
+        try {
+            $ad = Ad::with(['images', 'category', 'location', 'user'])
+                ->find($id);
+
+            if (!$ad) {
+                return response()->json(['error' => 'Ad not found'], 404);
             }
 
-            return response()->json(['data' => $ad]);
+            return response()->json([
+                'data' => $ad,
+            ]);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch ad by ID: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to load ad', 'message' => $e->getMessage()], 500);
+            Log::error('Failed to fetch ad: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load ad'], 500);
         }
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'category_id' => 'required|exists:categories,id',
-            'location_id' => 'required',
-            'condition' => 'required|in:new,like_new,good,fair',
-            'currency' => 'sometimes|string|size:3',
-            'phone' => 'sometimes|string|max:30',
-            'whatsapp' => 'sometimes|string|max:30',
-            'lga' => 'sometimes|string|max:100',
-            'attributes' => 'sometimes',
-        ]);
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string|max:5000',
+                'price' => 'required|numeric|min:0',
+                'currency' => 'required|string|in:NGN,USD,EUR,GBP',
+                'category_id' => 'required|exists:categories,id',
+                'location_id' => 'required|exists:locations,id',
+                'condition' => 'required|in:new,like_new,good,fair',
+                'phone' => 'required|string|max:20',
+                'whatsapp' => 'nullable|string|max:20',
+            ]);
 
-        // Resolve location_id (can be numeric ID or slug)
-        $locationInput = $data['location_id'];
+            $user = $request->user();
+            
+            $ad = Ad::create([
+                'user_id' => $user->id,
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'short_description' => substr($validated['description'], 0, 150),
+                'price' => $validated['price'],
+                'currency' => $validated['currency'],
+                'category_id' => $validated['category_id'],
+                'location_id' => $validated['location_id'],
+                'condition' => $validated['condition'],
+                'phone' => $validated['phone'],
+                'whatsapp' => $validated['whatsapp'] ?? null,
+                'slug' => Str::slug($validated['title']) . '-' . time(),
+                'status' => 'active',
+            ]);
 
-        // Check if it's a numeric ID or a slug
-        if (is_numeric($locationInput)) {
-            $location = \App\Models\Location::find($locationInput);
-        } else {
-            $location = \App\Models\Location::where('slug', $locationInput)->first();
-        }
-
-        if (!$location) {
-            return response()->json(['error' => 'The selected location is invalid.'], 422);
-        }
-
-        $data['location_id'] = $location->id;
-
-        $data['slug'] = \Illuminate\Support\Str::slug($request->title) . '-' . time();
-        $data['user_id'] = $request->user()->id;
-
-        // Check if admin approval is required (default: false for easier testing)
-        $requiresApproval = filter_var(env('ADS_REQUIRE_APPROVAL', false), FILTER_VALIDATE_BOOLEAN);
-
-        if ($requiresApproval) {
-            $data['status'] = 'pending';
-        } else {
-            $data['status'] = 'active';
-        }
-
-        // Save LGA separately if provided
-        $lga = $request->input('lga');
-        unset($data['lga']);
-
-        // Save attributes separately if provided
-        $attributes = $request->input('attributes');
-        unset($data['attributes']);
-
-        $data['processing_status'] = 'pending';
-        $data['verification_status'] = 'pending';
-        
-        $ad = Ad::create($data);
-
-        if ($lga) {
-            $ad->update(['lga' => $lga]);
-        }
-
-        if ($attributes) {
-            $ad->update(['attributes' => is_string($attributes) ? json_decode($attributes, true) : $attributes]);
-        }
-
-        // Send notification to user about ad status
-        if ($ad->status === 'pending') {
-            NotificationService::adPendingReview($ad);
-        } else {
-            NotificationService::adPublished($ad);
-            // Notify followers of new ad
-            NotificationService::notifyFollowersOfNewAd($ad);
-        }
-
-        // Handle images - Laravel receives 'images[]' as 'images' in FormData
-        $files = $request->file('images') ?: $request->file('images[]');
-
-        Log::info('Image upload - files received: ' . ($files ? 'yes (' . count($files) . ')' : 'none'));
-
-        if ($files) {
-            $files = is_array($files) ? $files : [$files];
-            $imageService = new ImageProcessingService();
-
-            foreach ($files as $index => $file) {
-                try {
-                    // Validate first
-                    $imageService->validateImage($file);
-
-                    // Process image
-                    $result = $imageService->processAdImage($file, $ad->id);
-
-                    // Create image record
+            if ($request->hasFile('images')) {
+                $images = $request->file('images');
+                foreach ($images as $index => $image) {
+                    $path = $image->store('ads', 'public');
                     AdImage::create([
                         'ad_id' => $ad->id,
-                        'url' => $result['url'],
-                        'original_url' => $result['original_url'],
-                        'thumbnail_url' => $result['thumbnail_url'],
-                        'file_size' => $result['file_size'],
+                        'url' => '/storage/' . $path,
+                        'original_url' => '/storage/' . $path,
                         'is_primary' => $index === 0,
                         'sort_order' => $index,
                     ]);
-
-                    Log::info("Image {$index} saved successfully: " . $result['url']);
-                } catch (\Exception $e) {
-                    Log::error("Failed to process image {$index} for ad {$ad->id}: " . $e->getMessage() . " - File: " . ($file ? $file->getClientOriginalName() : 'null'));
                 }
             }
+
+            $ad->load(['images', 'category', 'location']);
+
+            return response()->json([
+                'message' => 'Ad created successfully',
+                'data' => $ad,
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['error' => 'Validation failed', 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to create ad: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to create ad', 'message' => $e->getMessage()], 500);
         }
-
-        ProcessAdJob::dispatch($ad->id);
-
-        $message = $ad->status === 'pending'
-            ? 'Ad posted successfully! Pending approval from admin.'
-            : 'Ad posted successfully and is now live!';
-
-        return response()->json([
-            'data' => $ad->load('images'),
-            'message' => $message,
-            'status' => $ad->status
-        ], 201);
     }
 
-    public function update(Request $request, $slug)
+    public function update(Request $request, $id)
     {
-        $ad = Ad::where('slug', $slug)->firstOrFail();
+        try {
+            $ad = Ad::where('id', $id)->where('user_id', $request->user()->id)->first();
 
-        if ($request->user()->id !== $ad->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $data = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'short_description' => 'sometimes|string|max:500',
-            'description' => 'sometimes|string',
-            'price' => 'sometimes|numeric|min:0',
-            'category_id' => 'sometimes|exists:categories,id',
-            'location_id' => 'sometimes|exists:locations,id',
-            'condition' => 'sometimes|in:new,like_new,good,fair',
-            'status' => 'sometimes|in:active,inactive,pending,sold',
-            'phone' => 'sometimes|string|max:30',
-            'whatsapp' => 'sometimes|string|max:30',
-        ]);
-
-        if (isset($data['title'])) {
-            $data['slug'] = \Illuminate\Support\Str::slug($data['title']) . '-' . time();
-        }
-
-        $ad->update($data);
-
-        // Handle removed images
-        if ($request->has('removed_images')) {
-            $removedIds = $request->input('removed_images');
-            if (is_array($removedIds)) {
-                foreach ($removedIds as $imageId) {
-                    if (is_numeric($imageId)) {
-                        \App\Models\AdImage::where('id', $imageId)->where('ad_id', $ad->id)->delete();
-                    }
-                }
+            if (!$ad) {
+                return response()->json(['error' => 'Ad not found or unauthorized'], 404);
             }
-        }
 
-        // Handle primary image setting
-        if ($request->has('primary_image_id')) {
-            $primaryId = $request->input('primary_image_id');
-            // First, unset all primary flags for this ad
-            $ad->images()->update(['is_primary' => false]);
-            // Then set the new primary
-            \App\Models\AdImage::where('id', $primaryId)->where('ad_id', $ad->id)->update(['is_primary' => true]);
-        }
+            $validated = $request->validate([
+                'title' => 'sometimes|string|max:255',
+                'description' => 'sometimes|string|max:5000',
+                'price' => 'sometimes|numeric|min:0',
+                'category_id' => 'sometimes|exists:categories,id',
+                'location_id' => 'sometimes|exists:locations,id',
+                'condition' => 'sometimes|in:new,like_new,good,fair',
+                'phone' => 'sometimes|string|max:20',
+                'whatsapp' => 'nullable|string|max:20',
+            ]);
 
-        // Handle new image uploads
-        if ($request->hasFile('images')) {
-            $images = $request->file('images');
-            $currentCount = $ad->images()->count();
-            
-            foreach ($images as $index => $image) {
-                if ($currentCount + $index >= 6) break;
-                
-                $path = $image->store('ads', 'public');
-                
-                $ad->images()->create([
-                    'url' => $path,
-                    'original_url' => $path,
-                    'is_primary' => ($request->input('primary_image_id') === 'new_' . $index),
-                    'sort_order' => $currentCount + $index,
-                ]);
-            }
-        }
+            $ad->update($validated);
 
-        return response()->json(['data' => $ad->fresh(['images', 'category', 'location'])]);
+            return response()->json([
+                'message' => 'Ad updated successfully',
+                'data' => $ad,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to update ad: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to update ad'], 500);
+        }
     }
 
     public function updateById(Request $request, $id)
     {
-        $ad = Ad::findOrFail($id);
+        try {
+            $ad = Ad::find($id);
 
-        if ($request->user()->id !== $ad->user_id && $request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            if (!$ad) {
+                return response()->json(['error' => 'Ad not found'], 404);
+            }
+
+            $validated = $request->validate([
+                'title' => 'sometimes|string|max:255',
+                'description' => 'sometimes|string|max:5000',
+                'price' => 'sometimes|numeric|min:0',
+                'currency' => 'sometimes|string|in:NGN,USD,EUR,GBP',
+                'category_id' => 'sometimes|exists:categories,id',
+                'location_id' => 'sometimes|exists:locations,id',
+                'lga' => 'sometimes|string|max:100',
+                'condition' => 'sometimes|in:new,like_new,good,fair',
+                'phone' => 'sometimes|string|max:20',
+                'whatsapp' => 'nullable|string|max:20',
+                'status' => 'sometimes|in:active,pending,rejected,expired',
+                'is_featured' => 'sometimes|boolean',
+                'is_verified' => 'sometimes|boolean',
+            ]);
+
+            $ad->update($validated);
+            $ad->refresh();
+            $ad->load(['images', 'category', 'location', 'user']);
+
+            return response()->json([
+                'message' => 'Ad updated successfully',
+                'data' => $ad,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['error' => 'Validation failed', 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to update ad by ID: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to update ad', 'message' => $e->getMessage()], 500);
         }
+    }
 
-        $data = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'short_description' => 'sometimes|string|max:500',
-            'description' => 'sometimes|string',
-            'price' => 'sometimes|numeric|min:0',
-            'category_id' => 'sometimes|exists:categories,id',
-            'location_id' => 'sometimes|exists:locations,id',
-            'condition' => 'sometimes|in:new,like_new,good,fair',
-            'status' => 'sometimes|in:active,inactive,pending,sold',
-            'phone' => 'sometimes|string|max:30',
-            'whatsapp' => 'sometimes|string|max:30',
-        ]);
+    public function destroy(Request $request, $id)
+    {
+        try {
+            $ad = Ad::where('id', $id)->where('user_id', $request->user()->id)->first();
 
-        if (isset($data['title'])) {
-            $data['slug'] = \Illuminate\Support\Str::slug($data['title']) . '-' . time();
-        }
+            if (!$ad) {
+                return response()->json(['error' => 'Ad not found or unauthorized'], 404);
+            }
 
-        $ad->update($data);
-
-        // Handle removed images
-        if ($request->has('removed_images')) {
-            $removedIds = $request->input('removed_images');
-            if (is_array($removedIds)) {
-                foreach ($removedIds as $imageId) {
-                    if (is_numeric($imageId)) {
-                        \App\Models\AdImage::where('id', $imageId)->where('ad_id', $ad->id)->delete();
-                    }
+            foreach ($ad->images as $image) {
+                if ($image->url) {
+                    Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
                 }
             }
-        }
 
-        // Handle primary image setting
-        if ($request->has('primary_image_id')) {
-            $primaryId = $request->input('primary_image_id');
-            // First, unset all primary flags for this ad
-            $ad->images()->update(['is_primary' => false]);
-            // Then set the new primary
-            \App\Models\AdImage::where('id', $primaryId)->where('ad_id', $ad->id)->update(['is_primary' => true]);
-        }
+            $ad->delete();
 
-        // Handle new image uploads
-        if ($request->hasFile('images')) {
-            $images = $request->file('images');
-            $currentCount = $ad->images()->count();
-            
-            foreach ($images as $index => $image) {
-                if ($currentCount + $index >= 6) break;
-                
-                $path = $image->store('ads', 'public');
-                
-                $ad->images()->create([
-                    'url' => $path,
-                    'original_url' => $path,
-                    'is_primary' => ($request->input('primary_image_id') === 'new_' . $index),
-                    'sort_order' => $currentCount + $index,
-                ]);
+            return response()->json(['message' => 'Ad deleted successfully']);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete ad: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete ad'], 500);
+        }
+    }
+
+    public function destroyById(Request $request, $id)
+    {
+        try {
+            $ad = Ad::find($id);
+
+            if (!$ad) {
+                return response()->json(['error' => 'Ad not found'], 404);
             }
-        }
 
-        return response()->json(['data' => $ad->fresh(['images', 'category', 'location'])]);
+            foreach ($ad->images as $image) {
+                if ($image->url) {
+                    Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
+                }
+            }
+
+            $ad->delete();
+
+            return response()->json(['message' => 'Ad deleted successfully']);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete ad by ID: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete ad'], 500);
+        }
     }
 
-    public function destroy(Request $request, $slug)
+    public function uploadImages(Request $request, $id)
     {
-        $ad = Ad::where('slug', $slug)->firstOrFail();
+        try {
+            $ad = Ad::find($id);
 
-        // Allow admin to delete any ad, or owner to delete their own ad
-        $isAdmin = $request->user()->role === 'admin';
-        $isOwner = $request->user()->id === $ad->user_id;
+            if (!$ad) {
+                return response()->json(['error' => 'Ad not found'], 404);
+            }
 
-        if (!$isAdmin && !$isOwner) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            if (!$request->hasFile('images')) {
+                return response()->json(['error' => 'No images uploaded'], 422);
+            }
+
+            $uploadedImages = [];
+            $existingCount = $ad->images()->count();
+            
+            foreach ($request->file('images') as $index => $image) {
+                $path = $image->store('ads', 'public');
+                $adImage = AdImage::create([
+                    'ad_id' => $ad->id,
+                    'url' => '/storage/' . $path,
+                    'original_url' => '/storage/' . $path,
+                    'is_primary' => ($existingCount === 0 && $index === 0),
+                    'sort_order' => $existingCount + $index,
+                ]);
+                $uploadedImages[] = $adImage;
+            }
+
+            return response()->json([
+                'message' => 'Images uploaded successfully',
+                'data' => $uploadedImages,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Failed to upload images: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to upload images'], 500);
         }
-
-        $ad->delete();
-
-        return response()->json(['message' => 'Ad deleted successfully']);
     }
 
-    public function myAds(Request $request)
+    public function deleteImage(Request $request, $id, $imageId)
     {
-        $query = Ad::with(['images', 'category', 'location']);
+        try {
+            $ad = Ad::find($id);
 
-        // Admins can see all ads, regular users see only their own
-        if ($request->user()->role !== 'admin') {
-            $query->where('user_id', $request->user()->id);
+            if (!$ad) {
+                return response()->json(['error' => 'Ad not found'], 404);
+            }
+
+            $image = AdImage::where('id', $imageId)->where('ad_id', $id)->first();
+
+            if (!$image) {
+                return response()->json(['error' => 'Image not found'], 404);
+            }
+
+            if ($image->url) {
+                Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
+            }
+
+            $image->delete();
+
+            return response()->json(['message' => 'Image deleted successfully']);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete image: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete image'], 500);
         }
-
-        if ($request->status && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        $ads = $query->orderBy('created_at', 'desc')->paginate(20);
-
-        return response()->json($ads);
     }
 
     public function similarAds(Request $request)
     {
         try {
-            $adId = $request->ad_id;
-            $limit = $request->limit ?? 12;
-            $page = $request->page ?? 1;
+            $adId = $request->input('ad_id');
+            $limit = $request->input('limit', 8);
+            $page = $request->input('page', 1);
+            $offset = ($page - 1) * $limit;
+
+            if (!$adId) {
+                return response()->json(['error' => 'Ad ID is required'], 400);
+            }
 
             $currentAd = Ad::find($adId);
-
             if (!$currentAd) {
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
-            $keywords = $this->extractKeywords($currentAd->title . ' ' . $currentAd->description);
-
             $query = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active')
-                ->where(function($q) {
-                    $q->where('is_seeded', true)
-                      ->orWhere(function($sq) {
-                          $sq->where('is_seeded', false)
-                             ->where('processing_status', 'completed');
-                      });
-                })
                 ->where('id', '!=', $adId);
 
-            $query->where(function($q) use ($currentAd) {
-                $q->where('category_id', $currentAd->category_id);
-
-                if ($currentAd->category && $currentAd->category->parent_id) {
-                    $q->orWhereHas('category', function($catQuery) use ($currentAd) {
-                        $catQuery->where('parent_id', $currentAd->category->parent_id);
-                    });
-                }
-            });
-
-            if (!empty($keywords)) {
-                $query->where(function($q) use ($keywords) {
-                    foreach ($keywords as $keyword) {
-                        if (strlen($keyword) >= 2) {
-                            $q->orWhere(function($subQ) use ($keyword) {
-                                $subQ->where('title', 'like', '%' . $keyword . '%')
-                                     ->orWhere('description', 'like', '%' . $keyword . '%');
-                            });
-                        }
-                    }
-                });
+            // Match by category if available
+            if ($currentAd->category_id) {
+                $query->where('category_id', $currentAd->category_id);
             }
 
-            $priceMin = $currentAd->price * 0.5;
-            $priceMax = $currentAd->price * 2;
-            $query->whereBetween('price', [$priceMin, $priceMax]);
-
-            $ads = $query->orderBy('created_at', 'desc')
-                ->skip(($page - 1) * $limit)
-                ->take($limit)
+            $similarAds = $query
+                ->orderBy('created_at', 'desc')
+                ->offset($offset)
+                ->limit($limit)
                 ->get();
 
             return response()->json([
-                'data' => $ads,
-                'meta' => [
-                    'current_page' => $page,
-                    'per_page' => $limit,
-                    'total' => $ads->count()
-                ]
+                'data' => $similarAds->values(),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch similar ads: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load similar ads', 'message' => $e->getMessage()], 500);
         }
-    }
-
-    private function extractKeywords($text)
-    {
-        $text = strtolower($text);
-        $text = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $text);
-        $words = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
-
-        $stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-            'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-            'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
-            'may', 'might', 'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'those',
-            'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'whom',
-            'their', 'its', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 'so',
-            'not', 'no', 'yes', 'all', 'any', 'some', 'much', 'many', 'more', 'most', 'other',
-            'such', 'only', 'own', 'same', 'than', 'too', 'very', 's', 't', 'can', 'will',
-            'just', 'don', 'should', 'now', 'your', 'my', 'our', 'his', 'her', 'product'];
-
-        $filteredWords = array_filter($words, function($word) use ($stopWords) {
-            return strlen($word) >= 2 && !in_array($word, $stopWords);
-        });
-
-        usort($filteredWords, function($a, $b) {
-            return strlen($b) - strlen($a);
-        });
-
-        return array_slice($filteredWords, 0, 10);
     }
 }

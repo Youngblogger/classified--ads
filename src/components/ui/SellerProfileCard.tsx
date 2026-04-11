@@ -250,36 +250,26 @@ export default function SellerProfileCard({
         
         {/* Right side - Name and Follow button */}
         <div className="flex-1 min-w-0">
-          {/* Line 1: Name + Verified Badge */}
-          <div className="flex items-center gap-1">
+          {/* Line 1: Name + Verified Badge + Follow Button */}
+          <div className="flex items-center gap-2 min-w-0">
             <span
-              className="font-bold text-dark truncate"
+              className="font-bold text-dark truncate max-w-[100px] sm:max-w-[150px] md:max-w-[200px]"
               style={{ fontSize: currentSizes.name }}
             >
               {seller.name || 'Unknown Seller'}
             </span>
             {(seller.is_verified || seller.verified) && <VerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
-          </div>
-          
-          {/* Line 2: Followers count (left) + Follow button (right) */}
-          <div className="flex items-center mt-1">
-            {followersCount > 0 ? (
-              <span className="text-xs text-gray-500">
-                {formatFollowers(followersCount)}
-              </span>
-            ) : (
-              <span className="text-xs text-gray-500">0 followers</span>
-            )}
+            <span className="text-xs text-gray-300 flex-shrink-0">|</span>
             
             {showFollowButton && seller.id && (
               <button
                 onClick={handleFollow}
                 disabled={isLoading || isInitializing || isOwnProfile}
                 className={`
-                  flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 ml-[10px] sm:ml-[15px]
+                  flex items-center gap-1 px-2 sm:px-3 py-0.5 rounded-full text-xs font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 flex-shrink-0
                   ${isFollowing 
-                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300' 
-                    : 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm hover:shadow'
+                    ? 'bg-accent-600 text-white hover:bg-accent-500 border-2 border-accent-600' 
+                    : 'bg-[#E5E7EB] text-gray-800 hover:bg-accent-600 hover:text-white border-2 border-gray-400'
                   }
                   ${(isLoading || isInitializing) ? 'opacity-70 cursor-wait' : 'cursor-pointer'}
                 `}
@@ -299,6 +289,13 @@ export default function SellerProfileCard({
                 )}
               </button>
             )}
+          </div>
+          
+          {/* Line 2: Followers count */}
+          <div className="flex items-center gap-x-3 gap-y-1 mt-1">
+            <span className="text-xs text-gray-500">
+              {followersCount > 0 ? formatFollowers(followersCount) : '0 followers'}
+            </span>
           </div>
           
           {/* Rating (if available) */}

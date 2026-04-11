@@ -124,8 +124,8 @@ export default function MobileHeader() {
           left: 0;
           right: 0;
           z-index: 50;
-          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+          background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+          box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
         }
         .search-input::placeholder {
           color: #9ca3af;
@@ -138,12 +138,12 @@ export default function MobileHeader() {
         }
       `}</style>
 
-      <header className="mobile-header md:hidden" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>
-        <div className="flex items-center justify-between h-14 px-3 md:px-4 gap-2 md:gap-3">
+      <header className="mobile-header md:hidden w-full" style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)' }}>
+        <div className="flex items-center justify-between h-14 px-[15px] gap-2 md:gap-3">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 flex items-center gap-1">
-            <span className="text-xl font-bold text-white">i</span>
-            <span className="text-xl font-bold text-white">List</span>
+            <span className="text-lg font-bold text-white">i</span>
+            <span className="text-lg font-bold text-white">List</span>
           </Link>
 
           {/* Location Selector - Icon only */}
@@ -163,8 +163,8 @@ export default function MobileHeader() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Search for anything..."
-                className="search-input w-full pl-9 pr-20 py-2.5 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-white text-sm"
+                placeholder="Search..."
+                className="search-input w-full pl-9 pr-16 py-2 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-white text-xs sm:text-sm"
               />
               {searchQuery ? (
                 <button

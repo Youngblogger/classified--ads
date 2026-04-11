@@ -67,11 +67,27 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   
-  // Handle new seeded ads structure (location as string) vs API (location as object)
-  const imageUrl = ad.images && ad.images.length > 0 
-    ? (typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].url || ad.images[0].full_url)
-    : FALLBACK_IMAGE;
-  const imageCount = Array.isArray(ad.images) ? ad.images.length : 0;
+  // Extract image URL from various possible formats
+  const getImageUrl = () => {
+    // Check for images array
+    if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
+      const firstImg = ad.images[0];
+      // If it's a string, use it directly
+      if (typeof firstImg === 'string') return firstImg;
+      // If it's an object, try various URL fields
+      return firstImg.url || firstImg.full_url || firstImg.original_url || firstImg.thumbnail || FALLBACK_IMAGE;
+    }
+    // Check for single image field
+    if (ad.image || ad.main_image) {
+      const img = ad.image || ad.main_image;
+      if (typeof img === 'string') return img;
+      return img.url || img.full_url || FALLBACK_IMAGE;
+    }
+    return FALLBACK_IMAGE;
+  };
+  
+  const imageUrl = getImageUrl();
+  const imageCount = ad.images ? (Array.isArray(ad.images) ? ad.images.length : 0) : 0;
   const sellerName = ad.seller?.name || ad.sellerName || 'Unknown Seller';
   const verified = ad.seller?.verified || ad.is_verified || false;
 
@@ -336,7 +352,7 @@ export default function HomePage() {
       
       <main className="flex-1 pt-14 md:pt-0 pb-20 md:pb-0" suppressHydrationWarning>
         {/* Hero Section - Hidden on mobile */}
-        <section className="hidden md:block relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
+        <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
@@ -344,49 +360,49 @@ export default function HomePage() {
             }} />
           </div>
           
-          <div className="container-app relative py-8 sm:py-12 md:py-16 lg:py-24">
+          <div className="relative py-6 sm:py-8 md:py-10 lg:py-14 px-[15px]">
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               {/* Hero Content */}
               <div className="text-center lg:text-left">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6 leading-tight">
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 sm:mb-4 leading-tight">
                   Find Anything,<br />
                   <span className="text-accent-400">Sell Everything</span>
                 </h1>
-                <p className="text-base sm:text-lg md:text-xl text-primary-100 mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0">
-                  Nigeria&apos;s trusted marketplace for buying and selling. Connect with thousands of buyers and sellers near you.
+                <p className="text-sm sm:text-base text-primary-100 mb-4 sm:mb-6 max-w-lg mx-auto lg:mx-0">
+                  Nigeria&apos;s trusted marketplace. Connect with buyers and sellers near you.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center lg:justify-start">
                   <Link
                     href="/ads"
-                    className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white text-primary-600 rounded-full font-semibold hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-sm sm:text-base"
+                    className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white text-primary-600 rounded-full font-medium hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-xs sm:text-sm"
                   >
-                    <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Search className="w-4 h-4" />
                     <span>Browse Ads</span>
                   </Link>
                   <Link
                     href="/post-ad"
-                    className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-accent-600 text-white rounded-full font-semibold hover:bg-accent-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-sm sm:text-base"
+                    className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-accent-600 text-white rounded-full font-medium hover:bg-accent-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-xs sm:text-sm"
                   >
-                    <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Plus className="w-4 h-4" />
                     <span>Post Free Ad</span>
                   </Link>
                 </div>
                 
                 {/* Stats */}
-                <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-8 mt-6 sm:mt-10 pt-6 sm:pt-8 border-t border-primary-500/30">
+                <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-6 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-primary-500/30">
                   <div className="text-center lg:text-left">
-                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">50K+</p>
-                    <p className="text-xs sm:text-sm text-primary-200">Active Ads</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">50K+</p>
+                    <p className="text-[10px] sm:text-xs text-primary-200">Active Ads</p>
                   </div>
-                  <div className="w-px h-8 sm:h-12 bg-primary-500/30" />
+                  <div className="w-px h-6 sm:h-8 bg-primary-500/30" />
                   <div className="text-center lg:text-left">
-                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">100K+</p>
-                    <p className="text-xs sm:text-sm text-primary-200">Happy Users</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">100K+</p>
+                    <p className="text-[10px] sm:text-xs text-primary-200">Happy Users</p>
                   </div>
-                  <div className="w-px h-8 sm:h-12 bg-primary-500/30" />
+                  <div className="w-px h-6 sm:h-8 bg-primary-500/30" />
                   <div className="text-center lg:text-left">
-                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">36</p>
-                    <p className="text-xs sm:text-sm text-primary-200">States Covered</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">36</p>
+                    <p className="text-[10px] sm:text-xs text-primary-200">States</p>
                   </div>
                 </div>
               </div>
@@ -448,11 +464,11 @@ export default function HomePage() {
         {/* Latest Ads - jiji.ng style */}
         <section className="py-4 bg-white">
           <div className="px-[15px]">
-            <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 whitespace-nowrap">
+            <div className="flex flex-nowrap items-center justify-between mb-2 sm:mb-3 gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 whitespace-nowrap">
                 Latest Ads
               </h2>
-              <Link href="/ads" className="text-sm text-primary-600 hover:underline font-medium whitespace-nowrap">
+              <Link href="/ads" className="text-xs sm:text-sm text-primary-600 hover:underline font-medium whitespace-nowrap">
                 View All
               </Link>
             </div>

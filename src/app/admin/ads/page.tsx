@@ -20,7 +20,10 @@ import {
   CheckSquare,
   Square,
   ImageIcon,
-  Star
+  Star,
+  Wrench,
+  Image,
+  X
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { getAdImageUrl } from '@/lib/utils';
@@ -34,6 +37,7 @@ interface Ad {
   currency?: string;
   status: string;
   is_verified: boolean;
+  is_seeded?: boolean;
   is_featured?: boolean;
   category: { name: string; slug: string };
   location: { name: string } | null;
@@ -54,10 +58,17 @@ export default function AdsPage() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selectedAds, setSelectedAds] = useState<number[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null);
 
   useEffect(() => {
     fetchAds();
   }, [statusFilter]);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenDropdown(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const fetchAds = async () => {
     try {
@@ -160,6 +171,29 @@ export default function AdsPage() {
       toast.error('Failed to delete ad');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleBulkDeleteSeeded = async () => {
+    if (selectedAds.length === 0) return;
+    const seededAds = filteredAds.filter(ad => ad.is_seeded && selectedAds.includes(ad.id));
+    if (seededAds.length === 0) {
+      toast.error('No seeded ads selected');
+      return;
+    }
+    if (!confirm(`Delete ${seededAds.length} seeded ad(s)?`)) return;
+    try {
+      setBulkDeleting(true);
+      for (const adId of seededAds.map(a => a.id)) {
+        await adminApi.deleteAd(adId);
+      }
+      toast.success(`${seededAds.length} seeded ad(s) deleted`);
+      setSelectedAds([]);
+      fetchAds();
+    } catch (error) {
+      toast.error('Failed to delete some ads');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -295,6 +329,18 @@ export default function AdsPage() {
             <span>Delete Selected ({selectedAds.length})</span>
           </button>
         )}
+
+        {/* Delete Seeded Only Button */}
+        {selectedAds.length > 0 && (
+          <button
+            onClick={handleBulkDeleteSeeded}
+            disabled={bulkDeleting}
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+          >
+            <Loader2 className={`w-4 h-4 ${bulkDeleting ? 'animate-spin' : ''}`} />
+            <span>Delete Seeded Only</span>
+          </button>
+        )}
       </div>
 
       {/* Ads Table */}
@@ -316,6 +362,7 @@ export default function AdsPage() {
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Ad</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Seller</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Type</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Status</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Verified</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Views</th>
@@ -396,6 +443,17 @@ export default function AdsPage() {
                       <p className="text-sm text-gray-500">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</p>
                     </td>
                     <td className="px-6 py-4">
+                      {ad.is_seeded ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                          Seeded
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                          User
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                         ad.status === 'active' ? 'bg-green-100 text-green-700' :
                         ad.status === 'pending' ? 'bg-amber-100 text-amber-700' :
@@ -468,6 +526,45 @@ export default function AdsPage() {
                         >
                           <Star className="w-4 h-4" />
                         </button>
+                        
+                        {/* Fix Ad Dropdown */}
+                        <div className="relative">
+                          <button 
+                            onClick={() => setOpenDropdown(openDropdown === ad.id ? null : ad.id)} 
+                            className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg"
+                            title="Fix Ad"
+                            disabled={actionLoading === ad.id}
+                          >
+                            <Wrench className="w-4 h-4" />
+                          </button>
+                          
+                          {openDropdown === ad.id && (
+                            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1">
+                              <button
+                                onClick={() => { handleEdit(ad.id); setOpenDropdown(null); }}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                <Edit className="w-4 h-4" />
+                                Edit Details
+                              </button>
+                              <button
+                                onClick={() => { router.push(`/ad/edit/${ad.id}`); setOpenDropdown(null); }}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                <Image className="w-4 h-4" />
+                                Replace Images
+                              </button>
+                              <hr className="my-1" />
+                              <button
+                                onClick={() => { handleDelete(ad.id); setOpenDropdown(null); }}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Ad
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         
                         {/* Status Actions */}
                         {ad.status === 'pending' && (

@@ -567,18 +567,27 @@ export default function SearchBar({
                 onKeyDown={handleKeyDown}
                 placeholder="Search for cars, phones, furniture, jobs..."
                 className={`
-                  w-full pl-12 pr-10 py-3 
+                  w-full pl-12 pr-12 py-3 
                   ${variant === 'hero' ? 'bg-gray-50 border border-gray-200' : 'bg-white border-0'}
                   rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 
                   text-dark placeholder-gray-400
                 `}
               />
-              {query && (
+              {query ? (
                 <button
-                  onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full"
+                  onClick={handleSearch}
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
                 >
-                  <X className="w-4 h-4 text-gray-400" />
+                  <Search className="w-4 h-4 text-white" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSearch}
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-colors"
+                >
+                  <Search className="w-4 h-4 text-gray-400" />
                 </button>
               )}
             </div>
@@ -664,18 +673,7 @@ export default function SearchBar({
             )}
           </div>
 
-          {/* Search Button */}
-          <button
-            onClick={handleSearch}
-            className={`
-              px-8 py-3 rounded-xl font-semibold transition-colors
-              ${variant === 'hero' 
-                ? 'bg-primary-600 hover:bg-primary-700 text-white' 
-                : 'bg-primary-600 hover:bg-primary-700 text-white'}
-            `}
-          >
-            Search
-          </button>
+          {/* Search Button removed - now inside search input */}
         </div>
       </div>
     </div>

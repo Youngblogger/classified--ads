@@ -687,18 +687,18 @@ export default function Header() {
             {isAuthenticated ? (
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-white text-[#4B5320] hover:bg-gray-100 rounded-xl font-medium transition-colors"
+                className="hidden md:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
               >
                 <Plus className="w-4 h-4" />
-                Post Ad
+                SELL
               </Link>
             ) : (
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-white text-[#4B5320] hover:bg-gray-100 rounded-xl font-medium transition-colors"
+                className="hidden md:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
               >
                 <Plus className="w-4 h-4" />
-                Post Ad
+                SELL
               </Link>
             )}
 

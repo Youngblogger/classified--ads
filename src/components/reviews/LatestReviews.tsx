@@ -39,7 +39,7 @@ export default function LatestReviews({ adId, adSlug, sellerId, refreshKey = 0 }
   const { isAuthenticated, user } = useAuthStore();
   const { toggleLoginModal } = useUIStore();
 
-  const isAdOwner = user && sellerId && user.id === sellerId;
+  const isAdOwner = user && sellerId && sellerId > 0 && user.id === sellerId;
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -104,10 +104,10 @@ export default function LatestReviews({ adId, adSlug, sellerId, refreshKey = 0 }
         {!isAdOwner && (
           <button
             onClick={handleWriteReviewClick}
-            className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center"
+            className="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2"
           >
-            <Star className="w-3 h-3 fill-white" />
-            <span className="ml-1">Write</span>
+            <Star className="w-4 h-4 fill-white" />
+            <span>Write a Review</span>
           </button>
         )}
       </div>

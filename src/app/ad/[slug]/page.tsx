@@ -10,6 +10,7 @@ import SellerProfileCard from '@/components/ui/SellerProfileCard';
 import RelatedAds from '@/components/ads/RelatedAds';
 import LatestReviews from '@/components/reviews/LatestReviews';
 import AdAttributes from '@/components/ads/AdAttributes';
+import ReportAdModal from '@/components/ui/ReportAdModal';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard, ImageIcon } from 'lucide-react';
@@ -80,6 +81,7 @@ export default function AdDetailPage() {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
   const [showSharePopup, setShowSharePopup] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [favoriteAnimating, setFavoriteAnimating] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -430,11 +432,11 @@ export default function AdDetailPage() {
                   {/* Navigation Arrows */}
                   {showArrows && (
                     <>
-                      <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white hover:bg-gray-50 p-2 rounded-full shadow-lg border border-gray-200">
-                        <ArrowLeft className="w-5 h-5 text-gray-700" />
+                      <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group">
+                        <span className="text-white text-xl font-bold group-hover:scale-110 transition-transform">‹</span>
                       </button>
-                      <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white hover:bg-gray-50 p-2 rounded-full shadow-lg border border-gray-200">
-                        <ArrowRight className="w-5 h-5 text-gray-700" />
+                      <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group">
+                        <span className="text-white text-xl font-bold group-hover:scale-110 transition-transform">›</span>
                       </button>
                     </>
                   )}
@@ -473,9 +475,13 @@ export default function AdDetailPage() {
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
                   <span className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
                   <div className="flex items-center gap-2">
-                    <a href="/report-abuse" className="p-2 sm:p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+                    <button 
+                      onClick={() => setShowReportModal(true)}
+                      className="p-2 sm:p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors"
+                      title="Report this ad"
+                    >
                       <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </a>
+                    </button>
                     <button 
                       onClick={toggleFavorite} 
                       className={`relative p-2 sm:p-3 rounded-full transition-all duration-300 ${
@@ -496,6 +502,16 @@ export default function AdDetailPage() {
                           <span className="absolute -bottom-1 -left-1 w-2 h-2 bg-pink-400 rounded-full animate-bounce delay-75"></span>
                         </>
                       )}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        console.log('Report button clicked');
+                        setShowReportModal(true);
+                      }}
+                      className="p-2 sm:p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      title="Report this ad"
+                    >
+                      <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                     <button 
                       onClick={() => setShowSharePopup(!showSharePopup)} 
@@ -633,7 +649,7 @@ export default function AdDetailPage() {
                     </button>
                   )}
                   <button onClick={handleChat} className="py-2 px-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-1">
-                    <MessageCircle className="w-4 h-4" />Chat
+                    <MessageCircle className="w-4 h-4" />Chat Seller
                   </button>
                 </div>
 
@@ -651,7 +667,6 @@ export default function AdDetailPage() {
                   {[
                     { text: 'Always meet in a secure, public location' },
                     { text: 'Inspect items carefully before payment' },
-                    { text: 'Avoid upfront payment' },
                     { text: 'Be cautious with delivery payments' },
                     { text: 'Report suspicious users immediately' },
                   ].map((tip, index) => (
@@ -774,6 +789,13 @@ export default function AdDetailPage() {
           </div>
         </>
       )}
+
+      {/* Report Ad Modal */}
+      <ReportAdModal
+        adId={ad.id}
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+      />
     </div>
   );
 }

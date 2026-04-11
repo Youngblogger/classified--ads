@@ -255,8 +255,25 @@ function AdsPageContent() {
                 onChange={(e) => setLocalQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="Search ads..."
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full pl-12 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
+              {localQuery ? (
+                <button
+                  onClick={handleSearch}
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
+                >
+                  <Search className="w-4 h-4 text-white" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSearch}
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-colors"
+                >
+                  <Search className="w-4 h-4 text-gray-400" />
+                </button>
+              )}
             </div>
 
             {/* Mobile Filter Toggle */}
@@ -268,13 +285,7 @@ function AdsPageContent() {
               Filters
             </button>
 
-            {/* Search Button */}
-            <button
-              onClick={handleSearch}
-              className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold"
-            >
-              Search
-            </button>
+            {/* Search Button removed - now inside input */}
           </div>
         </div>
 

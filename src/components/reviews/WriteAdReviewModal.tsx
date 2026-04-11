@@ -36,6 +36,8 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
   const checkExistingReview = async () => {
     try {
       const token = getAuthToken();
+      if (!token) return;
+      
       const response = await fetch(`${API_URL}/reviews/my-reviews`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -121,9 +123,22 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
     return labels[rating] || 'Select rating';
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+  if (!isOpen) return null;
+
+  if (!isOpen) return null;
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  return ( 
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4 pointer-events-auto"
+      onClick={handleBackdropClick}
+    >
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto pointer-events-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-dark">
             {hasExistingReview ? 'Update Your Review' : 'Write a Review'}

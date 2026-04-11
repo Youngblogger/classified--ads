@@ -69,29 +69,6 @@ export default function Footer() {
 
   return (
     <footer className="bg-slate-900 text-white">
-      {/* Top CTA Section */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700">
-        <div className="container-app py-12">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="text-center md:text-left">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                Post Free Ad – Start selling in seconds
-              </h2>
-              <p className="text-primary-100 text-sm md:text-base">
-                Join thousands of sellers on Nigeria&apos;s trusted marketplace
-              </p>
-            </div>
-            <Link 
-              href="/post-ad"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-white text-primary-600 hover:bg-slate-100 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              Post Your Ad
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* Main Footer Grid */}
       <div className="container-app py-16">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
