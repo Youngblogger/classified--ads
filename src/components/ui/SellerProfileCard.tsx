@@ -251,10 +251,10 @@ export default function SellerProfileCard({
         {/* Right side - Name and Follow button */}
         <div className="flex-1 min-w-0">
           {/* Line 1: Name + Verified Badge + Follow Button */}
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-4 sm:gap-3 min-w-0">
             <span
-              className="font-bold text-dark truncate max-w-[100px] sm:max-w-[150px] md:max-w-[200px]"
-              style={{ fontSize: currentSizes.name }}
+              className="font-bold text-dark truncate"
+              style={{ fontSize: currentSizes.name, maxWidth: '160px' }}
             >
               {seller.name || 'Unknown Seller'}
             </span>

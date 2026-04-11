@@ -667,20 +667,7 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <div className="hidden md:flex items-center gap-2">
-                    <button
-                      onClick={toggleLoginModal}
-                      className="px-4 py-2 text-white hover:bg-white/10 rounded-xl font-medium transition-colors"
-                    >
-                      Login
-                    </button>
-                    <button
-                      onClick={toggleRegisterModal}
-                      className="px-4 py-2 bg-white text-[#4B5320] hover:bg-gray-100 rounded-xl font-medium transition-colors"
-                    >
-                  Register
-                </button>
-              </div>
+              <></>
             )}
 
             {/* Post Ad Button */}
@@ -762,26 +749,6 @@ export default function Header() {
               <MapPin className="w-5 h-5 text-gray-500" />
               <span className="font-medium text-gray-700">{selectedLocation?.name || 'Select Location'}</span>
             </button>
-
-            {/* Mobile Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              {!isAuthenticated && (
-                <>
-                  <button
-                    onClick={toggleLoginModal}
-                    className="py-3 border-2 border-gray-200 rounded-xl font-medium text-dark hover:border-gray-300 transition-colors"
-                  >
-                    Login
-                  </button>
-                  <button
-                    onClick={toggleRegisterModal}
-                    className="py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors"
-                  >
-                    Register
-                  </button>
-                </>
-              )}
-            </div>
 
             {isAuthenticated && (
               <Link
