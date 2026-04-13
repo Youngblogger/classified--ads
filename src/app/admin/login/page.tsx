@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
           },
           version: 0
         }));
-        router.push('/admin');
+        window.location.href = '/admin';
       } else {
         setError('Access denied. Admin credentials required.');
       }

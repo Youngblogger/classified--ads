@@ -95,7 +95,26 @@ const categoryIconMap: Record<string, string> = {
   bookOpen: '📖',
 };
 
-function getCategoryIcon(icon: string | undefined): string {
+function getCategoryIcon(icon: string | undefined, categoryName?: string): string {
+  if (categoryName) {
+    const nameLower = categoryName.toLowerCase();
+    if (nameLower.includes('phone') || nameLower.includes('mobile') || nameLower.includes('tablet')) return '📱';
+    if (nameLower.includes('vehicle') || nameLower.includes('car') || nameLower.includes('automotive') || nameLower.includes('bicycle')) return '🚗';
+    if (nameLower.includes('property') || nameLower.includes('estate') || nameLower.includes('real estate') || nameLower.includes('land') || nameLower.includes('house')) return '🏠';
+    if (nameLower.includes('electronic') || nameLower.includes('computer') || nameLower.includes('laptop') || nameLower.includes('tv') || nameLower.includes('camera')) return '💻';
+    if (nameLower.includes('fashion') || nameLower.includes('clothing') || nameLower.includes('apparel') || nameLower.includes('shoe') || nameLower.includes('bag')) return '👕';
+    if (nameLower.includes('service') || nameLower.includes('professional')) return '🛠️';
+    if (nameLower.includes('furniture') || nameLower.includes('home')) return '🛋️';
+    if (nameLower.includes('repair') || nameLower.includes('maintenance')) return '🔧';
+    if (nameLower.includes('health') || nameLower.includes('beauty') || nameLower.includes('spa')) return '💄';
+    if (nameLower.includes('sport') || nameLower.includes('fitness') || nameLower.includes('gym')) return '⚽';
+    if (nameLower.includes('baby') || nameLower.includes('kid') || nameLower.includes('children')) return '👶';
+    if (nameLower.includes('job') || nameLower.includes('employment')) return '💼';
+    if (nameLower.includes('agriculture') || nameLower.includes('farm') || nameLower.includes('garden')) return '🌾';
+    if (nameLower.includes('shop') || nameLower.includes('store')) return '🛒';
+    if (nameLower.includes('food') || nameLower.includes('catering') || nameLower.includes('restaurant')) return '🍔';
+    if (nameLower.includes('music') || nameLower.includes('instrument')) return '🎵';
+  }
   if (!icon) return '📦';
   return categoryIconMap[icon] || '📦';
 }
@@ -451,7 +470,7 @@ export default function SearchBar({
                   onClick={() => handleResultClick('category', cat)}
                   className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
                 >
-                  <span className="text-xl">{getCategoryIcon(cat.icon)}</span>
+                  <span className="text-xl">{getCategoryIcon(cat.icon, cat.name)}</span>
                   <span className="text-sm text-gray-900">
                     {highlightMatch(cat.name, query)}
                   </span>

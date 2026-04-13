@@ -209,61 +209,44 @@ export default function Footer() {
 
       {/* Bottom Bar */}
       <div className="border-t border-slate-700 bg-slate-950">
-        <div className="container-app py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            {/* Copyright */}
-            <div className="flex items-center gap-2">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">i</span>
-                </div>
-                <span className="text-lg font-bold text-white">iList</span>
-              </Link>
-              <span className="text-slate-500 text-sm">
-                &copy; {CURRENT_YEAR} iList. All rights reserved.
-              </span>
-            </div>
+        <div className="container-app py-4">
+          {/* Legal Links - Above Social Icons */}
+          <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm mb-4">
+            <Link href="/privacy-policy" className="text-slate-400 hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <span className="text-slate-600">|</span>
+            <Link href="/terms-of-service" className="text-slate-400 hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <span className="text-slate-600">|</span>
+            <Link href="/cookie-policy" className="text-slate-400 hover:text-white transition-colors">
+              Cookie Policy
+            </Link>
+          </div>
 
-            {/* Legal Links */}
-            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-              <Link 
-                href="/privacy-policy" 
-                className="text-slate-400 hover:text-white text-sm transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link 
-                href="/terms-of-service" 
-                className="text-slate-400 hover:text-white text-sm transition-colors"
-              >
-                Terms of Service
-              </Link>
-              <Link 
-                href="/cookie-policy" 
-                className="text-slate-400 hover:text-white text-sm transition-colors"
-              >
-                Cookie Policy
-              </Link>
-            </div>
+          {/* Social Icons */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            {socialLinks.slice(0, 4).map((social) => {
+              const Icon = social.icon;
+              return (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.label}
+                  className="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 bg-slate-800 text-slate-400 hover:bg-primary-600 hover:text-white"
+                >
+                  <Icon className="w-4 h-4" />
+                </a>
+              );
+            })}
+          </div>
 
-            {/* Social Icons */}
-            <div className="flex items-center gap-3">
-              {socialLinks.slice(0, 4).map((social) => {
-                const Icon = social.icon;
-                return (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={social.label}
-                    className="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 bg-slate-800 text-slate-400 hover:bg-primary-600 hover:text-white"
-                  >
-                    <Icon className="w-4 h-4" />
-                  </a>
-                );
-              })}
-            </div>
+          {/* Copyright - Bottom - Always Visible */}
+          <div className="flex items-center justify-center text-center text-gray-400 text-xs sm:text-sm pb-2">
+            <span>© 2026 iList. All rights reserved.</span>
           </div>
         </div>
       </div>

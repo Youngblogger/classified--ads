@@ -179,6 +179,11 @@ export default function AdDetailPage() {
     };
   }, [slug]);
 
+  // Set page title
+  useEffect(() => {
+    document.title = 'iList - Your Trusted Classified Marketplace';
+  }, []);
+
   // Set current URL only on client side (not in iframe)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.self === window.top) {
@@ -502,16 +507,6 @@ export default function AdDetailPage() {
                           <span className="absolute -bottom-1 -left-1 w-2 h-2 bg-pink-400 rounded-full animate-bounce delay-75"></span>
                         </>
                       )}
-                    </button>
-                    <button 
-                      onClick={() => {
-                        console.log('Report button clicked');
-                        setShowReportModal(true);
-                      }}
-                      className="p-2 sm:p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
-                      title="Report this ad"
-                    >
-                      <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                     <button 
                       onClick={() => setShowSharePopup(!showSharePopup)} 

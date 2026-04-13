@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { Loader2, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Facebook, Instagram, ExternalLink, Calendar, Send, Plus, Trash2, Play, Pause } from 'lucide-react';
+import { Loader2, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Facebook, Instagram, ExternalLink, Calendar, Send, Plus, Trash2, Play, Pause, Share2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Ad {
@@ -80,23 +80,56 @@ export default function SocialPostsPage() {
   });
   const [categories, setCategories] = useState<Array<{id: number; name: string}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all');
-  const [randomCount, setRandomCount] = useState(5);
   const [scheduledTime, setScheduledTime] = useState('');
   const [isPosting, setIsPosting] = useState(false);
 
+  // Pagination state
+  const [adsPage, setAdsPage] = useState(1);
+  const [adsHasMore, setAdsHasMore] = useState(true);
+  const [adsLoading, setAdsLoading] = useState(false);
+
   useEffect(() => {
+    // Test API connection
+    api.get('/test').then(res => console.log('API test:', res.data)).catch(err => console.error('API test failed:', err));
+    
     fetchPosts();
     fetchStats();
     fetchScheduledPosts();
-    fetchAds();
+    fetchAds(1, false);
   }, [filter]);
 
-  const fetchAds = async () => {
+  const fetchAds = async (page: number = 1, append: boolean = true) => {
+    if (adsLoading || (!append && page === 1)) {
+      if (page !== 1 && !append) return;
+    }
+    
+    setAdsLoading(true);
     try {
-      const response = await api.get('/ads?status=active&per_page=100');
-      setAds(response.data.data || []);
-    } catch (error) {
-      console.error('Failed to fetch ads');
+      const categoryParam = selectedCategory !== 'all' ? `&category_id=${selectedCategory}` : '';
+      const response = await api.get(`/admin/ads?status=active&per_page=20&page=${page}${categoryParam}`);
+      const newAds = response.data.data || [];
+      const total = response.data.total;
+      const lastPage = response.data.last_page;
+      
+      if (append) {
+        setAds(prev => [...prev, ...newAds]);
+      } else {
+        setAds(newAds);
+      }
+      
+      setAdsPage(page);
+      setAdsHasMore(page < lastPage);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string; status?: number };
+      console.error('Failed to fetch ads:', error);
+    } finally {
+      setAdsLoading(false);
+    }
+  };
+
+  const loadMoreAds = () => {
+    if (adsHasMore && !adsLoading) {
+      fetchAds(adsPage + 1, true);
     }
   };
 
@@ -113,6 +146,11 @@ export default function SocialPostsPage() {
     fetchCategories();
   }, []);
 
+  // Reset and refetch ads when category changes
+  useEffect(() => {
+    fetchAds(1, false);
+  }, [selectedCategory]);
+
   const fetchPosts = async () => {
     setLoading(true);
     try {
@@ -120,10 +158,15 @@ export default function SocialPostsPage() {
       if (filter.status !== 'all') params.append('status', filter.status);
       if (filter.platform !== 'all') params.append('platform', filter.platform);
       
-      const response = await api.get(`/social/posts?${params}`);
-      setPosts(response.data.data || []);
-    } catch (error) {
-      toast.error('Failed to fetch posts');
+      console.log('Fetching posts from:', `/admin/social/posts?${params}`);
+      const response = await api.get(`/admin/social/posts?${params}`);
+      console.log('Posts response:', response.data);
+      setPosts(response.data.data || response.data || []);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string; status?: number };
+      console.error('Failed to fetch posts:', error);
+      console.error('Error status:', err?.status);
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to fetch posts');
     } finally {
       setLoading(false);
     }
@@ -131,19 +174,27 @@ export default function SocialPostsPage() {
 
   const fetchScheduledPosts = async () => {
     try {
-      const response = await api.get('/social/scheduled');
-      setScheduledPosts(response.data.data || []);
-    } catch (error) {
-      console.error('Failed to fetch scheduled posts');
+      console.log('Fetching scheduled posts from:', '/admin/social/scheduled');
+      const response = await api.get('/admin/social/scheduled');
+      console.log('Scheduled posts response:', response.data);
+      setScheduledPosts(response.data.data || response.data || []);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string; status?: number };
+      console.error('Failed to fetch scheduled posts:', error);
+      console.error('Error status:', err?.status);
     }
   };
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/social/stats');
+      console.log('Fetching stats from:', '/admin/social/stats');
+      const response = await api.get('/admin/social/stats');
+      console.log('Stats response:', response.data);
       setStats(response.data);
-    } catch (error) {
-      console.error('Failed to fetch stats');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string; status?: number };
+      console.error('Failed to fetch stats:', error);
+      console.error('Error status:', err?.status);
     }
   };
 
@@ -164,7 +215,7 @@ export default function SocialPostsPage() {
 
     setIsPosting(true);
     try {
-      const response = await api.post('/social/post-ads-batch', {
+      const response = await api.post('/admin/social/post-ads-batch', {
         ad_ids: selectedAds,
         platforms,
       });
@@ -208,7 +259,7 @@ export default function SocialPostsPage() {
 
     setIsPosting(true);
     try {
-      const response = await api.post('/social/post-ads-batch', {
+      const response = await api.post('/admin/social/post-ads-batch', {
         ad_ids: selectedAds,
         platforms,
         schedule_at: scheduledTime,
@@ -234,7 +285,7 @@ export default function SocialPostsPage() {
 
   const handleCancelScheduled = async (id: number) => {
     try {
-      const response = await api.post(`/social/cancel/${id}`);
+      const response = await api.post(`/admin/social/cancel/${id}`);
       if (response.data.success) {
         toast.success('Scheduled post cancelled');
         fetchScheduledPosts();
@@ -248,7 +299,7 @@ export default function SocialPostsPage() {
   const handleRetry = async (postId: number) => {
     setRetrying(postId);
     try {
-      const response = await api.post(`/social/retry/${postId}`);
+      const response = await api.post(`/admin/social/retry/${postId}`);
       if (response.data.success) {
         toast.success('Retry initiated');
         fetchPosts();
@@ -342,58 +393,182 @@ export default function SocialPostsPage() {
       {activeTab === 'create' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Platform Selection */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Select Platforms</h3>
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+          <div className="bg-gradient-to-br from-white via-gray-50 to-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/30">
+                <Share2 className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-xl text-gray-900">Social Platforms</h3>
+                <p className="text-sm text-gray-500">Choose where to share your ads</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <label className={`group relative flex items-center gap-5 p-5 rounded-2xl cursor-pointer transition-all duration-500 ${
+                selectedPlatforms.facebook 
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-600/40 transform scale-[1.02]' 
+                  : 'bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg'
+              }`}>
                 <input
                   type="checkbox"
                   checked={selectedPlatforms.facebook}
                   onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, facebook: e.target.checked }))}
-                  className="rounded text-blue-600"
+                  className="sr-only"
                 />
-                <Facebook className="w-5 h-5 text-blue-600" />
-                <span className="font-medium">Facebook</span>
+                <div className={`absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+                  selectedPlatforms.facebook 
+                    ? 'bg-green-500 opacity-100 scale-100' 
+                    : 'bg-gray-200 opacity-0 scale-0'
+                }`}>
+                  <Check className="w-5 h-5 text-white" />
+                </div>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                  selectedPlatforms.facebook ? 'bg-white/20 backdrop-blur-sm' : 'bg-gradient-to-br from-blue-100 to-blue-200'
+                }`}>
+                  <Facebook className={`w-8 h-8 ${selectedPlatforms.facebook ? 'text-white' : 'text-blue-600'}`} />
+                </div>
+                <div className="flex-1">
+                  <span className={`block font-bold text-xl tracking-tight ${selectedPlatforms.facebook ? 'text-white' : 'text-gray-900'}`}>Facebook</span>
+                  <span className={`text-sm ${selectedPlatforms.facebook ? 'text-blue-100' : 'text-gray-500'}`}>Share posts to your audience</span>
+                </div>
+                <div className={`w-7 h-7 rounded-xl border-2 transition-all duration-300 ${
+                  selectedPlatforms.facebook 
+                    ? 'bg-white border-white' 
+                    : 'border-gray-300 group-hover:border-blue-400'
+                }`}>
+                  {selectedPlatforms.facebook && (
+                    <Check className="w-full h-full text-blue-600 p-1" />
+                  )}
+                </div>
               </label>
-              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+
+              <label className={`group relative flex items-center gap-5 p-5 rounded-2xl cursor-pointer transition-all duration-500 ${
+                selectedPlatforms.instagram 
+                  ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 text-white shadow-xl shadow-pink-600/40 transform scale-[1.02]' 
+                  : 'bg-white hover:bg-gradient-to-r hover:from-pink-50 hover:via-purple-50 hover:to-rose-50 border-2 border-gray-100 hover:border-pink-200 hover:shadow-lg'
+              }`}>
                 <input
                   type="checkbox"
                   checked={selectedPlatforms.instagram}
                   onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, instagram: e.target.checked }))}
-                  className="rounded text-pink-600"
+                  className="sr-only"
                 />
-                <Instagram className="w-5 h-5 text-pink-600" />
-                <span className="font-medium">Instagram</span>
+                <div className={`absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+                  selectedPlatforms.instagram 
+                    ? 'bg-green-500 opacity-100 scale-100' 
+                    : 'bg-gray-200 opacity-0 scale-0'
+                }`}>
+                  <Check className="w-5 h-5 text-white" />
+                </div>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                  selectedPlatforms.instagram ? 'bg-white/20 backdrop-blur-sm' : 'bg-gradient-to-br from-pink-100 to-purple-100'
+                }`}>
+                  <Instagram className={`w-8 h-8 ${selectedPlatforms.instagram ? 'text-white' : 'text-pink-600'}`} />
+                </div>
+                <div className="flex-1">
+                  <span className={`block font-bold text-xl tracking-tight ${selectedPlatforms.instagram ? 'text-white' : 'text-gray-900'}`}>Instagram</span>
+                  <span className={`text-sm ${selectedPlatforms.instagram ? 'text-pink-100' : 'text-gray-500'}`}>Post to your Instagram feed</span>
+                </div>
+                <div className={`w-7 h-7 rounded-xl border-2 transition-all duration-300 ${
+                  selectedPlatforms.instagram 
+                    ? 'bg-white border-white' 
+                    : 'border-gray-300 group-hover:border-pink-400'
+                }`}>
+                  {selectedPlatforms.instagram && (
+                    <Check className="w-full h-full text-pink-600 p-1" />
+                  )}
+                </div>
               </label>
-              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+
+              <label className={`group relative flex items-center gap-5 p-5 rounded-2xl cursor-pointer transition-all duration-500 ${
+                selectedPlatforms.x 
+                  ? 'bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white shadow-xl shadow-gray-800/40 transform scale-[1.02]' 
+                  : 'bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 border-2 border-gray-100 hover:border-gray-300 hover:shadow-lg'
+              }`}>
                 <input
                   type="checkbox"
                   checked={selectedPlatforms.x}
                   onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, x: e.target.checked }))}
-                  className="rounded text-black"
+                  className="sr-only"
                 />
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                </svg>
-                <span className="font-medium">Twitter</span>
+                <div className={`absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+                  selectedPlatforms.x 
+                    ? 'bg-green-500 opacity-100 scale-100' 
+                    : 'bg-gray-200 opacity-0 scale-0'
+                }`}>
+                  <Check className="w-5 h-5 text-white" />
+                </div>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                  selectedPlatforms.x ? 'bg-white/20 backdrop-blur-sm' : 'bg-gradient-to-br from-gray-100 to-gray-200'
+                }`}>
+                  <svg className={`w-8 h-8 ${selectedPlatforms.x ? 'text-white' : 'text-gray-900'}`} viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <span className={`block font-bold text-xl tracking-tight ${selectedPlatforms.x ? 'text-white' : 'text-gray-900'}`}>Twitter / X</span>
+                  <span className={`text-sm ${selectedPlatforms.x ? 'text-gray-300' : 'text-gray-500'}`}>Tweet to your followers</span>
+                </div>
+                <div className={`w-7 h-7 rounded-xl border-2 transition-all duration-300 ${
+                  selectedPlatforms.x 
+                    ? 'bg-white border-white' 
+                    : 'border-gray-300 group-hover:border-gray-500'
+                }`}>
+                  {selectedPlatforms.x && (
+                    <Check className="w-full h-full text-gray-900 p-1" />
+                  )}
+                </div>
               </label>
-              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+
+              <label className={`group relative flex items-center gap-5 p-5 rounded-2xl cursor-pointer transition-all duration-500 ${
+                selectedPlatforms.whatsapp 
+                  ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white shadow-xl shadow-green-600/40 transform scale-[1.02]' 
+                  : 'bg-white hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 border-2 border-gray-100 hover:border-green-200 hover:shadow-lg'
+              }`}>
                 <input
                   type="checkbox"
                   checked={selectedPlatforms.whatsapp}
                   onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, whatsapp: e.target.checked }))}
-                  className="rounded text-green-600"
+                  className="sr-only"
                 />
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#25D366">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                </svg>
-                <span className="font-medium">WhatsApp</span>
+                <div className={`absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+                  selectedPlatforms.whatsapp 
+                    ? 'bg-white opacity-100 scale-100' 
+                    : 'bg-gray-200 opacity-0 scale-0'
+                }`}>
+                  <Check className="w-5 h-5 text-green-600" />
+                </div>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                  selectedPlatforms.whatsapp ? 'bg-white/20 backdrop-blur-sm' : 'bg-gradient-to-br from-green-100 to-emerald-100'
+                }`}>
+                  <svg className={`w-8 h-8 ${selectedPlatforms.whatsapp ? 'text-white' : 'text-green-600'}`} viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <span className={`block font-bold text-xl tracking-tight ${selectedPlatforms.whatsapp ? 'text-white' : 'text-gray-900'}`}>WhatsApp</span>
+                  <span className={`text-sm ${selectedPlatforms.whatsapp ? 'text-green-100' : 'text-gray-500'}`}>Share via WhatsApp status</span>
+                </div>
+                <div className={`w-7 h-7 rounded-xl border-2 transition-all duration-300 ${
+                  selectedPlatforms.whatsapp 
+                    ? 'bg-white border-white' 
+                    : 'border-gray-300 group-hover:border-green-400'
+                }`}>
+                  {selectedPlatforms.whatsapp && (
+                    <Check className="w-full h-full text-green-600 p-1" />
+                  )}
+                </div>
               </label>
             </div>
 
             {/* Schedule Option */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <label className="flex items-center gap-3 cursor-pointer mb-4">
+              <label className={`group relative flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-500 ${
+                scheduledTime 
+                  ? 'bg-gradient-to-r from-sky-50 to-blue-50 border-2 border-sky-200 shadow-lg' 
+                  : 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-sky-50 border-2 border-transparent hover:border-sky-100'
+              }`}>
                 <input
                   type="checkbox"
                   checked={!!scheduledTime}
@@ -406,21 +581,44 @@ export default function SocialPostsPage() {
                       setScheduledTime('');
                     }
                   }}
-                  className="rounded text-primary-600"
+                  className="sr-only"
                 />
-                <Calendar className="w-5 h-5 text-gray-500" />
-                <span className="font-medium">Schedule for later</span>
+                <div className={`absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+                  scheduledTime 
+                    ? 'bg-sky-500 opacity-100 scale-100' 
+                    : 'bg-gray-200 opacity-0 scale-0'
+                }`}>
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                  scheduledTime ? 'bg-sky-100' : 'bg-gray-100 group-hover:bg-sky-50'
+                }`}>
+                  <Calendar className={`w-6 h-6 ${scheduledTime ? 'text-sky-600' : 'text-gray-500'}`} />
+                </div>
+                <div className="flex-1">
+                  <span className={`block font-bold ${scheduledTime ? 'text-sky-700' : 'text-gray-700'}`}>Schedule for Later</span>
+                  <span className="text-sm text-gray-500">Auto-post at a specific time</span>
+                </div>
+                <div className={`w-7 h-7 rounded-xl border-2 transition-all duration-300 ${
+                  scheduledTime 
+                    ? 'bg-sky-500 border-sky-500' 
+                    : 'border-gray-300 group-hover:border-sky-400'
+                }`}>
+                  {scheduledTime && (
+                    <Check className="w-full h-full text-white p-1" />
+                  )}
+                </div>
               </label>
               
               {scheduledTime && (
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Schedule Date & Time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Date & Time</label>
                   <input
                     type="datetime-local"
                     value={scheduledTime}
                     onChange={(e) => setScheduledTime(e.target.value)}
                     min={new Date().toISOString().slice(0, 16)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                   />
                 </div>
               )}
@@ -471,85 +669,80 @@ export default function SocialPostsPage() {
 
             {/* Action Buttons */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Select Ads ({selectedAds.length} selected)</h3>
+              <h3 className="font-semibold text-gray-900">{selectedAds.length} ads selected</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => setSelectedAds(ads.map(a => a.id))}
-                  className="text-sm text-primary-600 hover:text-primary-700"
+                  className="text-sm text-sky-600 hover:text-sky-700 font-medium"
                 >
                   Select All
                 </button>
                 <span className="text-gray-300">|</span>
                 <button
                   onClick={() => setSelectedAds([])}
-                  className="text-sm text-gray-600 hover:text-gray-700"
+                  className="text-sm text-gray-600 hover:text-gray-700 font-medium"
                 >
-                  Unselect All
-                </button>
-                <span className="text-gray-300">|</span>
-                <button
-                  onClick={() => {
-                    const filtered = selectedCategory === 'all' 
-                      ? ads 
-                      : ads.filter(ad => (ad as unknown as {category_id?: number}).category_id === selectedCategory);
-                    const shuffled = [...filtered].sort(() => 0.5 - Math.random());
-                    const selected = shuffled.slice(0, randomCount).map(a => a.id);
-                    const combined = selectedAds.concat(selected);
-                    const unique = combined.filter((value, index, self) => self.indexOf(value) === index);
-                    setSelectedAds(unique);
-                  }}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  Random ({randomCount})
+                  Clear Selection
                 </button>
               </div>
             </div>
 
-            {/* Random Count Slider */}
-            <div className="mb-4 flex items-center gap-2">
-              <span className="text-sm text-gray-600">Random:</span>
-              <input
-                type="range"
-                min="1"
-                max="20"
-                value={randomCount}
-                onChange={(e) => setRandomCount(Number(e.target.value))}
-                className="flex-1"
-              />
-              <span className="text-sm font-medium">{randomCount}</span>
-            </div>
-            <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
-              {ads.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No active ads available</div>
+            {/* Ads List with Infinite Scroll */}
+            <div 
+              className="max-h-[500px] overflow-y-auto border border-gray-200 rounded-lg"
+              onScroll={(e) => {
+                const target = e.target as HTMLDivElement;
+                const isNearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 100;
+                if (isNearBottom && adsHasMore && !adsLoading) {
+                  loadMoreAds();
+                }
+              }}
+            >
+              {ads.length === 0 && !adsLoading ? (
+                <div className="p-8 text-center text-gray-500">
+                  {selectedCategory === 'all' ? 'No active ads available' : 'No ads in this category'}
+                </div>
               ) : (
-                (selectedCategory === 'all' ? ads : ads.filter(ad => (ad as unknown as {category_id?: number}).category_id === selectedCategory)).map(ad => (
-                  <label
-                    key={ad.id}
-                    className={`flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50 ${selectedAds.includes(ad.id) ? 'bg-primary-50' : ''}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedAds.includes(ad.id)}
-                      onChange={() => toggleAdSelection(ad.id)}
-                      className="rounded text-primary-600"
-                    />
-                    <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                      {(() => {
-                        const firstImg = ad.images?.[0];
-                        const imgUrl = typeof firstImg === 'string' ? firstImg : firstImg?.url;
-                        return imgUrl ? (
-                          <img src={imgUrl} alt={ad.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No img</div>
-                        );
-                      })()}
+                <>
+                  {ads.map(ad => (
+                    <label
+                      key={ad.id}
+                      className={`flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-colors ${selectedAds.includes(ad.id) ? 'bg-sky-50' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedAds.includes(ad.id)}
+                        onChange={() => toggleAdSelection(ad.id)}
+                        className="rounded text-sky-600"
+                      />
+                      <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                        {(() => {
+                          const firstImg = ad.images?.[0];
+                          const imgUrl = typeof firstImg === 'string' ? firstImg : firstImg?.url;
+                          return imgUrl ? (
+                            <img src={imgUrl} alt={ad.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No img</div>
+                          );
+                        })()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{ad.title}</p>
+                        {ad.price && <p className="text-sm text-gray-500">₦{Number(ad.price).toLocaleString('en-US')}</p>}
+                      </div>
+                    </label>
+                  ))}
+                  {adsLoading && (
+                    <div className="p-4 text-center text-gray-500">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{ad.title}</p>
-                      {ad.price && <p className="text-sm text-gray-500">₦{Number(ad.price).toLocaleString('en-US')}</p>}
+                  )}
+                  {!adsHasMore && ads.length > 0 && (
+                    <div className="p-4 text-center text-gray-400 text-sm">
+                      All ads loaded
                     </div>
-                  </label>
-                ))
+                  )}
+                </>
               )}
             </div>
           </div>

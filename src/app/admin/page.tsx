@@ -13,10 +13,108 @@ import {
   Clock,
   TrendingUp,
   TrendingDown,
+  Shield,
+  AlertCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { adminApi, api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { StatsCardSkeleton, CardSkeleton } from '@/components/ui/Skeleton';
+
+function AdminLoginForm({ onSuccess }: { onSuccess: () => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await api.post('/auth/login', {
+        login: email,
+        password: password,
+      });
+
+      if (response.data.user && response.data.user.role === 'admin') {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('admin_token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        onSuccess();
+      } else {
+        setError('Access denied. Admin credentials required.');
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message;
+      if (errorMessage?.includes('Invalid credentials')) {
+        setError('Incorrect email or password');
+      } else {
+        setError(errorMessage || 'Login failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-purple-50">
+      <div className="w-full max-w-md p-8">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-500 to-purple-500 rounded-2xl mb-4">
+            <Shield className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
+          <p className="text-gray-500 mt-2">Sign in to access the admin dashboard</p>
+        </div>
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+          {error && (
+            <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white text-gray-900 placeholder-gray-400"
+              placeholder="admin@ilist.com"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 pr-10 bg-white text-gray-900 placeholder-gray-400"
+                placeholder="Enter password"
+                required
+              />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+          <button type="submit" disabled={loading} className="w-full py-3 bg-sky-600 text-white rounded-xl hover:bg-sky-700 font-medium disabled:opacity-50">
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+          <div className="text-center">
+            <a href="/" className="text-sm text-gray-500 hover:text-gray-700">← Back to Homepage</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 interface DashboardStats {
   total_users: number;
@@ -84,7 +182,7 @@ interface RecentUser {
 }
 
 export default function AdminDashboard() {
-  const { token } = useAuthStore();
+  const { token, isAuthenticated, user, hasHydrated } = useAuthStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
   const [recentAds, setRecentAds] = useState<RecentAd[]>([]);
@@ -93,8 +191,14 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isCancelled = false;
+    
     const fetchDashboardData = async () => {
-      if (!token) return;
+      const currentToken = localStorage.getItem('token') || localStorage.getItem('admin_token');
+      if (!currentToken) {
+        if (!isCancelled) setLoading(false);
+        return;
+      }
       
       try {
         const [statsRes, walletRes, adsRes, usersRes] = await Promise.all([
@@ -104,28 +208,31 @@ export default function AdminDashboard() {
           adminApi.getUsers({ per_page: 5 }).catch(() => ({ data: { data: [] } })),
         ]);
         
-        if (statsRes.data) {
-          setStats(statsRes.data);
-        }
-        if (walletRes.data) {
-          setWalletStats(walletRes.data);
-        }
-        if (adsRes.data?.data) {
-          setRecentAds(adsRes.data.data);
-        }
-        if (usersRes.data?.data) {
-          setRecentUsers(usersRes.data.data);
+        if (!isCancelled) {
+          if (statsRes.data) setStats(statsRes.data);
+          if (walletRes.data) setWalletStats(walletRes.data);
+          if (adsRes.data?.data) setRecentAds(adsRes.data.data);
+          if (usersRes.data?.data) setRecentUsers(usersRes.data.data);
         }
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
-        setError('Failed to load dashboard data');
+        if (!isCancelled) setError('Failed to load dashboard data');
       } finally {
-        setLoading(false);
+        if (!isCancelled) setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, [token]);
+    
+    const timer = setTimeout(() => {
+      if (!isCancelled) setLoading(false);
+    }, 5000);
+    
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [hasHydrated]);
 
   const formatNumber = (num: number | undefined | null) => {
     if (num == null) return '0';
@@ -166,6 +273,57 @@ export default function AdminDashboard() {
         return 'bg-gray-100 text-gray-700';
     }
   };
+
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (hasHydrated || !isAuthenticated) {
+      const storedUser = localStorage.getItem('user');
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('admin_token');
+      if (storedUser && storedToken) {
+        setIsAuthChecked(true);
+      } else if (hasHydrated) {
+        setIsAuthChecked(true);
+      }
+    }
+  }, [hasHydrated, isAuthenticated]);
+
+  const checkIsAdmin = () => {
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token') || localStorage.getItem('admin_token') || token;
+    if (storedUser && storedToken) {
+      try {
+        const userData = JSON.parse(storedUser);
+        return userData?.role === 'admin';
+      } catch {
+        return false;
+      }
+    }
+    return isAuthenticated && user?.role === 'admin';
+  };
+
+  const isAdmin = checkIsAdmin();
+
+  if (!hasHydrated && !isAuthChecked) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <AdminLoginForm onSuccess={() => window.location.reload()} />;
+  }
 
   const statsData = stats ? [
     { name: 'Total Users', value: formatNumber(stats.total_users), change: '+12.5%', changeType: 'increase' as const, icon: Users, color: 'sky' as const },

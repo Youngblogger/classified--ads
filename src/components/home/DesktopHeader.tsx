@@ -81,7 +81,7 @@ export default function DesktopHeader() {
   };
 
   return (
-    <header className="desktop-header hidden md:block w-full">
+    <header className="sticky top-0 z-50 hidden md:block w-full bg-white border-b border-gray-200">
       <div className="flex items-center justify-between h-16 px-[15px] gap-4">
         {/* Logo */}
         <Link href="/" className="flex-shrink-0 flex items-center gap-1">

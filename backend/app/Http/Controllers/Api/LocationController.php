@@ -12,8 +12,24 @@ class LocationController extends Controller
     {
         $locations = Location::where('is_active', true)
             ->whereNull('parent_id')
-            ->with('children')
-            ->get();
+            ->with(['children' => function ($query) {
+                $query->where('is_active', true)->orderBy('name');
+            }])
+            ->orderBy('name')
+            ->get()
+            ->map(function ($state) {
+                return [
+                    'id' => $state->id,
+                    'name' => $state->name,
+                    'slug' => $state->slug,
+                    'lgas' => $state->children->map(function ($lga) {
+                        return [
+                            'id' => $lga->id,
+                            'name' => $lga->name
+                        ];
+                    })
+                ];
+            });
 
         return response()->json(['data' => $locations]);
     }

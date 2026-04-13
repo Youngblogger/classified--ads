@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SocialPostLog extends Model
 {
+    protected $table = 'social_posts_log';
+    
     protected $fillable = [
         'ad_id',
         'scheduled_post_id',

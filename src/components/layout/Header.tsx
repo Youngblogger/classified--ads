@@ -86,6 +86,18 @@ function formatNotificationTime(dateString: string): string {
   return date.toLocaleDateString();
 }
 
+function getCategoryEmoji(name?: string): string {
+  if (!name) return '📑';
+  const nameLower = name.toLowerCase();
+  if (nameLower.includes('vehicle') || nameLower.includes('car')) return '🚗';
+  if (nameLower.includes('phone') || nameLower.includes('mobile')) return '📱';
+  if (nameLower.includes('electronic') || nameLower.includes('computer') || nameLower.includes('laptop')) return '💻';
+  if (nameLower.includes('property') || nameLower.includes('estate') || nameLower.includes('house')) return '🏠';
+  if (nameLower.includes('furniture') || nameLower.includes('home')) return '🛋️';
+  if (nameLower.includes('fashion') || nameLower.includes('clothing') || nameLower.includes('apparel')) return '👕';
+  return '📑';
+}
+
 export default function Header() {
   const router = useRouter();
   const { isAuthenticated, user, logout, updateAuth } = useAuthStore();
@@ -347,10 +359,10 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#4B5320] shadow-sm pb-2.5">
+    <header className="sticky top-0 z-50 bg-[#4B5320] shadow-sm pb-2.5 w-full max-w-full">
       {/* Top Bar */}
-      <div className="bg-[#3a3f18] text-white py-2 px-4">
-        <div className="container-app flex justify-between items-center text-sm">
+      <div className="bg-[#3a3f18] text-white py-2 px-2 md:px-4 w-full">
+        <div className="w-full flex justify-between items-center text-sm max-w-full">
           <div className="hidden md:flex items-center gap-4">
             <span>Buy & Sell locally on iList</span>
           </div>
@@ -370,8 +382,8 @@ export default function Header() {
       </div>
 
       {/* Main Header */}
-      <div className="container-app py-4">
-        <div className="flex items-center gap-4">
+      <div className="px-2 md:px-4 py-4 w-full">
+        <div className="flex items-center gap-2 md:gap-4 w-full max-w-full">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <img 
@@ -384,8 +396,17 @@ export default function Header() {
             />
           </Link>
 
-          {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-2xl">
+          {/* Search Bar - Desktop */}
+          <div className="hidden lg:flex flex-1 max-w-2xl">
+            <SearchBar 
+              categories={categories} 
+              variant="header" 
+              className="w-full"
+            />
+          </div>
+
+          {/* Search Bar - Tablet */}
+          <div className="hidden md:flex lg:hidden flex-1 max-w-md">
             <SearchBar 
               categories={categories} 
               variant="header" 
@@ -674,7 +695,7 @@ export default function Header() {
             {isAuthenticated ? (
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
+                className="hidden md:flex items-center gap-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
               >
                 <Plus className="w-4 h-4" />
                 SELL
@@ -682,55 +703,56 @@ export default function Header() {
             ) : (
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
+                className="hidden md:flex items-center gap-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
               >
                 <Plus className="w-4 h-4" />
                 SELL
               </Link>
             )}
 
-            {/* Mobile Menu Toggle */}
-            <button
-              onClick={toggleMobileMenu}
-              className="md:hidden p-2.5 hover:bg-white/10 rounded-xl transition-colors"
-            >
-              {isMobileMenuOpen ? (
-                <X className="w-6 h-6 text-white" />
-              ) : (
-                <Menu className="w-6 h-6 text-white" />
-              )}
-            </button>
+            {/* Mobile Menu Toggle - Removed for tablet and up - uses desktop header style */}
           </div>
         </div>
       </div>
 
-      {/* Browse Categories Navigation */}
-      <div className="border-t border-white/20 bg-[#3d4220]">
-        <div className="container-app py-2">
-          <div className="flex items-center gap-6 overflow-x-auto scrollbar-thin text-sm">
-            <Link href="/categories" className="flex items-center gap-1.5 text-white hover:text-gray-200 font-medium whitespace-nowrap">
-              <span>☰</span> All Categories
+      {/* Browse Categories Navigation - from tablet (768px+) */}
+      <div className="hidden md:block border-t border-white/20 bg-[#3d4220]">
+        <div className="px-2 py-2 w-full">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin text-xs w-full max-w-full">
+            <Link href="/categories" className="flex items-center gap-1 text-white hover:text-gray-200 font-medium whitespace-nowrap flex-shrink-0">
+              <span>📑</span> All
             </Link>
-            <Link href="/promote-ad" className="text-white/80 hover:text-white whitespace-nowrap transition-colors font-medium">
-              Promote Ad
-            </Link>
-            <Link href="/premium-plans" className="text-white/80 hover:text-white whitespace-nowrap transition-colors font-medium">
-              Premium Plans
-            </Link>
-            {categories.slice(0, 14).map((category: any) => (
+            {[
+              { slug: 'vehicles', name: 'Vehicles' },
+              { slug: 'phones', name: 'Phones' },
+              { slug: 'electronics', name: 'Electronics' },
+              { slug: 'properties', name: 'Properties' },
+              { slug: 'furniture', name: 'Furniture' },
+              { slug: 'fashion', name: 'Fashion' },
+            ].map((category: any) => {
+              const emoji = getCategoryEmoji(category.name);
+              return (
               <Link 
-                key={category.id} 
+                key={category.slug} 
                 href={`/ads?category=${category.slug}`}
-                className="text-white/80 hover:text-white whitespace-nowrap transition-colors"
+                className="text-white/80 hover:text-white whitespace-nowrap transition-colors flex items-center gap-1 flex-shrink-0"
               >
-                {category.name}
+                <span>{emoji}</span>
+                <span>{category.name}</span>
               </Link>
-            ))}
+              );
+            })}
+            <Link href="/promote-ad" className="text-white/80 hover:text-white whitespace-nowrap transition-colors font-medium text-xs flex-shrink-0">
+              📢 Promote
+            </Link>
+            <Link href="/premium-plans" className="text-white/80 hover:text-white whitespace-nowrap transition-colors font-medium text-xs flex-shrink-0">
+              ⭐ Plans
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Only on mobile (below tablet) */}
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white animate-slide-down">
           <div className="container-app py-4 space-y-4">

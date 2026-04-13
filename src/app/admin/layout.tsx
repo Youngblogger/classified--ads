@@ -1,5 +1,6 @@
 'use client';
 
+import '../globals.css';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -11,9 +12,7 @@ import {
   Flag,
   Image,
   Star,
-  Wallet,
   BarChart3,
-  MessageSquare,
   Send,
   Settings,
   Bell,
@@ -47,7 +46,6 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'User Management', href: '/admin/users', icon: Users },
-  { name: 'Ads', href: '/admin/ads', icon: FileText },
   { name: 'Ad Quality & Moderation', href: '/admin/ads-moderation', icon: CheckCircle },
   { name: 'Ad Approval Settings', href: '/admin/ads/approval', icon: CheckCircle },
   { name: 'Categories', href: '/admin/categories', icon: FolderTree },
@@ -55,19 +53,17 @@ const navigation: NavItem[] = [
   { name: 'Category Fields', href: '/admin/category-fields', icon: FolderTree },
   { name: 'Reviews Management', href: '/admin/reviews', icon: Star },
   { name: 'Reports & Abuse', href: '/admin/reports', icon: Flag },
-  { name: 'Messages', href: '/admin/messages', icon: MessageSquare },
   { name: 'Banners & Ads', href: '/admin/banners', icon: Image },
   { name: 'Promotions', href: '/admin/promotions', icon: TrendingUp },
   { name: 'Bank Transfers', href: '/admin/bank-transfers', icon: Building2 },
-  { name: 'Wallets', href: '/admin/wallets', icon: Wallet },
   { name: 'Payments', href: '/admin/payments', icon: CreditCard },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Search Analytics', href: '/admin/search-analytics', icon: Search },
   { name: 'Broadcasts', href: '/admin/broadcasts', icon: Send },
   { name: 'Social Posts', href: '/admin/social', icon: Share2 },
   { name: 'Social Settings', href: '/admin/social-settings', icon: Share2 },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
   { name: 'Watermark Settings', href: '/admin/watermark', icon: Type },
+  { name: 'Settings', href: '/admin/settings', icon: Settings },
   { name: 'Custom Fonts', href: '/admin/fonts', icon: FileText },
 ];
 

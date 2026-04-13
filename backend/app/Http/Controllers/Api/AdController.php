@@ -8,6 +8,7 @@ use App\Models\AdImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class AdController extends Controller
@@ -145,6 +146,9 @@ class AdController extends Controller
                 'whatsapp' => 'nullable|string|max:20',
             ]);
 
+            // Check auto-approval settings
+            $autoApproval = $this->checkAutoApproval();
+            
             $user = $request->user();
             
             $ad = Ad::create([
@@ -160,7 +164,7 @@ class AdController extends Controller
                 'phone' => $validated['phone'],
                 'whatsapp' => $validated['whatsapp'] ?? null,
                 'slug' => Str::slug($validated['title']) . '-' . time(),
-                'status' => 'active',
+                'status' => $autoApproval['should_auto_approve'] ? 'active' : 'pending',
             ]);
 
             if ($request->hasFile('images')) {
@@ -180,14 +184,39 @@ class AdController extends Controller
             $ad->load(['images', 'category', 'location']);
 
             return response()->json([
-                'message' => 'Ad created successfully',
+                'message' => $autoApproval['should_auto_approve'] ? 'Ad created successfully and is now live!' : 'Ad created successfully and is pending approval.',
                 'data' => $ad,
+                'auto_approved' => $autoApproval['should_auto_approve'],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['error' => 'Validation failed', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             Log::error('Failed to create ad: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to create ad', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    protected function checkAutoApproval(): array
+    {
+        try {
+            $settings = DB::table('settings')->pluck('value', 'key')->toArray();
+            $enabled = filter_var($settings['auto_approval_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            
+            if (!$enabled) {
+                return ['should_auto_approve' => false, 'duration_minutes' => 0];
+            }
+            
+            $durationMinutes = (int) ($settings['approval_duration_minutes'] ?? 0);
+            
+            // If duration is 0, auto-approve immediately
+            if ($durationMinutes === 0) {
+                return ['should_auto_approve' => true, 'duration_minutes' => $durationMinutes];
+            }
+            
+            // For non-zero duration, ad goes to pending
+            return ['should_auto_approve' => false, 'duration_minutes' => $durationMinutes];
+        } catch (\Exception $e) {
+            return ['should_auto_approve' => false, 'duration_minutes' => 0];
         }
     }
 

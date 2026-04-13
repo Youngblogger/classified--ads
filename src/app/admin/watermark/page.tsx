@@ -164,9 +164,9 @@ export default function WatermarkSettingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary-100 rounded-lg">
-            <Type className="w-6 h-6 text-primary-600" />
+          <div className="flex items-center gap-3">
+          <div className="p-2 bg-sky-100 rounded-lg">
+            <Type className="w-6 h-6 text-sky-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Watermark Settings</h1>
@@ -214,8 +214,10 @@ export default function WatermarkSettingsPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Watermark Type</h2>
           <div className="flex gap-4">
-            <label className={`flex-1 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-              settings.type === 'text' ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            <label className={`flex-1 flex items-center justify-center gap-2 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              settings.type === 'text' 
+                ? 'border-sky-500 bg-sky-50 text-sky-700 font-semibold' 
+                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
             }`}>
               <input
                 type="radio"
@@ -225,13 +227,13 @@ export default function WatermarkSettingsPage() {
                 onChange={() => handleChange('type', 'text')}
                 className="sr-only"
               />
-              <div className="flex items-center gap-2">
-                <Type className="w-5 h-5" />
-                <span className="font-medium">Text</span>
-              </div>
+              <Type className="w-5 h-5" />
+              <span className="font-medium">Text</span>
             </label>
-            <label className={`flex-1 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-              settings.type === 'logo' ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            <label className={`flex-1 flex items-center justify-center gap-2 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              settings.type === 'logo' 
+                ? 'border-sky-500 bg-sky-50 text-sky-700 font-semibold' 
+                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
             }`}>
               <input
                 type="radio"
@@ -241,10 +243,8 @@ export default function WatermarkSettingsPage() {
                 onChange={() => handleChange('type', 'logo')}
                 className="sr-only"
               />
-              <div className="flex items-center gap-2">
-                <Image className="w-5 h-5" />
-                <span className="font-medium">Logo</span>
-              </div>
+              <Image className="w-5 h-5" />
+              <span className="font-medium">Logo</span>
             </label>
           </div>
         </div>
@@ -258,7 +258,7 @@ export default function WatermarkSettingsPage() {
                 value={settings.text}
                 onChange={(e) => handleChange('text', e.target.value)}
                 placeholder="Enter watermark text"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
               <p className="text-sm text-gray-500 mt-2">
                 This text will appear on uploaded images
@@ -278,42 +278,9 @@ export default function WatermarkSettingsPage() {
                   type="text"
                   value={settings.text_color}
                   onChange={(e) => handleChange('text_color', e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
                 />
               </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Shadow Color</h2>
-              <div className="flex items-center gap-4">
-                <input
-                  type="color"
-                  value={settings.shadow_color}
-                  onChange={(e) => handleChange('shadow_color', e.target.value)}
-                  className="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={settings.shadow_color}
-                  onChange={(e) => handleChange('shadow_color', e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Shadow Opacity: {settings.shadow_opacity}%</h2>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={settings.shadow_opacity}
-                onChange={(e) => handleChange('shadow_opacity', parseInt(e.target.value))}
-                className="w-full"
-              />
-              <p className="text-sm text-gray-500 mt-2">
-                Controls the visibility of the shadow effect
-              </p>
             </div>
           </>
         )}
@@ -340,7 +307,7 @@ export default function WatermarkSettingsPage() {
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-sky-500 hover:bg-sky-50 transition-colors"
               >
                 <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
                 <p className="text-gray-600">Click to upload logo</p>
@@ -355,8 +322,8 @@ export default function WatermarkSettingsPage() {
               className="hidden"
             />
             {uploadingLogo && (
-              <div className="mt-4 flex items-center gap-2 text-primary-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-600 border-t-transparent"></div>
+              <div className="mt-4 flex items-center gap-2 text-sky-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-sky-600 border-t-transparent"></div>
                 <span>Uploading...</span>
               </div>
             )}
@@ -368,7 +335,7 @@ export default function WatermarkSettingsPage() {
           <select
             value={settings.position}
             onChange={(e) => handleChange('position', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
             {positionOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -394,30 +361,10 @@ export default function WatermarkSettingsPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Rotation: {settings.rotation}°</h2>
-          <input
-            type="range"
-            min="-180"
-            max="180"
-            value={settings.rotation}
-            onChange={(e) => handleChange('rotation', parseInt(e.target.value))}
-            className="w-full"
-          />
-          <div className="flex justify-between text-sm text-gray-500 mt-2">
-            <span>-180°</span>
-            <span>0°</span>
-            <span>180°</span>
-          </div>
-          <p className="text-sm text-gray-400 mt-2">
-            Default diagonal watermark is -45°
-          </p>
-        </div>
-
         {settings.type === 'text' && (
           <>
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Font Size: {settings.font_size}px</h2>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h2 className="text-sm font-semibold text-gray-900 mb-3">Font Size: {settings.font_size}px</h2>
               <input
                 type="range"
                 min="8"
@@ -426,18 +373,18 @@ export default function WatermarkSettingsPage() {
                 onChange={(e) => handleChange('font_size', parseInt(e.target.value))}
                 className="w-full"
               />
-              <div className="flex justify-between text-sm text-gray-500 mt-2">
+              <div className="flex justify-between text-xs text-gray-500 mt-2">
                 <span>Small</span>
                 <span>Large</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Font Family</h2>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h2 className="text-sm font-semibold text-gray-900 mb-3">Font Family</h2>
               <select
                 value={settings.font_family || 'arial'}
                 onChange={(e) => handleChange('font_family', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                 style={{ fontFamily: fontFamilyOptions.find(f => f.value === settings.font_family)?.fontFamily }}
               >
                 {fontFamilyOptions.map((option) => (
@@ -484,7 +431,7 @@ export default function WatermarkSettingsPage() {
               type="checkbox"
               checked={settings.show_ad_id}
               onChange={(e) => handleChange('show_ad_id', e.target.checked)}
-              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
             />
             <span className="font-medium text-gray-900">Show Ad ID in watermark</span>
           </label>
@@ -502,7 +449,7 @@ export default function WatermarkSettingsPage() {
               type="checkbox"
               checked={settings.apply_to_original}
               onChange={(e) => handleChange('apply_to_original', e.target.checked)}
-              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
             />
             <span className="font-medium text-gray-900">Original Image (Full Size)</span>
           </label>
@@ -511,7 +458,7 @@ export default function WatermarkSettingsPage() {
               type="checkbox"
               checked={settings.apply_to_medium}
               onChange={(e) => handleChange('apply_to_medium', e.target.checked)}
-              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
             />
             <span className="font-medium text-gray-900">Medium Image (800x600)</span>
           </label>
@@ -520,7 +467,7 @@ export default function WatermarkSettingsPage() {
               type="checkbox"
               checked={settings.apply_to_thumbnail}
               onChange={(e) => handleChange('apply_to_thumbnail', e.target.checked)}
-              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
             />
             <span className="font-medium text-gray-900">Thumbnail (300x300)</span>
           </label>
@@ -534,7 +481,7 @@ export default function WatermarkSettingsPage() {
             type="checkbox"
             checked={regenerateAll}
             onChange={(e) => setRegenerateAll(e.target.checked)}
-            className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
           />
           <div>
             <span className="font-medium text-gray-900">Regenerate all existing images</span>
@@ -554,7 +501,7 @@ export default function WatermarkSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
         >
           {saving ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

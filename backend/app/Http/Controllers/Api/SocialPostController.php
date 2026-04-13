@@ -102,18 +102,19 @@ class SocialPostController extends Controller
     {
         $validated = $request->validate([
             'ad_ids' => 'required|array',
-            'ad_ids.*' => 'exists:ads,id',
+            'ad_ids.*' => 'integer',
             'platforms' => 'nullable|array',
-            'platforms.*' => 'in:facebook,instagram',
+            'platforms.*' => 'in:facebook,instagram,x,whatsapp',
             'schedule_at' => 'nullable|date',
         ]);
 
         $adIds = $validated['ad_ids'];
-        $platforms = $validated['platforms'] ?? [];
+        $platforms = $validated['platforms'] ?? ['facebook', 'instagram'];
         $scheduleAt = $validated['schedule_at'] ?? null;
 
         $results = [];
         $createdScheduledPosts = [];
+        $successCount = 0;
 
         foreach ($adIds as $adId) {
             $ad = Ad::with(['images', 'location'])->find($adId);
@@ -132,7 +133,7 @@ class SocialPostController extends Controller
                     'ad_id' => $ad->id,
                     'scheduled_time' => $scheduleAt,
                     'status' => 'pending',
-                    'platform_statuses' => array_fill_keys($platforms ?: ['facebook', 'instagram'], 'pending'),
+                    'platform_statuses' => array_fill_keys($platforms, 'pending'),
                     'created_by' => $request->user()->id,
                 ]);
 
@@ -141,25 +142,36 @@ class SocialPostController extends Controller
                     'success' => true,
                     'scheduled_post_id' => $scheduledPost->id,
                 ];
+                $successCount++;
             } else {
                 // Post immediately
                 $postResults = $this->socialService->postAd($ad, $platforms);
+                
+                // Check if any platform was posted successfully
+                $anySuccess = collect($postResults)->contains('status', 'success');
+                
                 $results[$adId] = [
-                    'success' => true,
+                    'success' => $anySuccess,
                     'results' => $postResults,
                 ];
+                
+                if ($anySuccess) {
+                    $successCount++;
+                }
             }
         }
 
         $message = $scheduleAt 
-            ? count($createdScheduledPosts) . ' posts scheduled successfully'
-            : 'Batch posting completed';
+            ? "{$successCount} posts scheduled successfully"
+            : "{$successCount} ads posted to social media";
 
         return response()->json([
             'success' => true,
             'message' => $message,
             'results' => $results,
             'scheduled_posts' => $createdScheduledPosts,
+            'posted_count' => $successCount,
+            'total_count' => count($adIds),
         ]);
     }
 

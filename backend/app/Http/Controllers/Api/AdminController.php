@@ -14,6 +14,7 @@ use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -52,10 +53,17 @@ class AdminController extends Controller
     // Ads Management
     public function ads(Request $request)
     {
+        // Auto-approve pending ads based on settings
+        $this->autoApprovePendingAds();
+        
         $query = Ad::with(['user', 'category', 'location', 'images']);
 
         if ($request->status && $request->status !== 'all') {
             $query->where('status', $request->status);
+        }
+
+        if ($request->category_id) {
+            $query->where('category_id', $request->category_id);
         }
 
         if ($request->verification_status && $request->verification_status !== 'all') {
@@ -76,6 +84,35 @@ class AdminController extends Controller
         $ads = $query->orderBy('created_at', 'desc')->paginate(20);
 
         return response()->json($ads);
+    }
+
+    // Auto-approve pending ads based on settings
+    protected function autoApprovePendingAds(): void
+    {
+        try {
+            $settings = DB::table('settings')->pluck('value', 'key')->toArray();
+            $enabled = filter_var($settings['auto_approval_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            
+            if (!$enabled) {
+                return;
+            }
+            
+            $durationMinutes = (int) ($settings['approval_duration_minutes'] ?? 2);
+            
+            // Skip if duration is 0 (handled in store)
+            if ($durationMinutes === 0) {
+                return;
+            }
+            
+            $cutoffTime = now()->subMinutes($durationMinutes);
+            
+            // Find and auto-approve pending ads older than duration
+            Ad::where('status', 'pending')
+                ->where('created_at', '<=', $cutoffTime)
+                ->update(['status' => 'active']);
+        } catch (\Exception $e) {
+            // Silently fail - don't break the main functionality
+        }
     }
 
     public function flaggedAds(Request $request)
@@ -155,7 +192,132 @@ class AdminController extends Controller
     {
         $ad = Ad::findOrFail($id);
         $ad->delete();
-        return response()->json(['message' => 'Ad deleted']);
+        return response()->json(['success' => true, 'message' => 'Ad deleted']);
+    }
+
+    public function getAd($id)
+    {
+        $ad = Ad::with(['user', 'category', 'subcategory', 'location', 'images'])->findOrFail($id);
+        return response()->json(['data' => $ad]);
+    }
+
+    public function updateAd(Request $request, $id)
+    {
+        $ad = Ad::findOrFail($id);
+        
+        $validated = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'description' => 'sometimes|string',
+            'price' => 'sometimes|numeric',
+            'category_id' => 'sometimes|exists:categories,id',
+            'location_id' => 'sometimes|exists:locations,id',
+            'state' => 'sometimes|string|max:100',
+            'lga' => 'sometimes|string|max:100',
+            'edited_by_admin' => 'sometimes|boolean',
+        ]);
+
+        $validated['edited_by_admin'] = true;
+        
+        $ad->update($validated);
+        $ad->load(['category', 'location', 'images']);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Ad updated',
+            'data' => $ad
+        ]);
+    }
+
+    public function uploadImages(Request $request, $id)
+    {
+        $ad = Ad::findOrFail($id);
+        
+        $request->validate([
+            'images' => 'required|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+        ]);
+
+        $uploadedImages = [];
+        
+        foreach ($request->file('images') as $imageFile) {
+            $path = $imageFile->store('ads/' . $ad->id, 'public');
+            
+            $adImage = $ad->images()->create([
+                'url' => $path,
+                'display_url' => $path,
+                'thumbnail_url' => $path,
+                'full_url' => $path,
+                'full_thumbnail_url' => $path,
+                'is_primary' => $ad->images()->count() === 0,
+            ]);
+            
+            $uploadedImages[] = $adImage;
+        }
+        
+        $ad->load('images');
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Images uploaded',
+            'images' => $ad->images
+        ]);
+    }
+
+    public function deleteImage($id, $imageId)
+    {
+        $ad = Ad::findOrFail($id);
+        $image = $ad->images()->findOrFail($imageId);
+        
+        // Delete file if exists
+        if ($image->url && \Storage::disk('public')->exists($image->url)) {
+            \Storage::disk('public')->delete($image->url);
+        }
+        
+        $image->delete();
+        
+        // If deleted image was primary, make another image primary
+        if ($image->is_primary) {
+            $firstImage = $ad->images()->first();
+            if ($firstImage) {
+                $firstImage->update(['is_primary' => true]);
+            }
+        }
+        
+        $ad->load('images');
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Image deleted',
+            'images' => $ad->images
+        ]);
+    }
+
+    public function updateImageOrder(Request $request, $id)
+    {
+        $ad = Ad::findOrFail($id);
+        
+        $validated = $request->validate([
+            'image_ids' => 'required|array',
+            'image_ids.*' => 'integer|exists:ad_images,id'
+        ]);
+        
+        // Update order - first image becomes primary
+        $firstImage = true;
+        foreach ($validated['image_ids'] as $imageId) {
+            $ad->images()->where('id', $imageId)->update([
+                'is_primary' => $firstImage,
+                'sort_order' => $firstImage ? 0 : array_search($imageId, $validated['image_ids']) + 1
+            ]);
+            $firstImage = false;
+        }
+        
+        $ad->load('images');
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Image order updated',
+            'images' => $ad->images
+        ]);
     }
 
     public function featureAd($id)
@@ -344,14 +506,28 @@ class AdminController extends Controller
     // Locations Management
     public function locations(Request $request)
     {
-        $query = Location::query();
-
-        if ($request->search) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
-
-        $locations = $query->orderBy('name')->get();
-        return response()->json($locations);
+        $locations = Location::where('is_active', true)
+            ->whereNull('parent_id')
+            ->with(['children' => function ($query) {
+                $query->where('is_active', true)->orderBy('name');
+            }])
+            ->orderBy('name')
+            ->get()
+            ->map(function ($state) {
+                return [
+                    'id' => $state->id,
+                    'name' => $state->name,
+                    'slug' => $state->slug,
+                    'lgas' => $state->children->map(function ($lga) {
+                        return [
+                            'id' => $lga->id,
+                            'name' => $lga->name
+                        ];
+                    })
+                ];
+            });
+        
+        return response()->json(['data' => $locations]);
     }
 
     public function createLocation(Request $request)

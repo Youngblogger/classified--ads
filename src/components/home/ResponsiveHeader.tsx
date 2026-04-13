@@ -5,13 +5,17 @@ import Header from './Header';
 
 export default function ResponsiveHeader() {
   return (
-    <>
-      <div className="hidden md:block w-full sticky top-0 z-50">
+    <header 
+      style={{ 
+        width: '100%',
+      }}
+    >
+      <div className="hidden md:block">
         <Header />
       </div>
-      <div className="md:hidden w-full sticky top-0 z-50">
+      <div className="md:hidden">
         <MobileHeader />
       </div>
-    </>
+    </header>
   );
 }

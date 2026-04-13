@@ -237,8 +237,12 @@ Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'handlePayst
 
 Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard']);
+    
+    // Ads list and management (must be before /ads/{id} to avoid conflicts)
     Route::get('/ads', [AdminController::class, 'ads']);
     Route::get('/ads/flagged', [AdminController::class, 'flaggedAds']);
+    Route::get('/ad/{id}', [AdminController::class, 'getAd']);
+    Route::put('/ad/{id}', [AdminController::class, 'updateAd']);
     Route::post('/ads/{id}/approve', [AdminController::class, 'approveAd']);
     Route::post('/ads/{id}/reject', [AdminController::class, 'rejectAd']);
     Route::post('/ads/{id}/verify', [AdminController::class, 'verifyAd']);
@@ -248,6 +252,11 @@ Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
     Route::delete('/ads/{id}', [AdminController::class, 'deleteAd']);
     Route::post('/ads/bulk-delete', [AdminController::class, 'bulkDeleteAds']);
     
+    // Ad Image Management
+    Route::post('/ad/{id}/images', [AdminController::class, 'uploadImages']);
+    Route::put('/ad/{id}/images/order', [AdminController::class, 'updateImageOrder']);
+    Route::delete('/ad/{id}/image/{imageId}', [AdminController::class, 'deleteImage']);
+    
     // Ad Moderation & Quality System
     Route::get('/ads/moderation', [AdModerationController::class, 'index']);
     Route::get('/ads/moderation/stats', [AdModerationController::class, 'stats']);
@@ -255,8 +264,8 @@ Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
     Route::post('/ads/moderation/fix-all', [AdModerationController::class, 'fixAllFlagged']);
     Route::post('/ads/moderation/bulk-fix', [AdModerationController::class, 'fixBulk']);
     Route::get('/ads/moderation/logs', [AdModerationController::class, 'logs']);
-    Route::get('/ads/{id}', [AdModerationController::class, 'analyze']);
-    Route::post('/ads/{id}/fix', [AdModerationController::class, 'fix']);
+    Route::get('/ads-moderation/{id}', [AdModerationController::class, 'analyze']);
+    Route::post('/ads-moderation/{id}/fix', [AdModerationController::class, 'fix']);
     Route::post('/ads/{id}/delete-images', [AdModerationController::class, 'deleteImages']);
     Route::post('/ads/{id}/replace-images', [AdModerationController::class, 'replaceImages']);
     
@@ -320,6 +329,10 @@ Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
         Route::post('/settings/test', [SocialSettingsController::class, 'test']);
         Route::delete('/settings/{platform}', [SocialSettingsController::class, 'destroy']);
     });
+});
+
+Route::get('/test', function () {
+    return response()->json(['success' => true, 'message' => 'API is working!']);
 });
 
 Route::post('/test', function () {

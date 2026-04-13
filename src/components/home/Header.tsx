@@ -54,8 +54,33 @@ const categoryIconMap: Record<string, any> = {
 };
 
 function getCategoryIcon(iconName?: string) {
-  if (!iconName) return Car;
-  return categoryIconMap[iconName] || Car;
+  if (iconName) {
+    const icon = categoryIconMap[iconName];
+    if (icon) return icon;
+  }
+  return Car;
+}
+
+function getEmojiForCategory(name?: string): string {
+  if (!name) return '📦';
+  const nameLower = name.toLowerCase();
+  if (nameLower.includes('phone') || nameLower.includes('mobile') || nameLower.includes('tablet')) return '📱';
+  if (nameLower.includes('vehicle') || nameLower.includes('car') || nameLower.includes('automotive') || nameLower.includes('bicycle')) return '🚗';
+  if (nameLower.includes('property') || nameLower.includes('estate') || nameLower.includes('real estate') || nameLower.includes('land') || nameLower.includes('house')) return '🏠';
+  if (nameLower.includes('electronic') || nameLower.includes('computer') || nameLower.includes('laptop') || nameLower.includes('tv') || nameLower.includes('camera')) return '💻';
+  if (nameLower.includes('fashion') || nameLower.includes('clothing') || nameLower.includes('apparel') || nameLower.includes('shoe') || nameLower.includes('bag')) return '👕';
+  if (nameLower.includes('service') || nameLower.includes('professional')) return '🛠️';
+  if (nameLower.includes('furniture') || nameLower.includes('home')) return '🛋️';
+  if (nameLower.includes('repair') || nameLower.includes('maintenance')) return '🔧';
+  if (nameLower.includes('health') || nameLower.includes('beauty') || nameLower.includes('spa')) return '💄';
+  if (nameLower.includes('sport') || nameLower.includes('fitness') || nameLower.includes('gym')) return '⚽';
+  if (nameLower.includes('baby') || nameLower.includes('kid') || nameLower.includes('children')) return '👶';
+  if (nameLower.includes('job') || nameLower.includes('employment')) return '💼';
+  if (nameLower.includes('agriculture') || nameLower.includes('farm') || nameLower.includes('garden')) return '🌾';
+  if (nameLower.includes('shop') || nameLower.includes('store')) return '🛒';
+  if (nameLower.includes('food') || nameLower.includes('catering') || nameLower.includes('restaurant')) return '🍔';
+  if (nameLower.includes('music') || nameLower.includes('instrument')) return '🎵';
+  return '📦';
 }
 
 const RECENT_SEARCHES_KEY = 'ilist_recent_searches';
@@ -817,7 +842,7 @@ export default function Header() {
                                   onClick={() => handleSearchResultClick('category', cat)}
                                   className="w-full flex items-center gap-3 px-3 py-3 hover:bg-accent-50 rounded-xl transition-colors text-left"
                                 >
-                                  <span className="text-2xl">{cat.icon || '📦'}</span>
+                                  <span className="text-2xl">{getEmojiForCategory(cat.name)}</span>
                                   <span className="text-sm text-slate-700 flex-1">{cat.name}</span>
                                   <ArrowRight className="w-4 h-4 text-slate-300" />
                                 </button>
@@ -1196,20 +1221,20 @@ export default function Header() {
       <div className="bg-white border-b border-slate-200">
         <div className="container-app">
           <div className="flex items-center gap-2 py-3">
-            {/* All Categories Button */}
+            {/* All Categories Button with emoji */}
             <div className="relative" ref={megaMenuRef}>
               <button
                 onClick={() => setShowMegaMenu(!showMegaMenu)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200",
+                  "flex items-center gap-1 px-3 py-2 rounded-xl font-medium transition-all duration-200",
                   showMegaMenu 
                     ? "bg-accent-600 text-white shadow-md" 
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                 )}
               >
-                <Grid3X3 className="w-4 h-4" />
-                <span>All Categories</span>
-                <ChevronDown className={cn("w-4 h-4 transition-transform", showMegaMenu && "rotate-180")} />
+                <span>📑</span>
+                <span>All</span>
+                <ChevronDown className={cn("w-3 h-3 transition-transform", showMegaMenu && "rotate-180")} />
               </button>
 
               {/* Mega Menu */}
@@ -1320,21 +1345,31 @@ export default function Header() {
               )}
             </div>
 
-            {/* Category Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1">
-              {apiCategories.map((category) => {
-                const IconComponent = getIconComponent(category.icon);
-                return (
-                  <Link
-                    key={category.slug}
-                    href={`/ads?category=${category.slug}`}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:text-primary-600 hover:bg-primary-50 transition-colors whitespace-nowrap flex-shrink-0"
-                  >
-                    <IconComponent className="w-4 h-4" />
-                    <span className="hidden md:inline">{category.name}</span>
-                  </Link>
-                );
-              })}
+            {/* Category Pills with emojis */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1">
+              {(apiCategories.length > 0 ? apiCategories : [
+                { slug: 'vehicles', name: 'Vehicles', icon: 'car' },
+                { slug: 'phones', name: 'Phones', icon: 'smartphone' },
+                { slug: 'electronics', name: 'Electronics', icon: 'laptop' },
+                { slug: 'properties', name: 'Properties', icon: 'home' },
+                { slug: 'furniture', name: 'Furniture', icon: 'sofa' },
+                { slug: 'fashion', name: 'Fashion', icon: 'shirt' },
+              ]).slice(0, 6).map((category: any) => (
+                <Link
+                  key={category.slug}
+                  href={`/ads?category=${category.slug}`}
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-primary-600 hover:bg-primary-50 transition-colors whitespace-nowrap flex-shrink-0"
+                >
+                  <span>📁</span>
+                  <span>{category.name}</span>
+                </Link>
+              ))}
+              <Link href="/promote-ad" className="text-slate-600 hover:text-primary-600 whitespace-nowrap text-xs font-medium flex items-center gap-1 flex-shrink-0">
+                📢 Promote
+              </Link>
+              <Link href="/premium-plans" className="text-slate-600 hover:text-primary-600 whitespace-nowrap text-xs font-medium flex items-center gap-1 flex-shrink-0">
+                ⭐ Plans
+              </Link>
             </div>
           </div>
         </div>

@@ -97,7 +97,8 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
 
   return (
     <div 
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 px-4 pt-2 pb-2 md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-4 pb-0 pt-1 md:hidden"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex items-center justify-between max-w-md mx-auto">
         {/* Left Items */}

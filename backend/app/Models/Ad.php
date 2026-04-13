@@ -52,7 +52,7 @@ class Ad extends Model
 
     public function images(): HasMany
     {
-        return $this->hasMany(AdImage::class);
+        return $this->hasMany(AdImage::class)->orderBy('sort_order')->orderBy('is_primary', 'desc');
     }
 
     public function favorites(): HasMany

@@ -6,6 +6,7 @@ import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, 
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
+
 import { formatPrice, formatRelativeTime, FALLBACK_IMAGE } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
@@ -340,9 +341,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f5f6f7' }} suppressHydrationWarning>
-      <ResponsiveHeader />
+      <div className="sticky top-0 z-[1001]">
+        <ResponsiveHeader />
+      </div>
       
-      <main className="flex-1 pt-14 md:pt-0 pb-20 md:pb-0" suppressHydrationWarning>
+      <main className="flex-1 pt-[56px] pb-16 md:pt-0 md:pb-0" suppressHydrationWarning>
         {/* Hero Section - Hidden on mobile */}
         <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
           {/* Background Pattern */}
@@ -352,7 +355,7 @@ export default function HomePage() {
             }} />
           </div>
           
-          <div className="relative py-6 sm:py-8 md:py-10 lg:py-14 px-[15px]">
+          <div className="relative py-6 sm:py-8 md:py-10 lg:py-14 px-4">
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               {/* Hero Content */}
               <div className="text-center lg:text-left">
@@ -453,9 +456,38 @@ export default function HomePage() {
           </div>
         </section>
 
+
+
+        {/* Top Categories */}
+        <section className="py-4 bg-white">
+          <div className="px-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900">
+                Top Categories
+              </h2>
+              <Link href="/ads" className="text-xs sm:text-sm text-primary-600 hover:underline font-medium">
+                View All
+              </Link>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
+              {FEATURED_CATEGORIES.map((cat, index) => (
+                <Link 
+                  key={index} 
+                  href={`/ads?category=${encodeURIComponent(cat.name)}`}
+                  className="flex flex-col items-center p-3 bg-gray-50 hover:bg-primary-50 rounded-xl transition-colors border border-gray-100 hover:border-primary-200"
+                >
+                  <span className="text-2xl sm:text-3xl mb-1">{cat.icon}</span>
+                  <span className="text-xs sm:text-sm font-medium text-gray-700 text-center">{cat.name}</span>
+                  <span className="text-[10px] sm:text-xs text-gray-400">{cat.count}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Latest Ads - jiji.ng style */}
         <section className="py-4 bg-white">
-          <div className="px-[15px]">
+          <div className="px-4">
             <div className="flex flex-nowrap items-center justify-between mb-2 sm:mb-3 gap-2">
               <h2 className="text-base sm:text-lg font-bold text-gray-900 whitespace-nowrap">
                 Latest Ads
