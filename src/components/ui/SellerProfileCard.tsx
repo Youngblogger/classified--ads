@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, UserPlus, UserMinus, Loader2 } from 'lucide-react';
+import { CheckCircle, UserPlus, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { followApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -176,7 +176,7 @@ export default function SellerProfileCard({
 
   useEffect(() => {
     if (seller.id && isAuthenticated) {
-      followApi.getUserStats(seller.id!)
+      followApi.getUserStats(seller.id)
         .then(res => {
           setIsFollowing(res.data.is_following);
           setFollowersCount(res.data.followers_count);
@@ -194,7 +194,7 @@ export default function SellerProfileCard({
       return;
     }
     
-    if (!seller.id) {
+    if (!seller.id || seller.id === 0) {
       toast.error('Invalid seller');
       return;
     }
@@ -203,18 +203,23 @@ export default function SellerProfileCard({
       toast.error("You can't follow yourself");
       return;
     }
+    
+    // If already following, do nothing (cannot unfollow)
+    if (isFollowing) {
+      return;
+    }
 
     setIsLoading(true);
     
     try {
-      // Always follow (not toggle)
-      const response = await followApi.follow(seller.id);
+      await followApi.follow(seller.id);
       setIsFollowing(true);
       setFollowersCount(prev => prev + 1);
       toast.success(`You're now following ${seller.name}`);
     } catch (error: any) {
       console.error('Follow error:', error);
-      toast.error(error.response?.data?.message || 'Failed to update follow status');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Failed to follow';
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -268,17 +273,17 @@ export default function SellerProfileCard({
                 className={`
                   flex items-center gap-1 px-2 sm:px-3 py-0.5 rounded-full text-xs font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 flex-shrink-0
                   ${isFollowing 
-                    ? 'bg-accent-600 text-white hover:bg-accent-500 border-2 border-accent-600' 
+                    ? 'bg-accent-600 text-white border-2 border-accent-600 cursor-default' 
                     : 'bg-[#E5E7EB] text-gray-800 hover:bg-accent-600 hover:text-white border-2 border-gray-400'
                   }
-                  ${(isLoading || isInitializing) ? 'opacity-70 cursor-wait' : 'cursor-pointer'}
+                  ${(isLoading || isInitializing) ? 'opacity-70 cursor-wait' : isFollowing ? '' : 'cursor-pointer'}
                 `}
               >
                 {isLoading ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
                 ) : isFollowing ? (
                   <>
-                    <UserMinus className="w-3 h-3" />
+                    <CheckCircle className="w-3 h-3" />
                     <span>Following</span>
                   </>
                 ) : (

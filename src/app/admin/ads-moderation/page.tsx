@@ -19,9 +19,12 @@ import {
   FileText,
   Folder,
   MapPin,
-  CircleDollarSign
+  CircleDollarSign,
+  Settings2,
+  AlertCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import DynamicField, { CategoryField } from '@/components/forms/DynamicField';
 
 interface AdImage {
   id: number;
@@ -46,6 +49,7 @@ interface Ad {
   location: { id?: number; name: string } | null;
   state?: string;
   lga?: string;
+  attributes?: Record<string, any> | string;
   user: { id: number; name: string; email: string; phone?: string; verified: boolean };
   images: AdImage[];
   views: number;
@@ -71,7 +75,7 @@ const STEALTH_PREFIX = '/secure-control-9ja';
 
 const getToken = () => {
   if (typeof window === 'undefined') return '';
-  let token = localStorage.getItem('admin_token') || localStorage.getItem('authToken');
+  let token: string | null = localStorage.getItem('admin_token') || localStorage.getItem('authToken');
   if (!token) {
     try {
       const parsed = JSON.parse(localStorage.getItem('auth-storage') || '{}');
@@ -79,7 +83,8 @@ const getToken = () => {
     } catch {}
   }
   if (!token) {
-    token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+    const cookieToken = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+    token = cookieToken || null;
   }
   return token || '';
 };
@@ -128,7 +133,8 @@ function EditAdModal({
     const stateLoc = locations.find(l => l.name === ad.state);
     if (stateLoc) {
       // Use children instead of lgas (API now returns children)
-      const lgaLoc = stateLoc.children?.find((l: any) => l.name === ad.lga);
+      const locWithChildren = stateLoc as any;
+      const lgaLoc = locWithChildren.children?.find((l: any) => l.name === ad.lga);
       if (lgaLoc) return lgaLoc.id;
       return stateLoc.id;
     }
@@ -146,6 +152,63 @@ function EditAdModal({
   });
   const [saving, setSaving] = useState(false);
   const [priceDisplay, setPriceDisplay] = useState(ad.price ? Number(ad.price).toLocaleString('en-US') : '');
+  
+  // Category fields state
+  const [categoryFields, setCategoryFields] = useState<CategoryField[]>([]);
+  const [fieldsLoading, setFieldsLoading] = useState(false);
+  const [attributes, setAttributes] = useState<Record<string, any>>(() => {
+    // Parse existing attributes from ad
+    if (ad.attributes) {
+      if (typeof ad.attributes === 'string') {
+        try {
+          return JSON.parse(ad.attributes);
+        } catch {
+          return {};
+        }
+      }
+      return ad.attributes;
+    }
+    return {};
+  });
+
+  // Fetch category fields when category changes
+  useEffect(() => {
+    const fetchCategoryFields = async () => {
+      if (!formData.category_id) {
+        setCategoryFields([]);
+        return;
+      }
+      
+      setFieldsLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/categories/${formData.category_id}/fields`);
+        const data = await response.json();
+        if (data.flat && Array.isArray(data.flat)) {
+          setCategoryFields(data.flat);
+        } else if (data.fields) {
+          const flatFields = Object.values(data.fields as Record<string, CategoryField[]>).flat();
+          setCategoryFields(flatFields);
+        } else {
+          setCategoryFields([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch category fields:', err);
+        setCategoryFields([]);
+      } finally {
+        setFieldsLoading(false);
+      }
+    };
+    
+    fetchCategoryFields();
+  }, [formData.category_id]);
+
+  // Handle attribute change
+  const handleAttributeChange = (name: string, value: any) => {
+    setAttributes(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const formatPriceForDisplay = (value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '');
@@ -171,7 +234,8 @@ function EditAdModal({
 
   const handleLgaChange = (lgaName: string) => {
     const stateLoc = locations.find(l => l.name === formData.state);
-    const lgaLoc = stateLoc?.children?.find((l: any) => l.name === lgaName);
+    const locWithChildren = stateLoc as any;
+    const lgaLoc = locWithChildren?.children?.find((l: any) => l.name === lgaName);
     setFormData({ 
       ...formData, 
       lga: lgaName,
@@ -208,6 +272,11 @@ function EditAdModal({
       if (formData.lga) {
         updateData.lga = formData.lga;
       }
+      
+      // Include attributes if there are any
+      if (Object.keys(attributes).length > 0) {
+        updateData.attributes = attributes;
+      }
 
       const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ad/${ad.id}`, {
         method: 'PUT',
@@ -226,6 +295,7 @@ function EditAdModal({
           ...ad, 
           ...formData, 
           ...data.data,
+          attributes,
           edited_by_admin: true 
         };
         onSave(updatedAd);
@@ -380,7 +450,7 @@ function EditAdModal({
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white"
                   >
                     <option value="">Select LGA</option>
-                    {locations.find(l => l.name === formData.state)?.children?.map((lga: any) => (
+                    {(locations.find(l => l.name === formData.state) as any)?.children?.map((lga: any) => (
                       <option key={lga.id} value={lga.name}>{lga.name}</option>
                     ))}
                   </select>
@@ -392,6 +462,43 @@ function EditAdModal({
               </div>
             </div>
           </div>
+          
+          {/* Category-Specific Features Section */}
+          {formData.category_id && (
+            <div className="space-y-4 p-4 bg-gradient-to-br from-sky-50/50 to-white rounded-xl border border-sky-100">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Settings2 className="w-4 h-4 text-sky-500" />
+                  Product Features
+                </h3>
+                {fieldsLoading && (
+                  <div className="flex items-center gap-2 text-xs text-sky-600">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Loading fields...
+                  </div>
+                )}
+              </div>
+              
+              {categoryFields.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {categoryFields.map((field) => (
+                    <div key={field.name} className="space-y-2">
+                      <DynamicField
+                        field={field}
+                        value={attributes}
+                        onChange={handleAttributeChange}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : !fieldsLoading && (
+                <div className="flex items-center gap-2 text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-gray-400" />
+                  No additional features available for this category
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-2">

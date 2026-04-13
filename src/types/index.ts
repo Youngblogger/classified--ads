@@ -65,6 +65,7 @@ export interface Ad {
   category?: Category | string;
   subcategory?: string;
   location?: Location | string;
+  state?: string;
   lga?: string;
   images: AdImage[] | string[];
   specifications?: AdSpecification[];

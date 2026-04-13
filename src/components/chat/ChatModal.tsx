@@ -576,10 +576,10 @@ export default function ChatModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-      <div className="bg-[#efeae2] rounded-t-2xl sm:rounded-2xl w-full h-[85vh] sm:h-[600px] sm:w-[90%] md:w-[500px] lg:w-[550px] max-w-[500px] flex flex-col overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-start xl:items-center justify-center z-50">
+      <div className="bg-[#efeae2] w-full h-[100dvh] md:h-[70vh] xl:h-[600px] xl:w-[90%] xl:max-w-[500px] flex flex-col">
         {/* Header */}
-        <div className="bg-[#f0f2f5] px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 border-b border-[#d1d7db]">
+        <div className="bg-[#f0f2f5] px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2 border-b border-[#d1d7db] flex-shrink-0">
           <button onClick={onClose} className="p-1.5 sm:p-1 hover:bg-[#d1d7db] rounded-full transition-colors">
             <X className="w-5 h-5 sm:w-6 sm:h-6 text-[#54656f]" />
           </button>
@@ -604,7 +604,7 @@ export default function ChatModal({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-1 sm:space-y-2">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-1 sm:space-y-2 min-h-0">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="w-8 h-8 border-4 border-[#00a884] border-t-transparent rounded-full animate-spin" />
@@ -791,15 +791,15 @@ export default function ChatModal({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick Messages */}
-        <div className="px-3 py-2 bg-[#f0f2f5] border-t border-[#d1d7db]">
-          <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
+        {/* Quick Messages - hidden on mobile */}
+        <div className="hidden md:block px-2 py-1.5 bg-[#f0f2f5] border-t border-[#d1d7db]">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => {
                 setNewMessage("Is this still available?");
                 inputRef?.current?.focus();
               }}
-              className="flex-shrink-0 px-3 py-1.5 text-sm bg-white border border-[#00a884] text-[#00a884] rounded-full hover:bg-[#dcf8c6] transition-colors whitespace-nowrap"
+              className="flex-shrink-0 px-2 py-1 text-xs bg-white border border-[#00a884] text-[#00a884] rounded-full hover:bg-[#dcf8c6] transition-colors whitespace-nowrap"
             >
               Is this still available?
             </button>
@@ -808,7 +808,7 @@ export default function ChatModal({
                 setNewMessage("What is your last price?");
                 inputRef?.current?.focus();
               }}
-              className="flex-shrink-0 px-3 py-1.5 text-sm bg-white border border-[#00a884] text-[#00a884] rounded-full hover:bg-[#dcf8c6] transition-colors whitespace-nowrap"
+              className="flex-shrink-0 px-2 py-1 text-xs bg-white border border-[#00a884] text-[#00a884] rounded-full hover:bg-[#dcf8c6] transition-colors whitespace-nowrap"
             >
               What is your last price?
             </button>
@@ -817,7 +817,7 @@ export default function ChatModal({
                 setNewMessage("Where is the exact location?");
                 inputRef?.current?.focus();
               }}
-              className="flex-shrink-0 px-3 py-1.5 text-sm bg-white border border-[#00a884] text-[#00a884] rounded-full hover:bg-[#dcf8c6] transition-colors whitespace-nowrap"
+              className="flex-shrink-0 px-2 py-1 text-xs bg-white border border-[#00a884] text-[#00a884] rounded-full hover:bg-[#dcf8c6] transition-colors whitespace-nowrap"
             >
               Where is the exact location?
             </button>
@@ -825,7 +825,7 @@ export default function ChatModal({
         </div>
 
         {/* Input */}
-        <div className="p-2 sm:p-3 bg-[#f0f2f5] border-t border-[#d1d7db]">
+        <div className="px-2 py-2 sm:px-3 sm:py-3 bg-[#f0f2f5] border-t border-[#d1d7db] flex-shrink-0">
           <div className="flex items-end gap-1 sm:gap-2">
             <input
               type="file"
@@ -839,7 +839,7 @@ export default function ChatModal({
               <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <div className="flex-1 bg-white rounded-[20px] px-3 sm:px-4 py-1.5 sm:py-2 flex items-center min-w-0">
+            <div className="flex-1 bg-white rounded-[20px] px-3 py-2 sm:px-4 sm:py-2 flex items-center min-w-0">
               {isRecording ? (
                 <div className="flex items-center gap-2 sm:gap-3 w-full">
                   <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
@@ -859,8 +859,8 @@ export default function ChatModal({
                   value={newMessage}
                   onChange={handleInputChange}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Message"
-                  className="flex-1 py-1 bg-transparent text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none min-w-0"
+                  placeholder="Type a message..."
+                  className="w-full py-1 bg-transparent text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none min-w-0"
                 />
               )}
             </div>

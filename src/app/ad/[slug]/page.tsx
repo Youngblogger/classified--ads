@@ -691,6 +691,7 @@ export default function AdDetailPage() {
         adTitle={ad.title}
         sellerId={ad.user?.id || 0}
         sellerName={ad.user?.name || ad.sellerName || 'Seller'}
+        sellerVerified={ad.user?.verified || ad.is_verified || false}
       />
 
       {/* Share Popup - Centered Modal */}

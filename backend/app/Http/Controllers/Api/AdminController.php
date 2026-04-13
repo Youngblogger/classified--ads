@@ -213,10 +213,18 @@ class AdminController extends Controller
             'location_id' => 'sometimes|exists:locations,id',
             'state' => 'sometimes|string|max:100',
             'lga' => 'sometimes|string|max:100',
+            'attributes' => 'sometimes|array',
             'edited_by_admin' => 'sometimes|boolean',
         ]);
 
         $validated['edited_by_admin'] = true;
+        
+        // Handle attributes - convert to JSON if array
+        if (isset($validated['attributes']) && is_array($validated['attributes'])) {
+            $validated['attributes'] = json_encode($validated['attributes']);
+        } elseif (isset($request['attributes']) && is_array($request['attributes'])) {
+            $validated['attributes'] = json_encode($request['attributes']);
+        }
         
         // If location_id is provided, use it
         // Otherwise, try to find location by state/lga
@@ -268,6 +276,7 @@ class AdminController extends Controller
             ] : null,
             'state' => $ad->state,
             'lga' => $ad->lga,
+            'attributes' => $ad->attributes ? (is_string($ad->attributes) ? json_decode($ad->attributes, true) : $ad->attributes) : null,
             'images' => $ad->images->map(function($img) {
                 return [
                     'id' => $img->id,

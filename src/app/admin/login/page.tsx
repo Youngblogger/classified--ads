@@ -64,13 +64,24 @@ export default function AdminLoginPage() {
     try {
       const hashedSecret = secretKey ? await hashSecret(secretKey) : '';
 
+      console.log('Attempting login with:', email);
+      console.log('API URL:', 'http://localhost:8000/api');
+      
       const response = await api.post('/secure-control-9ja/auth/login', {
         login: email,
         password: password,
         admin_secret: hashedSecret || undefined,
+      }).catch(err => {
+        console.error('API call failed:', err);
+        console.error('Error details:', err.response);
+        throw err;
       });
 
-      if (response.data.success) {
+      console.log('Login response:', response);
+      console.log('Response data:', response?.data);
+      console.log('Response data success:', response?.data?.success);
+
+      if (response?.data?.success) {
         const token = response.data.token;
         const user = response.data.user;
         
@@ -85,6 +96,9 @@ export default function AdminLoginPage() {
         window.location.href = '/admin/ads-moderation';
       }
     } catch (err: any) {
+      console.error('Login error:', err);
+      console.error('Error response:', err.response?.data);
+      
       const errorCode = err.response?.data?.error_code;
       const errorMessage = err.response?.data?.message;
       const retryAfter = err.response?.data?.retry_after;

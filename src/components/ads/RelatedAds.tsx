@@ -27,6 +27,7 @@ interface Ad {
   short_description?: string;
   images: AdImage[];
   location?: { name: string } | null;
+  state?: string;
   lga?: string;
   created_at: string;
   category?: { name?: string; slug?: string } | string;

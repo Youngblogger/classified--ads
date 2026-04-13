@@ -96,10 +96,10 @@ export default function ReportAdModal({ adId, isOpen, onClose }: ReportAdModalPr
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[99999] p-4"
+      className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[99999] p-0 sm:p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl">
+      <div className="bg-white rounded-t-3xl sm:rounded-xl w-full max-h-[85vh] sm:max-h-[85vh] flex flex-col shadow-2xl pb-safe">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
           <h2 className="text-xl font-bold text-gray-900">Report this Ad</h2>

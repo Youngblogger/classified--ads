@@ -402,8 +402,9 @@ export default function AdsApprovalPage() {
                       <p className="text-xs text-gray-500">Location</p>
                       <p className="font-medium text-gray-900">
                         {(() => {
-                          const state = ad.state || ad.location?.name || '';
-                          const lga = ad.lga || '';
+                          const adAny = ad as any;
+                          const state = adAny.state || ad.location?.name || '';
+                          const lga = adAny.lga || '';
                           return state && lga ? `${state}, ${lga}` : (state || lga || 'N/A');
                         })()}
                       </p>
