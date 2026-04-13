@@ -208,10 +208,16 @@ export default function FavoritesPage() {
 
                 {/* Details */}
                 <div className="space-y-1 text-sm text-gray-500 mb-4">
-                  {(item.ad.location?.name || item.ad.lga) && (
+                  {(item.ad.location?.name || item.ad.state || item.ad.lga) && (
                     <div className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      <span>{item.ad.lga ? `${item.ad.location?.name}, ${item.ad.lga}` : item.ad.location?.name}</span>
+                      <span>
+                        {(() => {
+                          const state = item.ad.state || item.ad.location?.name || '';
+                          const lga = item.ad.lga || '';
+                          return state && lga ? `${state}, ${lga}` : (state || lga || 'N/A');
+                        })()}
+                      </span>
                     </div>
                   )}
                   {item.ad.user && (

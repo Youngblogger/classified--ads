@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useAuthStore } from '@/lib/store';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useAuthStore, useGlobalStore } from '@/lib/store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
@@ -22,19 +23,63 @@ function setCookie(name: string, value: string, days: number) {
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
+  const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
 
+  const resetLocation = useCallback(() => {
+    const globalStore = useGlobalStore.getState();
+    if (globalStore.selectedLocation) {
+      console.log('Resetting location to default due to inactivity');
+      globalStore.setSelectedLocation(null);
+    }
+  }, []);
+
+  const clearInactivityTimer = useCallback(() => {
+    if (inactivityTimer.current) {
+      clearTimeout(inactivityTimer.current);
+      inactivityTimer.current = null;
+    }
+  }, []);
+
+  const startInactivityTimer = useCallback(() => {
+    clearInactivityTimer();
+    inactivityTimer.current = setTimeout(resetLocation, LOCATION_RESET_TIMEOUT);
+  }, [clearInactivityTimer, resetLocation]);
+
+  // Inactivity timer for location reset
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+
+    const handleActivity = () => {
+      startInactivityTimer();
+    };
+
+    startInactivityTimer();
+
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleActivity, { passive: true });
+    });
+
+    return () => {
+      clearInactivityTimer();
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [startInactivityTimer, clearInactivityTimer]);
+
+  // Auth restoration
   useEffect(() => {
     setMounted(true);
     
     if (typeof window !== 'undefined' && window.self === window.top) {
-      // Store referrer from URL to cookie
       const urlParams = new URLSearchParams(window.location.search);
       const refCode = urlParams.get('ref');
       if (refCode && !getCookie('referrer')) {
-        setCookie('referrer', refCode, 30); // Store for 30 days
+        setCookie('referrer', refCode, 30);
       }
 
-      // Check if user just logged out - don't auto restore
       const justLoggedOut = sessionStorage.getItem('just_logged_out');
       if (justLoggedOut === 'true') {
         sessionStorage.removeItem('just_logged_out');
@@ -66,7 +111,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       }
 
       if (tokenToRestore && userToRestore) {
-        // Validate token with backend and get fresh user data including avatar
         fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${tokenToRestore}` }
         })
@@ -75,7 +119,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           return res.json();
         })
         .then(userData => {
-          // Merge with any additional fields needed
           const freshUser = {
             ...userData,
             full_avatar_url: userData.full_avatar_url || 
@@ -86,7 +129,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           useAuthStore.getState().login(freshUser, tokenToRestore);
         })
         .catch(() => {
-          // Token invalid - clear auth data
           useAuthStore.getState().logout();
         });
       }

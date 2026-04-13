@@ -288,4 +288,28 @@ class NotificationService
             'system' => true
         ]);
     }
+
+    // Admin Notifications
+    public static function adminLogin($user, $ip = null, $userAgent = null)
+    {
+        $location = $ip ? self::getLocationFromIp($ip) : 'Unknown location';
+        
+        return self::send($user->id, 'admin_login', 'Admin Login Detected', 
+            "Your admin account was accessed from {$location}.", [
+                'ip_address' => $ip,
+                'user_agent' => $userAgent,
+                'location' => $location,
+                'timestamp' => now()->toISOString(),
+            ]);
+    }
+
+    protected static function getLocationFromIp($ip)
+    {
+        // Simple location detection (you can integrate with a real IP geolocation service)
+        if (in_array($ip, ['127.0.0.1', '::1', 'localhost'])) {
+            return 'Localhost';
+        }
+        
+        return 'IP: ' . $ip;
+    }
 }

@@ -207,7 +207,10 @@ export default function Header() {
   useEffect(() => {
     if (selectedLocation) {
       console.log('Selected location updated:', selectedLocation);
-      setSelectedLocationState(selectedLocation.lga ? `${selectedLocation.lga}, ${selectedLocation.name}` : selectedLocation.name);
+      // Display as "State, LGA" format
+      const stateName = selectedLocation.name || '';
+      const lgaName = selectedLocation.lga || '';
+      setSelectedLocationState(lgaName ? `${stateName}, ${lgaName}` : stateName);
       setSelectedLocationSlug(selectedLocation.slug);
       setSelectedLGA(selectedLocation.lga || null);
     } else {
@@ -677,7 +680,6 @@ export default function Header() {
                 onClick={openLocationModal}
                 className="flex items-center gap-1.5 text-white hover:text-primary-100 transition-colors"
               >
-                <MapPin className="w-4 h-4" />
                 <span className="hidden sm:inline">{selectedLocationState}</span>
                 <ChevronDown className="w-3 h-3" />
               </button>

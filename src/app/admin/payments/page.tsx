@@ -66,7 +66,8 @@ export default function PaymentsPage() {
         adminApi.getFinancialSummary().catch(() => ({ data: { summary: null } })),
       ]);
 
-      setPayments(paymentsRes.data.data || paymentsRes.data || []);
+      const payments = paymentsRes.data?.data || paymentsRes.data || [];
+      setPayments(Array.isArray(payments) ? payments : []);
       if (summaryRes.data?.summary) {
         setSummary(summaryRes.data.summary);
       }

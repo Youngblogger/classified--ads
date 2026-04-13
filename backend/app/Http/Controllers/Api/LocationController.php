@@ -22,10 +22,13 @@ class LocationController extends Controller
                     'id' => $state->id,
                     'name' => $state->name,
                     'slug' => $state->slug,
-                    'lgas' => $state->children->map(function ($lga) {
+                    'children' => $state->children->map(function ($lga) {
                         return [
                             'id' => $lga->id,
-                            'name' => $lga->name
+                            'name' => $lga->name,
+                            'slug' => $lga->slug,
+                            'parent_id' => $lga->parent_id,
+                            'is_active' => $lga->is_active
                         ];
                     })
                 ];

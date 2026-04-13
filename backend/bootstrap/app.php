@@ -18,6 +18,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'auth.api' => \App\Http\Middleware\ApiTokenAuth::class,
+            'secure.admin' => \App\Http\Middleware\SecureAdminAuth::class,
+            'admin.rate' => \App\Http\Middleware\AdminRateLimiter::class,
+            'admin.ip' => \App\Http\Middleware\AdminIpRestriction::class,
+            'sanitize' => \App\Http\Middleware\SanitizeInput::class,
+        ]);
+        
+        // Apply sanitization middleware to API routes
+        $middleware->api(prepend: [
+            \App\Http\Middleware\SanitizeInput::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

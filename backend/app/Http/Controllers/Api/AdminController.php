@@ -218,13 +218,77 @@ class AdminController extends Controller
 
         $validated['edited_by_admin'] = true;
         
+        // If location_id is provided, use it
+        // Otherwise, try to find location by state/lga
+        if (!isset($validated['location_id']) && isset($validated['state'])) {
+            $stateLoc = Location::where('name', $validated['state'])->first();
+            if ($stateLoc) {
+                if (!empty($validated['lga'])) {
+                    $lgaLoc = Location::where('parent_id', $stateLoc->id)
+                        ->where('name', $validated['lga'])
+                        ->first();
+                    if ($lgaLoc) {
+                        $validated['location_id'] = $lgaLoc->id;
+                    }
+                }
+                // If no LGA found, use state as location
+                if (!isset($validated['location_id'])) {
+                    $validated['location_id'] = $stateLoc->id;
+                }
+            }
+        }
+        
         $ad->update($validated);
-        $ad->load(['category', 'location', 'images']);
+        
+        // Reload relationships
+        $ad->load(['category', 'subcategory', 'location', 'images', 'user']);
+        
+        // Build a clean response with all needed data
+        $response = [
+            'id' => $ad->id,
+            'title' => $ad->title,
+            'slug' => $ad->slug,
+            'description' => $ad->description,
+            'price' => $ad->price,
+            'status' => $ad->status,
+            'edited_by_admin' => true,
+            'category' => $ad->category ? [
+                'id' => $ad->category->id,
+                'name' => $ad->category->name,
+                'slug' => $ad->category->slug,
+            ] : null,
+            'subcategory' => $ad->subcategory ? [
+                'id' => $ad->subcategory->id,
+                'name' => $ad->subcategory->name,
+                'slug' => $ad->subcategory->slug,
+            ] : null,
+            'location' => $ad->location ? [
+                'id' => $ad->location->id,
+                'name' => $ad->location->name,
+            ] : null,
+            'state' => $ad->state,
+            'lga' => $ad->lga,
+            'images' => $ad->images->map(function($img) {
+                return [
+                    'id' => $img->id,
+                    'url' => $img->url,
+                    'display_url' => $img->display_url,
+                    'thumbnail_url' => $img->thumbnail_url,
+                    'full_url' => $img->full_url,
+                    'full_thumbnail_url' => $img->full_thumbnail_url,
+                    'is_primary' => $img->is_primary,
+                ];
+            }),
+            'user' => $ad->user ? [
+                'id' => $ad->user->id,
+                'name' => $ad->user->name,
+            ] : null,
+        ];
         
         return response()->json([
             'success' => true,
             'message' => 'Ad updated',
-            'data' => $ad
+            'data' => $response
         ]);
     }
 
@@ -241,13 +305,14 @@ class AdminController extends Controller
         
         foreach ($request->file('images') as $imageFile) {
             $path = $imageFile->store('ads/' . $ad->id, 'public');
+            $fullUrl = \Storage::url($path);
             
             $adImage = $ad->images()->create([
-                'url' => $path,
-                'display_url' => $path,
-                'thumbnail_url' => $path,
-                'full_url' => $path,
-                'full_thumbnail_url' => $path,
+                'url' => $fullUrl,
+                'display_url' => $fullUrl,
+                'thumbnail_url' => $fullUrl,
+                'full_url' => $fullUrl,
+                'full_thumbnail_url' => $fullUrl,
                 'is_primary' => $ad->images()->count() === 0,
             ]);
             
@@ -256,10 +321,23 @@ class AdminController extends Controller
         
         $ad->load('images');
         
+        // Return full URLs in the response
+        $images = $ad->images->map(function ($img) {
+            return [
+                'id' => $img->id,
+                'url' => $img->url,
+                'display_url' => $img->display_url,
+                'thumbnail_url' => $img->thumbnail_url,
+                'full_url' => $img->full_url,
+                'full_thumbnail_url' => $img->full_thumbnail_url,
+                'is_primary' => $img->is_primary,
+            ];
+        });
+        
         return response()->json([
             'success' => true,
             'message' => 'Images uploaded',
-            'images' => $ad->images
+            'images' => $images
         ]);
     }
 
@@ -285,10 +363,23 @@ class AdminController extends Controller
         
         $ad->load('images');
         
+        // Return full URLs
+        $images = $ad->images->map(function ($img) {
+            return [
+                'id' => $img->id,
+                'url' => $img->url,
+                'display_url' => $img->display_url,
+                'thumbnail_url' => $img->thumbnail_url,
+                'full_url' => $img->full_url,
+                'full_thumbnail_url' => $img->full_thumbnail_url,
+                'is_primary' => $img->is_primary,
+            ];
+        });
+        
         return response()->json([
             'success' => true,
             'message' => 'Image deleted',
-            'images' => $ad->images
+            'images' => $images
         ]);
     }
 
@@ -313,10 +404,23 @@ class AdminController extends Controller
         
         $ad->load('images');
         
+        // Return full URLs
+        $images = $ad->images->map(function ($img) {
+            return [
+                'id' => $img->id,
+                'url' => $img->url,
+                'display_url' => $img->display_url,
+                'thumbnail_url' => $img->thumbnail_url,
+                'full_url' => $img->full_url,
+                'full_thumbnail_url' => $img->full_thumbnail_url,
+                'is_primary' => $img->is_primary,
+            ];
+        });
+        
         return response()->json([
             'success' => true,
             'message' => 'Image order updated',
-            'images' => $ad->images
+            'images' => $images
         ]);
     }
 

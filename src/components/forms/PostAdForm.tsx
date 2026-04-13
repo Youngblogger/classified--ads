@@ -67,6 +67,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [locationBreadcrumb, setLocationBreadcrumb] = useState<string>('');
   const [locationId, setLocationId] = useState<number | null>(null);
+  const [selectedStateName, setSelectedStateName] = useState<string>('');
   const [lgaId, setLgaId] = useState<string>('');
   const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
   const [images, setImages] = useState<ImageFile[]>([]);
@@ -527,6 +528,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       formData.append('category_id', String(categoryId));
       // locationId can be either a numeric ID or a slug
       formData.append('location_id', String(locationId));
+      if (selectedStateName) formData.append('state', selectedStateName);
       if (lgaId) formData.append('lga', lgaId);
       formData.append('condition', condition);
       if (phone) formData.append('phone', phone);
@@ -555,6 +557,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       setPrice('');
       setCategoryId(null);
       setLocationId(null);
+      setSelectedStateName('');
       setLgaId('');
       setCondition('');
       setImages([]);
@@ -626,6 +629,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
   const handleLocationSelect = (stateId: number, stateName: string, lga: string, fullLocation: string) => {
     setLocationId(stateId);
+    setSelectedStateName(stateName);
     setLgaId(lga);
     setLocationBreadcrumb(fullLocation);
   };

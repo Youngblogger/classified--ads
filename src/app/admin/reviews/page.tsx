@@ -82,6 +82,7 @@ export default function ReviewsManagementPage() {
   const [actionReason, setActionReason] = useState('');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const STEALTH_PREFIX = '/secure-control-9ja';
 
   const getImageUrl = (url: string | undefined): string => {
     if (!url) return '';
@@ -114,7 +115,7 @@ export default function ReviewsManagementPage() {
       if (ratingFilter) params.rating = ratingFilter;
 
       // Use direct fetch for admin reviews
-      const response = await fetch(`${API_URL}/admin/reviews`, {
+      const response = await fetch(`${API_URL}${STEALTH_PREFIX}/reports`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token : ''}`,
           'Accept': 'application/json',

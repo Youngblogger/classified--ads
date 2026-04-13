@@ -170,9 +170,16 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
   };
 
   const getLocationDisplay = (ad: Ad) => {
-    if (!ad.location?.name) return 'N/A';
-    if (ad.lga) return `${ad.location.name}, ${ad.lga}`;
-    return ad.location.name;
+    if (!ad.location?.name && !ad.state && !ad.lga) return 'N/A';
+    
+    // Use state field if available, otherwise use location.name
+    const stateName = ad.state || ad.location?.name || '';
+    const lgaName = ad.lga || '';
+    
+    if (stateName && lgaName) {
+      return `${stateName}, ${lgaName}`;
+    }
+    return stateName || lgaName || 'N/A';
   };
 
   if (loading) {

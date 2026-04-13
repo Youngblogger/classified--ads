@@ -54,9 +54,13 @@ export function removeStorage(key: string): void {
 
 // Get auth token - checks both cookie and localStorage
 export function getAuthToken(): string | null {
-  // First try cookie
+  // First try cookie (check both token and admin_token)
   const token = getCookie('token');
   if (token) return token;
+  
+  // Check admin_token cookie (set by admin login)
+  const adminToken = getCookie('admin_token');
+  if (adminToken) return adminToken;
   
   // Fall back to localStorage - check auth-storage (zustand persist)
   if (typeof localStorage !== 'undefined') {
@@ -67,6 +71,10 @@ export function getAuthToken(): string | null {
         if (parsed.state?.token) return parsed.state.token;
       } catch {}
     }
+    
+    // Also check admin_token key (set by admin login page)
+    const adminLocalToken = localStorage.getItem('admin_token');
+    if (adminLocalToken) return adminLocalToken;
     
     // Also check manual authToken key
     const manualToken = localStorage.getItem('authToken');

@@ -71,8 +71,9 @@ class ApiClient {
           const url = axiosError.config?.url || '';
           
           const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
+          const isAdminEndpoint = url.includes('/admin/') || url.includes('/secure-control-9ja/');
           
-          if (!isAuthEndpoint) {
+          if (!isAuthEndpoint && !isAdminEndpoint) {
             deleteCookie('token');
             
             if (typeof window !== 'undefined') {
@@ -85,6 +86,23 @@ class ApiClient {
                 
                 setTimeout(() => {
                   window.location.href = '/login';
+                }, 1500);
+              }
+            }
+          } else if (isAdminEndpoint && !isAuthEndpoint) {
+            // Admin session expired - redirect to admin login
+            deleteCookie('token');
+            
+            if (typeof window !== 'undefined') {
+              const isAlreadyRedirecting = (window as any).__adminAuthRedirecting;
+              
+              if (!isAlreadyRedirecting) {
+                (window as any).__adminAuthRedirecting = true;
+                
+                toast.error('Admin session expired. Please login again.');
+                
+                setTimeout(() => {
+                  window.location.href = '/admin/login';
                 }, 1500);
               }
             }
@@ -347,10 +365,12 @@ export const searchApi = {
   trending: () => api.get('/search/trending'),
 };
 
-// Admin API
+// Admin API - Using stealth route
+const STEALTH_PREFIX = '/secure-control-9ja';
+
 export const adminApi = {
   // Dashboard
-  getDashboard: () => api.get('/admin/dashboard'),
+  getDashboard: () => api.get(`${STEALTH_PREFIX}/dashboard`),
   getPaymentStats: () => Promise.resolve({ data: {} }),
   getPayments: (params?: Record<string, any>) => Promise.resolve({ data: { data: [] } }),
   getFinancialSummary: () => Promise.resolve({ data: { summary: null } }),
@@ -358,91 +378,91 @@ export const adminApi = {
   rejectPayment: () => Promise.resolve({ data: { success: true } }),
 
   // Users
-  getUsers: (params?: Record<string, any>) => api.get('/admin/users', { params }),
-  suspendUser: (id: number) => api.post(`/admin/users/${id}/suspend`),
-  banUser: (id: number, reason: string) => api.post(`/admin/users/${id}/ban`, { reason }),
-  activateUser: (id: number) => api.post(`/admin/users/${id}/activate`),
-  deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
+  getUsers: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/users`, { params }),
+  suspendUser: (id: number) => api.post(`${STEALTH_PREFIX}/users/${id}/suspend`),
+  banUser: (id: number, reason: string) => api.post(`${STEALTH_PREFIX}/users/${id}/ban`, { reason }),
+  activateUser: (id: number) => api.post(`${STEALTH_PREFIX}/users/${id}/activate`),
+  deleteUser: (id: number) => api.delete(`${STEALTH_PREFIX}/users/${id}`),
 
   // Ads
-  getAds: (params?: Record<string, any>) => api.get('/admin/ads', { params }),
+  getAds: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/ads`, { params }),
 
   // Public ads
   getPublicAds: (params?: Record<string, any>) => api.get('/ads', { params }),
-  approveAd: (id: number) => api.post(`/admin/ads/${id}/approve`),
-  rejectAd: (id: number) => api.post(`/admin/ads/${id}/reject`),
-  verifyAd: (id: number) => api.post(`/admin/ads/${id}/verify`),
-  featureAd: (id: number) => api.post(`/admin/ads/${id}/feature`),
-  promoteAd: (id: number) => api.post(`/admin/ads/${id}/promote`),
-  deleteAd: (id: number) => api.delete(`/admin/ads/${id}`),
-  bulkDeleteAds: (ids: number[]) => api.post('/admin/ads/bulk-delete', { ids }),
-  updateAd: (id: number, data: any) => api.put(`/admin/ads/${id}`, data),
+  approveAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/approve`),
+  rejectAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/reject`),
+  verifyAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/verify`),
+  featureAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/feature`),
+  promoteAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/promote`),
+  deleteAd: (id: number) => api.delete(`${STEALTH_PREFIX}/ads/${id}`),
+  bulkDeleteAds: (ids: number[]) => api.post(`${STEALTH_PREFIX}/ads/bulk-delete`, { ids }),
+  updateAd: (id: number, data: any) => api.put(`${STEALTH_PREFIX}/ads/${id}`, data),
 
   // Categories
-  getCategories: () => api.get('/admin/categories'),
-  createCategory: (data: any) => api.post('/admin/categories', data),
-  updateCategory: (id: number, data: any) => api.put(`/admin/categories/${id}`, data),
-  deleteCategory: (id: number) => api.delete(`/admin/categories/${id}`),
+  getCategories: () => api.get(`${STEALTH_PREFIX}/categories`),
+  createCategory: (data: any) => api.post(`${STEALTH_PREFIX}/categories`, data),
+  updateCategory: (id: number, data: any) => api.put(`${STEALTH_PREFIX}/categories/${id}`, data),
+  deleteCategory: (id: number) => api.delete(`${STEALTH_PREFIX}/categories/${id}`),
 
   // Reports
-  getReports: (params?: Record<string, any>) => api.get('/admin/reports', { params }),
-  resolveReport: (id: number) => api.post(`/admin/reports/${id}/resolve`),
-  dismissReport: (id: number) => api.post(`/admin/reports/${id}/dismiss`),
+  getReports: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/reports`, { params }),
+  resolveReport: (id: number) => api.post(`${STEALTH_PREFIX}/reports/${id}/resolve`),
+  dismissReport: (id: number) => api.post(`${STEALTH_PREFIX}/reports/${id}/dismiss`),
 
   // Admin Wallet
-  getAdminWallet: () => api.get('/admin/wallet'),
+  getAdminWallet: () => api.get(`${STEALTH_PREFIX}/wallet`),
   creditUser: (userId: number, amount: number, description: string) =>
-    api.post('/admin/wallets/credit', { user_id: userId, amount, description }),
+    api.post(`${STEALTH_PREFIX}/wallets/credit`, { user_id: userId, amount, description }),
   debitUser: (userId: number, amount: number, description: string) =>
-    api.post('/admin/wallets/debit', { user_id: userId, amount, description }),
+    api.post(`${STEALTH_PREFIX}/wallets/debit`, { user_id: userId, amount, description }),
   adminWithdraw: (amount: number, bankName: string, accountNumber: string, accountName: string, description?: string) =>
-    api.post('/admin/withdraw', { amount, bank_name: bankName, account_number: accountNumber, account_name: accountName, description }),
-  getTransactions: (params?: Record<string, any>) => api.get('/admin/transactions', { params }),
+    api.post(`${STEALTH_PREFIX}/withdraw`, { amount, bank_name: bankName, account_number: accountNumber, account_name: accountName, description }),
+  getTransactions: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/transactions`, { params }),
 
   // Wallets
-  getWallets: (params?: Record<string, any>) => api.get('/admin/wallets', { params }),
+  getWallets: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/wallets`, { params }),
   creditWallet: (id: number, amount: number, description: string) => 
-    api.post(`/admin/wallets/${id}/credit`, { amount, description }),
+    api.post(`${STEALTH_PREFIX}/wallets/${id}/credit`, { amount, description }),
   debitWallet: (id: number, amount: number, description: string) => 
-    api.post(`/admin/wallets/${id}/debit`, { amount, description }),
+    api.post(`${STEALTH_PREFIX}/wallets/${id}/debit`, { amount, description }),
 
   // Promotions
-  getPromotions: () => api.get('/admin/promotions'),
-  createPromotion: (data: any) => api.post('/admin/promotions', data),
-  updatePromotion: (id: number, data: any) => api.put(`/admin/promotions/${id}`, data),
-  deletePromotion: (id: number) => api.delete(`/admin/promotions/${id}`),
+  getPromotions: () => api.get(`${STEALTH_PREFIX}/promotions`),
+  createPromotion: (data: any) => api.post(`${STEALTH_PREFIX}/promotions`, data),
+  updatePromotion: (id: number, data: any) => api.put(`${STEALTH_PREFIX}/promotions/${id}`, data),
+  deletePromotion: (id: number) => api.delete(`${STEALTH_PREFIX}/promotions/${id}`),
 
   // Promotion Plans
-  getPromotionPlans: () => api.get('/admin/promotion-plans'),
-  createPromotionPlan: (data: any) => api.post('/admin/promotion-plans', data),
-  updatePromotionPlan: (id: number, data: any) => api.put(`/admin/promotion-plans/${id}`, data),
-  deletePromotionPlan: (id: number) => api.delete(`/admin/promotion-plans/${id}`),
+  getPromotionPlans: () => api.get(`${STEALTH_PREFIX}/promotion-plans`),
+  createPromotionPlan: (data: any) => api.post(`${STEALTH_PREFIX}/promotion-plans`, data),
+  updatePromotionPlan: (id: number, data: any) => api.put(`${STEALTH_PREFIX}/promotion-plans/${id}`, data),
+  deletePromotionPlan: (id: number) => api.delete(`${STEALTH_PREFIX}/promotion-plans/${id}`),
 
   // Banners
-  getBanners: () => api.get('/admin/banners'),
-  createBanner: (data: FormData) => api.upload('/admin/banners', data),
-  updateBanner: (id: number, data: FormData) => api.post(`/admin/banners/${id}`, data),
-  deleteBanner: (id: number) => api.delete(`/admin/banners/${id}`),
+  getBanners: () => api.get(`${STEALTH_PREFIX}/banners`),
+  createBanner: (data: FormData) => api.upload(`${STEALTH_PREFIX}/banners`, data),
+  updateBanner: (id: number, data: FormData) => api.post(`${STEALTH_PREFIX}/banners/${id}`, data),
+  deleteBanner: (id: number) => api.delete(`${STEALTH_PREFIX}/banners/${id}`),
 
   // Broadcasts
-  getBroadcasts: (params?: Record<string, any>) => api.get('/admin/broadcasts', { params }),
-  getBroadcast: (id: number) => api.get(`/admin/broadcasts/${id}`),
+  getBroadcasts: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/broadcasts`, { params }),
+  getBroadcast: (id: number) => api.get(`${STEALTH_PREFIX}/broadcasts/${id}`),
   createBroadcast: (data: { title: string; message: string; recipient_type: string }) => 
-    api.post('/admin/broadcast', data),
-  resendBroadcast: (id: number) => api.post(`/admin/broadcasts/${id}/resend`),
-  deleteBroadcast: (id: number) => api.delete(`/admin/broadcasts/${id}`),
+    api.post(`${STEALTH_PREFIX}/broadcast`, data),
+  resendBroadcast: (id: number) => api.post(`${STEALTH_PREFIX}/broadcasts/${id}/resend`),
+  deleteBroadcast: (id: number) => api.delete(`${STEALTH_PREFIX}/broadcasts/${id}`),
 
   // Settings
-  getSettings: () => api.get('/admin/settings'),
-  updateSettings: (data: any) => api.put('/admin/settings', data),
+  getSettings: () => api.get(`${STEALTH_PREFIX}/settings`),
+  updateSettings: (data: any) => api.put(`${STEALTH_PREFIX}/settings`, data),
 
   // Watermark
-  getWatermarkSettings: () => api.get('/admin/watermark'),
-  updateWatermarkSettings: (data: any) => api.put('/admin/watermark', data),
+  getWatermarkSettings: () => api.get(`${STEALTH_PREFIX}/watermark`),
+  updateWatermarkSettings: (data: any) => api.put(`${STEALTH_PREFIX}/watermark`, data),
   uploadWatermarkLogo: (file: File) => {
     const formData = new FormData();
     formData.append('logo', file);
-    return api.upload('/admin/watermark/logo', formData);
+    return api.upload(`${STEALTH_PREFIX}/watermark/logo`, formData);
   },
 
   // Category Fields
@@ -452,28 +472,28 @@ export const adminApi = {
   deleteCategoryField: (id: number) => api.delete(`/category-fields/${id}`),
 
   // Fonts
-  getFonts: () => api.get('/admin/fonts'),
+  getFonts: () => api.get(`${STEALTH_PREFIX}/fonts`),
   uploadFont: (file: File, name: string) => {
     const formData = new FormData();
     formData.append('font', file);
     formData.append('name', name);
-    return api.post('/admin/fonts', formData);
+    return api.post(`${STEALTH_PREFIX}/fonts`, formData);
   },
-  deleteFont: (id: number) => api.delete(`/admin/fonts/${id}`),
-  setDefaultFont: (id: number) => api.post(`/admin/fonts/${id}/default`),
+  deleteFont: (id: number) => api.delete(`${STEALTH_PREFIX}/fonts/${id}`),
+  setDefaultFont: (id: number) => api.post(`${STEALTH_PREFIX}/fonts/${id}/default`),
 
   // Ad Images
   addAdImages: (adId: number, files: File[]) => {
     const formData = new FormData();
     files.forEach((file) => formData.append('images[]', file));
-    return api.upload(`/ads/${adId}/images`, formData);
+    return api.upload(`${STEALTH_PREFIX}/ad/${adId}/images`, formData);
   },
   updateAdImage: (adId: number, imageId: number, data: { is_primary?: boolean; sort_order?: number }) =>
-    api.put(`/ads/${adId}/images/${imageId}`, data),
-  deleteAdImage: (adId: number, imageId: number) => api.delete(`/ads/${adId}/images/${imageId}`),
+    api.put(`${STEALTH_PREFIX}/ad/${adId}/images/${imageId}`, data),
+  deleteAdImage: (adId: number, imageId: number) => api.delete(`${STEALTH_PREFIX}/ad/${adId}/images/${imageId}`),
 
   // Analytics
-  getAnalytics: (params?: Record<string, any>) => api.get('/admin/analytics', { params }),
+  getAnalytics: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/analytics`, { params }),
   getStatesAnalytics: (params?: Record<string, any>) => api.get('/admin/analytics/states', { params }),
 
   // Reviews

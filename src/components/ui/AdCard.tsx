@@ -71,15 +71,23 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   const showFallback = !currentSrc || imgError;
 
   const getLocationDisplay = () => {
-    if (!ad.location) return 'N/A';
+    if (!ad.location && !ad.state && !ad.lga) return 'N/A';
+    
+    // Use state field if available, otherwise use location.name
+    let stateName = ad.state || '';
+    let lgaName = ad.lga || '';
+    
     // Handle both string location (seeded) and object location (API)
     if (typeof ad.location === 'string') {
-      return ad.lga ? `${ad.location}, ${ad.lga}` : ad.location;
+      if (!stateName && ad.location) stateName = ad.location;
+    } else if (ad.location?.name) {
+      if (!stateName) stateName = ad.location.name;
     }
-    // It's an object with name property
-    const locName = ad.location.name || (ad.location as unknown as string);
-    if (ad.lga) return `${locName}, ${ad.lga}`;
-    return locName;
+    
+    if (stateName && lgaName) {
+      return `${stateName}, ${lgaName}`;
+    }
+    return stateName || lgaName || 'N/A';
   };
 
   const getConditionBadge = () => {

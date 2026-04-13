@@ -257,10 +257,16 @@ export default function MyAdsPage() {
                 )}
                 
                 {/* Location */}
-                {(ad.location?.name || ad.lga) && (
+                {(ad.location?.name || ad.state || ad.lga) && (
                   <div className="flex items-center gap-1 text-sm text-gray-500 mb-2">
                     <MapPin className="w-3.5 h-3.5" />
-                    <span>{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name}</span>
+                    <span>
+                      {(() => {
+                        const state = ad.state || ad.location?.name || '';
+                        const lga = ad.lga || '';
+                        return state && lga ? `${state}, ${lga}` : (state || lga || 'N/A');
+                      })()}
+                    </span>
                   </div>
                 )}
                 

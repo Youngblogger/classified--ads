@@ -17,7 +17,7 @@ export default function MobileHeader() {
   
   const locationDisplay = selectedLocation 
     ? selectedLocation.lga 
-      ? `${selectedLocation.lga}, ${selectedLocation.name}`
+      ? `${selectedLocation.name}, ${selectedLocation.lga}`
       : selectedLocation.name
     : 'All Nigeria';
 
@@ -67,7 +67,6 @@ export default function MobileHeader() {
           onClick={openLocationModal}
           className="flex items-center gap-1 px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors flex-shrink-0"
         >
-          <MapPin className="w-4 h-4 text-white" />
           <span className="text-[10px] text-white font-medium max-w-[60px] sm:max-w-[80px] truncate">
             {locationDisplay}
           </span>

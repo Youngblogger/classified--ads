@@ -93,9 +93,16 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const verified = ad.seller?.verified || ad.is_verified || false;
 
   const getLocationDisplay = () => {
-    if (!ad.location) return 'N/A';
-    if (typeof ad.location === 'string') return ad.lga ? `${ad.location}, ${ad.lga}` : ad.location;
-    return ad.lga ? `${ad.location.name || ad.location}, ${ad.lga}` : ad.location.name || ad.location;
+    if (!ad.location && !ad.state && !ad.lga) return 'N/A';
+    
+    // Use state field if available, otherwise derive from location
+    const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
+    const lgaName = ad.lga || '';
+    
+    if (stateName && lgaName) {
+      return `${stateName}, ${lgaName}`;
+    }
+    return stateName || lgaName || 'N/A';
   };
 
   const toggleFavorite = async (e: React.MouseEvent) => {

@@ -400,7 +400,13 @@ export default function AdsApprovalPage() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Location</p>
-                      <p className="font-medium text-gray-900">{ad.lga ? `${ad.location?.name}, ${ad.lga}` : ad.location?.name || 'N/A'}</p>
+                      <p className="font-medium text-gray-900">
+                        {(() => {
+                          const state = ad.state || ad.location?.name || '';
+                          const lga = ad.lga || '';
+                          return state && lga ? `${state}, ${lga}` : (state || lga || 'N/A');
+                        })()}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Condition</p>

@@ -74,7 +74,7 @@ export default function BankTransfersPage() {
         params.append('search', search);
       }
       
-      const res = await api.get(`/admin/bank-transfers?${params.toString()}`);
+      const res = await api.get(`/secure-control-9ja/bank-transfers?${params.toString()}`);
       setTransfers(res.data.data || []);
       setTotalPages(res.data.last_page || 1);
     } catch (error) {
@@ -87,7 +87,7 @@ export default function BankTransfersPage() {
 
   const fetchStats = async () => {
     try {
-      const res = await api.get('/admin/bank-transfers/stats');
+      const res = await api.get('/secure-control-9ja/bank-transfers/stats');
       setStats(res.data);
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -97,7 +97,7 @@ export default function BankTransfersPage() {
   const handleApprove = async (id: number) => {
     setActionLoading(id);
     try {
-      const res = await api.post(`/admin/bank-transfers/${id}/approve`);
+      const res = await api.post(`/secure-control-9ja/bank-transfers/${id}/approve`);
       toast.success('Transfer approved successfully');
       fetchTransfers();
       fetchStats();
@@ -116,7 +116,7 @@ export default function BankTransfersPage() {
     
     setActionLoading(id);
     try {
-      const res = await api.post(`/admin/bank-transfers/${id}/reject`, {
+      const res = await api.post(`/secure-control-9ja/bank-transfers/${id}/reject`, {
         admin_note: rejectNote
       });
       toast.success('Transfer rejected');

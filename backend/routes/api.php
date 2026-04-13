@@ -28,6 +28,9 @@ use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\SocialPostController;
 use App\Http\Controllers\Api\SocialSettingsController;
+use App\Http\Controllers\Api\AdminAuthController;
+use App\Http\Middleware\AdminRateLimiter;
+use App\Http\Middleware\SecureAdminAuth;
 use App\Http\Controllers\Api\AdModerationController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +47,148 @@ Route::prefix('auth')->group(function () {
     Route::post('/verify-otp', [AuthOtpController::class, 'verifyOtp']);
     Route::post('/resend-otp', [AuthOtpController::class, 'resendOtp']);
     Route::get('/check-otp-status', [AuthOtpController::class, 'checkStatus']);
+});
+
+// =====================================================
+// STEALTH ADMIN ROUTES - Enterprise Security Enhanced
+// Access via /secure-control-9ja/* instead of /admin/*
+// =====================================================
+
+// Admin Authentication Routes - Stealth Path
+// IP restriction + Rate limiting applied
+Route::prefix('secure-control-9ja')->middleware([\App\Http\Middleware\AdminIpRestriction::class])->group(function () {
+    Route::post('/auth/login', [AdminAuthController::class, 'login'])
+        ->middleware(AdminRateLimiter::class);
+});
+
+// Protected Admin Routes - Stealth Path
+// Full security: Auth + Admin Role + IP Restriction
+Route::prefix('secure-control-9ja')->middleware([\App\Http\Middleware\SecureAdminAuth::class, \App\Http\Middleware\AdminIpRestriction::class])->group(function () {
+    // Auth management
+    Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
+    Route::get('/auth/me', [AdminAuthController::class, 'me']);
+    Route::post('/auth/refresh', [AdminAuthController::class, 'refresh']);
+    Route::get('/auth/activity-logs', [AdminAuthController::class, 'activityLogs']);
+    Route::get('/auth/suspicious-activity', [AdminAuthController::class, 'suspiciousActivity']);
+    
+    // Admin dashboard & management
+    Route::get('/dashboard', [AdminController::class, 'dashboard']);
+    
+    // Ads management
+    Route::get('/ads', [AdminController::class, 'ads']);
+    Route::get('/ads/flagged', [AdminController::class, 'flaggedAds']);
+    Route::get('/ad/{id}', [AdminController::class, 'getAd']);
+    Route::put('/ad/{id}', [AdminController::class, 'updateAd']);
+    Route::post('/ads/{id}/approve', [AdminController::class, 'approveAd']);
+    Route::post('/ads/{id}/reject', [AdminController::class, 'rejectAd']);
+    Route::post('/ads/{id}/verify', [AdminController::class, 'verifyAd']);
+    Route::post('/ads/{id}/feature', [AdminController::class, 'featureAd']);
+    Route::post('/ads/{id}/promote', [AdminController::class, 'promoteAd']);
+    Route::post('/ads/{id}/reprocess', [AdminController::class, 'reprocessAd']);
+    Route::delete('/ads/{id}', [AdminController::class, 'deleteAd']);
+    Route::post('/ads/bulk-delete', [AdminController::class, 'bulkDeleteAds']);
+    
+    // Ad Image Management
+    Route::post('/ad/{id}/images', [AdminController::class, 'uploadImages']);
+    Route::put('/ad/{id}/images/order', [AdminController::class, 'updateImageOrder']);
+    Route::delete('/ad/{id}/image/{imageId}', [AdminController::class, 'deleteImage']);
+    
+    // Ad Moderation
+    Route::get('/ads/moderation', [AdModerationController::class, 'index']);
+    Route::get('/ads/moderation/stats', [AdModerationController::class, 'stats']);
+    Route::post('/ads/moderation/analyze', [AdModerationController::class, 'analyzeAll']);
+    Route::post('/ads/moderation/fix-all', [AdModerationController::class, 'fixAllFlagged']);
+    Route::post('/ads/moderation/bulk-fix', [AdModerationController::class, 'fixBulk']);
+    Route::get('/ads/moderation/logs', [AdModerationController::class, 'logs']);
+    Route::get('/ads-moderation/{id}', [AdModerationController::class, 'analyze']);
+    Route::post('/ads-moderation/{id}/fix', [AdModerationController::class, 'fix']);
+    Route::post('/ads/{id}/delete-images', [AdModerationController::class, 'deleteImages']);
+    Route::post('/ads/{id}/replace-images', [AdModerationController::class, 'replaceImages']);
+    
+    // Users management
+    Route::get('/users', [AdminController::class, 'users']);
+    Route::put('/users/{id}', [AdminController::class, 'updateUser']);
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+    Route::post('/users/{id}/suspend', [AdminController::class, 'suspendUser']);
+    Route::post('/users/{id}/ban', [AdminController::class, 'banUser']);
+    Route::post('/users/{id}/activate', [AdminController::class, 'activateUser']);
+    
+    // Categories
+    Route::get('/categories', [AdminController::class, 'categories']);
+    Route::post('/categories', [AdminController::class, 'createCategory']);
+    Route::put('/categories/{id}', [AdminController::class, 'updateCategory']);
+    Route::delete('/categories/{id}', [AdminController::class, 'deleteCategory']);
+    
+    // Locations
+    Route::get('/locations', [AdminController::class, 'locations']);
+    Route::post('/locations', [AdminController::class, 'createLocation']);
+    Route::put('/locations/{id}', [AdminController::class, 'updateLocation']);
+    Route::delete('/locations/{id}', [AdminController::class, 'deleteLocation']);
+    
+    // Reports
+    Route::get('/reports', [AdminController::class, 'reports']);
+    Route::post('/reports/{id}/resolve', [AdminController::class, 'resolveReport']);
+    
+    // Analytics
+    Route::get('/analytics', [AdminController::class, 'analytics']);
+    Route::get('/analytics/states', [AdminController::class, 'statesAnalytics']);
+    
+    // Messages
+    Route::get('/messages', [AdminController::class, 'messages']);
+    Route::get('/broadcasts', [BroadcastController::class, 'index']);
+    Route::post('/broadcast', [AdminController::class, 'broadcast']);
+    
+    // Settings
+    Route::get('/settings', [AdminController::class, 'settings']);
+    Route::put('/settings', [AdminController::class, 'updateSettings']);
+    Route::get('/watermark', [WatermarkController::class, 'index']);
+    Route::put('/watermark', [WatermarkController::class, 'update']);
+    Route::post('/watermark/logo', [WatermarkController::class, 'uploadLogo']);
+    Route::get('/fonts', [FontController::class, 'index']);
+    Route::post('/fonts', [FontController::class, 'store']);
+    Route::delete('/fonts/{id}', [FontController::class, 'destroy']);
+    Route::post('/fonts/{id}/default', [FontController::class, 'setDefault']);
+    
+    // Bank Transfers
+    Route::get('/bank-transfers', [AdminController::class, 'bankTransfers']);
+    Route::get('/bank-transfers/stats', [AdminController::class, 'getBankTransferStats']);
+    Route::post('/bank-transfers/{id}/approve', [AdminController::class, 'approveBankTransfer']);
+    Route::post('/bank-transfers/{id}/reject', [AdminController::class, 'rejectBankTransfer']);
+    
+    // Banners
+    Route::get('/banners', [BannerController::class, 'index']);
+    Route::post('/banners', [BannerController::class, 'store']);
+    Route::put('/banners/{id}', [BannerController::class, 'update']);
+    Route::delete('/banners/{id}', [BannerController::class, 'destroy']);
+    Route::post('/banners/reorder', [BannerController::class, 'reorder']);
+    
+    // Social Media
+    Route::post('/social/post-ad', [SocialPostController::class, 'postAd']);
+    Route::post('/social/post-ads-batch', [SocialPostController::class, 'postAdsBatch']);
+    Route::get('/social/posts', [SocialPostController::class, 'index']);
+    Route::get('/social/scheduled', [SocialPostController::class, 'scheduled']);
+    Route::post('/social/retry/{id}', [SocialPostController::class, 'retry']);
+    Route::post('/social/cancel/{id}', [SocialPostController::class, 'cancel']);
+    Route::get('/social/stats', [SocialPostController::class, 'stats']);
+    Route::get('/social/settings', [SocialSettingsController::class, 'index']);
+    Route::post('/social/settings', [SocialSettingsController::class, 'store']);
+    Route::post('/social/settings/test', [SocialSettingsController::class, 'test']);
+    Route::delete('/social/settings/{platform}', [SocialSettingsController::class, 'destroy']);
+});
+
+// =====================================================
+// LEGACY ADMIN ROUTES - Kept for backward compatibility
+// =====================================================
+Route::prefix('admin')->middleware([\App\Http\Middleware\AdminIpRestriction::class])->group(function () {
+    Route::post('/login', [AdminAuthController::class, 'login'])
+        ->middleware(AdminRateLimiter::class);
+});
+
+Route::prefix('admin')->middleware([\App\Http\Middleware\SecureAdminAuth::class, \App\Http\Middleware\AdminIpRestriction::class])->group(function () {
+    Route::post('/logout', [AdminAuthController::class, 'logout']);
+    Route::get('/me', [AdminAuthController::class, 'me']);
+    Route::post('/refresh', [AdminAuthController::class, 'refresh']);
+    Route::get('/activity-logs', [AdminAuthController::class, 'activityLogs']);
 });
 
 // Protected auth routes
@@ -234,102 +379,6 @@ Route::middleware('auth.api')->group(function () {
 
 // Webhook routes (no auth required)
 Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'handlePaystackWebhook']);
-
-Route::prefix('admin')->middleware(['auth.api', 'admin'])->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'dashboard']);
-    
-    // Ads list and management (must be before /ads/{id} to avoid conflicts)
-    Route::get('/ads', [AdminController::class, 'ads']);
-    Route::get('/ads/flagged', [AdminController::class, 'flaggedAds']);
-    Route::get('/ad/{id}', [AdminController::class, 'getAd']);
-    Route::put('/ad/{id}', [AdminController::class, 'updateAd']);
-    Route::post('/ads/{id}/approve', [AdminController::class, 'approveAd']);
-    Route::post('/ads/{id}/reject', [AdminController::class, 'rejectAd']);
-    Route::post('/ads/{id}/verify', [AdminController::class, 'verifyAd']);
-    Route::post('/ads/{id}/feature', [AdminController::class, 'featureAd']);
-    Route::post('/ads/{id}/promote', [AdminController::class, 'promoteAd']);
-    Route::post('/ads/{id}/reprocess', [AdminController::class, 'reprocessAd']);
-    Route::delete('/ads/{id}', [AdminController::class, 'deleteAd']);
-    Route::post('/ads/bulk-delete', [AdminController::class, 'bulkDeleteAds']);
-    
-    // Ad Image Management
-    Route::post('/ad/{id}/images', [AdminController::class, 'uploadImages']);
-    Route::put('/ad/{id}/images/order', [AdminController::class, 'updateImageOrder']);
-    Route::delete('/ad/{id}/image/{imageId}', [AdminController::class, 'deleteImage']);
-    
-    // Ad Moderation & Quality System
-    Route::get('/ads/moderation', [AdModerationController::class, 'index']);
-    Route::get('/ads/moderation/stats', [AdModerationController::class, 'stats']);
-    Route::post('/ads/moderation/analyze', [AdModerationController::class, 'analyzeAll']);
-    Route::post('/ads/moderation/fix-all', [AdModerationController::class, 'fixAllFlagged']);
-    Route::post('/ads/moderation/bulk-fix', [AdModerationController::class, 'fixBulk']);
-    Route::get('/ads/moderation/logs', [AdModerationController::class, 'logs']);
-    Route::get('/ads-moderation/{id}', [AdModerationController::class, 'analyze']);
-    Route::post('/ads-moderation/{id}/fix', [AdModerationController::class, 'fix']);
-    Route::post('/ads/{id}/delete-images', [AdModerationController::class, 'deleteImages']);
-    Route::post('/ads/{id}/replace-images', [AdModerationController::class, 'replaceImages']);
-    
-    Route::get('/users', [AdminController::class, 'users']);
-    Route::put('/users/{id}', [AdminController::class, 'updateUser']);
-    Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
-    Route::post('/users/{id}/suspend', [AdminController::class, 'suspendUser']);
-    Route::post('/users/{id}/ban', [AdminController::class, 'banUser']);
-    Route::post('/users/{id}/activate', [AdminController::class, 'activateUser']);
-    Route::get('/categories', [AdminController::class, 'categories']);
-    Route::post('/categories', [AdminController::class, 'createCategory']);
-    Route::put('/categories/{id}', [AdminController::class, 'updateCategory']);
-    Route::delete('/categories/{id}', [AdminController::class, 'deleteCategory']);
-    Route::get('/locations', [AdminController::class, 'locations']);
-    Route::post('/locations', [AdminController::class, 'createLocation']);
-    Route::put('/locations/{id}', [AdminController::class, 'updateLocation']);
-    Route::delete('/locations/{id}', [AdminController::class, 'deleteLocation']);
-    Route::get('/reports', [AdminController::class, 'reports']);
-    Route::post('/reports/{id}/resolve', [AdminController::class, 'resolveReport']);
-    Route::get('/analytics', [AdminController::class, 'analytics']);
-    Route::get('/analytics/states', [AdminController::class, 'statesAnalytics']);
-    Route::get('/messages', [AdminController::class, 'messages']);
-    Route::get('/broadcasts', [BroadcastController::class, 'index']);
-    Route::post('/broadcast', [AdminController::class, 'broadcast']);
-    Route::get('/settings', [AdminController::class, 'settings']);
-    Route::put('/settings', [AdminController::class, 'updateSettings']);
-    Route::get('/watermark', [WatermarkController::class, 'index']);
-    Route::put('/watermark', [WatermarkController::class, 'update']);
-    Route::post('/watermark/logo', [WatermarkController::class, 'uploadLogo']);
-    Route::get('/fonts', [FontController::class, 'index']);
-    Route::post('/fonts', [FontController::class, 'store']);
-    Route::delete('/fonts/{id}', [FontController::class, 'destroy']);
-    Route::post('/fonts/{id}/default', [FontController::class, 'setDefault']);
-
-    // Bank Transfers
-    Route::get('/bank-transfers', [AdminController::class, 'bankTransfers']);
-    Route::get('/bank-transfers/stats', [AdminController::class, 'getBankTransferStats']);
-    Route::post('/bank-transfers/{id}/approve', [AdminController::class, 'approveBankTransfer']);
-    Route::post('/bank-transfers/{id}/reject', [AdminController::class, 'rejectBankTransfer']);
-
-    // Banners
-    Route::get('/banners', [BannerController::class, 'index']);
-    Route::post('/banners', [BannerController::class, 'store']);
-    Route::put('/banners/{id}', [BannerController::class, 'update']);
-    Route::delete('/banners/{id}', [BannerController::class, 'destroy']);
-    Route::post('/banners/reorder', [BannerController::class, 'reorder']);
-
-    // Social Media Posts
-    Route::prefix('social')->group(function () {
-        Route::post('/post-ad', [SocialPostController::class, 'postAd']);
-        Route::post('/post-ads-batch', [SocialPostController::class, 'postAdsBatch']);
-        Route::get('/posts', [SocialPostController::class, 'index']);
-        Route::get('/scheduled', [SocialPostController::class, 'scheduled']);
-        Route::post('/retry/{id}', [SocialPostController::class, 'retry']);
-        Route::post('/cancel/{id}', [SocialPostController::class, 'cancel']);
-        Route::get('/stats', [SocialPostController::class, 'stats']);
-        
-        // Settings
-        Route::get('/settings', [SocialSettingsController::class, 'index']);
-        Route::post('/settings', [SocialSettingsController::class, 'store']);
-        Route::post('/settings/test', [SocialSettingsController::class, 'test']);
-        Route::delete('/settings/{platform}', [SocialSettingsController::class, 'destroy']);
-    });
-});
 
 Route::get('/test', function () {
     return response()->json(['success' => true, 'message' => 'API is working!']);

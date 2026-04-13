@@ -5,6 +5,7 @@ import {
   Search,
   X,
   Edit2,
+  Edit3,
   Loader2,
   ChevronLeft,
   ChevronRight,
@@ -12,7 +13,13 @@ import {
   RefreshCw,
   MoreHorizontal,
   Trash2,
-  ImagePlus
+  ImagePlus,
+  Check,
+  Type,
+  FileText,
+  Folder,
+  MapPin,
+  CircleDollarSign
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -60,6 +67,7 @@ interface Location {
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const STEALTH_PREFIX = '/secure-control-9ja';
 
 const getToken = () => {
   if (typeof window === 'undefined') return '';
@@ -113,13 +121,28 @@ function EditAdModal({
   onClose: () => void;
   onSave: (data: Ad) => void;
 }) {
+  // Find the initial location_id from the ad's location
+  const getInitialLocationId = () => {
+    if (ad.location?.id) return ad.location.id;
+    // Try to find by state name
+    const stateLoc = locations.find(l => l.name === ad.state);
+    if (stateLoc) {
+      // Use children instead of lgas (API now returns children)
+      const lgaLoc = stateLoc.children?.find((l: any) => l.name === ad.lga);
+      if (lgaLoc) return lgaLoc.id;
+      return stateLoc.id;
+    }
+    return 0;
+  };
+
   const [formData, setFormData] = useState({
     title: ad.title,
     description: ad.description || '',
     price: ad.price,
     category_id: ad.category?.id,
     state: ad.state || '',
-    lga: ad.lga || ''
+    lga: ad.lga || '',
+    location_id: getInitialLocationId()
   });
   const [saving, setSaving] = useState(false);
   const [priceDisplay, setPriceDisplay] = useState(ad.price ? Number(ad.price).toLocaleString('en-US') : '');
@@ -136,31 +159,82 @@ function EditAdModal({
     return numericValue;
   };
 
+  const handleStateChange = (stateName: string) => {
+    const stateLoc = locations.find(l => l.name === stateName);
+    setFormData({ 
+      ...formData, 
+      state: stateName, 
+      lga: '',
+      location_id: stateLoc?.id || 0
+    });
+  };
+
+  const handleLgaChange = (lgaName: string) => {
+    const stateLoc = locations.find(l => l.name === formData.state);
+    const lgaLoc = stateLoc?.children?.find((l: any) => l.name === lgaName);
+    setFormData({ 
+      ...formData, 
+      lga: lgaName,
+      location_id: lgaLoc?.id || stateLoc?.id || 0
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/admin/ad/${ad.id}`, {
+      // Prepare the data to send
+      const updateData: Record<string, any> = {
+        title: formData.title,
+        description: formData.description,
+        price: formData.price,
+        edited_by_admin: true
+      };
+
+      // Only include category_id if it's set
+      if (formData.category_id) {
+        updateData.category_id = formData.category_id;
+      }
+
+      // Only include location_id if it's set
+      if (formData.location_id) {
+        updateData.location_id = formData.location_id;
+      }
+
+      // Also send state and lga for reference
+      if (formData.state) {
+        updateData.state = formData.state;
+      }
+      if (formData.lga) {
+        updateData.lga = formData.lga;
+      }
+
+      const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ad/${ad.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${getToken()}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          ...formData,
-          edited_by_admin: true
-        })
+        body: JSON.stringify(updateData)
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success || data.data) {
         toast.success('Ad updated successfully');
-        onSave({ ...ad, ...formData, edited_by_admin: true });
+        // Update with the response data including any changes from the server
+        const updatedAd = { 
+          ...ad, 
+          ...formData, 
+          ...data.data,
+          edited_by_admin: true 
+        };
+        onSave(updatedAd);
         onClose();
       } else {
         toast.error(data.message || 'Failed to update ad');
       }
-    } catch {
+    } catch (error) {
+      console.error('Update error:', error);
       toast.error('Failed to update ad');
     } finally {
       setSaving(false);
@@ -169,37 +243,70 @@ function EditAdModal({
 
   return (
     <ModalWrapper onClose={onClose} maxWidth="max-w-2xl">
-      <div>
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-bold">Edit Ad</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
-            <X className="w-4 h-4" />
+      <div className="bg-gradient-to-br from-slate-50 to-white">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-white rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center">
+              <Edit3 className="w-5 h-5 text-sky-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Edit Ad</h2>
+              <p className="text-xs text-gray-500">Update listing details</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+        
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          {/* Title */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">
+              <span className="flex items-center gap-2">
+                <Type className="w-4 h-4 text-gray-400" />
+                Title
+              </span>
+            </label>
             <input
               type="text"
               value={formData.title}
               onChange={e => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white"
+              placeholder="Enter ad title"
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          
+          {/* Description */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">
+              <span className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-gray-400" />
+                Description
+              </span>
+            </label>
             <textarea
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 min-h-[120px]"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white min-h-[120px] resize-y"
+              placeholder="Describe your item..."
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price (₦)</label>
+          
+          {/* Price & Category Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                <span className="flex items-center gap-2">
+                  <CircleDollarSign className="w-4 h-4 text-gray-400" />
+                  Price (₦)
+                </span>
+              </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₦</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₦</span>
                 <input
                   type="text"
                   value={priceDisplay}
@@ -213,17 +320,23 @@ function EditAdModal({
                     }
                   }}
                   placeholder="0"
-                  className="w-full pl-8 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white font-medium"
                   required
                 />
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                <span className="flex items-center gap-2">
+                  <Folder className="w-4 h-4 text-gray-400" />
+                  Category
+                </span>
+              </label>
               <select
                 value={formData.category_id}
                 onChange={e => setFormData({ ...formData, category_id: Number(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white"
                 required
               >
                 <option value="">Select category</option>
@@ -233,45 +346,78 @@ function EditAdModal({
               </select>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-            <select
-              value={formData.state}
-              onChange={e => setFormData({ ...formData, state: e.target.value, lga: '' })}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500"
-            >
-              <option value="">Select state</option>
-              {locations.map(loc => (
-                <option key={loc.id} value={loc.name}>{loc.name}</option>
-              ))}
-            </select>
-          </div>
-          {formData.state && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">LGA</label>
-              <select
-                value={formData.lga}
-                onChange={e => setFormData({ ...formData, lga: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500"
-              >
-                <option value="">Select LGA</option>
-                {locations.find(l => l.name === formData.state)?.lgas?.map(lga => (
-                  <option key={lga.id} value={lga.name}>{lga.name}</option>
-                ))}
-              </select>
+          
+          {/* Location Section */}
+          <div className="space-y-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-gray-400" />
+              Location
+            </h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* State */}
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">State</label>
+                <select
+                  value={formData.state}
+                  onChange={e => handleStateChange(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white"
+                >
+                  <option value="">Select state</option>
+                  {locations.map(loc => (
+                    <option key={loc.id} value={loc.name}>{loc.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* LGA */}
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">LGA / Area</label>
+                {formData.state ? (
+                  <select
+                    value={formData.lga}
+                    onChange={e => handleLgaChange(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white"
+                  >
+                    <option value="">Select LGA</option>
+                    {locations.find(l => l.name === formData.state)?.children?.map((lga: any) => (
+                      <option key={lga.id} value={lga.name}>{lga.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="px-4 py-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-400 text-sm">
+                    Select a state first
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-          <div className="flex justify-end gap-2 pt-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-2">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all font-medium"
+            >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl hover:from-sky-600 hover:to-sky-700 disabled:opacity-50 flex items-center gap-2 font-medium shadow-sm transition-all"
             >
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              Save Changes
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  Save Changes
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -347,7 +493,7 @@ function ReplaceImagesModal({
       setUploading(true);
       try {
         const imageIds = existingImages.map((img: AdImage) => img.id);
-        const res = await fetch(`${API_URL}/admin/ad/${ad.id}/images/order`, {
+        const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ad/${ad.id}/images/order`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${getToken()}`,
@@ -378,7 +524,7 @@ function ReplaceImagesModal({
       const formData = new FormData();
       selectedFiles.forEach(file => formData.append('images[]', file));
 
-      const res = await fetch(`${API_URL}/admin/ad/${ad.id}/images`, {
+      const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ad/${ad.id}/images`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getToken()}`,
@@ -405,7 +551,7 @@ function ReplaceImagesModal({
   const removeExistingImage = async (imageId: number) => {
     if (!confirm('Delete this image?')) return;
     try {
-      const res = await fetch(`${API_URL}/admin/ad/${ad.id}/image/${imageId}`, {
+      const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ad/${ad.id}/image/${imageId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${getToken()}`,
@@ -426,7 +572,14 @@ function ReplaceImagesModal({
   };
 
   const getImageUrl = (img: AdImage): string => {
-    return img.thumbnail_url || img.display_url || img.url || '';
+    const url = img.thumbnail_url || img.display_url || img.url || '';
+    // If it's already a full URL, return it
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Otherwise, prepend the storage base URL
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace('/api', '');
+    return `${baseUrl}/storage/${url}`;
   };
 
   return (
@@ -681,7 +834,7 @@ export default function AdsModerationPage() {
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (searchTerm) params.append('search', searchTerm);
 
-      const res = await fetch(`${API_URL}/admin/ads?${params}`, {
+      const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ads?${params}`, {
         headers: {
           'Authorization': `Bearer ${getToken()}`,
           'Accept': 'application/json'
@@ -758,7 +911,7 @@ export default function AdsModerationPage() {
     if (!selectedAd) return;
     try {
       setActionLoading(selectedAd.id);
-      const res = await fetch(`${API_URL}/admin/ads/${selectedAd.id}/approve`, {
+      const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ads/${selectedAd.id}/approve`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getToken()}`,
@@ -784,7 +937,7 @@ export default function AdsModerationPage() {
     if (!selectedAd) return;
     try {
       setActionLoading(selectedAd.id);
-      const res = await fetch(`${API_URL}/admin/ads/${selectedAd.id}/reject`, {
+      const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ads/${selectedAd.id}/reject`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getToken()}`,
@@ -813,7 +966,7 @@ export default function AdsModerationPage() {
     if (!selectedAd) return;
     try {
       setActionLoading(selectedAd.id);
-      const res = await fetch(`${API_URL}/admin/ads/${selectedAd.id}`, {
+      const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ads/${selectedAd.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${getToken()}`,
@@ -838,7 +991,14 @@ export default function AdsModerationPage() {
   const getImageUrl = (ad: Ad): string => {
     const img = ad.images?.find(i => i.is_primary) || ad.images?.[0];
     if (!img) return '';
-    return img.full_url || img.display_url || img.url || '';
+    const url = img.full_url || img.display_url || img.url || '';
+    // If it's already a full URL, return it
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Otherwise, prepend the storage base URL
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace('/api', '');
+    return `${baseUrl}/storage/${url}`;
   };
 
   const toggleSelectAll = () => {
@@ -869,7 +1029,7 @@ export default function AdsModerationPage() {
     try {
       // Delete each ad individually
       const deletePromises = idsToDelete.map(async (id) => {
-        const res = await fetch(`${API_URL}/admin/ads/${id}`, {
+        const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ads/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${getToken()}`,

@@ -5,7 +5,6 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard,
   Users,
   FileText,
   FolderTree,
@@ -34,7 +33,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { api, notificationsApi } from '@/lib/api';
-import { getCookie, deleteCookie } from '@/lib/cookies';
+import { getCookie, deleteCookie, setCookie } from '@/lib/cookies';
 
 interface NavItem {
   name: string;
@@ -44,7 +43,6 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'User Management', href: '/admin/users', icon: Users },
   { name: 'Ad Quality & Moderation', href: '/admin/ads-moderation', icon: CheckCircle },
   { name: 'Ad Approval Settings', href: '/admin/ads/approval', icon: CheckCircle },
@@ -90,6 +88,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [verifiedUser, setVerifiedUser] = useState<typeof storeUser>(null);
@@ -97,6 +97,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const notificationModalRef = useRef<HTMLDivElement>(null);
 
   // Login form state - MUST be before any early returns
   const [loginEmail, setLoginEmail] = useState('');
@@ -112,24 +113,47 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     setLoginLoading(true);
 
     try {
-      const response = await api.post('/auth/login', {
+      const response = await api.post('/secure-control-9ja/auth/login', {
         login: loginEmail,
         password: loginPassword,
       });
 
-      if (response.data.user && response.data.user.role === 'admin') {
-        login(response.data.user, response.data.token);
+      if (response.data.success) {
+        const token = response.data.token;
+        const user = response.data.user;
+        
+        localStorage.setItem('admin_token', token);
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('auth-storage', JSON.stringify({
+          state: { user, token, isAuthenticated: true, isLoading: false, hasHydrated: true },
+          version: 0
+        }));
+        
+        login(user, token);
         setIsVerified(true);
-        setVerifiedUser(response.data.user);
+        setVerifiedUser(user);
+        
+            window.location.href = '/admin/ads-moderation';
       } else {
-        setLoginError('Access denied. Admin credentials required.');
+        setLoginError(response.data.message || 'Login failed');
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message;
-      if (errorMessage?.includes('Invalid credentials')) {
-        setLoginError('Incorrect email or password');
+      const retryAfter = err.response?.data?.retry_after;
+      
+      if (retryAfter) {
+        const minutes = Math.ceil(retryAfter / 60);
+        setLoginError(`Too many attempts. Please try again in ${minutes} minute(s).`);
+      } else if (errorMessage?.includes('Invalid credentials')) {
+        const remaining = err.response?.data?.attempts_remaining;
+        setLoginError(remaining !== undefined 
+          ? `Incorrect email or password. ${remaining} attempt(s) remaining.`
+          : 'Incorrect email or password');
+      } else if (err.response?.status === 403) {
+        setLoginError(errorMessage || 'Access denied. Admin privileges required.');
       } else {
-        setLoginError(errorMessage || 'Login failed');
+        setLoginError(errorMessage || 'Login failed. Please try again.');
       }
     } finally {
       setLoginLoading(false);
@@ -144,6 +168,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setNotificationsOpen(false);
+      }
+      if (notificationModalRef.current && !notificationModalRef.current.contains(event.target as Node)) {
+        setNotificationModalOpen(false);
+        setSelectedNotification(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -174,59 +202,35 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       return;
     }
     
-    // Get token from cookie directly
-    const cookieToken = getTokenFromCookie();
-    console.log('[Admin Layout] Cookie token:', cookieToken ? 'present' : 'null');
-    setInitialTokenChecked(true);
+    const token = localStorage.getItem('admin_token') || localStorage.getItem('authToken');
+    const userData = localStorage.getItem('user');
     
-    if (!cookieToken) {
-      console.log('[Admin Layout] No token in cookie, showing login form');
-      setAuthChecked(true);
-      return;
-    }
-    
-    let isMounted = true;
-    const controller = new AbortController();
-    
-    const verifyAuth = async () => {
+    if (token && userData) {
       try {
-        const response = await api.get('/auth/me', { signal: controller.signal });
-        console.log('[Admin Layout] Token valid, user:', response.data);
-        
-        if (!isMounted) return;
-        
-        const user = response.data.user || response.data;
-        const userRole = user?.role || user?.user_type || user?.type;
-        
-        if (user && (userRole === 'admin' || userRole === 'Admin' || userRole === 'administrator')) {
-          console.log('[Admin Layout] Admin verified!');
+        const user = JSON.parse(userData);
+        if (user.role === 'admin') {
           setVerifiedUser(user);
           setUser(user);
           setIsVerified(true);
-        } else {
-          console.log('[Admin Layout] Not admin, logging out');
-          logout();
-          setIsVerified(false);
+          setInitialTokenChecked(true);
+          setAuthChecked(true);
+          
+          // Verify with backend in background
+          api.get('/secure-control-9ja/auth/me').then(response => {
+            if (response.data?.user?.role !== 'admin') {
+              logout();
+              setIsVerified(false);
+            }
+          }).catch(() => {});
+          
+          return;
         }
-      } catch (err: any) {
-        console.log('[Admin Layout] Auth error:', err?.message);
-        if (err?.name === 'AbortError') return;
-        // Don't logout immediately on error - keep user logged in
-        console.log('[Admin Layout] Keeping current auth state');
-      }
-      
-      if (isMounted) {
-        setAuthChecked(true);
-      }
-    };
+      } catch {}
+    }
     
-    verifyAuth();
-    
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, [pathname, logout, router, setUser, isLoginPage]);
+    setInitialTokenChecked(true);
+    setAuthChecked(true);
+  }, [pathname, logout, setUser, isLoginPage]);
 
   // Fetch notifications
   useEffect(() => {
@@ -328,8 +332,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const handleLogout = async () => {
     try {
-      const tokenFromCookie = getCookie('token');
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/auth/logout`, {
+      const tokenFromCookie = getCookie('token') || localStorage.getItem('admin_token');
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/secure-control-9ja/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${tokenFromCookie || token}`,
@@ -342,9 +346,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     
     // Clear cookies
     deleteCookie('token');
+    deleteCookie('admin_token');
     
     // Clear localStorage
     localStorage.removeItem('auth-storage');
+    localStorage.removeItem('admin_token');
     sessionStorage.clear();
     
     // Clear all cookies
@@ -357,7 +363,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     logout();
     
     // Full page redirect
-    window.location.href = '/';
+    window.location.href = '/admin/login';
   };
 
   const admin = verifiedUser;
@@ -483,7 +489,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             {/* Page Title */}
             <div className="flex-1 lg:flex-none">
               <h1 className="text-lg font-semibold text-gray-900">
-                {navigation.find(item => item.href === pathname || (item.href !== '/admin' && pathname.startsWith(item.href)))?.name || 'Dashboard'}
+                {navigation.find(item => item.href === pathname || pathname.startsWith(item.href))?.name || 'Ads'}
               </h1>
             </div>
 
@@ -536,7 +542,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       notifications.map((notification) => (
                         <div
                           key={notification.id}
-                          onClick={() => handleMarkAsRead(notification.id)}
+                          onClick={() => {
+                            setSelectedNotification(notification);
+                            setNotificationModalOpen(true);
+                            if (!notification.is_read) {
+                              handleMarkAsRead(notification.id);
+                            }
+                          }}
                           className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${!notification.is_read ? 'bg-sky-50' : ''}`}
                         >
                           <div className="flex items-start gap-3">
@@ -608,6 +620,76 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <main className="p-4 sm:p-6 lg:p-8">
           {children}
         </main>
+
+        {/* Notification Detail Modal */}
+        {notificationModalOpen && selectedNotification && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+            <div 
+              ref={notificationModalRef}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-sky-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{selectedNotification.title}</h3>
+                    <p className="text-xs text-gray-500">{formatNotificationTime(selectedNotification.created_at)}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setNotificationModalOpen(false);
+                    setSelectedNotification(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              
+              {/* Modal Content */}
+              <div className="px-6 py-4">
+                <div className="mb-4">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    selectedNotification.type === 'security' ? 'bg-red-100 text-red-800' :
+                    selectedNotification.type === 'warning' ? 'bg-amber-100 text-amber-800' :
+                    selectedNotification.type === 'success' ? 'bg-green-100 text-green-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {selectedNotification.type || 'info'}
+                  </span>
+                </div>
+                <p className="text-gray-700 whitespace-pre-wrap">{selectedNotification.message}</p>
+                
+                {selectedNotification.data && Object.keys(selectedNotification.data).length > 0 && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs font-medium text-gray-500 mb-2">Additional Details</p>
+                    <pre className="text-xs text-gray-600 overflow-x-auto">
+                      {JSON.stringify(selectedNotification.data, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+              
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                <button
+                  onClick={() => {
+                    setNotificationModalOpen(false);
+                    setSelectedNotification(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

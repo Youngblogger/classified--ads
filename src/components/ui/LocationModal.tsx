@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { X, Search, MapPin, ChevronRight, Check, Loader2, Globe } from 'lucide-react';
 import { useUIStore, useGlobalStore } from '@/lib/store';
 
@@ -44,8 +44,11 @@ export default function LocationModal() {
     }
     // Reset state when modal opens
     if (isLocationModalOpen) {
+      console.log('Modal opened, resetting state');
       setShowLGAView(false);
       setSearchQuery('');
+      setSelectedLGA(null);
+      // Keep selectedState to show current selection in header
     }
   }, [isLocationModalOpen]);
 
@@ -102,33 +105,34 @@ export default function LocationModal() {
       });
       handleClose();
     } else {
+      console.log('Opening LGA view for state:', state.name);
       setShowLGAView(true);
     }
   }, [setSelectedLocation]);
 
   const handleLGASelect = useCallback((lga: LocationData) => {
-    console.log('Selected LGA:', lga.name);
+    console.log('LGA clicked:', lga.name);
     setSelectedLGA(lga);
     setSearchQuery('');
-  }, []);
-
-  useEffect(() => {
-    if (selectedLGA && selectedState && isMobile) {
-      const timer = setTimeout(() => {
-        if (selectedLGA && selectedState) {
-          setSelectedLocation({
-            id: selectedLGA.id,
-            name: selectedState.name,
-            slug: selectedState.slug,
-            lga: selectedLGA.name,
-            lgaId: selectedLGA.id,
-          });
-          handleClose();
-        }
-      }, 300);
-      return () => clearTimeout(timer);
+    
+    // Immediately save the location when LGA is selected
+    if (selectedState) {
+      console.log('Saving location with LGA:', selectedState.name, lga.name);
+      setSelectedLocation({
+        id: lga.id,
+        name: selectedState.name,
+        slug: selectedState.slug,
+        lga: lga.name,
+        lgaId: lga.id,
+      });
+      // Close the modal
+      handleClose();
+    } else {
+      console.log('No state selected, cannot save LGA');
     }
-  }, [selectedLGA, selectedState, isMobile, setSelectedLocation]);
+  }, [selectedState, setSelectedLocation]);
+
+  // Removed auto-save useEffect - now handled directly in handleLGASelect
 
   const handleConfirm = () => {
     if (selectedLGA && selectedState) {
@@ -201,7 +205,7 @@ export default function LocationModal() {
                 <div className="mx-3 mb-2 px-3 py-2 bg-[#1E3A8A]/5 rounded-lg sm:mx-4">
                   <p className="text-xs text-gray-600">
                     Current: <span className="font-medium text-[#1E3A8A]">
-                      {selectedLocation.lga ? `${selectedLocation.lga}, ${selectedLocation.name}` : selectedLocation.name}
+                      {selectedLocation.lga ? `${selectedLocation.name}, ${selectedLocation.lga}` : selectedLocation.name}
                     </span>
                   </p>
                 </div>
@@ -450,8 +454,26 @@ export default function LocationModal() {
                 )}
               </div>
 
-              {/* Footer - Desktop only */}
-              {!isMobile && (
+              {/* Footer */}
+              {isMobile ? (
+                <div className="px-4 py-3 border-t border-gray-100 bg-white sm:rounded-b-2xl">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleBack}
+                      className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleConfirm}
+                      disabled={!selectedLGA}
+                      className="flex-1 px-4 py-2.5 bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
+                    >
+                      {selectedLGA ? `Apply: ${selectedLGA.name}` : 'Select an area'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
                 <div className="px-5 py-4 border-t border-gray-100 bg-gray-50 sm:rounded-b-2xl">
                   <div className="flex gap-3">
                     <button
@@ -465,7 +487,7 @@ export default function LocationModal() {
                       disabled={!selectedLGA}
                       className="flex-1 px-4 py-3 bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
                     >
-                      Apply
+                      {selectedLGA ? `Apply: ${selectedLGA.name}` : 'Apply'}
                     </button>
                   </div>
                 </div>

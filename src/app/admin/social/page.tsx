@@ -106,7 +106,7 @@ export default function SocialPostsPage() {
     setAdsLoading(true);
     try {
       const categoryParam = selectedCategory !== 'all' ? `&category_id=${selectedCategory}` : '';
-      const response = await api.get(`/admin/ads?status=active&per_page=20&page=${page}${categoryParam}`);
+      const response = await api.get(`/secure-control-9ja/ads?status=active&per_page=20&page=${page}${categoryParam}`);
       const newAds = response.data.data || [];
       const total = response.data.total;
       const lastPage = response.data.last_page;
@@ -158,8 +158,8 @@ export default function SocialPostsPage() {
       if (filter.status !== 'all') params.append('status', filter.status);
       if (filter.platform !== 'all') params.append('platform', filter.platform);
       
-      console.log('Fetching posts from:', `/admin/social/posts?${params}`);
-      const response = await api.get(`/admin/social/posts?${params}`);
+      console.log('Fetching posts from:', `/secure-control-9ja/social/posts?${params}`);
+      const response = await api.get(`/secure-control-9ja/social/posts?${params}`);
       console.log('Posts response:', response.data);
       setPosts(response.data.data || response.data || []);
     } catch (error: unknown) {
@@ -174,8 +174,8 @@ export default function SocialPostsPage() {
 
   const fetchScheduledPosts = async () => {
     try {
-      console.log('Fetching scheduled posts from:', '/admin/social/scheduled');
-      const response = await api.get('/admin/social/scheduled');
+      console.log('Fetching scheduled posts from:', '/secure-control-9ja/social/scheduled');
+      const response = await api.get('/secure-control-9ja/social/scheduled');
       console.log('Scheduled posts response:', response.data);
       setScheduledPosts(response.data.data || response.data || []);
     } catch (error: unknown) {
@@ -187,8 +187,8 @@ export default function SocialPostsPage() {
 
   const fetchStats = async () => {
     try {
-      console.log('Fetching stats from:', '/admin/social/stats');
-      const response = await api.get('/admin/social/stats');
+      console.log('Fetching stats from:', '/secure-control-9ja/social/stats');
+      const response = await api.get('/secure-control-9ja/social/stats');
       console.log('Stats response:', response.data);
       setStats(response.data);
     } catch (error: unknown) {
@@ -215,7 +215,7 @@ export default function SocialPostsPage() {
 
     setIsPosting(true);
     try {
-      const response = await api.post('/admin/social/post-ads-batch', {
+      const response = await api.post('/secure-control-9ja/social/post-ads-batch', {
         ad_ids: selectedAds,
         platforms,
       });
@@ -259,7 +259,7 @@ export default function SocialPostsPage() {
 
     setIsPosting(true);
     try {
-      const response = await api.post('/admin/social/post-ads-batch', {
+      const response = await api.post('/secure-control-9ja/social/post-ads-batch', {
         ad_ids: selectedAds,
         platforms,
         schedule_at: scheduledTime,
@@ -285,7 +285,7 @@ export default function SocialPostsPage() {
 
   const handleCancelScheduled = async (id: number) => {
     try {
-      const response = await api.post(`/admin/social/cancel/${id}`);
+      const response = await api.post(`/secure-control-9ja/social/cancel/${id}`);
       if (response.data.success) {
         toast.success('Scheduled post cancelled');
         fetchScheduledPosts();
@@ -299,7 +299,7 @@ export default function SocialPostsPage() {
   const handleRetry = async (postId: number) => {
     setRetrying(postId);
     try {
-      const response = await api.post(`/admin/social/retry/${postId}`);
+      const response = await api.post(`/secure-control-9ja/social/retry/${postId}`);
       if (response.data.success) {
         toast.success('Retry initiated');
         fetchPosts();
