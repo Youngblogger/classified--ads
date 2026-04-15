@@ -125,7 +125,7 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
       },
       { 
         threshold: 0.1,
-        rootMargin: '100px',
+        rootMargin: '50px',
       }
     );
 
@@ -164,7 +164,7 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
     }
     
     return (
-      <span className={`absolute top-2 left-2 px-2 py-0.5 text-xs font-medium rounded-full ${badgeClass}`}>
+      <span className={`absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[10px] sm:text-xs font-medium rounded-full ${badgeClass}`}>
         {label}
       </span>
     );
@@ -173,7 +173,6 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
   const getLocationDisplay = (ad: Ad) => {
     if (!ad.location?.name && !ad.state && !ad.lga) return 'N/A';
     
-    // Use state field if available, otherwise use location.name
     const stateName = ad.state || ad.location?.name || '';
     const lgaName = ad.lga || '';
     
@@ -185,14 +184,14 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-4 md:p-6">
-        <h3 className="text-lg font-bold text-dark mb-4">Similar Ads</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6">
+        <h3 className="text-base sm:text-lg font-bold text-dark mb-3 sm:mb-4">Similar Ads</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="animate-pulse">
               <div className="aspect-[4/3] bg-gray-200 rounded-lg mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2 mt-1"></div>
+              <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-2 sm:h-3 bg-gray-200 rounded w-1/2 mt-1"></div>
             </div>
           ))}
         </div>
@@ -201,17 +200,17 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
   }
 
   return (
-    <div className="bg-white rounded-2xl p-4 md:p-6 w-full overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-dark">Similar Ads</h3>
+    <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 w-full overflow-hidden">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-bold text-dark">Similar Ads</h3>
         {ads.length > 0 && (
-          <span className="text-sm text-gray-500">{ads.length} ads</span>
+          <span className="text-xs sm:text-sm text-gray-500">{ads.length}+</span>
         )}
       </div>
       
       {error && (
-        <div className="flex items-center gap-2 text-red-500 text-sm mb-4 p-3 bg-red-50 rounded-lg">
-          <AlertCircle className="w-4 h-4" />
+        <div className="flex items-center gap-2 text-red-500 text-xs sm:text-sm mb-3 sm:mb-4 p-2 sm:p-3 bg-red-50 rounded-lg">
+          <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
           <span>{error}</span>
           <button 
             onClick={() => fetchAds(1, true)} 
@@ -223,23 +222,23 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
       )}
       
       {ads.length === 0 && !loading ? (
-        <div className="text-center py-8 text-gray-500">
-          <p>No similar ads found</p>
+        <div className="text-center py-6 sm:py-8 text-gray-500">
+          <p className="text-sm">No similar ads found</p>
           <button 
             onClick={() => fetchAds(1, true)} 
-            className="text-primary-600 hover:underline mt-2"
+            className="text-primary-600 hover:underline mt-2 text-sm"
           >
             Refresh
           </button>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
             {ads.map((ad) => (
               <Link
                 key={ad.id}
                 href={`/ad/${ad.slug}`}
-                className="group block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                className="group block bg-white rounded-lg sm:rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 sm:hover:-translate-y-1"
               >
                 <div className="relative aspect-[4/3] bg-gray-100">
                   {(() => {
@@ -271,15 +270,15 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
                   })()}
                   {getConditionBadge(ad.condition)}
                 </div>
-                <div className="p-3">
-                  <h4 className="font-medium text-dark text-sm line-clamp-2 group-hover:text-primary-600 transition-colors">
+                <div className="p-2 sm:p-3">
+                  <h4 className="font-medium text-dark text-xs sm:text-sm line-clamp-2 group-hover:text-primary-600 transition-colors">
                     {ad.title}
                   </h4>
-                  <p className="text-lg font-bold text-primary-600 mt-1">
+                  <p className="text-sm sm:text-lg font-bold text-primary-600 mt-0.5 sm:mt-1">
                     {formatPrice(ad.price, ad.currency)}
                   </p>
-                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-2">
-                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                  <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500 mt-1 sm:mt-2">
+                    <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
                     <span className="truncate">{getLocationDisplay(ad)}</span>
                   </div>
                 </div>
@@ -288,15 +287,15 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
           </div>
 
           {/* Infinite scroll trigger */}
-          <div ref={loadMoreRef} className="mt-6 text-center py-4">
+          <div ref={loadMoreRef} className="mt-4 sm:mt-6 text-center py-3 sm:py-4">
             {loadingMore && (
               <div className="flex items-center justify-center gap-2 text-gray-500">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">Loading more...</span>
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                <span className="text-xs sm:text-sm">Loading more...</span>
               </div>
             )}
             {!hasMore && ads.length > 0 && (
-              <p className="text-sm text-gray-400">No more ads</p>
+              <p className="text-xs sm:text-sm text-gray-400">No more ads to show</p>
             )}
           </div>
         </>
