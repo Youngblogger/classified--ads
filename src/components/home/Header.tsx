@@ -1201,10 +1201,9 @@ export default function Header() {
               {/* Post Ad Button */}
               <Link
                 href="/post-ad"
-                className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-accent-400"
+                className="hidden sm:flex items-center px-6 py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-accent-400"
               >
-                <Plus className="w-4 h-4" />
-                <span>SELL</span>
+                SELL
               </Link>
 
               {/* Mobile Menu Toggle */}
@@ -1534,10 +1533,9 @@ export default function Header() {
             <Link
               href="/post-ad"
               onClick={() => setShowMobileMenu(false)}
-              className="flex items-center justify-center gap-2 w-full py-3.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-xl font-bold tracking-wide transition-all duration-300 shadow-lg border-2 border-accent-400"
+              className="flex items-center justify-center w-full py-3.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-xl font-bold tracking-wide transition-all duration-300 shadow-lg border-2 border-accent-400"
             >
-              <Plus className="w-5 h-5" />
-              <span>SELL</span>
+              SELL
             </Link>
           </div>
         </div>

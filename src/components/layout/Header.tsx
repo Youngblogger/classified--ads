@@ -693,17 +693,15 @@ export default function Header() {
             {isAuthenticated ? (
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center gap-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
+                className="hidden md:flex items-center px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
               >
-                <Plus className="w-4 h-4" />
                 SELL
               </Link>
             ) : (
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center gap-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
+                className="hidden md:flex items-center px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-green-400"
               >
-                <Plus className="w-4 h-4" />
                 SELL
               </Link>
             )}
@@ -773,9 +771,8 @@ export default function Header() {
             {isAuthenticated && (
               <Link
                 href="/post-ad"
-                className="flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors"
+                className="flex items-center justify-center py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors"
               >
-                <Plus className="w-5 h-5" />
                 Post Your Ad
               </Link>
             )}
