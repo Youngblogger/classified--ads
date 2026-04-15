@@ -99,10 +99,10 @@ export default function ReportAdModal({ adId, isOpen, onClose }: ReportAdModalPr
       className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[99999] p-0 sm:p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-t-3xl sm:rounded-xl w-full max-h-[85vh] sm:max-h-[85vh] flex flex-col shadow-2xl pb-safe">
+      <div className="bg-white rounded-t-3xl sm:rounded-xl w-full sm:max-w-md max-h-[85vh] sm:max-h-[85vh] flex flex-col shadow-2xl pb-safe">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-xl font-bold text-gray-900">Report this Ad</h2>
+          <h2 className="text-lg font-bold text-gray-900">Report this Ad</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -112,8 +112,8 @@ export default function ReportAdModal({ adId, isOpen, onClose }: ReportAdModalPr
         </div>
 
         {/* Content - Scrollable */}
-        <div className="px-5 py-4 overflow-y-auto flex-1">
-          <p className="text-sm font-bold text-gray-700 mb-4">Why are you reporting this ad?</p>
+        <div className="px-4 sm:px-5 py-3 overflow-y-auto flex-1">
+          <p className="text-sm font-bold text-gray-700 mb-3">Why are you reporting this ad?</p>
           
           <div className="space-y-2">
             {REPORT_REASONS.map((reason) => (

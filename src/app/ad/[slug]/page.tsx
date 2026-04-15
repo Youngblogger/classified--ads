@@ -769,8 +769,26 @@ export default function AdDetailPage() {
               {/* Copy Link */}
               <div className="px-6 pb-6">
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(currentUrl);
+                  onClick={async () => {
+                    try {
+                      if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(currentUrl);
+                        toast.success('Link copied!');
+                      } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = currentUrl;
+                        textarea.style.position = 'fixed';
+                        textarea.style.left = '-9999px';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        toast.success('Link copied!');
+                      }
+                    } catch (err) {
+                      console.error('Copy failed:', err);
+                      toast.error('Failed to copy');
+                    }
                     setShowSharePopup(false);
                   }}
                   className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-2xl transition-all group shadow-lg"
