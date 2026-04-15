@@ -747,7 +747,7 @@ export default function Header() {
                       }}
                       onFocus={() => setShowSearchDropdown(true)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="w-full pl-12 pr-14 py-4 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm shadow-sm transition-all duration-300"
+                      className="w-full pl-12 pr-14 md:py-3 lg:py-4 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm shadow-sm transition-all duration-300"
                       autoComplete="off"
                       autoCorrect="off"
                       spellCheck="false"
@@ -1184,13 +1184,13 @@ export default function Header() {
                   <>
                     <button
                       onClick={toggleLoginModal}
-                      className="px-4 py-2 text-white hover:text-primary-100 font-medium transition-colors"
+                      className="md:px-3 lg:px-4 md:py-2 lg:py-2 text-white hover:text-primary-100 font-medium transition-colors text-sm"
                     >
                       Login
                     </button>
                     <button
                       onClick={toggleRegisterModal}
-                      className="px-4 py-2 text-white hover:text-primary-100 font-medium transition-colors"
+                      className="md:px-3 lg:px-4 md:py-2 lg:py-2 text-white hover:text-primary-100 font-medium transition-colors text-sm"
                     >
                       Register
                     </button>
@@ -1201,7 +1201,7 @@ export default function Header() {
               {/* Post Ad Button */}
               <Link
                 href="/post-ad"
-                className="hidden sm:flex items-center px-6 py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-accent-400"
+                className="hidden md:flex items-center md:px-4 lg:px-6 md:py-2 lg:py-2.5 mr-2 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-full font-bold md:text-sm lg:text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-accent-400"
               >
                 SELL
               </Link>
