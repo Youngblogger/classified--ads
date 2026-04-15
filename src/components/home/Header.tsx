@@ -731,7 +731,7 @@ export default function Header() {
             </Link>
 
             {/* Desktop Search Bar */}
-            <div className="hidden lg:flex flex-1 max-w-2xl">
+            <div className="hidden md:flex flex-1 max-w-2xl">
               <div className="relative flex w-full items-center" ref={searchRef}>
                 <div className="relative group w-full">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -1205,14 +1205,6 @@ export default function Header() {
               >
                 SELL
               </Link>
-
-              {/* Mobile Menu Toggle */}
-              <button
-                onClick={() => setShowMobileMenu(true)}
-                className="lg:hidden p-2.5 hover:bg-primary-700 rounded-xl transition-colors"
-              >
-                <Menu className="w-6 h-6 text-white" />
-              </button>
             </div>
           </div>
         </div>
