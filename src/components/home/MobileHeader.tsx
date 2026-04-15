@@ -3,8 +3,59 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, MapPin } from 'lucide-react';
+import { Search, MapPin, MoreHorizontal } from 'lucide-react';
 import { useGlobalStore, useAuthStore, useUIStore } from '@/lib/store';
+import CategoryModal from '@/components/ui/CategoryModal';
+
+const iconEmojis: Record<string, string> = {
+  'smartphone': '📱', 'phone': '📱', 'mobile': '📱',
+  'telecommunications': '📱', 'phones-tablets': '📱', 'mobile-phones-tablets': '📱',
+  'car': '🚗', 'vehicle': '🚗', 'vehicles': '🚗', 'automotive': '🚗', 'cars-vehicles': '🚗',
+  'property': '🏠', 'home': '🏠', 'real-estate': '🏠', 'properties': '🏠',
+  'electronics': '💻', 'laptop': '💻', 'computer': '💻', 'computers-laptops': '💻',
+  'fashion': '👕', 'clothing': '👕', 'apparel': '👕', 'fashion-style': '👕',
+  'services': '🛠️', 'service': '🛠️', 'consulting-professional': '🛠️', 'jobs': '💼',
+  'furniture': '🛋️', 'home-furniture': '🛋️', 'home-furniture-appliances': '🛋️',
+  'repair': '🔧', 'repairs': '🔧', 'tools': '🔧', 'tools-equipment': '🔧', 'repair-services': '🔧',
+  'beauty': '💄', 'health': '❤️', 'wellness-spa': '💆', 'hair-beauty': '💇',
+  'baby': '👶', 'babies-kids': '👶', 'kids': '👶',
+  'sports': '🏋️', 'fitness': '🏋️', 'sports-fitness': '🏋️',
+  'books': '📚', 'books-media': '📚', 'education': '🎓',
+  'pets': '🐾', 'animals': '🐾', 'pets-animals': '🐾',
+  'garden': '🌳', 'outdoor': '🌳', 'agriculture': '🌾', 'agriculture-farming': '🌾',
+  'gaming': '🎮',
+  'shopping': '🛒',
+  'food': '🍽️', 'catering': '🍽️',
+  'music': '🎵', 'entertainment': '🎭',
+  'travel': '✈️',
+  'construction': '🏗️', 'art': '🎨', 'art-collectibles': '🎨',
+  'transport': '🚚', 'logistics': '🚚',
+  'medical': '🏥', 'healthcare': '🏥',
+};
+
+function getCategoryEmoji(slug?: string, name?: string): string {
+  if (!slug && !name) return '📁';
+  const slugKey = slug?.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  if (slugKey && iconEmojis[slugKey]) return iconEmojis[slugKey];
+  const nameKey = name?.toLowerCase().split(' ')[0];
+  if (nameKey && iconEmojis[nameKey]) return iconEmojis[nameKey];
+  return '📁';
+}
+
+const CATEGORIES = [
+  { slug: 'vehicles', name: 'Vehicles' },
+  { slug: 'mobile-phones-tablets', name: 'Mobile Phones & Tablets' },
+  { slug: 'property', name: 'Property' },
+  { slug: 'electronics', name: 'Electronics' },
+  { slug: 'fashion', name: 'Fashion' },
+  { slug: 'home-furniture', name: 'Home, Furniture & Appliances' },
+  { slug: 'services', name: 'Services' },
+  { slug: 'repair-services', name: 'Repairs' },
+  { slug: 'health-beauty', name: 'Health & Beauty' },
+  { slug: 'sports-fitness', name: 'Sports & Fitness' },
+  { slug: 'babies-kids', name: 'Babies & Kids' },
+  { slug: 'jobs', name: 'Jobs' },
+];
 
 export default function MobileHeader() {
   const router = useRouter();
@@ -13,6 +64,7 @@ export default function MobileHeader() {
   const { toggleLocationModal } = useUIStore();
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   
   const locationDisplay = selectedLocation 
@@ -48,6 +100,11 @@ export default function MobileHeader() {
 
   const openLocationModal = () => {
     toggleLocationModal();
+  };
+
+  const handleCategoryClick = (slug: string) => {
+    router.push(`/ads?category=${slug}`);
+    setShowCategoryModal(false);
   };
 
   return (
@@ -87,6 +144,39 @@ export default function MobileHeader() {
           </div>
         </div>
       </div>
+
+      {/* Category Section */}
+      <div className="bg-gray-50 border-t border-gray-100">
+        <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto scrollbar-thin whitespace-nowrap">
+          {CATEGORIES.map((category) => (
+            <button
+              key={category.slug}
+              onClick={() => handleCategoryClick(category.slug)}
+              className="flex flex-col items-center gap-0.5 flex-shrink-0 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <span className="text-base leading-none">{getCategoryEmoji(category.slug, category.name)}</span>
+              <span className="text-[10px] text-gray-700 font-medium text-center max-w-[60px] truncate">
+                {category.name}
+              </span>
+            </button>
+          ))}
+          <button
+            onClick={() => setShowCategoryModal(true)}
+            className="flex flex-col items-center gap-0.5 flex-shrink-0 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <span className="text-base leading-none">
+              <MoreHorizontal className="w-5 h-5 text-gray-500" />
+            </span>
+            <span className="text-[10px] text-gray-500 font-medium">See All</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Category Modal */}
+      <CategoryModal 
+        isOpen={showCategoryModal} 
+        onClose={() => setShowCategoryModal(false)} 
+      />
     </header>
   );
 }

@@ -415,8 +415,6 @@ export default function Header() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
-            {/* Notifications */}
             {isAuthenticated && (
               <div className="relative" ref={notificationRef}>
                 <button 
