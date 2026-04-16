@@ -1,4 +1,6 @@
-import type { Metadata, Viewport } from 'next';
+'use client';
+
+import { usePathname } from 'next/navigation';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import LoginModal from '@/components/ui/LoginModal';
@@ -8,38 +10,36 @@ import Preloader from '@/components/ui/Preloader';
 import AuthProvider from '@/components/providers/AuthProvider';
 import BottomNav from '@/components/ui/BottomNav';
 
-export const metadata: Metadata = {
-  title: {
-    default: 'iList - Your Trusted Classified Marketplace',
-    template: '%s | iList',
-  },
-  description: 'Buy and sell items locally on iList. Find great deals on electronics, vehicles, furniture, and more in your area.',
-  keywords: ['classified ads', 'marketplace', 'buy and sell', 'local listings', 'secondhand'],
-  authors: [{ name: 'iList Team' }],
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    siteName: 'iList',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  themeColor: '#0d9488',
-  viewportFit: 'cover',
-};
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  
+  // Check if we're on an admin page
+  const isAdminPage = pathname?.startsWith('/admin');
+  
+  // For admin pages, render without frontend-specific components
+  if (isAdminPage) {
+    return (
+      <html lang="en">
+        <head>
+          <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+          <title>iList Admin</title>
+        </head>
+        <body style={{ fontFamily: 'Inter, system-ui, sans-serif', margin: 0, padding: 0 }}>
+          {children}
+          <Toaster position="top-right" />
+        </body>
+      </html>
+    );
+  }
+  
+  // For frontend pages, render with all modals and components
   return (
     <html lang="en">
       <head>

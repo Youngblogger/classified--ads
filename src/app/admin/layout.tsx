@@ -196,19 +196,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Verify auth with backend on mount
   useEffect(() => {
+    // Skip auth check for login page - always show login form
     if (isLoginPage) {
       setInitialTokenChecked(true);
       setAuthChecked(true);
+      
+      // Clear any existing admin state on login page to force fresh login
+      // This prevents auto-login from main site auth
+      setVerifiedUser(null);
+      setIsVerified(false);
       return;
     }
     
-    const token = localStorage.getItem('admin_token') || localStorage.getItem('authToken');
+    const token = localStorage.getItem('admin_token');
     const userData = localStorage.getItem('user');
     
     if (token && userData) {
       try {
         const user = JSON.parse(userData);
-        if (user.role === 'admin') {
+        // Only auto-login if it has admin_token (not regular authToken)
+        if (user.role === 'admin' && token) {
           setVerifiedUser(user);
           setUser(user);
           setIsVerified(true);
