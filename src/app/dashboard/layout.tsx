@@ -369,7 +369,7 @@ export default function DashboardLayout({
                 className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white text-primary-600 rounded-full font-semibold text-sm hover:bg-primary-50 transition-colors shadow-md"
               >
                 <PlusIcon className="w-4 h-4" />
-                <span>Post Ad</span>
+                <span>SELL</span>
               </Link>
             </div>
           </div>

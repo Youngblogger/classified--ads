@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Search, MapPin, Menu, X, ChevronDown, User, 
-  Plus, Heart, MessageCircle, Settings, LogOut,
+  Plus, Heart, MessageSquare, Settings, LogOut,
   LayoutDashboard, Package, Clock, Loader2, Check,
   Bell, CreditCard, TrendingUp, Shield, AlertTriangle,
   ThumbsUp, ThumbsDown, Megaphone, Ban, FileText,
@@ -145,7 +145,7 @@ const NOTIFICATION_ICONS: Record<string, any> = {
   ad_deleted: AlertTriangle,
   ad_published: CheckCircle,
   ad_pending: Clock,
-  new_message: MessageCircle,
+  new_message: MessageSquare,
   new_ad_followed: Package,
   payment_received: CreditCard,
   payment_approved: CreditCard,
@@ -954,7 +954,7 @@ export default function Header() {
                         onClick={() => setMessageDropdownOpen(!messageDropdownOpen)}
                         className="p-2.5 hover:bg-primary-700 rounded-xl transition-colors relative"
                       >
-                        <MessageCircle className="w-5 h-5 text-white" />
+                        <MessageSquare className="w-5 h-5 text-white" />
                         {unreadMessagesCount > 0 && (
                           <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
                             {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
@@ -978,7 +978,7 @@ export default function Header() {
                           <div className="max-h-80 overflow-y-auto">
                             {recentMessages.length === 0 ? (
                               <div className="px-4 py-8 text-center text-slate-500">
-                                <MessageCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                                 No messages
                               </div>
                             ) : (
@@ -1161,7 +1161,7 @@ export default function Header() {
                             <span className="text-sm text-slate-700">Favorites</span>
                           </Link>
                           <Link href="/dashboard/messages" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
-                            <MessageCircle className="w-4 h-4 text-slate-500" />
+                            <MessageSquare className="w-4 h-4 text-slate-500" />
                             <span className="text-sm text-slate-700">Messages</span>
                           </Link>
                           <div className="border-t border-slate-100 mt-2 pt-2">
@@ -1481,7 +1481,7 @@ export default function Header() {
                     <span className="font-medium text-slate-700">Favorites</span>
                   </Link>
                   <Link href="/dashboard/messages" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
-                    <MessageCircle className="w-5 h-5 text-slate-500" />
+                    <MessageSquare className="w-5 h-5 text-slate-500" />
                     <span className="font-medium text-slate-700">Messages</span>
                   </Link>
                   <Link href="/help" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
@@ -1543,7 +1543,7 @@ export default function Header() {
                     className="flex flex-col items-center gap-1 p-2"
                   >
                     <div className="relative">
-                      <MessageCircle className="w-6 h-6 text-slate-500" />
+                      <MessageSquare className="w-6 h-6 text-slate-500" />
                       {unreadMessagesCount > 0 && (
                         <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-medium">
                           {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
@@ -1569,7 +1569,7 @@ export default function Header() {
                       <div className="max-h-64 overflow-y-auto">
                         {recentMessages.length === 0 ? (
                           <div className="px-4 py-6 text-center text-slate-500">
-                            <MessageCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                            <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                             <p className="text-sm">No messages</p>
                           </div>
                         ) : (

@@ -5,12 +5,12 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Home, 
-  MessageCircle, 
+  MessageSquare, 
   Plus, 
   Bookmark, 
   User,
   Home as HomeOutline,
-  MessageCircle as MessageCircleOutline,
+  MessageSquare as MessageSquareOutline,
   Bookmark as BookmarkOutline,
   User as UserOutline
 } from 'lucide-react';
@@ -63,7 +63,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
       path: '/',
     },
     {
-      icon: isActive('/dashboard/messages') ? MessageCircle : MessageCircleOutline,
+      icon: isActive('/dashboard/messages') ? MessageSquare : MessageSquareOutline,
       label: 'Chats',
       path: '/dashboard/messages',
       requiresAuth: true,
