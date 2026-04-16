@@ -29,7 +29,8 @@ import {
   EyeOff,
   AlertCircle,
   Building2,
-  Share2
+  Share2,
+  Mail
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { api, notificationsApi } from '@/lib/api';
@@ -239,18 +240,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     setAuthChecked(true);
   }, [pathname, logout, setUser, isLoginPage]);
 
-  // Fetch notifications
+  // Fetch admin notifications
   useEffect(() => {
-    if (!token || !isVerified) return;
+    if (!isVerified || !verifiedUser) return;
     
-    const fetchNotifications = async () => {
+    const fetchAdminNotifications = async () => {
       try {
         setNotificationsLoading(true);
-        const res = await notificationsApi.getAll();
-        if (res.data?.data) {
-          setNotifications(res.data.data.slice(0, 10));
-        } else if (Array.isArray(res.data)) {
-          setNotifications(res.data.slice(0, 10));
+        const adminToken = localStorage.getItem('admin_token');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/secure-control-9ja/notifications`, {
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Accept': 'application/json',
+          },
+        });
+        const data = await res.json();
+        if (data?.data) {
+          setNotifications(data.data.slice(0, 10));
+        } else if (Array.isArray(data)) {
+          setNotifications(data.slice(0, 10));
         }
       } catch (error) {
         console.error('Failed to fetch notifications:', error);
@@ -259,11 +267,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
     };
 
-    fetchNotifications();
+    fetchAdminNotifications();
     
-    const interval = setInterval(fetchNotifications, 30000);
+    // Poll more frequently for new notifications
+    const interval = setInterval(fetchAdminNotifications, 10000);
     return () => clearInterval(interval);
-  }, [token, isVerified]);
+  }, [isVerified, verifiedUser]);
 
   // Skip auth check for login page - render without auth verification
   // Show loading while verifying auth (except for login page)
@@ -393,14 +402,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const handleMarkAsRead = async (notificationId: number) => {
-    try {
-      await notificationsApi.markAsRead(notificationId);
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
-      );
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-    }
+    // These are admin-generated notifications, just update local state
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+    );
   };
 
   return (
@@ -543,7 +548,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       </div>
                     ) : notifications.length === 0 ? (
                       <div className="px-4 py-8 text-center text-gray-500">
-                        No notifications
+                        <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">No notifications yet</p>
+                        <p className="text-xs text-gray-400 mt-1">You'll receive alerts for new ads, reports, and more</p>
                       </div>
                     ) : (
                       notifications.map((notification) => (

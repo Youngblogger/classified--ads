@@ -7,6 +7,7 @@ use App\Models\Review;
 use App\Models\ReviewLike;
 use App\Models\Ad;
 use App\Services\NotificationService;
+use App\Services\AdminEmailNotificationService;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
@@ -40,7 +41,15 @@ class ReviewController extends Controller
             'comment' => $validated['comment'],
         ]);
 
+        $review->load(['user', 'ad']);
         NotificationService::reviewReceived($review);
+
+        // Send email notification to admin
+        try {
+            AdminEmailNotificationService::newReviewSubmitted($review);
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+        }
 
         return response()->json(['message' => 'Review submitted', 'review' => $review], 201);
     }

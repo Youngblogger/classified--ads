@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\OtpService;
 use App\Services\ReferralService;
+use App\Services\AdminEmailNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -44,6 +45,13 @@ class AuthController extends Controller
 
         if ($referralCode) {
             $this->referralService->applyReferralCode($referralCode, $user->id);
+        }
+
+        // Send email notification to admin about new user registration
+        try {
+            AdminEmailNotificationService::newUserRegistered($user);
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

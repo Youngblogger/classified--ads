@@ -11,6 +11,7 @@ use App\Models\Notification;
 use App\Models\Transaction;
 use App\Models\Wallet;
 use App\Services\NotificationService;
+use App\Services\AdminEmailNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -1035,5 +1036,47 @@ class AdminController extends Controller
         ];
 
         return response()->json($stats);
+    }
+
+    // Admin Notifications - Get recent admin-relevant notifications
+    public function notifications(Request $request)
+    {
+        // Get notifications from admin_notifications table (only pending ads and reports)
+        $notifications = \App\Models\AdminNotification::orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(function($notification) {
+                return [
+                    'id' => $notification->id,
+                    'type' => $notification->type,
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'is_read' => $notification->is_read,
+                    'created_at' => $notification->created_at->toISOString(),
+                    'data' => [
+                        'reference_type' => $notification->reference_type,
+                        'reference_id' => $notification->reference_id,
+                    ],
+                ];
+            });
+        
+        // Get pending ads count for badge
+        $pendingAdsCount = \App\Models\AdminNotification::where('type', 'new_ad_pending')
+            ->where('is_read', false)
+            ->count();
+        
+        return response()->json([
+            'data' => $notifications,
+            'pending_ads_count' => $pendingAdsCount,
+        ]);
+    }
+    
+    // Mark admin notification as read
+    public function markNotificationRead($id)
+    {
+        $notification = \App\Models\AdminNotification::findOrFail($id);
+        $notification->update(['is_read' => true]);
+        
+        return response()->json(['success' => true]);
     }
 }

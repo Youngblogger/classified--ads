@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Models\Ad;
 use App\Services\NotificationService;
+use App\Services\AdminEmailNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -28,6 +29,25 @@ class ReportController extends Controller
         $validated['status'] = 'pending';
 
         $report = Report::create($validated);
+        $report->load(['user', 'ad']);
+
+        // Send notifications to admin
+        try {
+            // Save notification for admin bell
+            \App\Models\AdminNotification::create([
+                'type' => 'ad_reported',
+                'title' => 'Ad Reported',
+                'message' => "Ad '{$report->ad->title}' was reported by {$report->user->name}: {$report->reason}",
+                'reference_type' => 'report',
+                'reference_id' => $report->id,
+                'is_read' => false,
+            ]);
+            
+            // Send email notification to admin
+            AdminEmailNotificationService::adReported($report);
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+        }
 
         return response()->json([
             'message' => 'Report submitted successfully',

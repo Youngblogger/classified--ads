@@ -73,6 +73,8 @@ Route::prefix('secure-control-9ja')->middleware([\App\Http\Middleware\SecureAdmi
     
     // Admin dashboard & management
     Route::get('/dashboard', [AdminController::class, 'dashboard']);
+    Route::get('/notifications', [AdminController::class, 'notifications']);
+    Route::put('/notifications/{id}/read', [AdminController::class, 'markNotificationRead']);
     
     // Ads management
     Route::get('/ads', [AdminController::class, 'ads']);

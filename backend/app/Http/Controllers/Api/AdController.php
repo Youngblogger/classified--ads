@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Ad;
 use App\Models\AdImage;
+use App\Services\AdminEmailNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -187,7 +188,27 @@ class AdController extends Controller
                 }
             }
 
-            $ad->load(['images', 'category', 'location']);
+            $ad->load(['images', 'category', 'location', 'user']);
+
+            // Send notifications to admin ONLY if ad needs manual approval
+            if (!$autoApproval['should_auto_approve']) {
+                try {
+                    // Save notification for admin bell - only for pending ads
+                    \App\Models\AdminNotification::create([
+                        'type' => 'new_ad_pending',
+                        'title' => 'New Ad Pending Approval',
+                        'message' => "New ad '{$ad->title}' by {$ad->user->name} needs your review",
+                        'reference_type' => 'ad',
+                        'reference_id' => $ad->id,
+                        'is_read' => false,
+                    ]);
+                    
+                    // Send email notification to admin
+                    AdminEmailNotificationService::adApprovalRequired($ad);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to send admin notification: ' . $e->getMessage());
+                }
+            }
 
             return response()->json([
                 'message' => $autoApproval['should_auto_approve'] ? 'Ad created successfully and is now live!' : 'Ad created successfully and is pending approval.',
