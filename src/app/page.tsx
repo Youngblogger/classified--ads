@@ -75,14 +75,14 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
       const firstImg = ad.images[0];
       // If it's a string, use it directly
       if (typeof firstImg === 'string') return firstImg;
-      // If it's an object, try various URL fields
-      return firstImg.url || firstImg.full_url || firstImg.original_url || firstImg.thumbnail || FALLBACK_IMAGE;
+      // If it's an object, try various URL fields (in order of priority)
+      return firstImg.display_url || firstImg.thumbnail || firstImg.full_url || firstImg.url || firstImg.original_url || FALLBACK_IMAGE;
     }
     // Check for single image field
     if (ad.image || ad.main_image) {
       const img = ad.image || ad.main_image;
       if (typeof img === 'string') return img;
-      return img.url || img.full_url || FALLBACK_IMAGE;
+      return img.display_url || img.thumbnail || img.full_url || img.url || FALLBACK_IMAGE;
     }
     return FALLBACK_IMAGE;
   };
@@ -201,13 +201,13 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
           {formatPrice(ad.price, ad.currency)}
         </p>
         
-        <h3 className="font-semibold text-gray-800 line-clamp-2 group-hover:text-primary-600 transition-colors text-sm sm:text-base md:text-lg leading-snug mt-1">
+        <h3 className="font-semibold text-primary-600 line-clamp-2 group-hover:text-primary-700 transition-colors text-sm sm:text-base md:text-lg leading-snug mt-1">
           {ad.title}
         </h3>
         
-        {(ad.short_description || ad.description) && (
+        {(ad.short_description || ad.description || ad.excerpt || ad.summary) && (
           <p className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2 line-clamp-1 sm:line-clamp-2">
-            {ad.short_description || ad.description}
+            {ad.short_description || ad.description || ad.excerpt || ad.summary}
           </p>
         )}
         
@@ -250,7 +250,6 @@ export default function HomePage() {
   const ITEMS_PER_PAGE = 12;
 
   const fetchAds = useCallback(async (pageNum: number = 1) => {
-    if (isFetching) return;
     setIsFetching(true);
     
     if (pageNum === 1) {
@@ -283,13 +282,26 @@ export default function HomePage() {
       const json = await res.json();
       
       let newAds: any[] = [];
-      if (Array.isArray(json)) {
-        newAds = json;
-      } else if (json?.data && Array.isArray(json.data)) {
+      let hasMorePages = false;
+      
+      if (json?.data && Array.isArray(json.data)) {
         newAds = json.data;
+        if (json.meta) {
+          const currentPage = parseInt(json.meta.current_page) || 1;
+          const lastPage = json.meta.last_page || Math.ceil((json.meta.total || 0) / (parseInt(json.meta.per_page) || ITEMS_PER_PAGE));
+          hasMorePages = currentPage < lastPage;
+        } else {
+          hasMorePages = newAds.length >= ITEMS_PER_PAGE;
+        }
+      } else if (Array.isArray(json)) {
+        newAds = json;
+        hasMorePages = false;
+      } else {
+        hasMorePages = false;
       }
       
       // Normalize ads to have images array
+      console.log('Fetched ads, count:', newAds.length, 'hasMore:', hasMorePages, 'page:', pageNum);
       newAds = newAds.map((ad: any) => {
         if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
           const mainImg = ad.main_image || ad.slider_images[0];
@@ -310,7 +322,7 @@ export default function HomePage() {
         );
         return uniqueAds;
       });
-      setHasMore(newAds.length >= ITEMS_PER_PAGE);
+      setHasMore(hasMorePages);
       setAdsError(false);
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -323,7 +335,7 @@ export default function HomePage() {
       setLoadingMore(false);
       setIsFetching(false);
     }
-  }, [isFetching]);
+  }, []);
 
   useEffect(() => {
     fetchAds(1);
@@ -338,21 +350,17 @@ export default function HomePage() {
     return () => clearTimeout(timeout);
   }, []);
 
-  const handleLoadMore = useCallback(() => {
-    if (loadingMore || !hasMore || isFetching) return;
-    
+  const handleLoadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
     fetchAds(nextPage);
-  }, [loadingMore, hasMore, page, isFetching]);
+  };
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f5f6f7' }} suppressHydrationWarning>
-      <div className="sticky top-0 z-[1001]">
-        <ResponsiveHeader />
-      </div>
+      <ResponsiveHeader />
       
-      <main className="flex-1 pt-[56px] pb-16 md:pt-0 md:pb-0" suppressHydrationWarning>
+      <main className="flex-1" suppressHydrationWarning>
         {/* Hero Section - Hidden on mobile */}
         <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
           {/* Background Pattern */}
@@ -465,33 +473,6 @@ export default function HomePage() {
 
 
 
-        {/* Top Categories */}
-        <section className="py-4 bg-white">
-          <div className="px-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base sm:text-lg font-bold text-gray-900">
-                Top Categories
-              </h2>
-              <Link href="/ads" className="text-xs sm:text-sm text-primary-600 hover:underline font-medium">
-                View All
-              </Link>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
-              {FEATURED_CATEGORIES.map((cat, index) => (
-                <Link 
-                  key={index} 
-                  href={`/ads?category=${encodeURIComponent(cat.name)}`}
-                  className="flex flex-col items-center p-3 bg-gray-50 hover:bg-primary-50 rounded-xl transition-colors border border-gray-100 hover:border-primary-200"
-                >
-                  <span className="text-2xl sm:text-3xl mb-1">{cat.icon}</span>
-                  <span className="text-xs sm:text-sm font-medium text-gray-700 text-center">{cat.name}</span>
-                  <span className="text-[10px] sm:text-xs text-gray-400">{cat.count}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Latest Ads - jiji.ng style */}
         <section className="py-4 bg-white">
           <div className="px-4">
@@ -504,7 +485,7 @@ export default function HomePage() {
               </Link>
             </div>
             
-            {!mounted || loading ? (
+            {!mounted ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="bg-white rounded-lg overflow-hidden animate-pulse shadow-md border border-gray-200">
@@ -517,6 +498,8 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
+            ) : loading ? (
+              <div className="text-center py-4">Loading...</div>
             ) : adsError ? (
               <>
                 <div className="text-center py-8">
@@ -535,16 +518,18 @@ export default function HomePage() {
               </>
             ) : recentAds.length > 0 ? (
               <>
-<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
                   {recentAds.map((ad: any, index: number) => (
-                    <AdCardWithImage key={ad.id} ad={ad} index={index} />
+                    <AdCardWithImage key={`${ad.id}-${index}`} ad={ad} index={index} />
                   ))}
                 </div>
-                <LoadMoreButton 
-                  loading={loadingMore} 
-                  hasMore={hasMore} 
-                  onLoadMore={handleLoadMore} 
-                />
+                {hasMore && (
+                  <LoadMoreButton 
+                    loading={loadingMore} 
+                    hasMore={hasMore} 
+                    onLoadMore={handleLoadMore} 
+                  />
+                )}
               </>
             ) : (
               <div className="text-center py-16">

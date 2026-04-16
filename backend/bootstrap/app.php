@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // Apply sanitization middleware to API routes
         $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,
             \App\Http\Middleware\SanitizeInput::class,
         ]);
     })

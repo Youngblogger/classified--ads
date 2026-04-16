@@ -108,7 +108,7 @@ export default function MobileHeader() {
   };
 
   return (
-    <header className="w-full bg-gradient-to-r from-primary-600 to-primary-700">
+    <header className="w-full sticky top-0 z-[100] bg-gradient-to-r from-primary-600 to-primary-700">
       <div className="flex items-center justify-between h-14 px-3 gap-2">
         {/* Logo */}
         <Link 
@@ -124,8 +124,9 @@ export default function MobileHeader() {
           onClick={openLocationModal}
           className="flex items-center gap-1 px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors flex-shrink-0"
         >
-          <span className="text-[10px] text-white font-medium max-w-[60px] sm:max-w-[80px] truncate">
-            {locationDisplay}
+          <MapPin className="w-3 h-3 text-white" />
+          <span className="text-[10px] text-white font-medium max-w-[60px] sm:max-w-[80px] truncate capitalize">
+            {locationDisplay.toLowerCase()}
           </span>
         </button>
 

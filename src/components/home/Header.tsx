@@ -669,7 +669,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50">
+    <header className="sticky top-0 z-[100] w-full">
       {/* TOP BAR */}
       <div className="bg-primary-600">
         <div className="container-app">
@@ -680,8 +680,8 @@ export default function Header() {
                 onClick={openLocationModal}
                 className="flex items-center gap-1.5 text-white hover:text-primary-100 transition-colors"
               >
-                <span className="hidden sm:inline">{selectedLocationState}</span>
-                <ChevronDown className="w-3 h-3" />
+                <MapPin className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline capitalize">{selectedLocationState.toLowerCase()}</span>
               </button>
             </div>
 
@@ -695,23 +695,7 @@ export default function Header() {
                     {user?.name?.split(' ')[0]}
                   </Link>
                 </div>
-              ) : (
-                <>
-                  <span className="text-white/50 hidden sm:block">|</span>
-                  <button
-                    onClick={toggleLoginModal}
-                    className="text-white hover:text-primary-100 transition-colors"
-                  >
-                    Login
-                  </button>
-                  <button
-                    onClick={toggleRegisterModal}
-                    className="text-white hover:text-primary-100 font-medium transition-colors"
-                  >
-                    Register
-                  </button>
-                </>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -1226,7 +1210,7 @@ export default function Header() {
                 )}
               >
                 <span>📑</span>
-                <span>All</span>
+                <span>All Categories</span>
                 <ChevronDown className={cn("w-3 h-3 transition-transform", showMegaMenu && "rotate-180")} />
               </button>
 
@@ -1339,30 +1323,33 @@ export default function Header() {
             </div>
 
             {/* Category Pills with emojis */}
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1">
-              {(apiCategories.length > 0 ? apiCategories : [
-                { slug: 'vehicles', name: 'Vehicles', icon: 'car' },
-                { slug: 'phones', name: 'Phones', icon: 'smartphone' },
-                { slug: 'electronics', name: 'Electronics', icon: 'laptop' },
-                { slug: 'properties', name: 'Properties', icon: 'home' },
-                { slug: 'furniture', name: 'Furniture', icon: 'sofa' },
-                { slug: 'fashion', name: 'Fashion', icon: 'shirt' },
-              ]).slice(0, 6).map((category: any) => (
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin flex-1 pb-1">
+              {[
+                { slug: 'vehicles', name: 'Vehicles', emoji: '🚗' },
+                { slug: 'mobile-phones-tablets', name: 'Phones & Tablets', emoji: '📱' },
+                { slug: 'property', name: 'Property', emoji: '🏠' },
+                { slug: 'electronics', name: 'Electronics', emoji: '💻' },
+                { slug: 'fashion', name: 'Fashion', emoji: '👗' },
+                { slug: 'home-furniture', name: 'Furniture', emoji: '🛋️' },
+                { slug: 'health-beauty', name: 'Health & Beauty', emoji: '🧴' },
+                { slug: 'babies-kids', name: 'Babies & Kids', emoji: '👶' },
+                { slug: 'services', name: 'Services', emoji: '🧰' },
+                { slug: 'repair-services', name: 'Repairs', emoji: '🔧' },
+                { slug: 'jobs', name: 'Jobs', emoji: '💼' },
+                { slug: 'agriculture-farming', name: 'Agriculture', emoji: '🐄' },
+                { slug: 'sports-fitness', name: 'Sports', emoji: '⚽' },
+                { slug: 'pets-animals', name: 'Pets', emoji: '🐾' },
+              ].map((category) => (
                 <Link
                   key={category.slug}
                   href={`/ads?category=${category.slug}`}
-                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-primary-600 hover:bg-primary-50 transition-colors whitespace-nowrap flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-primary-50 text-slate-700 hover:text-primary-700 transition-colors whitespace-nowrap flex-shrink-0 text-sm font-medium border border-transparent hover:border-primary-200"
                 >
-                  <span>📁</span>
+                  <span className="hidden md:inline text-base">{category.emoji}</span>
+                  <span className="md:hidden text-base">📁</span>
                   <span>{category.name}</span>
                 </Link>
               ))}
-              <Link href="/promote-ad" className="text-slate-600 hover:text-primary-600 whitespace-nowrap text-xs font-medium flex items-center gap-1 flex-shrink-0">
-                📢 Promote
-              </Link>
-              <Link href="/premium-plans" className="text-slate-600 hover:text-primary-600 whitespace-nowrap text-xs font-medium flex items-center gap-1 flex-shrink-0">
-                ⭐ Plans
-              </Link>
             </div>
           </div>
         </div>

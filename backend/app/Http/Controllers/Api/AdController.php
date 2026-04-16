@@ -42,6 +42,9 @@ class AdController extends Controller
                 });
             }
 
+            $totalCount = (clone $query)->count();
+            $lastPage = $limit > 0 ? ceil($totalCount / $limit) : 1;
+
             $allAds = $query
                 ->orderBy('created_at', 'desc')
                 ->offset($offset)
@@ -52,14 +55,13 @@ class AdController extends Controller
                 $ad->setRelation('images', $ad->images);
             });
 
-            $totalCount = (clone $query)->count();
-
             return response()->json([
                 'data' => $allAds->values(),
                 'meta' => [
                     'total' => $totalCount,
                     'current_page' => $page,
                     'per_page' => $limit,
+                    'last_page' => $lastPage,
                 ]
             ]);
         } catch (\Exception $e) {

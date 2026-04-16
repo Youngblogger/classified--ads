@@ -361,10 +361,10 @@ export default function AdDetailPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <ResponsiveHeader />
-      <main className="flex-1 container mx-auto px-[5px] py-6 pt-20 md:pt-6">
+      <main className="flex-1 container mx-auto px-[5px] py-3 md:py-6 pt-6 md:pt-6">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
-          <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
+          <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
             <Link href="/" className="hover:text-primary-600 flex items-center gap-1"><Home className="w-4 h-4" />Home</Link>
             <ChevronRight className="w-4 h-4" />
             <Link href={`/ads?category=${ad.category?.slug || ad.category}`} className="hover:text-primary-600">{ad.category?.name || ad.category || 'Category'}</Link>
@@ -372,7 +372,7 @@ export default function AdDetailPage() {
             <span className="text-gray-900 truncate max-w-[200px]">{ad.title}</span>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-3 md:gap-6">
             {/* Left Column - Images & Details */}
             <div className="lg:col-span-2 space-y-px">
               {/* Image Gallery */}

@@ -210,38 +210,41 @@ export default function Footer() {
       {/* Bottom Bar */}
       <div className="border-t border-slate-700 bg-slate-950">
         <div className="container-app py-4">
-          {/* Legal Links - Above Social Icons */}
-          <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm mb-4">
-            <Link href="/privacy-policy" className="text-slate-400 hover:text-white transition-colors">
-              Privacy Policy
-            </Link>
-            <span className="text-slate-600">|</span>
-            <Link href="/terms-of-service" className="text-slate-400 hover:text-white transition-colors">
-              Terms of Service
-            </Link>
-            <span className="text-slate-600">|</span>
-            <Link href="/cookie-policy" className="text-slate-400 hover:text-white transition-colors">
-              Cookie Policy
-            </Link>
-          </div>
+          {/* Legal Links and Social Icons - Same Line */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+            {/* Legal Links - Left */}
+            <div className="flex items-center flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
+              <Link href="/privacy-policy" className="text-slate-400 hover:text-white transition-colors">
+                Privacy Policy
+              </Link>
+              <span className="text-slate-600">|</span>
+              <Link href="/terms-of-service" className="text-slate-400 hover:text-white transition-colors">
+                Terms of Service
+              </Link>
+              <span className="text-slate-600">|</span>
+              <Link href="/cookie-policy" className="text-slate-400 hover:text-white transition-colors">
+                Cookie Policy
+              </Link>
+            </div>
 
-          {/* Social Icons */}
-          <div className="flex items-center justify-center gap-3 mb-4">
-            {socialLinks.slice(0, 4).map((social) => {
-              const Icon = social.icon;
-              return (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 bg-slate-800 text-slate-400 hover:bg-primary-600 hover:text-white"
-                >
-                  <Icon className="w-4 h-4" />
-                </a>
-              );
-            })}
+            {/* Social Icons - Right */}
+            <div className="flex items-center gap-3">
+              {socialLinks.slice(0, 4).map((social) => {
+                const Icon = social.icon;
+                return (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                    className="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 bg-slate-800 text-slate-400 hover:bg-primary-600 hover:text-white"
+                  >
+                    <Icon className="w-4 h-4" />
+                  </a>
+                );
+              })}
+            </div>
           </div>
 
           {/* Copyright - Bottom - Always Visible */}
