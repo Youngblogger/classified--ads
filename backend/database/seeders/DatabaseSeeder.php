@@ -39,6 +39,10 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($nigerianUsers as $userData) {
+            $month = [1, 2, 3, 4][array_rand([1, 2, 3, 4])];
+            $day = rand(1, 28);
+            $createdDate = \Carbon\Carbon::create(2026, $month, $day, rand(0, 23), rand(0, 59), rand(0, 59));
+            
             User::updateOrCreate(
                 ['email' => $userData['email']],
                 [
@@ -49,6 +53,8 @@ class DatabaseSeeder extends Seeder
                     'phone' => $userData['phone'],
                     'location' => $userData['location'],
                     'verified' => true,
+                    'created_at' => $createdDate,
+                    'updated_at' => $createdDate,
                 ]
             );
         }
@@ -63,6 +69,8 @@ class DatabaseSeeder extends Seeder
                 'phone' => '09094826173',
                 'location' => 'Lagos',
                 'verified' => true,
+                'created_at' => \Carbon\Carbon::create(2026, 1, 15, 10, 0, 0),
+                'updated_at' => \Carbon\Carbon::create(2026, 1, 15, 10, 0, 0),
             ]
         );
     }

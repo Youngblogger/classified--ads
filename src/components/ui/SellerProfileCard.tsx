@@ -28,6 +28,11 @@ interface SellerProfileCardProps {
 function formatDate(dateString?: string): string {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
+  const now = new Date();
+  // Cap at current date to prevent future dates
+  if (date > now) {
+    return now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  }
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
