@@ -39,6 +39,12 @@ class SeededAdsSeeder extends Seeder
                 ? $seed['short_description'] 
                 : substr($seed['description'], 0, 150);
             
+            // Generate random date in different months of 2026
+            $months = [1, 2, 3, 4]; // January to April 2026
+            $month = $months[array_rand($months)];
+            $day = rand(1, 28);
+            $createdDate = \Carbon\Carbon::create(2026, $month, $day, rand(0, 23), rand(0, 59), rand(0, 59));
+            
             $adData = [
                 'user_id' => $userId,
                 'category_id' => $category->id,
@@ -57,8 +63,8 @@ class SeededAdsSeeder extends Seeder
                 'is_verified' => rand(0, 1),
                 'views' => rand(10, 500),
                 'phone' => '080' . rand(10000000, 99999999),
-                'created_at' => now()->subDays(rand(1, 30)),
-                'updated_at' => now(),
+                'created_at' => $createdDate,
+                'updated_at' => $createdDate,
             ];
             
             $adInsertId = DB::table('ads')->insertGetId($adData);

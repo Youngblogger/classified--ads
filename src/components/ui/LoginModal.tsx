@@ -295,8 +295,9 @@ export default function LoginModal() {
         version: 0
       }));
       
-      // Also set cookie (API looks for this)
-      document.cookie = `token=${data.token};path=/;max-age=${7*24*60*60}`;
+      // Also set cookie (API looks for this) - respect remember me
+      const cookieMaxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60; // 30 days if remember me, 7 days otherwise
+      document.cookie = `token=${data.token};path=/;max-age=${cookieMaxAge}`;
       
       // Use login function which handles zustand persist
       login(data.user, data.token);
@@ -313,6 +314,12 @@ export default function LoginModal() {
           const savedPasswords = JSON.parse(localStorage.getItem('saved-passwords') || '{}');
           savedPasswords[email] = password;
           localStorage.setItem('saved-passwords', JSON.stringify(savedPasswords));
+        } else {
+          // Clear saved credentials if remember me is not checked
+          const savedPasswords = JSON.parse(localStorage.getItem('saved-passwords') || '{}');
+          delete savedPasswords[email];
+          localStorage.setItem('saved-passwords', JSON.stringify(savedPasswords));
+          localStorage.removeItem('remember-email');
         }
       }
       toast.success(`Welcome back, ${userName}!`);
@@ -426,8 +433,10 @@ export default function LoginModal() {
     }
   };
 
+  if (!isLoginModalOpen) return null;
+
   return (
-    <div className={isLoginModalOpen ? '' : 'hidden'}>
+    <>
       <div 
         className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
         onClick={handleClose}
@@ -500,7 +509,13 @@ export default function LoginModal() {
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        // Auto-fill password if email has saved credentials
+                        if (savedPasswords[e.target.value]) {
+                          setPassword(savedPasswords[e.target.value]);
+                        }
+                      }}
                       placeholder="Enter your email"
                       className="w-full pl-14 pr-5 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
                       style={{ height: '60px' }}
@@ -728,6 +743,6 @@ export default function LoginModal() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

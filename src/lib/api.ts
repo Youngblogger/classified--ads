@@ -82,15 +82,12 @@ class ApiClient {
               if (!isAlreadyRedirecting && !url.includes('/auth/me')) {
                 (window as any).__authRedirecting = true;
                 
-                toast.error('Your session has expired. Please login to continue.');
-                
                 setTimeout(() => {
-                  window.location.href = '/login';
-                }, 1500);
+                  window.location.href = '/session-expired';
+                }, 500);
               }
             }
           } else if (isAdminEndpoint && !isAuthEndpoint) {
-            // Admin session expired - redirect to admin login
             deleteCookie('token');
             
             if (typeof window !== 'undefined') {
@@ -99,11 +96,9 @@ class ApiClient {
               if (!isAlreadyRedirecting) {
                 (window as any).__adminAuthRedirecting = true;
                 
-                toast.error('Admin session expired. Please login again.');
-                
                 setTimeout(() => {
-                  window.location.href = '/admin/login';
-                }, 1500);
+                  window.location.href = '/session-expired?admin=true';
+                }, 500);
               }
             }
           }
