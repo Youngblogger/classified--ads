@@ -92,6 +92,14 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   // WhatsApp same as phone
   const [sameAsPhone, setSameAsPhone] = useState<boolean>(true);
   
+  // Pre-fill phone from registration/localStorage
+  useEffect(() => {
+    const savedPhone = localStorage.getItem('user_phone');
+    if (savedPhone && !phone) {
+      setPhone(savedPhone);
+    }
+  }, []);
+  
   // Get category name from categoryId
   const getCategoryName = (id: number | null): string => {
     if (!id) return '';

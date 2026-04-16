@@ -190,6 +190,15 @@ class AdController extends Controller
 
             $ad->load(['images', 'category', 'location', 'user']);
 
+            // Dispatch notification to followers (queued job - non-blocking)
+            if ($autoApproval['should_auto_approve']) {
+                try {
+                    \App\Jobs\NotifyFollowersOfNewAdJob::dispatch($ad->id, $user->id);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to dispatch follower notification job: ' . $e->getMessage());
+                }
+            }
+
             // Send notifications to admin ONLY if ad needs manual approval
             if (!$autoApproval['should_auto_approve']) {
                 try {

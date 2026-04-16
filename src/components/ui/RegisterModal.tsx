@@ -119,6 +119,14 @@ export default function RegisterModal() {
       if (data.user && data.token) {
         const userName = data.user?.name || 'there';
         login(data.user, data.token);
+        
+        // Save phone number to localStorage for later use
+        if (data.user?.phone) {
+          localStorage.setItem('user_phone', data.user.phone);
+        } else if (phone) {
+          localStorage.setItem('user_phone', phone);
+        }
+        
         toast.success(`Account created successfully! Welcome, ${userName}!`);
         closeAllModals();
         resetForm();
@@ -159,6 +167,13 @@ export default function RegisterModal() {
       document.cookie = `token=${data.token};path=/;max-age=${7*24*60*60};SameSite=Lax`;
       login(data.user, data.token);
       
+      // Save phone number to localStorage for later use (post-ad form, profile, etc.)
+      if (data.user?.phone) {
+        localStorage.setItem('user_phone', data.user.phone);
+      } else if (phone) {
+        localStorage.setItem('user_phone', phone);
+      }
+      
       // Redirect to homepage for new users
       window.location.href = '/';
     } else {
@@ -188,7 +203,7 @@ export default function RegisterModal() {
   return (
     <div className={isRegisterModalOpen ? '' : 'hidden'}>
       <div 
-        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4"
         onClick={handleClose}
       >
         <div 

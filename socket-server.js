@@ -1,7 +1,7 @@
 const { Server } = require('socket.io');
-const { createServer } = require('http');
+const http = require('http');
 
-const httpServer = createServer((req, res) => {
+const httpServer = http.createServer((req, res) => {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -25,8 +25,10 @@ const httpServer = createServer((req, res) => {
         const { userId, notification } = JSON.parse(body);
         
         // Emit to the specific user's room
-        io.to(`user:${userId}`).emit('notification', notification);
-        console.log(`Notification emitted to user ${userId}:`, notification.type);
+        if (io) {
+          io.to(`user:${userId}`).emit('notification', notification);
+          console.log(`Notification emitted to user ${userId}:`, notification.type);
+        }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -52,13 +54,15 @@ const httpServer = createServer((req, res) => {
 
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    credentials: false,
+    allowedHeaders: ['*']
   },
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  transports: ['polling', 'websocket'],
+  allowEIO3: true
 });
 
 const onlineUsers = new Map();
@@ -145,6 +149,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.SOCKET_PORT || 3006;
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Socket.IO server running on port ${PORT}`);
 });

@@ -161,12 +161,6 @@ export default function MyAdsPage() {
           <h2 className="text-2xl font-bold text-gray-900">My Ads</h2>
           <p className="text-gray-500 text-sm mt-1">Manage and track your listings</p>
         </div>
-        <Link
-          href="/dashboard/post-ad"
-          className="inline-flex items-center justify-center px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors"
-        >
-          <span className="mr-2">+</span> Post New Ad
-        </Link>
       </div>
 
       {/* Filters */}

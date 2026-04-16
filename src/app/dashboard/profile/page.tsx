@@ -386,6 +386,11 @@ export default function ProfileSettingsPage() {
             parsed.state.user = updatedUser;
             localStorage.setItem('auth-storage', JSON.stringify(parsed));
           }
+          
+          // Save phone number for post-ad form auto-fill
+          if (phoneToSave) {
+            localStorage.setItem('user_phone', phoneToSave);
+          }
         } catch (e) {
           console.error('Failed to update localStorage:', e);
         }

@@ -168,12 +168,12 @@ export default function LocationModal() {
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 z-[100]"
+        className="fixed inset-0 bg-black/50 z-[200]"
         onClick={handleClose}
       />
       
       {/* Modal Container - Mobile Top */}
-      <div className="fixed inset-x-2 top-8 z-[101] sm:fixed sm:top-16 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:flex sm:justify-center sm:p-0">
+      <div className="fixed inset-x-2 top-8 z-[201] sm:fixed sm:top-16 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:flex sm:justify-center sm:p-0">
         <div 
           className="bg-white w-full max-w-md sm:w-[480px] rounded-xl flex flex-col sm:animate-scale-in h-[60vh] sm:h-[85vh]"
           onClick={(e) => e.stopPropagation()}

@@ -271,14 +271,10 @@ class NotificationService
 
     public static function notifyFollowersOfNewAd($ad)
     {
-        // Get all followers of this seller
-        $followers = \App\Models\Follow::where('following_id', $ad->user_id)->get();
+        // Dispatch to queue for better performance (non-blocking)
+        \App\Jobs\NotifyFollowersOfNewAdJob::dispatch($ad->id, $ad->user_id);
         
-        foreach ($followers as $follow) {
-            self::newAdFromFollowedSeller($ad, $follow->follower);
-        }
-        
-        return count($followers);
+        return \App\Models\Follow::where('following_id', $ad->user_id)->count();
     }
 
     // System Notifications

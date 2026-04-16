@@ -442,13 +442,13 @@ export default function LoginModal() {
   return (
     <>
       <div 
-        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4"
         onClick={handleClose}
       >
-        <div 
-          className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[95vh] overflow-hidden flex flex-col"
-          onClick={(e) => e.stopPropagation()}
-        >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[95vh] overflow-hidden flex flex-col z-[201]"
+        onClick={(e) => e.stopPropagation()}
+      >
           {/* Header - Match homepage hero gradient */}
           <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-6 py-5">
             <div className="flex justify-between items-center">

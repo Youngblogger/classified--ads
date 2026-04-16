@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3006';
 
 interface UseSocketOptions {
   userId?: number | null;
@@ -27,69 +27,99 @@ export function useSocket({
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
+  const [socketError, setSocketError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
 
+    // Clean up any existing connection
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    // Don't attempt connection if URL is localhost and we're not in development
+    const isLocalhost = SOCKET_URL.includes('localhost');
+    
     // Initialize socket connection
-    socketRef.current = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-    });
-
-    const socket = socketRef.current;
-
-    socket.on('connect', () => {
-      setIsConnected(true);
-      socket.emit('join', userId);
-    });
-
-    socket.on('disconnect', () => {
-      setIsConnected(false);
-    });
-
-    socket.on('connect_error', (err) => {
-      console.log('Socket connection error:', err.message);
-      setIsConnected(false);
-    });
-
-    socket.on('usersOnline', (users: number[]) => {
-      setOnlineUsers(users);
-    });
-
-    if (onNewMessage) {
-      socket.on('newMessage', (message) => {
-        onNewMessage(message);
+    try {
+      socketRef.current = io(SOCKET_URL, {
+        transports: ['polling', 'websocket'],
+        timeout: 5000,
+        reconnection: false, // Disable auto-reconnection to prevent repeated errors
+        forceBase64: false,
       });
-    }
 
-    if (onUserTyping) {
-      socket.on('userTyping', onUserTyping);
-      socket.on('userStoppedTyping', onUserTyping);
-    }
+      const socket = socketRef.current;
 
-    if (onNotification) {
-      socket.on('notification', onNotification);
-    }
+      socket.on('connect', () => {
+        console.log('Socket connected:', socket.id);
+        setIsConnected(true);
+        setSocketError(null);
+        socket.emit('join', userId);
+      });
 
-    if (onPaymentCompleted) {
-      socket.on('paymentCompleted', onPaymentCompleted);
-    }
+      socket.on('disconnect', () => {
+        console.log('Socket disconnected');
+        setIsConnected(false);
+      });
 
-    if (onPromotionActivated) {
-      socket.on('promotionActivated', onPromotionActivated);
+      socket.on('connect_error', (err) => {
+        // Silently handle connection errors - socket is optional
+        console.log('Socket unavailable, using HTTP fallback');
+        setSocketError('Socket unavailable');
+        setIsConnected(false);
+      });
+
+      socket.on('usersOnline', (users: number[]) => {
+        setOnlineUsers(users);
+      });
+
+      if (onNewMessage) {
+        socket.on('newMessage', (message) => {
+          onNewMessage(message);
+        });
+      }
+
+      if (onUserTyping) {
+        socket.on('userTyping', onUserTyping);
+        socket.on('userStoppedTyping', onUserTyping);
+      }
+
+      if (onNotification) {
+        socket.on('notification', onNotification);
+      }
+
+      if (onPaymentCompleted) {
+        socket.on('paymentCompleted', onPaymentCompleted);
+      }
+
+      if (onPromotionActivated) {
+        socket.on('promotionActivated', onPromotionActivated);
+      }
+    } catch (error) {
+      console.log('Socket initialization skipped');
+      setSocketError('Socket not available');
     }
 
     return () => {
-      socket.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
   }, [userId, onNewMessage, onUserTyping, onNotification, onPaymentCompleted, onPromotionActivated]);
 
   const joinConversation = useCallback((conversationId: string) => {
-    socketRef.current?.emit('joinConversation', conversationId);
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('joinConversation', conversationId);
+    }
   }, []);
 
   const leaveConversation = useCallback((conversationId: string) => {
-    socketRef.current?.emit('leaveConversation', conversationId);
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('leaveConversation', conversationId);
+    }
   }, []);
 
   const sendMessage = useCallback((data: {
@@ -98,19 +128,27 @@ export function useSocket({
     receiverId: number;
     senderId: number;
   }) => {
-    socketRef.current?.emit('sendMessage', data);
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('sendMessage', data);
+    }
   }, []);
 
   const sendTyping = useCallback((data: { conversationId: string; userId: number }) => {
-    socketRef.current?.emit('typing', data);
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('typing', data);
+    }
   }, []);
 
   const stopTyping = useCallback((data: { conversationId: string; userId: number }) => {
-    socketRef.current?.emit('stopTyping', data);
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('stopTyping', data);
+    }
   }, []);
 
   const markRead = useCallback((data: { conversationId: string; messageId: number; readerId: number }) => {
-    socketRef.current?.emit('markRead', data);
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('markRead', data);
+    }
   }, []);
 
   const isUserOnline = useCallback((checkUserId: number) => {
@@ -118,21 +156,28 @@ export function useSocket({
   }, [onlineUsers]);
 
   const emitNotification = useCallback((userId: number, notification: any) => {
-    socketRef.current?.emit('notification', { userId, notification });
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('notification', { userId, notification });
+    }
   }, []);
 
   const emitPaymentCompleted = useCallback((userId: number, payment: any) => {
-    socketRef.current?.emit('paymentCompleted', { userId, payment });
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('paymentCompleted', { userId, payment });
+    }
   }, []);
 
   const emitPromotionActivated = useCallback((userId: number, promotion: any) => {
-    socketRef.current?.emit('promotionActivated', { userId, promotion });
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('promotionActivated', { userId, promotion });
+    }
   }, []);
 
   return {
     socket: socketRef.current,
     isConnected,
     onlineUsers,
+    socketError,
     joinConversation,
     leaveConversation,
     sendMessage,

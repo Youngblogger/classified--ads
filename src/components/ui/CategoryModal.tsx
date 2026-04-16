@@ -170,7 +170,7 @@ export default function CategoryModal({ isOpen, onClose, selectedCategory }: Cat
       />
       
       {/* Modal */}
-      <div className="fixed inset-0 z-[101] flex flex-col justify-start md:justify-center md:items-center">
+      <div className="fixed inset-0 z-[200] flex flex-col justify-start md:justify-center md:items-center">
         <div 
           className="bg-white w-full rounded-b-2xl flex flex-col overflow-hidden"
           style={{ maxHeight: '85vh', marginTop: '100px' }}

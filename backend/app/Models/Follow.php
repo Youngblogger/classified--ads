@@ -7,16 +7,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Follow extends Model
 {
-    public $timestamps = false;
+    public $timestamps = true;
+    public $updated_at = false;
     
     protected $fillable = [
         'follower_id',
         'following_id',
+        'created_at',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($follow) {
+            $follow->created_at = $follow->created_at ?? now();
+        });
+    }
 
     public function follower(): BelongsTo
     {
@@ -43,6 +52,11 @@ class Follow extends Model
     public static function getFollowingCount(int $userId): int
     {
         return self::where('follower_id', $userId)->count();
+    }
+
+    public static function getFollowerIds(int $userId): array
+    {
+        return self::where('following_id', $userId)->pluck('follower_id')->toArray();
     }
 
     public static function getFollowers(int $userId, int $limit = 20)

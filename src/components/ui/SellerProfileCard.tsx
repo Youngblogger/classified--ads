@@ -3,40 +3,26 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, UserPlus, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
-import { followApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 interface SellerProfileCardProps {
   seller: {
-    id?: number;
+    id: number;
     name: string;
-    profile_image?: string | null;
     avatar?: string | null;
-    avatar_url?: string | null;
     full_avatar_url?: string | null;
     google_avatar?: string | null;
     facebook_avatar?: string | null;
-    is_verified?: boolean;
     verified?: boolean;
-    title?: string;
-    joined_date?: string;
-    created_at?: string;
-    member_since?: string;
-    rating?: number;
-    total_reviews?: number;
     followers_count?: number;
     is_following?: boolean;
-    show_joined_date?: boolean;
-    phone?: string | null;
-    location?: string | null;
   };
   size?: 'sm' | 'md' | 'lg';
   showHoverEffect?: boolean;
-  showFollowButton?: boolean;
-  showJoinedDate?: boolean;
-  showPhone?: boolean;
-  showLocation?: boolean;
   className?: string;
+  showFollowButton?: boolean;
 }
 
 function formatDate(dateString?: string): string {
@@ -55,8 +41,6 @@ function formatFollowers(count?: number): string {
   }
   return `${count.toLocaleString()} follower${count === 1 ? '' : 's'}`;
 }
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
 
 function getProfileImage(seller: SellerProfileCardProps['seller']): string | null {
   // Try all possible avatar sources - match header order
@@ -176,13 +160,44 @@ export default function SellerProfileCard({
 
   useEffect(() => {
     if (seller.id && isAuthenticated) {
-      followApi.getUserStats(seller.id)
-        .then(res => {
-          setIsFollowing(res.data.is_following);
-          setFollowersCount(res.data.followers_count);
+      const getToken = () => {
+        // Try zustand store first
+        const storeToken = useAuthStore.getState().token;
+        if (storeToken) return storeToken;
+        
+        // Try localStorage authToken
+        const localToken = localStorage.getItem('authToken');
+        if (localToken) return localToken;
+        
+        // Try auth-storage
+        const authData = localStorage.getItem('auth-storage');
+        if (authData) {
+          try {
+            const parsed = JSON.parse(authData);
+            return parsed.state?.token;
+          } catch (e) {}
+        }
+        
+        return null;
+      };
+      
+      const token = getToken();
+      if (token) {
+        fetch(`${API_URL}/users/${seller.id}/stats`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
         })
-        .catch(console.error)
-        .finally(() => setIsInitializing(false));
+          .then(res => res.json())
+          .then(data => {
+            setIsFollowing(data.is_following);
+            setFollowersCount(data.followers_count);
+          })
+          .catch(console.error)
+          .finally(() => setIsInitializing(false));
+      } else {
+        setIsInitializing(false);
+      }
     } else {
       setIsInitializing(false);
     }
@@ -212,13 +227,68 @@ export default function SellerProfileCard({
     setIsLoading(true);
     
     try {
-      await followApi.follow(seller.id);
+      // Get token from multiple sources
+      const getToken = () => {
+        const storeToken = useAuthStore.getState().token;
+        if (storeToken) return storeToken;
+        
+        const localToken = localStorage.getItem('authToken');
+        if (localToken) return localToken;
+        
+        const authData = localStorage.getItem('auth-storage');
+        if (authData) {
+          try {
+            const parsed = JSON.parse(authData);
+            return parsed.state?.token;
+          } catch (e) {}
+        }
+        
+        // Try cookie
+        if (typeof document !== 'undefined') {
+          const cookies = document.cookie.split(';');
+          for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'token') return value;
+          }
+        }
+        
+        return null;
+      };
+      
+      const token = getToken();
+      
+      if (!token) {
+        toast.error('Session expired. Please login again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('Following seller:', seller.id, seller.name);
+      
+      const response = await fetch(`${API_URL}/follow`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ following_id: seller.id }),
+      });
+      
+      console.log('Follow response status:', response.status);
+      const data = await response.json();
+      console.log('Follow response data:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.message || data.error || `Failed to follow (${response.status})`);
+      }
+      
       setIsFollowing(true);
-      setFollowersCount(prev => prev + 1);
-      toast.success(`You're now following ${seller.name}`);
+      setFollowersCount(data.followers_count ?? 0);
+      toast.success(data.message || `You're now following ${seller.name}`);
     } catch (error: any) {
       console.error('Follow error:', error);
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Failed to follow';
+      const errorMsg = error.message || 'Failed to follow';
       toast.error(errorMsg);
     } finally {
       setIsLoading(false);

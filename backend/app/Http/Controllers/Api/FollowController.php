@@ -14,12 +14,28 @@ class FollowController extends Controller
 {
     public function follow(Request $request)
     {
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'following_id' => 'required|integer|exists:users,id',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
         $follower = $request->user();
-        $followingId = $request->following_id;
+        
+        if (!$follower) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please login.'
+            ], 401);
+        }
+
+        $followingId = (int) $request->following_id;
 
         // Cannot follow yourself
         if ($follower->id === $followingId) {
@@ -35,22 +51,26 @@ class FollowController extends Controller
             ->first();
 
         if ($existingFollow) {
-            // Unfollow
-            $existingFollow->delete();
-            
+            // Already following - just return success
             return response()->json([
                 'success' => true,
-                'is_following' => false,
+                'is_following' => true,
                 'followers_count' => Follow::getFollowersCount($followingId),
                 'following_count' => Follow::getFollowingCount($follower->id),
-                'message' => 'Unfollowed successfully'
+                'message' => 'Already following'
             ]);
         }
 
         // Follow
-        Follow::create([
+        $follow = Follow::create([
             'follower_id' => $follower->id,
             'following_id' => $followingId,
+        ]);
+
+        Log::info('User followed', [
+            'follower_id' => $follower->id,
+            'following_id' => $followingId,
+            'follow_id' => $follow->id
         ]);
 
         return response()->json([
