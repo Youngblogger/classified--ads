@@ -295,9 +295,13 @@ export default function LoginModal() {
         version: 0
       }));
       
-      // Also set cookie (API looks for this) - respect remember me
-      const cookieMaxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60; // 30 days if remember me, 7 days otherwise
-      document.cookie = `token=${data.token};path=/;max-age=${cookieMaxAge}`;
+      // Also set cookie (API looks for this) - 24 hours to match token expiration
+      const cookieMaxAge = 24 * 60 * 60; // 24 hours in seconds
+      document.cookie = `token=${data.token};path=/;max-age=${cookieMaxAge};SameSite=Lax`;
+      
+      // Store token expiration time (24 hours from now)
+      const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      localStorage.setItem('token_expires_at', tokenExpiresAt);
       
       // Use login function which handles zustand persist
       login(data.user, data.token);

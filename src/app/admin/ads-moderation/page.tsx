@@ -492,9 +492,59 @@ function EditAdModal({
                   ))}
                 </div>
               ) : !fieldsLoading && (
-                <div className="flex items-center gap-2 text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-gray-400" />
-                  No additional features available for this category
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
+                    <AlertCircle className="w-4 h-4 text-gray-400" />
+                    No predefined features for this category. Enter custom features below:
+                  </div>
+                  {/* Custom Features Input */}
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-gray-600">Add Custom Feature</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., Brand: Samsung, Color: Blue, etc."
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const value = input.value.trim();
+                            if (value) {
+                              const currentFeatures = Array.isArray(attributes.custom_features) 
+                                ? attributes.custom_features 
+                                : [];
+                              handleAttributeChange('custom_features', [...currentFeatures, value]);
+                              input.value = '';
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                    {/* Display added custom features */}
+                    {Array.isArray(attributes.custom_features) && attributes.custom_features.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {attributes.custom_features.map((feature: string, index: number) => (
+                          <div 
+                            key={index}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-sky-100 text-sky-700 rounded-full text-sm"
+                          >
+                            <span>{feature}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newFeatures = attributes.custom_features.filter((_: string, i: number) => i !== index);
+                                handleAttributeChange('custom_features', newFeatures);
+                              }}
+                              className="hover:text-sky-900"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

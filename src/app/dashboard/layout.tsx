@@ -335,35 +335,57 @@ export default function DashboardLayout({
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
+        {/* Header - Match homepage style */}
+        <header className="sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-700 shadow-lg">
           <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
             {/* Mobile menu button */}
             <button
-              className="lg:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              className="lg:hidden p-2 rounded-xl text-white hover:bg-primary-500 transition-colors"
               onClick={() => setSidebarOpen(true)}
             >
               <MenuIcon className="w-6 h-6" />
             </button>
 
+            {/* Logo - visible on mobile */}
+            <Link href="/" className="lg:hidden flex items-center gap-2">
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                <span className="text-primary-600 font-bold text-sm">i</span>
+              </div>
+              <span className="text-white font-bold text-lg">iList</span>
+            </Link>
+
             {/* Page Title */}
-            <div className="flex-1 lg:flex-none">
-              <h1 className="text-lg font-semibold text-gray-900">
+            <div className="flex-1 lg:flex-none hidden lg:block">
+              <h1 className="text-lg font-semibold text-white">
                 {navigation.find(item => item.href === pathname)?.name || 'My Account'}
               </h1>
             </div>
 
             {/* Right side actions */}
-            <div className="flex items-center gap-2 sm:gap-4">
-              {/* Notifications - redirects to notifications page */}
-              <Link href="/dashboard/notifications" className="relative p-2 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100">
-                <NotificationIcon className="w-5 h-5" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Post Ad Button */}
+              <Link 
+                href="/dashboard/post-ad"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white text-primary-600 rounded-full font-semibold text-sm hover:bg-primary-50 transition-colors shadow-md"
+              >
+                <PlusIcon className="w-4 h-4" />
+                <span>Post Ad</span>
+              </Link>
+
+              {/* Messages */}
+              <Link href="/dashboard/messages" className="p-2 rounded-xl text-white hover:bg-primary-500 transition-colors">
+                <MessageIcon className="w-5 h-5" />
+              </Link>
+
+              {/* Favorites */}
+              <Link href="/dashboard/favorites" className="p-2 rounded-xl text-white hover:bg-primary-500 transition-colors">
+                <HeartIcon className="w-5 h-5" />
               </Link>
 
               {/* User menu */}
               <div className="relative" ref={userMenuRef}>
                 <button
-                  className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-primary-500 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
@@ -372,26 +394,34 @@ export default function DashboardLayout({
                     <img 
                       src={getAvatarUrl((user as any).full_avatar_url || (user as any).avatar_url || (user as any).avatar || (user as any).google_avatar || (user as any).facebook_avatar || '')} 
                       alt={(user as any).name || 'User'} 
-                      className="w-9 h-9 rounded-full object-cover ring-2 ring-gray-200"
+                      className="w-9 h-9 rounded-full object-cover ring-2 ring-white/30"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center ring-2 ring-gray-200">
-                      <span className="text-primary-700 text-sm font-semibold">
+                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-white/30">
+                      <span className="text-white text-sm font-semibold">
                         {user ? (user as any).name?.charAt(0)?.toUpperCase() || 'U' : 'U'}
                       </span>
                     </div>
                   )}
-                  <ChevronDownIcon className={`w-4 h-4 text-gray-500 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDownIcon className={`w-4 h-4 text-white transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown menu */}
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                    <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-primary-50 to-white rounded-t-xl">
                       <p className="text-sm font-semibold text-gray-900">{user ? (user as any).name : 'User'}</p>
                       <p className="text-xs text-gray-500 truncate">{user ? (user as any).email : 'user@example.com'}</p>
                     </div>
                     <div className="py-1">
+                      <Link
+                        href="/dashboard"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <DashboardIcon className="w-4 h-4" />
+                        <span>My Account</span>
+                      </Link>
                       <Link
                         href="/dashboard/profile"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
@@ -407,6 +437,14 @@ export default function DashboardLayout({
                       >
                         <ShieldIcon className="w-4 h-4" />
                         <span>Security Settings</span>
+                      </Link>
+                      <Link
+                        href="/dashboard/notifications"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <BellIcon className="w-4 h-4" />
+                        <span>Notifications</span>
                       </Link>
                     </div>
                     <div className="border-t border-gray-100 my-1" />

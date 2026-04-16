@@ -114,7 +114,11 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Create token with 24-hour expiration
+        $token = $user->createToken('auth_token', ['*'], now()->addHours(24))->plainTextToken;
+        
+        // Calculate token expiration (24 hours from now)
+        $tokenExpiresAt = now()->addHours(24)->toIso8601String();
 
         return response()->json([
             'user' => [
@@ -131,6 +135,7 @@ class AuthController extends Controller
                 'verified' => $user->verified,
             ],
             'token' => $token,
+            'token_expires_at' => $tokenExpiresAt,
         ]);
     }
 

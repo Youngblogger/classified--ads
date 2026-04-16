@@ -136,18 +136,38 @@ export default function ChatModal({
   const handleNewMessage = useCallback((message: Message) => {
     if (!message || !message.conversation_id) return;
     
+    // Only process if the message belongs to this conversation
+    if (conversationId && message.conversation_id !== conversationId) return;
+    
+    // Check if this is a message sent by the current user (from socket broadcast)
+    // If so, don't add it as a new message - it's already been added optimistically
+    if (currentUserId && message.sender_id === currentUserId) {
+      // This is our own message coming back from socket - ignore it
+      setIsTyping(false);
+      return;
+    }
+    
     // Check if message already exists to prevent duplicates
     setMessages((prev) => {
-      const exists = prev.some(msg => msg.id === message.id);
-      if (exists) return prev;
-      
-      if (conversationId && message.conversation_id === conversationId) {
-        return [...prev, message];
+      // Check by ID (only if ID is valid)
+      if (message.id > 0) {
+        const existsById = prev.some(msg => msg.id === message.id);
+        if (existsById) return prev;
       }
-      return prev;
+      
+      // Also check by content + sender + timestamp to catch duplicates from socket
+      const existsByContent = prev.some(
+        msg => 
+          msg.sender_id === message.sender_id && 
+          msg.content === message.content &&
+          Math.abs(new Date(msg.created_at).getTime() - new Date(message.created_at).getTime()) < 3000
+      );
+      if (existsByContent) return prev;
+      
+      return [...prev, message];
     });
     setIsTyping(false);
-  }, [conversationId]);
+  }, [conversationId, currentUserId]);
 
   const handleTyping = useCallback((data: { conversationId: string; userId: number }) => {
     if (data.conversationId === conversationId?.toString() && data.userId !== currentUserId) {
@@ -222,13 +242,53 @@ export default function ChatModal({
     setIsLoading(true);
     try {
       const response = await messagesApi.getMessages(conversationId);
-      setMessages(response.data.data || response.data || []);
+      const fetchedMessages = response.data.data || response.data || [];
+      
+      // Deduplicate messages based on ID and content
+      const deduplicated = fetchedMessages.reduce((acc: Message[], msg) => {
+        const exists = acc.some(existing => 
+          (existing.id && msg.id && existing.id === msg.id) ||
+          (existing.sender_id === msg.sender_id && 
+           existing.content === msg.content &&
+           Math.abs(new Date(existing.created_at).getTime() - new Date(msg.created_at).getTime()) < 5000)
+        );
+        if (!exists) {
+          acc.push(msg);
+        }
+        return acc;
+      }, []);
+      
+      setMessages(deduplicated);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
       setIsLoading(false);
     }
   };
+  
+  // Deduplicate messages whenever they change
+  useEffect(() => {
+    if (messages.length <= 1) return;
+    
+    const uniqueMessages = messages.reduce((acc: Message[], msg, index) => {
+      // Keep the message if it's the first occurrence
+      const firstIndex = messages.findIndex(m => 
+        (m.id && msg.id && m.id === msg.id) ||
+        (m.sender_id === msg.sender_id && 
+         m.content === msg.content &&
+         Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 3000)
+      );
+      
+      if (firstIndex === index) {
+        acc.push(msg);
+      }
+      return acc;
+    }, []);
+    
+    if (uniqueMessages.length !== messages.length) {
+      setMessages(uniqueMessages);
+    }
+  }, [messages.length]);
 
   const startRecording = async () => {
     try {
@@ -366,13 +426,36 @@ export default function ChatModal({
       console.log('Voice message response:', response.data);
 
       // Update optimistic message - ensure voice type and audio_url are preserved
-      setMessages(prev => prev.map(msg => msg.id === tempId ? { 
-        ...response.data, 
-        status: 'sent',
-        message_type: response.data.message_type || 'voice',
-        audio_url: response.data.audio_url || response.data.attachment_url,
-        attachment_url: response.data.attachment_url || response.data.audio_url
-      } : msg));
+      // Remove optimistic message and check for duplicates from socket
+      setMessages(prev => {
+        // Remove the optimistic message
+        const withoutTemp = prev.filter(msg => msg.id !== tempId);
+        
+        // Check if the real message already exists (from socket)
+        const exists = withoutTemp.some(msg => msg.id === response.data.id && response.data.id > 0);
+        if (exists) {
+          // Update existing message if needed
+          return withoutTemp.map(msg => 
+            msg.id === response.data.id ? { 
+              ...msg, 
+              ...response.data, 
+              status: 'sent',
+              message_type: response.data.message_type || 'voice',
+              audio_url: response.data.audio_url || response.data.attachment_url,
+              attachment_url: response.data.attachment_url || response.data.audio_url
+            } : msg
+          );
+        }
+        
+        // Add the real message
+        return [...withoutTemp, { 
+          ...response.data, 
+          status: 'sent',
+          message_type: response.data.message_type || 'voice',
+          audio_url: response.data.audio_url || response.data.attachment_url,
+          attachment_url: response.data.attachment_url || response.data.audio_url
+        }];
+      });
 
       const convIdForSocket = response.data.conversation_id?.toString() || conversationId?.toString() || '-1';
       sendMessage({
@@ -504,10 +587,23 @@ export default function ChatModal({
         setConversationId(response.data.conversation_id);
       }
 
-      // Update message with real data
-      setMessages(prev => prev.map(msg => 
-        msg.id === tempId ? { ...response.data, status: 'sent' } : msg
-      ));
+      // Update message with real data and remove any duplicate messages that might have been added by socket
+      setMessages(prev => {
+        // First, remove the optimistic message
+        const withoutTemp = prev.filter(msg => msg.id !== tempId);
+        
+        // Then check if the real message already exists (from socket)
+        const exists = withoutTemp.some(msg => msg.id === response.data.id && response.data.id > 0);
+        if (exists) {
+          // Update existing message if needed
+          return withoutTemp.map(msg => 
+            msg.id === response.data.id ? { ...msg, ...response.data, status: 'sent' } : msg
+          );
+        }
+        
+        // Add the real message
+        return [...withoutTemp, { ...response.data, status: 'sent' }];
+      });
 
       // Send socket notification
       const convIdForSocket = response.data.conversation_id?.toString() || conversationId?.toString() || '-1';
@@ -542,13 +638,28 @@ export default function ChatModal({
         setConversationId(response.data.conversation_id);
       }
 
-      // Ensure message_type and attachment_url are preserved
-      const newMessage = {
-        ...response.data,
-        message_type: response.data.message_type || 'image',
-      };
-
-      setMessages(prev => [...prev, newMessage]);
+      // Check for duplicates and add the message
+      setMessages(prev => {
+        // Check if message already exists (from socket)
+        const exists = prev.some(msg => msg.id === response.data.id && response.data.id > 0);
+        if (exists) {
+          // Update existing message if needed
+          return prev.map(msg => 
+            msg.id === response.data.id ? { 
+              ...msg, 
+              ...response.data, 
+              message_type: response.data.message_type || 'image',
+            } : msg
+          );
+        }
+        
+        // Add the new message
+        const newMessage = {
+          ...response.data,
+          message_type: response.data.message_type || 'image',
+        };
+        return [...prev, newMessage];
+      });
     } catch (error: any) {
       console.error('Error uploading file:', error);
       const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Failed to upload file';
@@ -576,10 +687,10 @@ export default function ChatModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start xl:items-center justify-center z-50">
-      <div className="bg-[#efeae2] w-full h-[100dvh] md:h-[70vh] xl:h-[600px] xl:w-[90%] xl:max-w-[500px] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-[9999] overflow-hidden">
+      <div className="bg-[#efeae2] w-full h-[85dvh] md:h-[75vh] xl:h-[600px] xl:w-[90%] xl:max-w-[500px] flex flex-col mt-8 md:mt-16 xl:mt-0 rounded-[7px]">
         {/* Header */}
-        <div className="bg-[#f0f2f5] px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2 border-b border-[#d1d7db] flex-shrink-0">
+        <div className="bg-[#f0f2f5] px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2 border-b border-[#d1d7db] flex-shrink-0 rounded-t-[7px]">
           <button onClick={onClose} className="p-1.5 sm:p-1 hover:bg-[#d1d7db] rounded-full transition-colors">
             <X className="w-5 h-5 sm:w-6 sm:h-6 text-[#54656f]" />
           </button>
