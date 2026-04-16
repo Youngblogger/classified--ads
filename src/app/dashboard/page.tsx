@@ -160,20 +160,34 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome section with Wallet */}
-      <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
-        <div className="absolute right-0 top-0 h-full w-1/2 opacity-10">
-          <div className="grid grid-cols-3 gap-4 p-8">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-8 w-8 rounded-full bg-white"></div>
-            ))}
-          </div>
+      {/* Welcome section */}
+      <div className="bg-gradient-to-r from-primary-600 via-primary-500 to-primary-700 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full translate-y-1/2 -translate-x-1/2" />
+          <div className="absolute top-1/2 left-1/3 w-32 h-32 bg-white rounded-full -translate-y-1/2" />
         </div>
         <div className="relative z-10">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+              {user?.avatar_url || user?.google_avatar ? (
+                <img 
+                  src={user?.full_avatar_url || user?.avatar_url || user?.google_avatar} 
+                  alt={user?.name || 'User'} 
+                  className="w-full h-full rounded-2xl object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="text-2xl font-bold text-white">
+                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                </span>
+              )}
+            </div>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back, {user?.name || 'User'}!</h2>
-              <p className="text-primary-100">Here&apos;s what&apos;s happening with your listings today.</p>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-1">
+                Welcome back, <span className="text-primary-100">{user?.name?.split(' ')[0] || 'User'}</span>! 👋
+              </h2>
+              <p className="text-primary-100/80 text-sm sm:text-base">Here&apos;s what&apos;s happening with your listings today.</p>
             </div>
           </div>
         </div>

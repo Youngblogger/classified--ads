@@ -71,21 +71,13 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   const showFallback = !currentSrc || imgError;
 
   const getLocationDisplay = () => {
-    if (!ad.location && !ad.state && !ad.lga) return 'N/A';
+    const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
+    const lgaName = ad.lga || '';
     
-    // Use state field if available, otherwise use location.name
-    let stateName = ad.state || '';
-    let lgaName = ad.lga || '';
+    if (!stateName && !lgaName) return 'N/A';
     
-    // Handle both string location (seeded) and object location (API)
-    if (typeof ad.location === 'string') {
-      if (!stateName && ad.location) stateName = ad.location;
-    } else if (ad.location?.name) {
-      if (!stateName) stateName = ad.location.name;
-    }
-    
-    if (stateName && lgaName) {
-      return `${stateName}, ${lgaName}`;
+    if (stateName && lgaName && stateName !== lgaName) {
+      return `${lgaName}, ${stateName}`;
     }
     return stateName || lgaName || 'N/A';
   };

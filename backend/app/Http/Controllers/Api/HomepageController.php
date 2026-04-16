@@ -49,13 +49,15 @@ class HomepageController extends Controller
             'ads.created_at',
             'ads.views',
             'ads.is_seeded',
+            'ads.state',
+            'ads.lga',
             'categories.name as category_name',
             'categories.slug as category_slug',
             'locations.name as location_name',
             DB::raw('(SELECT url FROM ad_images WHERE ad_images.ad_id = ads.id AND ad_images.is_primary = 1 LIMIT 1) as image_url'),
         ])
         ->join('categories', 'ads.category_id', '=', 'categories.id')
-        ->join('locations', 'ads.location_id', '=', 'locations.id')
+        ->leftJoin('locations', 'ads.location_id', '=', 'locations.id')
         ->where('ads.status', 'active')
         ->where('ads.is_featured', true)
         ->where(function($q) {
@@ -81,13 +83,15 @@ class HomepageController extends Controller
             'ads.created_at',
             'ads.views',
             'ads.is_seeded',
+            'ads.state',
+            'ads.lga',
             'categories.name as category_name',
             'categories.slug as category_slug',
             'locations.name as location_name',
             DB::raw('(SELECT url FROM ad_images WHERE ad_images.ad_id = ads.id AND ad_images.is_primary = 1 LIMIT 1) as image_url'),
         ])
         ->join('categories', 'ads.category_id', '=', 'categories.id')
-        ->join('locations', 'ads.location_id', '=', 'locations.id')
+        ->leftJoin('locations', 'ads.location_id', '=', 'locations.id')
         ->where('ads.status', 'active')
         ->where(function($q) {
             $q->where('ads.is_seeded', true)

@@ -285,13 +285,13 @@ export default function DashboardLayout({
         }`}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
+          {/* Home Button */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">iL</span>
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-lg">H</span>
               </div>
-              <span className="text-xl font-bold text-dark">iList</span>
+              <span className="text-lg font-bold text-primary-600">Home</span>
             </Link>
             <button
               className="lg:hidden p-1 rounded-md text-gray-500 hover:text-gray-700"
@@ -371,98 +371,6 @@ export default function DashboardLayout({
                 <PlusIcon className="w-4 h-4" />
                 <span>Post Ad</span>
               </Link>
-
-              {/* Messages */}
-              <Link href="/dashboard/messages" className="p-2 rounded-xl text-white hover:bg-primary-500 transition-colors">
-                <MessageIcon className="w-5 h-5" />
-              </Link>
-
-              {/* Favorites */}
-              <Link href="/dashboard/favorites" className="p-2 rounded-xl text-white hover:bg-primary-500 transition-colors">
-                <HeartIcon className="w-5 h-5" />
-              </Link>
-
-              {/* User menu */}
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-primary-500 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  aria-expanded={userMenuOpen}
-                  aria-haspopup="true"
-                >
-                  {user && ((user as any).avatar || (user as any).avatar_url || (user as any).full_avatar_url || (user as any).google_avatar || (user as any).facebook_avatar) ? (
-                    <img 
-                      src={getAvatarUrl((user as any).full_avatar_url || (user as any).avatar_url || (user as any).avatar || (user as any).google_avatar || (user as any).facebook_avatar || '')} 
-                      alt={(user as any).name || 'User'} 
-                      className="w-9 h-9 rounded-full object-cover ring-2 ring-white/30"
-                    />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-white/30">
-                      <span className="text-white text-sm font-semibold">
-                        {user ? (user as any).name?.charAt(0)?.toUpperCase() || 'U' : 'U'}
-                      </span>
-                    </div>
-                  )}
-                  <ChevronDownIcon className={`w-4 h-4 text-white transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Dropdown menu */}
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-primary-50 to-white rounded-t-xl">
-                      <p className="text-sm font-semibold text-gray-900">{user ? (user as any).name : 'User'}</p>
-                      <p className="text-xs text-gray-500 truncate">{user ? (user as any).email : 'user@example.com'}</p>
-                    </div>
-                    <div className="py-1">
-                      <Link
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <DashboardIcon className="w-4 h-4" />
-                        <span>My Account</span>
-                      </Link>
-                      <Link
-                        href="/dashboard/profile"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <UserIcon className="w-4 h-4" />
-                        <span>Profile Settings</span>
-                      </Link>
-                      <Link
-                        href="/dashboard/security"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <ShieldIcon className="w-4 h-4" />
-                        <span>Security Settings</span>
-                      </Link>
-                      <Link
-                        href="/dashboard/notifications"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <BellIcon className="w-4 h-4" />
-                        <span>Notifications</span>
-                      </Link>
-                    </div>
-                    <div className="border-t border-gray-100 my-1" />
-                    <div className="py-1">
-                      <button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          handleLogout();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <LogoutIcon className="w-4 h-4" />
-                        <span>Logout</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </header>

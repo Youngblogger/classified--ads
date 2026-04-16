@@ -6,11 +6,6 @@ $app = require_once __DIR__.'/bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 use App\Models\Ad;
-use App\Models\AdImage;
-use App\Models\Category;
-use App\Models\Location;
-use App\Models\User;
-use Illuminate\Support\Str;
 
 $ctaOptions = [
     "Chat me for more details",
@@ -67,7 +62,7 @@ function getDescription($title, $ctaOptions) {
         '2 Bedroom Flat' => "Very clean and well painted 2 bedroom flat, tiles and ceiling are neat.\nWell secured area with 24 hours security, available for immediate occupation.\nAll rooms are spacious with good ventilation. {$cta}",
         '3 Bedroom' => "Very nice 3 bedroom flat with beautiful finishing, all rooms are en-suite.\nSpacious living room and kitchen with modern fittings throughout.\nWell secured estate with constant security, parking space available. {$cta}",
         'Toyota Hilux' => "Very clean Toyota Hilux in good condition, engine is strong and 4WD is working perfectly.\nGood for rough road and village trips, no mechanical issues at all.\nBody is clean with no accidents, all papers are complete. {$cta}",
-        'Mercedes Benz' => "German used Mercedes Benz in very good condition, all functions are working perfectly.\nEngine is smooth, AC is chilling and no mechanical issues.\nJust maintain well as you drive, all papers are complete and available. {$cta}",
+        'Mercedes' => "German used Mercedes in very good condition, all functions are working perfectly.\nEngine is smooth, AC is chilling and no mechanical issues.\nJust maintain well as you drive, all papers are complete and available. {$cta}",
         'Apple Watch' => "Very clean Apple Watch in like new condition, all health features are working perfectly.\nBattery lasts well, screen is scratch-free and strap is clean.\nOriginal box and charger included. {$cta}",
         'Infinix Note' => "Neatly used Infinix Note in good condition, 128GB storage and all working.\nCamera is clear, battery is strong and screen is clean with no cracks.\nSelling cheaper than market price. {$cta}",
         'Tecno Camon' => "Clean Tecno Camon in good condition, 128GB storage and good camera.\nEverything is working perfectly, battery is strong and no issues.\nVery affordable price. {$cta}",
@@ -98,7 +93,7 @@ function getDescription($title, $ctaOptions) {
         'Canon' => "Good Canon camera for photography, 2 lenses included.\nTakes clear and professional photos, great for events and portraits.\nAll functions are working perfectly. {$cta}",
         '4 Bedroom House' => "Complete 4 bedroom house with all rooms en-suite, BQ also included.\nSitting on 600sqm land with good foundation, well built and finished.\nC of O and all documents are available. {$cta}",
         'Land' => "600sqm land in Epe, dry land good for building house or commercial property.\nC of O is ready and all documents are complete.\nGood investment opportunity. {$cta}",
-        'Honda CG125' => "Strong Honda CG125 in good condition, engine is very powerful with no noise.\nNo issues at all, good for commercial use like dispatch or messenger work.\nAll papers complete. {$cta}",
+        'Honda CG' => "Strong Honda CG125 in good condition, engine is very powerful with no noise.\nNo issues at all, good for commercial use like dispatch or messenger work.\nAll papers complete. {$cta}",
         'Yamaha DT' => "Fast and reliable Yamaha DT, very clean and good for messenger work.\nEngine is strong, no issues and all parts working perfectly.\nGood for quick delivery and logistics business. {$cta}",
         'Bajaj Boxer' => "Very strong Bajaj Boxer 150, can carry heavy weight for commercial use.\nEngine is powerful and reliable, good for transporting goods.\nAll working perfectly. {$cta}",
         'iPad Pro' => "Very clean iPad Pro with 256GB storage in like new condition.\nKeyboard and pencil are included, great for work and creative use.\nAll functions working perfectly. {$cta}",
@@ -138,16 +133,15 @@ function getDescription($title, $ctaOptions) {
         'Kia Sorento' => "Clean Kia Sorento, 7 seater SUV in good condition.\nEngine is smooth, great for big family and long trips.\nAC is working, no mechanical issues. {$cta}",
         'Mazda CX-5' => "Clean Mazda CX-5 in good condition, good fuel consumption and nice design.\nEngine is smooth, all functions working perfectly.\nGreat SUV for everyday use. {$cta}",
         'Hyundai Tucson' => "Clean and sharp Hyundai Tucson in good condition, great for daily use.\nEngine is smooth, AC is working and all features are functional.\nNo issues at all. {$cta}",
-        'Samsung A53' => "Neatly used Samsung A53 in clean condition, 128GB storage.\nGood for daily use, all functions working perfectly.\nBattery is strong, screen is clean with no cracks. {$cta}",
-        'Vivo Y' => "Clean Vivo in good condition, 128GB storage and good for everyday use.\nBattery is strong, all functions working perfectly.\nVery affordable price. {$cta}",
-        'Nokia G' => "Clean Nokia G50 in good condition, 128GB storage and durable battery.\nAll functions working perfectly, good for heavy users.\nStrong and long lasting phone. {$cta}",
-        'Anker Power Bank' => "Brand new Anker power bank with fast charging capability.\nCan charge phone up to 4 times, great for travel and emergencies.\nCompact design. {$cta}",
-        'Sony A6' => "Clean Sony camera in like new condition, great for vlogging.\n4K video recording, compact size and easy to carry around.\nAll functions working perfectly. {$cta}",
-        '3 Bedroom Flat' => "Clean and spacious 3 bedroom flat, all rooms are en-suite.\nWell finished with modern fittings, great location and secure estate.\nAvailable for immediate occupation. {$cta}",
+        'Samsung A' => "Neatly used Samsung in clean condition, 128GB storage.\nGood for daily use, all functions working perfectly.\nBattery is strong, screen is clean with no cracks. {$cta}",
+        'Vivo' => "Clean Vivo in good condition, 128GB storage and good for everyday use.\nBattery is strong, all functions working perfectly.\nVery affordable price. {$cta}",
+        'Nokia' => "Clean Nokia in good condition, 128GB storage and durable battery.\nAll functions working perfectly, good for heavy users.\nStrong and long lasting phone. {$cta}",
+        'Anker' => "Brand new Anker power bank with fast charging capability.\nCan charge phone up to 4 times, great for travel and emergencies.\nCompact design. {$cta}",
+        'Sony A' => "Clean Sony camera in like new condition, great for vlogging.\n4K video recording, compact size and easy to carry around.\nAll functions working perfectly. {$cta}",
         'Warehouse' => "Mini warehouse space available, good for storage and light business.\nGround floor with easy access, secure location.\nAffordable rent. {$cta}",
         'Web Development' => "Professional web development services, skilled in WordPress, React and PHP.\nGood rates and quality work, fast delivery time.\nGreat for businesses and personal websites. {$cta}",
         'CCTV' => "Professional CCTV camera installation service, can install 4 to 16 cameras.\nRemote viewing available on your phone, quality work guaranteed.\nAll brands covered. {$cta}",
-        'Desktop Computer' => "Dell OptiPlex desktop computer in good working condition, i5 processor.\n8GB RAM and 256GB SSD, monitor included.\nGood for office and home use. {$cta}",
+        'Desktop' => "Dell OptiPlex desktop computer in good working condition, i5 processor.\n8GB RAM and 256GB SSD, monitor included.\nGood for office and home use. {$cta}",
         'Laptop Bag' => "Brand new Targus laptop bag, fits 15.6 inch laptops perfectly.\nGood quality with multiple pockets for accessories.\nGreat for school or office use. {$cta}",
         'Wireless Mouse' => "Brand new Logitech wireless mouse, smooth tracking and long battery life.\nErgonomic design for comfortable use, plug and play.\nGood for laptop and desktop. {$cta}",
         'Phone Charger' => "Original phone charger with fast charging capability, works for all phone brands.\nGood quality and durable, brand new in package.\nGreat price. {$cta}",
@@ -159,65 +153,17 @@ function getDescription($title, $ctaOptions) {
         }
     }
     
-    return "In good condition, everything is working perfectly.\nClean and well maintained, no issues at all.\n{$cta}";
+    return "In good condition, everything is working perfectly.\nClean and well maintained, no issues at all. {$cta}";
 }
 
-$adsData = [
-    ['title' => 'Toyota Camry 2015 SE - Sharp Body', 'short_description' => 'Clean Camry 2015', 'price' => 3800000, 'condition' => 'good', 'category' => 'cars', 'subcategory' => 'cars', 'images' => ['https://images.unsplash.com/photo-1621007945883-3c4d134ab4c7?w=800', 'https://images.unsplash.com/photo-1552519507-da3b142c6e34?w=800'], 'specifications' => ['brand' => 'Toyota', 'model' => 'Camry SE', 'year' => '2015', 'transmission' => 'Automatic', 'fuel_type' => 'Petrol', 'color' => 'Silver', 'mileage' => '95000']],
-    ['title' => 'Honda Accord 2013 - Nigerian Used', 'short_description' => 'Foreign used Honda Accord', 'price' => 3200000, 'condition' => 'good', 'category' => 'cars', 'subcategory' => 'cars', 'images' => ['ads/vehicles/honda_accord_2013_1.jpg'], 'specifications' => ['brand' => 'Honda', 'model' => 'Accord', 'year' => '2013', 'transmission' => 'Automatic', 'fuel_type' => 'Petrol', 'color' => 'Black', 'mileage' => '120000']],
-    ['title' => 'Lexus RX 350 2016 - Full Option', 'short_description' => 'Full option Lexus RX 350', 'price' => 18500000, 'condition' => 'like_new', 'category' => 'cars', 'subcategory' => 'cars', 'images' => ['ads/vehicles/lexus_rx350_1.jpg'], 'specifications' => ['brand' => 'Lexus', 'model' => 'RX 350', 'year' => '2016', 'transmission' => 'Automatic', 'fuel_type' => 'Petrol', 'color' => 'White', 'mileage' => '45000']],
-    ['title' => 'iPhone 13 Pro Max 256GB - Like New', 'short_description' => 'iPhone 13 Pro Max', 'price' => 420000, 'condition' => 'like_new', 'category' => 'smartphones', 'subcategory' => 'smartphones', 'images' => ['ads/phones/iphone13pm_1.jpg'], 'specifications' => ['brand' => 'Apple', 'model' => 'iPhone 13 Pro Max', 'storage' => '256GB', 'RAM' => '6GB', 'battery' => '89%']],
-    ['title' => 'Samsung Galaxy S22 Ultra - 256GB', 'short_description' => 'Samsung S22 Ultra', 'price' => 280000, 'condition' => 'like_new', 'category' => 'smartphones', 'subcategory' => 'smartphones', 'images' => ['ads/phones/samsung_s22_ultra_1.jpg'], 'specifications' => ['brand' => 'Samsung', 'model' => 'Galaxy S22 Ultra', 'storage' => '256GB', 'RAM' => '8GB', 'battery' => '90%']],
-    ['title' => 'iPhone 14 Pro 128GB - Deep Purple', 'short_description' => 'iPhone 14 Pro', 'price' => 480000, 'condition' => 'like_new', 'category' => 'smartphones', 'subcategory' => 'smartphones', 'images' => ['ads/phones/iphone14_pro_1.jpg'], 'specifications' => ['brand' => 'Apple', 'model' => 'iPhone 14 Pro', 'storage' => '128GB', 'RAM' => '6GB', 'battery' => '95%']],
-    ['title' => 'MacBook Pro 14 inch M2 - 512GB', 'short_description' => 'MacBook Pro 14 M2', 'price' => 650000, 'condition' => 'like_new', 'category' => 'laptops', 'subcategory' => 'laptops', 'images' => ['ads/laptops/macbook_pro_14_1.jpg'], 'specifications' => ['brand' => 'Apple', 'model' => 'MacBook Pro 14 M2', 'storage' => '512GB', 'RAM' => '16GB', 'processor' => 'M2']],
-    ['title' => 'Dell XPS 13 - 512GB', 'short_description' => 'Dell XPS 13', 'price' => 320000, 'condition' => 'good', 'category' => 'laptops', 'subcategory' => 'laptops', 'images' => ['ads/laptops/dell_xps13_1.jpg'], 'specifications' => ['brand' => 'Dell', 'model' => 'XPS 13', 'storage' => '512GB', 'RAM' => '16GB', 'processor' => 'Intel i7']],
-    ['title' => 'Samsung 55 inch Smart TV - 4K', 'short_description' => 'Samsung 55 inch 4K', 'price' => 280000, 'condition' => 'good', 'category' => 'tvs', 'subcategory' => 'tvs', 'images' => ['ads/tvs/samsung_55_1.jpg'], 'specifications' => ['brand' => 'Samsung', 'model' => 'Smart TV', 'size' => '55 inch', 'resolution' => '4K']],
-    ['title' => '2 Bedroom Flat at Ikoyi, Lagos', 'short_description' => '2BR flat Ikoyi', 'price' => 3500000, 'condition' => 'new', 'category' => 'apartments-rent', 'subcategory' => 'apartments-rent', 'images' => ['ads/property/2br_flat_ikoyi_1.jpg'], 'specifications' => ['type' => 'Flat', 'bedrooms' => 2, 'bathrooms' => 2, 'furnished' => 'No', 'location' => 'Ikoyi, Lagos']],
-    ['title' => '3 Bedroom Apartment at Victoria Island', 'short_description' => '3BR Victoria Island', 'price' => 5500000, 'condition' => 'new', 'category' => 'apartments-rent', 'subcategory' => 'apartments-rent', 'images' => ['ads/property/3br_victoria_island_1.jpg'], 'specifications' => ['type' => 'Apartment', 'bedrooms' => 3, 'bathrooms' => 3, 'furnished' => 'No', 'location' => 'Victoria Island, Lagos']],
-    ['title' => 'Toyota Hilux 2018 - VGS Sportivo', 'short_description' => 'Toyota Hilux 2018', 'price' => 12500000, 'condition' => 'good', 'category' => 'cars', 'subcategory' => 'cars', 'images' => ['ads/vehicles/toyota_hilux_1.jpg'], 'specifications' => ['brand' => 'Toyota', 'model' => 'Hilux VGS', 'year' => '2018', 'transmission' => 'Manual', 'fuel_type' => 'Diesel', 'color' => 'White', 'mileage' => '65000']],
-    ['title' => 'Mercedes Benz C300 2015', 'short_description' => 'Mercedes C300', 'price' => 9500000, 'condition' => 'good', 'category' => 'cars', 'subcategory' => 'cars', 'images' => ['ads/vehicles/mercedes_c300_1.jpg'], 'specifications' => ['brand' => 'Mercedes Benz', 'model' => 'C300', 'year' => '2015', 'transmission' => 'Automatic', 'fuel_type' => 'Petrol', 'color' => 'Black', 'mileage' => '85000']],
-    ['title' => 'Apple Watch Series 7 - 45mm', 'short_description' => 'Apple Watch Series 7', 'price' => 145000, 'condition' => 'like_new', 'category' => 'smartwatches', 'subcategory' => 'smartwatches', 'images' => ['ads/wearables/apple_watch_7_1.jpg'], 'specifications' => ['brand' => 'Apple', 'model' => 'Watch Series 7', 'size' => '45mm']],
-];
+$updated = 0;
+$ads = Ad::where('status', 'active')->get();
 
-$users = User::where('role', 'user')->get();
-$locations = Location::all();
-
-$created = 0;
-foreach ($adsData as $adData) {
-    $user = $users->random();
-    $category = Category::where('slug', $adData['category'])->first();
-    $subcategory = Category::where('slug', $adData['subcategory'])->first();
-    $location = $locations->random();
-
-    if (!$category) {
-        continue;
-    }
-
-    $ad = Ad::create([
-        'user_id' => $user->id,
-        'category_id' => $category->id,
-        'subcategory_id' => $subcategory?->id,
-        'location_id' => $location->id,
-        'title' => $adData['title'],
-        'slug' => Str::slug($adData['title']) . '-' . time() . rand(100, 999),
-        'description' => getDescription($adData['title'], $ctaOptions),
-        'short_description' => $adData['short_description'],
-        'price' => $adData['price'],
-        'condition' => $adData['condition'],
-        'status' => 'active',
-        'attributes' => $adData['specifications'],
-    ]);
-
-    foreach ($adData['images'] as $index => $imagePath) {
-        AdImage::create([
-            'ad_id' => $ad->id,
-            'url' => $imagePath,
-            'is_primary' => $index === 0,
-            'sort_order' => $index + 1,
-        ]);
-    }
-
-    $created++;
+foreach ($ads as $ad) {
+    $ad->description = getDescription($ad->title, $ctaOptions);
+    $ad->save();
+    $updated++;
+    echo "Updated: {$ad->title}\n";
 }
 
-echo "Created {$created} Nigerian marketplace ads with proper descriptions!\n";
+echo "\nUpdated {$updated} ads with CTA on same line!\n";

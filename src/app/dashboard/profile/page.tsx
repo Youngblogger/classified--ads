@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import { nigeriaLocations, getLocationBySlug } from '@/lib/nigeriaLocations';
+import { AlertCircle } from 'lucide-react';
 
 const API_URL = 'http://127.0.0.1:8000';
 
@@ -14,6 +15,44 @@ function getAvatarUrl(url: string | null | undefined): string {
     return `${API_URL}${url}`;
   }
   return url;
+}
+
+function cleanSocialName(name: string | null | undefined): { cleaned: string; needsUpdate: boolean; reason: string | null } {
+  if (!name) return { cleaned: '', needsUpdate: true, reason: 'Name is empty' };
+  
+  const trimmed = name.trim();
+  
+  // Check if it's an email
+  if (trimmed.includes('@') && trimmed.includes('.')) {
+    const emailName = trimmed.split('@')[0];
+    // Convert "user.name" or "user.name123" to readable format
+    const cleaned = emailName
+      .replace(/[._]/g, ' ')
+      .replace(/(\d+)/g, '')
+      .split(' ')
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+      .trim();
+    
+    if (cleaned.length > 0) {
+      return { cleaned, needsUpdate: false, reason: null };
+    }
+    return { cleaned: '', needsUpdate: true, reason: 'Please update your display name' };
+  }
+  
+  // Check if it's a placeholder like "to login" or similar
+  const placeholderNames = ['to login', 'login', 'user', 'null', 'undefined', 'a', 'test'];
+  if (placeholderNames.includes(trimmed.toLowerCase())) {
+    return { cleaned: '', needsUpdate: true, reason: 'Please update your display name' };
+  }
+  
+  // Check if it's just very short (1-2 chars) or numbers
+  if (trimmed.length <= 2 || /^\d+$/.test(trimmed)) {
+    return { cleaned: trimmed, needsUpdate: true, reason: 'Name is too short' };
+  }
+  
+  return { cleaned: trimmed, needsUpdate: false, reason: null };
 }
 
 const UserIcon = ({ className }: { className?: string }) => (
@@ -75,11 +114,18 @@ export default function ProfileSettingsPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [nameNeedsUpdate, setNameNeedsUpdate] = useState(false);
+  const [nameUpdateReason, setNameUpdateReason] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       const userLocation = user.location || '';
       const locationData = getLocationBySlug(userLocation);
+      
+      const { cleaned: cleanedName, needsUpdate, reason } = cleanSocialName(user.name);
+      
+      setNameNeedsUpdate(needsUpdate);
+      setNameUpdateReason(reason);
       
       let formattedPhone = '+234 ';
       if (user.phone) {
@@ -94,7 +140,7 @@ export default function ProfileSettingsPage() {
       }
       
       setFormData({
-        name: user.name || '',
+        name: cleanedName || user.name || '',
         email: user.email || '',
         phone: formattedPhone,
         state: locationData?.name || userLocation || '',
@@ -109,6 +155,13 @@ export default function ProfileSettingsPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Clear name needs update warning when user starts typing a valid name
+    if (name === 'name' && value.trim().length > 2) {
+      setNameNeedsUpdate(false);
+      setNameUpdateReason(null);
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -426,6 +479,9 @@ export default function ProfileSettingsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Full Name
+                {nameNeedsUpdate && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </label>
               <div className="relative">
                 <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -434,9 +490,18 @@ export default function ProfileSettingsPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  placeholder="Enter your name"
+                  className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 ${
+                    nameNeedsUpdate ? 'border-amber-400 focus:border-amber-500' : 'border-gray-300 focus:border-primary-500'
+                  }`}
                 />
               </div>
+              {nameNeedsUpdate && nameUpdateReason && (
+                <div className="flex items-start gap-2 mt-2 text-amber-600 text-sm">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>{nameUpdateReason}. Please update your display name.</span>
+                </div>
+              )}
             </div>
 
             <div>

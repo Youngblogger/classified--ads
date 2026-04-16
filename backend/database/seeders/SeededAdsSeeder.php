@@ -13,7 +13,7 @@ class SeededAdsSeeder extends Seeder
         $this->command->info('Seeding 100 sample Nigerian ads...');
         
         $categories = DB::table('categories')->whereNull('parent_id')->get();
-        $locations = DB::table('locations')->whereNull('parent_id')->limit(10)->get();
+        $states = DB::table('locations')->whereNull('parent_id')->limit(10)->get();
         $users = DB::table('users')->pluck('id')->toArray();
         
         if (empty($users)) {
@@ -30,7 +30,12 @@ class SeededAdsSeeder extends Seeder
         
         foreach ($seededAds as $seed) {
             $category = $categories->firstWhere('slug', $seed['category_slug']) ?? $categories->first();
-            $location = $locations->random();
+            $state = $states->random();
+            
+            // Try to get a random LGA from this state
+            $lgas = DB::table('locations')->where('parent_id', $state->id)->get();
+            $lga = $lgas->isNotEmpty() ? $lgas->random() : null;
+            
             $userId = $users[array_rand($users)];
             
             $slug = Str::slug($seed['title']) . '-' . time() . rand(100, 999);
@@ -48,8 +53,9 @@ class SeededAdsSeeder extends Seeder
             $adData = [
                 'user_id' => $userId,
                 'category_id' => $category->id,
-                'location_id' => $location->id,
-                'lga' => $location->name,
+                'location_id' => $state->id,
+                'state' => $state->name,
+                'lga' => $lga ? $lga->name : $state->name,
                 'title' => $seed['title'],
                 'slug' => $slug,
                 'description' => $seed['description'],

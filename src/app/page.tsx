@@ -93,14 +93,13 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const verified = ad.seller?.verified || ad.is_verified || false;
 
   const getLocationDisplay = () => {
-    if (!ad.location && !ad.state && !ad.lga) return 'N/A';
-    
-    // Use state field if available, otherwise derive from location
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
     const lgaName = ad.lga || '';
     
-    if (stateName && lgaName) {
-      return `${stateName}, ${lgaName}`;
+    if (!stateName && !lgaName) return 'N/A';
+    
+    if (stateName && lgaName && stateName !== lgaName) {
+      return `${lgaName}, ${stateName}`;
     }
     return stateName || lgaName || 'N/A';
   };

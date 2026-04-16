@@ -365,6 +365,26 @@ class MessageController extends Controller
             }
         }
 
+        // Don't create a message if content is empty and there's no attachment
+        $hasContent = !empty(trim($validated['message'] ?? '')) || $request->hasFile('attachment');
+        
+        if (!$hasContent) {
+            // Just return the conversation without creating a message
+            return response()->json([
+                'conversation_id' => $conversation->id,
+                'id' => null,
+                'sender_id' => $user->id,
+                'content' => '',
+                'message_type' => 'text',
+                'attachment_url' => null,
+                'duration' => null,
+                'is_read' => false,
+                'read_at' => null,
+                'created_at' => $conversation->last_message_at,
+                'sender' => $user,
+            ], 201);
+        }
+
         $message = Message::create($messageData);
 
         $conversation->update(['last_message_at' => now()]);
