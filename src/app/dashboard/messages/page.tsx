@@ -736,19 +736,19 @@ export default function MessagesPage() {
   const isParticipantOnline = otherUserId ? isUserOnline(otherUserId) : false;
 
   return (
-    <div className="h-[calc(100vh-180px)] bg-white rounded-2xl shadow-card overflow-hidden flex">
+    <div className="h-[calc(100vh-180px)] md:h-[calc(100vh-180px)] bg-white md:rounded-2xl md:shadow-card overflow-hidden flex">
       {/* Conversations List */}
       <div className={`w-full md:w-80 border-r border-gray-200 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
         {/* Search */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-3 sm:p-4 border-b border-gray-200">
           <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search conversations..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-500"
+              className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 bg-gray-50 border border-gray-200 rounded-lg sm:rounded-xl text-sm focus:outline-none focus:border-primary-500"
             />
           </div>
         </div>
@@ -778,12 +778,12 @@ export default function MessagesPage() {
                 <button
                   key={conv.id}
                   onClick={() => setSelectedConversation(conv)}
-                  className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                  className={`w-full p-3 sm:p-4 flex items-start gap-2 sm:gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
                     selectedConversation?.id === conv.id ? 'bg-primary-50' : ''
                   }`}
                 >
                   <div className="relative flex-shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-200 overflow-hidden">
                       {otherUserAvatar ? (
                         <Image
                           src={getAvatarUrl(otherUserAvatar)}
@@ -794,28 +794,28 @@ export default function MessagesPage() {
                           unoptimized
                         />
                       ) : (
-                        <div className="w-12 h-12 flex items-center justify-center bg-primary-100">
-                          <span className="text-primary-600 font-semibold">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-primary-100">
+                          <span className="text-primary-600 font-semibold text-sm sm:text-base">
                             {otherUser?.name?.[0]?.toUpperCase() || 'U'}
                           </span>
                         </div>
                       )}
                     </div>
                     {conv.is_online && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-white rounded-full"></span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-gray-900 truncate">{otherUser?.name || 'Unknown'}</p>
-                      <span className="text-xs text-gray-400">{formatTime(conv.updated_at) || conv.time || ''}</span>
+                    <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                      <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{otherUser?.name || 'Unknown'}</p>
+                      <span className="text-[10px] sm:text-xs text-gray-400">{formatTime(conv.updated_at) || conv.time || ''}</span>
                     </div>
-                    <p className="text-sm text-gray-500 truncate">
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">
                       {conv.last_message_content || conv.last_message || conv.latestMessage?.content || conv.lastMessage || ''}
                     </p>
                   </div>
                   {(conv.unread || conv.unread_count || 0) > 0 && (
-                    <span className="flex-shrink-0 w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center">
+                    <span className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 bg-primary-600 text-white text-[10px] sm:text-xs rounded-full flex items-center justify-center">
                       {conv.unread || conv.unread_count}
                     </span>
                   )}
@@ -830,12 +830,12 @@ export default function MessagesPage() {
       {selectedConversation ? (
         <div className="flex-1 flex flex-col">
           {/* Chat Header */}
-          <div className="p-4 border-b border-gray-200 flex items-center gap-4">
+          <div className="p-2 sm:p-4 border-b border-gray-200 flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => setSelectedConversation(null)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
+              className="md:hidden p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg"
             >
-              ←
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
             {(() => {
               const otherUser = selectedConversation.sender?.id === currentUserId 
@@ -845,8 +845,8 @@ export default function MessagesPage() {
               
               return (
                 <>
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-200 overflow-hidden">
                       {otherUserAvatar ? (
                         <Image
                           src={getAvatarUrl(otherUserAvatar)}
@@ -857,22 +857,22 @@ export default function MessagesPage() {
                           unoptimized
                         />
                       ) : (
-                        <div className="w-10 h-10 flex items-center justify-center bg-primary-100 text-primary-600 font-semibold">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-primary-100 text-primary-600 font-semibold text-sm sm:text-base">
                           {otherUser?.name?.[0]?.toUpperCase() || 'U'}
                         </div>
                       )}
                     </div>
                     {selectedConversation.is_online && (
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
+                      <span className="absolute bottom-0 right-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900">{otherUser?.name || 'Unknown'}</p>
+                    <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{otherUser?.name || 'Unknown'}</p>
                     {selectedConversation.ad && (
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <span>{selectedConversation.ad.title}</span>
+                      <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm text-gray-500">
+                        <span className="truncate">{selectedConversation.ad.title}</span>
                         <span>•</span>
-                        <span className="font-medium text-primary-600">₦{Number(selectedConversation.ad.price || 0).toLocaleString()}</span>
+                        <span className="font-medium text-primary-600 whitespace-nowrap">₦{Number(selectedConversation.ad.price || 0).toLocaleString()}</span>
                       </div>
                     )}
                   </div>
@@ -915,9 +915,9 @@ export default function MessagesPage() {
             const adSlug = selectedConversation.ad?.slug || adDetails?.slug || (selectedConversation as any).ad_slug || '';
             
             return (
-              <div className="p-3 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
+              <div className="p-2 sm:p-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2 sm:gap-3">
                 {/* Ad Image - Fixed size with object-cover */}
-                <div className="relative w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
+                <div className="relative w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
                   <Image
                     src={displayImageUrl}
                     alt={adTitle}
@@ -933,14 +933,14 @@ export default function MessagesPage() {
                 
                 {/* Ad Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 text-sm truncate">{adTitle}</p>
-                  <p className="text-primary-600 font-semibold">₦{adPrice}</p>
+                  <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">{adTitle}</p>
+                  <p className="text-primary-600 font-semibold text-xs sm:text-sm">₦{adPrice}</p>
                 </div>
                 
                 {/* View Ad Button */}
                 <button 
                   onClick={() => router.push(`/ad/${adSlug}`)}
-                  className="px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-medium hover:bg-primary-700 flex-shrink-0 whitespace-nowrap"
+                  className="px-2 sm:px-3 py-1 sm:py-1.5 bg-primary-600 text-white rounded-lg text-[10px] sm:text-xs font-medium hover:bg-primary-700 flex-shrink-0 whitespace-nowrap"
                 >
                   View
                 </button>
@@ -949,7 +949,7 @@ export default function MessagesPage() {
           })()}
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
             {loadingMessages ? (
               <div className="flex flex-col gap-4 py-4">
                 {[1, 2, 3].map((i) => (
@@ -973,7 +973,7 @@ export default function MessagesPage() {
                 return (
                   <div
                     key={msg.id}
-                    className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2 group`}
+                    className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-1 sm:gap-2 group`}
                     onMouseDown={() => startLongPress(msg.id, isMe)}
                     onMouseUp={cancelLongPress}
                     onMouseLeave={cancelLongPress}
@@ -981,11 +981,11 @@ export default function MessagesPage() {
                     onTouchEnd={cancelLongPress}
                   >
                     {!isMe && (
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
                         {senderAvatar ? (
                           <img src={getAvatarUrl(senderAvatar)} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-medium">
+                          <div className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-gray-500 font-medium">
                             {msg.sender?.name?.[0]?.toUpperCase() || 'U'}
                           </div>
                         )}
@@ -1090,7 +1090,7 @@ export default function MessagesPage() {
                       </div>
                     ) : (
                       <div
-                        className={`max-w-[70%] px-3 py-1.5 rounded-2xl ${
+                        className={`max-w-[75%] sm:max-w-[70%] px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl ${
                           isMe
                             ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm'
                             : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200 shadow-sm'
@@ -1099,11 +1099,11 @@ export default function MessagesPage() {
                       >
                         {/* Image - show if message_type is image OR if attachment URL looks like an image */}
                         {(msg.message_type === 'image' || (msg.attachment_url && !msg.attachment_url.match(/\.(mp3|webm|wav|m4a|pdf|doc|docx|xls|xlsx)$/i))) && msg.attachment_url && (
-                          <div className="mb-2">
+                          <div className="mb-1 sm:mb-2">
                             <img 
                               src={msg.attachment_url} 
                               alt="attachment" 
-                              className="rounded-lg max-w-[200px] max-h-[200px] object-cover cursor-pointer hover:opacity-90 transition-opacity" 
+                              className="rounded-lg max-w-[150px] sm:max-w-[200px] max-h-[150px] sm:max-h-[200px] object-cover cursor-pointer hover:opacity-90 transition-opacity" 
                               onClick={() => msg.attachment_url && setPreviewImage(msg.attachment_url)}
                               onError={(e) => {
                                 console.log('Image load error:', msg.attachment_url);
@@ -1114,13 +1114,13 @@ export default function MessagesPage() {
                         )}
                         {/* File attachment - show if specifically marked as file */}
                         {msg.message_type === 'file' && msg.attachment_url && (
-                          <a href={getStorageUrl(msg.attachment_url) || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:underline mb-2">
+                          <a href={getStorageUrl(msg.attachment_url) || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs sm:text-sm hover:underline mb-1 sm:mb-2">
                             📎 Download Attachment
                           </a>
                         )}
                         {/* Text content - show if there's no attachment or if it's a text-only message */}
                         {(!msg.attachment_url || msg.message_type === 'text') && msg.content && (
-                          <p className="text-[15px] leading-[19px]">{msg.content}</p>
+                          <p className="text-[13px] sm:text-[15px] leading-[17px] sm:leading-[19px]">{msg.content}</p>
                         )}
                         <div className={`flex items-center gap-1 mt-0.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
                           {isMe && (
@@ -1136,11 +1136,11 @@ export default function MessagesPage() {
                     )}
                     
                     {isMe && (
-                      <div className="w-8 h-8 rounded-full bg-primary-100 flex-shrink-0 overflow-hidden">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary-100 flex-shrink-0 overflow-hidden">
                         {user?.avatar_url || user?.google_avatar ? (
                           <img src={getStorageUrl(user.avatar_url || user.google_avatar) || ''} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-primary-600 font-medium">
+                          <div className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-primary-600 font-medium">
                             {user?.name?.[0]?.toUpperCase() || 'U'}
                           </div>
                         )}
@@ -1185,16 +1185,16 @@ export default function MessagesPage() {
           )}
 
           {/* Message Input - WhatsApp Style */}
-          <form onSubmit={handleSendMessage} className="p-3 border-t border-[#e9edef] bg-[#f0f2f5]">
+          <form onSubmit={handleSendMessage} className="p-2 sm:p-3 border-t border-[#e9edef] bg-[#f0f2f5]">
             {/* Voice Note Preview */}
             {recordedAudioUrl && !isRecording && (
               <div className="flex items-center gap-2 mb-2 px-2 py-2 bg-[#dcf8c6] rounded-lg">
                 <button
                   type="button"
                   onClick={playPreview}
-                  className="w-8 h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center"
                 >
-                  {isPlayingPreview ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                  {isPlayingPreview ? <Pause className="w-3 h-3 sm:w-4 sm:h-4" /> : <Play className="w-3 h-3 sm:w-4 sm:h-4 ml-0.5" />}
                 </button>
                 <div className="flex-1">
                   <div className="flex items-center gap-1">
@@ -1207,25 +1207,25 @@ export default function MessagesPage() {
                     ))}
                   </div>
                 </div>
-                <span className="text-[#00a884] text-xs font-medium">{formatDuration(recordingDuration)}</span>
+                <span className="text-[#00a884] text-[10px] sm:text-xs font-medium">{formatDuration(recordingDuration)}</span>
                 <button
                   type="button"
                   onClick={cancelRecording}
-                  className="p-1.5 rounded-full hover:bg-[#00a884]/10"
+                  className="p-1 sm:p-1.5 rounded-full hover:bg-[#00a884]/10"
                 >
-                  <X className="w-4 h-4 text-[#00a884]" />
+                  <X className="w-3 h-3 sm:w-4 sm:h-4 text-[#00a884]" />
                 </button>
                 <button
                   type="button"
                   onClick={sendVoiceNote}
-                  className="w-8 h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977]"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977]"
                 >
-                  <SendIcon className="w-4 h-4" />
+                  <SendIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
               </div>
             )}
             
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-1 sm:gap-2">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -1238,31 +1238,31 @@ export default function MessagesPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 text-[#54656f] hover:bg-[#dfe5e7] rounded-full transition-colors"
+                className="p-1.5 sm:p-2.5 text-[#54656f] hover:bg-[#dfe5e7] rounded-full transition-colors"
               >
-                <ImageIcon className="w-6 h-6" />
+                <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
               
               {/* Text input or Recording UI */}
-              <div className="flex-1 bg-white rounded-[20px] px-4 py-2 flex items-center">
+              <div className="flex-1 bg-white rounded-[20px] px-3 sm:px-4 py-1.5 sm:py-2 flex items-center">
                 {isRecording ? (
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-[#54656f] font-medium">{formatDuration(recordingDuration)}</span>
-                    <div className="flex-1 h-6 bg-[#dcf8c6] rounded-full overflow-hidden">
+                  <div className="flex items-center gap-2 sm:gap-3 w-full">
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-[#54656f] font-medium text-xs sm:text-sm">{formatDuration(recordingDuration)}</span>
+                    <div className="flex-1 h-5 sm:h-6 bg-[#dcf8c6] rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-[#00a884] transition-all"
                         style={{ width: `${(recordingDuration / MAX_RECORDING_DURATION) * 100}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-gray-400">/{MAX_RECORDING_DURATION}s</span>
+                    <span className="text-[10px] sm:text-[10px] text-gray-400 hidden sm:inline">/{MAX_RECORDING_DURATION}s</span>
                     <button
                       type="button"
                       onMouseDown={handleSlideCancel}
                       onTouchStart={handleSlideCancel}
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-full"
+                      className="p-1 sm:p-1.5 text-red-500 hover:bg-red-50 rounded-full"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 ) : (
@@ -1272,7 +1272,7 @@ export default function MessagesPage() {
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       placeholder="Message"
-                      className="flex-1 py-1 bg-transparent text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none"
+                      className="flex-1 py-0.5 sm:py-1 bg-transparent text-[14px] sm:text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none"
                     />
                   </>
                 )}
@@ -1282,9 +1282,9 @@ export default function MessagesPage() {
               {messageInput.trim() ? (
                 <button
                   type="submit"
-                  className="w-10 h-10 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977] transition-colors"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#00a884] text-white flex items-center justify-center hover:bg-[#009977] transition-colors"
                 >
-                  <SendIcon className="w-5 h-5" />
+                  <SendIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               ) : (
                 <button
@@ -1295,7 +1295,7 @@ export default function MessagesPage() {
                   onTouchStart={startRecording}
                   onTouchEnd={stopRecording}
                   onTouchCancel={cancelRecording}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors ${
                     isRecording 
                       ? 'bg-red-500 text-white animate-pulse' 
                       : 'bg-[#00a884] text-white hover:bg-[#009977]'
@@ -1304,7 +1304,7 @@ export default function MessagesPage() {
                   {isRecording ? (
                     <Square className="w-4 h-4" />
                   ) : (
-                    <Mic className="w-5 h-5" />
+                    <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </button>
               )}
