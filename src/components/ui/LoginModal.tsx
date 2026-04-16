@@ -532,25 +532,6 @@ export default function LoginModal() {
                       ))}
                     </datalist>
                   </div>
-                  {usedEmails.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {usedEmails.slice(-3).map((e: string) => (
-                        <button
-                          key={e}
-                          type="button"
-                          onClick={() => {
-                            setEmail(e);
-                            if (savedPasswords[e]) {
-                              setPassword(savedPasswords[e]);
-                            }
-                          }}
-                          className="text-xs px-2.5 py-1 bg-gray-100 hover:bg-primary-50 text-gray-700 hover:text-primary-600 rounded-full transition-colors border border-gray-200 hover:border-primary-300"
-                        >
-                          {e}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <div>

@@ -686,11 +686,11 @@ export default function Header() {
 
   if (isLoading) {
     return (
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+      <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-primary-600">
         <div className="container-app">
           <div className="h-16 flex items-center justify-between">
-            <div className="h-6 w-24 bg-slate-200 rounded animate-pulse" />
-            <div className="h-6 w-48 bg-slate-200 rounded animate-pulse" />
+            <div className="h-8 w-24 bg-white/20 rounded animate-pulse" />
+            <div className="h-6 w-32 bg-white/20 rounded animate-pulse" />
           </div>
         </div>
       </header>
@@ -698,7 +698,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-[100] w-full">
+    <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-primary-600">
       {/* TOP BAR */}
       <div className="bg-primary-600">
         <div className="container-app">
@@ -722,7 +722,7 @@ export default function Header() {
       </div>
 
       {/* MAIN HEADER */}
-      <div className="bg-primary-600 shadow-header sticky top-0 z-50 h-16">
+      <div className="bg-primary-600 shadow-header h-16 relative z-10">
         <div className="container-app">
           <div className="flex items-center justify-between h-16 gap-4">
             {/* Logo */}
@@ -1211,7 +1211,7 @@ export default function Header() {
       </div>
 
       {/* CATEGORY NAVIGATION BAR */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-white border-b border-slate-200 relative z-10">
         <div className="container-app">
           <div className="flex items-center gap-2 py-3">
             {/* All Categories Button with emoji */}

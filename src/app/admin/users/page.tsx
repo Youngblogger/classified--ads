@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search,
   Filter,
@@ -15,7 +15,8 @@ import {
   Eye,
   Shield,
   AlertTriangle,
-  User
+  User,
+  ChevronDown
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -39,6 +40,7 @@ interface User {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
@@ -47,26 +49,94 @@ export default function UsersPage() {
   const [showBanned, setShowBanned] = useState(false);
   const [actionType, setActionType] = useState<'suspend' | 'ban' | null>(null);
   const [selectedUserForAction, setSelectedUserForAction] = useState<User | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
+  // Initial fetch
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(true);
   }, [statusFilter]);
 
-  const fetchUsers = async () => {
+  // Load more when page changes
+  useEffect(() => {
+    if (currentPage > 1) {
+      fetchUsers(false);
+    }
+  }, [currentPage]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          if (loadingMore || !hasMore) return;
+          setCurrentPage(prev => prev + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [hasMore, loadingMore, loading]);
+
+  const fetchUsers = async (reset = false) => {
     try {
-      setLoading(true);
-      const params: Record<string, string> = {};
+      if (reset) {
+        setLoading(true);
+        setCurrentPage(1);
+        setHasMore(true);
+      } else {
+        setLoadingMore(true);
+      }
+      
+      const pageToFetch = reset ? 1 : currentPage;
+      const params: Record<string, string | number> = {
+        page: pageToFetch,
+        per_page: 20
+      };
       if (statusFilter !== 'all') {
         params.status = statusFilter;
       }
+      
       const res = await adminApi.getUsers(params);
-      setUsers(res.data.data || []);
+      const data = res.data;
+      const newUsers = data.data || [];
+      
+      if (reset) {
+        setUsers(newUsers);
+        setTotalUsers(data.total || newUsers.length);
+      } else {
+        setUsers(prev => [...prev, ...newUsers]);
+      }
+      
+      // Check if there are more pages
+      const totalPages = data.last_page || 1;
+      setHasMore(pageToFetch < totalPages);
+      
     } catch (error) {
       console.error('Failed to fetch users:', error);
       toast.error('Failed to load users');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const loadMore = () => {
+    if (loadingMore || !hasMore) return;
+    setCurrentPage(prev => prev + 1);
   };
 
   const handleActivate = async (userId: number) => {
@@ -74,7 +144,7 @@ export default function UsersPage() {
       setActionLoading(userId);
       await adminApi.activateUser(userId);
       toast.success('User activated');
-      fetchUsers();
+      fetchUsers(true);
     } catch (error) {
       toast.error('Failed to activate user');
     } finally {
@@ -89,7 +159,7 @@ export default function UsersPage() {
       toast.success('User suspended');
       setShowSuspended(false);
       setSelectedUserForAction(null);
-      fetchUsers();
+      fetchUsers(true);
     } catch (error) {
       toast.error('Failed to suspend user');
     } finally {
@@ -104,7 +174,7 @@ export default function UsersPage() {
       toast.success('User banned');
       setShowBanned(false);
       setSelectedUserForAction(null);
-      fetchUsers();
+      fetchUsers(true);
     } catch (error) {
       toast.error('Failed to ban user');
     } finally {
@@ -118,7 +188,7 @@ export default function UsersPage() {
       setActionLoading(userId);
       await adminApi.deleteUser(userId);
       toast.success('User deleted');
-      fetchUsers();
+      fetchUsers(true);
     } catch (error) {
       toast.error('Failed to delete user');
     } finally {
@@ -126,6 +196,7 @@ export default function UsersPage() {
     }
   };
 
+  // Client-side search filter (applied to loaded users)
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -421,19 +492,33 @@ export default function UsersPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="px-4 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+        {/* Load More */}
+        <div ref={loadMoreRef} className="px-4 py-4 border-t border-gray-200 flex flex-col items-center justify-center gap-3">
           <p className="text-sm text-gray-500">
-            Showing {filteredUsers.length} of {users.length} users
+            Showing {filteredUsers.length} of {totalUsers} users
           </p>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>
-              Previous
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="flex items-center gap-2 px-6 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  Load More
+                  <ChevronDown className="w-4 h-4" />
+                </>
+              )}
             </button>
-            <button className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">
-              Next
-            </button>
-          </div>
+          )}
+          {!hasMore && filteredUsers.length > 0 && (
+            <p className="text-sm text-gray-400">No more users to load</p>
+          )}
         </div>
       </div>
 

@@ -108,7 +108,7 @@ export default function MobileHeader() {
   };
 
   return (
-    <header className="w-full sticky top-0 z-[100] bg-gradient-to-r from-primary-600 to-primary-700">
+    <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-gradient-to-r from-primary-600 to-primary-700 shadow-md">
       <div className="flex items-center justify-between h-14 px-3 gap-2">
         {/* Logo */}
         <Link 

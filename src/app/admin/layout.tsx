@@ -428,7 +428,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <Link href="/admin" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-sky-500 to-purple-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center">
                 <Shield className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold text-gray-900">iList Admin</span>
@@ -451,14 +451,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-sky-50 text-sky-700'
+                      ? 'bg-primary-50 text-primary-700'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
-                  <item.icon className={`w-5 h-5 ${isActive ? 'text-sky-600' : 'text-gray-400'}`} />
+                  <item.icon className={`w-5 h-5 ${isActive ? 'text-primary-600' : 'text-gray-400'}`} />
                   {item.name}
                   {isActive && (
-                    <ChevronRight className="w-4 h-4 ml-auto text-sky-400" />
+                    <ChevronRight className="w-4 h-4 ml-auto text-primary-400" />
                   )}
                 </Link>
               );
@@ -487,42 +487,38 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
+        {/* Header - Match user dashboard style */}
+        <header className="sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-700 shadow-lg">
           <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
             {/* Mobile menu button */}
             <button
-              className="lg:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              className="lg:hidden p-2 rounded-xl text-white hover:bg-primary-500 transition-colors"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="w-6 h-6" />
             </button>
 
+            {/* Logo - visible on mobile */}
+            <Link href="/admin" className="lg:hidden flex items-center gap-2">
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                <Shield className="w-5 h-5 text-primary-600" />
+              </div>
+              <span className="text-white font-bold text-lg">iList</span>
+            </Link>
+
             {/* Page Title */}
-            <div className="flex-1 lg:flex-none">
-              <h1 className="text-lg font-semibold text-gray-900">
-                {navigation.find(item => item.href === pathname || pathname.startsWith(item.href))?.name || 'Ads'}
+            <div className="flex-1 lg:flex-none hidden lg:block">
+              <h1 className="text-lg font-semibold text-white">
+                {navigation.find(item => item.href === pathname || pathname.startsWith(item.href))?.name || 'Admin'}
               </h1>
             </div>
 
             {/* Right side actions */}
             <div className="flex items-center gap-2 sm:gap-4">
-              {/* Search */}
-              <div className="hidden md:block relative">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="w-64 pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                />
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-
               {/* Notifications */}
               <div className="relative" ref={notificationsRef}>
                 <button
-                  className="relative p-2 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  className="relative p-2 rounded-xl text-white hover:bg-primary-500 transition-colors"
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
                 >
                   <Bell className="w-5 h-5" />
@@ -539,12 +535,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
                       <h3 className="font-semibold text-gray-900">Notifications</h3>
                       {unreadCount > 0 && (
-                        <span className="text-xs text-sky-600">{unreadCount} unread</span>
+                        <span className="text-xs text-primary-600">{unreadCount} unread</span>
                       )}
                     </div>
                     {notificationsLoading ? (
                       <div className="px-4 py-8 text-center text-gray-500">
-                        <div className="animate-spin w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full mx-auto" />
+                        <div className="animate-spin w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full mx-auto" />
                       </div>
                     ) : notifications.length === 0 ? (
                       <div className="px-4 py-8 text-center text-gray-500">
@@ -563,11 +559,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                               handleMarkAsRead(notification.id);
                             }
                           }}
-                          className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${!notification.is_read ? 'bg-sky-50' : ''}`}
+                          className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${!notification.is_read ? 'bg-primary-50' : ''}`}
                         >
                           <div className="flex items-start gap-3">
                             {!notification.is_read && (
-                              <span className="w-2 h-2 mt-2 bg-sky-500 rounded-full flex-shrink-0" />
+                              <span className="w-2 h-2 mt-2 bg-primary-500 rounded-full flex-shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900">{notification.title}</p>
@@ -580,7 +576,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     )}
                     <Link
                       href="/admin/notifications"
-                      className="block px-4 py-2 text-sm text-center text-sky-600 hover:bg-gray-50 border-t border-gray-100"
+                      className="block px-4 py-2 text-sm text-center text-primary-600 hover:bg-gray-50 border-t border-gray-100"
                     >
                       View all notifications
                     </Link>
@@ -591,11 +587,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               {/* User menu */}
               <div className="relative" ref={userMenuRef}>
                 <button
-                  className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-100"
+                  className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-primary-500 transition-colors"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center">
-                    <span className="text-white text-sm font-semibold">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
+                    <span className="text-primary-600 text-sm font-semibold">
                       {admin?.name?.split(' ').map((n: string) => n[0]).join('') || 'A'}
                     </span>
                   </div>
@@ -607,7 +603,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900">{admin?.name || 'Admin'}</p>
                       <p className="text-xs text-gray-500">{admin?.email || 'admin@example.com'}</p>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800 mt-1">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 mt-1">
                         Admin
                       </span>
                     </div>
