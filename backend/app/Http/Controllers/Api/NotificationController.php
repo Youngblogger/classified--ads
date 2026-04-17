@@ -111,6 +111,18 @@ class NotificationController extends Controller
         return response()->json(['message' => 'Notification deleted']);
     }
 
+    public function deleteAll(Request $request)
+    {
+        $count = $request->user()
+            ->notifications()
+            ->delete();
+
+        return response()->json([
+            'message' => 'All notifications deleted',
+            'deleted_count' => $count,
+        ]);
+    }
+
     public function stats()
     {
         $stats = [

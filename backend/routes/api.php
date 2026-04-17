@@ -297,6 +297,7 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::post('/notifications/delete-all', [NotificationController::class, 'deleteAll']);
 
     // Favorites
     Route::get('/favorites', [FavoriteController::class, 'index']);

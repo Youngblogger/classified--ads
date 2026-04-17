@@ -167,15 +167,26 @@ function NotificationsContent() {
     }
   };
 
+  const deleteAllNotifications = async () => {
+    if (!confirm('Delete all notifications? This cannot be undone.')) return;
+    
+    try {
+      await api.post('/notifications/delete-all');
+      setNotifications([]);
+      toast.success('All notifications deleted');
+    } catch (error) {
+      console.error('Failed to delete all:', error);
+      toast.error('Failed to delete all notifications');
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.read_at).length;
 
   const filterOptions = [
     { value: 'all', label: 'All' },
-    { value: 'message', label: 'Messages' },
     { value: 'ad_approved', label: 'Ad Approved' },
     { value: 'ad_expiring', label: 'Expiring' },
     { value: 'new_view', label: 'Views' },
-    { value: 'favorite', label: 'Favorites' },
     { value: 'promotion', label: 'Promotions' },
     { value: 'payment', label: 'Payments' },
   ];
@@ -196,6 +207,13 @@ function NotificationsContent() {
           >
             <CheckSquare className="w-4 h-4" />
             Mark all as read
+          </button>
+          <button
+            onClick={deleteAllNotifications}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete All
           </button>
           <Link
             href="/dashboard/notifications/preferences"
@@ -245,99 +263,93 @@ function NotificationsContent() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-card overflow-hidden">
-        {loading && page === 1 ? (
-          <div className="p-4 sm:p-6 space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gray-200 animate-pulse"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden max-w-3xl mx-auto">
+          {loading && page === 1 ? (
+            <div className="p-3 sm:p-4 space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gray-200 animate-pulse"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-2 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : notifications.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Bell className="w-8 h-8 text-gray-400" />
+              ))}
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No notifications
-            </h3>
-            <p className="text-gray-500">
-              {readFilter === 'unread' ? "You've read all your notifications" : "You're all caught up!"}
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {notifications.map((notification) => {
-              const iconConfig = getNotificationIcon(notification.type);
-              const IconComponent = iconConfig.icon;
-              const isRead = !!notification.read_at;
-              
-              return (
-                <div
-                  key={notification.id}
-                  className={`flex items-start gap-4 p-4 sm:p-6 hover:bg-gray-50 transition-colors ${
-                    !isRead ? 'bg-primary-50/50' : ''
-                  }`}
-                >
-                  <div className={`p-3 rounded-xl ${iconConfig.bg}`}>
-                    <IconComponent className={`w-5 h-5 ${iconConfig.color}`} />
-                  </div>
+          ) : notifications.length === 0 ? (
+            <div className="p-8 text-center">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Bell className="w-6 h-6 text-gray-400" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">
+                No notifications
+              </h3>
+              <p className="text-sm text-gray-500">
+                {readFilter === 'unread' ? "You've read all your notifications" : "You're all caught up!"}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {notifications.map((notification) => {
+                const iconConfig = getNotificationIcon(notification.type);
+                const IconComponent = iconConfig.icon;
+                const isRead = !!notification.read_at;
+                
+                return (
+                  <div
+                    key={notification.id}
+                    className={`flex items-start gap-3 p-3 sm:p-4 hover:bg-gray-50 transition-colors ${
+                      !isRead ? 'bg-primary-50/50' : ''
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${iconConfig.bg} flex-shrink-0`}>
+                      <IconComponent className={`w-4 h-4 ${iconConfig.color}`} />
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-semibold text-gray-900">{notification.title}</p>
-                        <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 text-sm">{notification.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{notification.message}</p>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {!isRead && (
+                            <button
+                              onClick={() => markAsRead(notification.id)}
+                              className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                              title="Mark as read"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteNotification(notification.id)}
+                            disabled={deleting === notification.id}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Delete"
+                          >
+                            {deleting === notification.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      {!isRead && (
-                        <span className="w-2 h-2 bg-primary-600 rounded-full flex-shrink-0 mt-2"></span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 mt-2">
-                      <p className="text-xs text-gray-400">{formatTime(notification.created_at)}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">{formatTime(notification.created_at)}</p>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-1">
-                    {!isRead && (
-                      <button
-                        onClick={() => markAsRead(notification.id)}
-                        className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                        title="Mark as read"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => deleteNotification(notification.id)}
-                      disabled={deleting === notification.id}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                      title="Delete"
-                    >
-                      {deleting === notification.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         )}
 
         {notifications.length > 0 && hasMore && (
-          <div className="p-4 text-center">
+          <div className="p-3 text-center max-w-3xl mx-auto">
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={loading}
-              className="px-6 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50"
+              className="px-5 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50"
             >
               {loading ? 'Loading...' : 'Load more'}
             </button>
