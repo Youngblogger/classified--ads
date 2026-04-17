@@ -1384,9 +1384,9 @@ export default function MessagesPage() {
           </form>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-primary-50 p-4 sm:p-8">
+        <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-primary-50 px-4 py-6 sm:px-6 sm:py-8">
           {/* Icon */}
-          <div className="w-20 h-20 sm:w-24 sm:h-24 mb-6 sm:mb-8">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 mb-4 sm:mb-6">
             <svg className="w-full h-full text-primary-500" viewBox="0 0 24 24" fill="currentColor">
               <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
               <path d="M7 9h10v2H7zm0-3h10v2H7z"/>
@@ -1394,72 +1394,72 @@ export default function MessagesPage() {
           </div>
 
           {/* Title */}
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2 text-center">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800 mb-1 text-center">
             Welcome to iList Chat
           </h2>
-          <p className="text-sm sm:text-base text-slate-500 text-center max-w-xs sm:max-w-md mb-6 sm:mb-8">
+          <p className="text-xs sm:text-sm text-slate-500 text-center max-w-xs sm:max-w-md mb-4 sm:mb-6 px-2">
             Connect with buyers and sellers directly. Your messages are private and secure.
           </p>
 
           {/* Features */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-lg mb-6 sm:mb-8">
-            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-slate-100 flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 w-full max-w-lg mb-4 sm:mb-6">
+            <div className="bg-white rounded-xl p-2.5 sm:p-3 shadow-sm border border-slate-100 flex items-center gap-2.5">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
               <div className="text-left">
-                <p className="text-xs sm:text-sm font-semibold text-slate-800">Private</p>
-                <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">End-to-end encrypted</p>
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-800">Private</p>
+                <p className="text-[9px] sm:text-[10px] text-slate-500 hidden sm:block">End-to-end encrypted</p>
               </div>
             </div>
             
-            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-slate-100 flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-white rounded-xl p-2.5 sm:p-3 shadow-sm border border-slate-100 flex items-center gap-2.5">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
               <div className="text-left">
-                <p className="text-xs sm:text-sm font-semibold text-slate-800">Instant</p>
-                <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Real-time delivery</p>
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-800">Instant</p>
+                <p className="text-[9px] sm:text-[10px] text-slate-500 hidden sm:block">Real-time delivery</p>
               </div>
             </div>
             
-            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-slate-100 flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-white rounded-xl p-2.5 sm:p-3 shadow-sm border border-slate-100 flex items-center gap-2.5">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
               <div className="text-left">
-                <p className="text-xs sm:text-sm font-semibold text-slate-800">Share</p>
-                <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Photos & files</p>
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-800">Share</p>
+                <p className="text-[9px] sm:text-[10px] text-slate-500 hidden sm:block">Photos & files</p>
               </div>
             </div>
           </div>
 
           {/* Tips */}
-          <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-slate-100 w-full max-w-lg">
-            <p className="text-xs sm:text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-              <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-slate-100 w-full max-w-lg">
+            <p className="text-[10px] sm:text-xs font-medium text-slate-700 mb-2 flex items-center gap-1.5">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Quick Tips
             </p>
-            <ul className="space-y-2">
-              <li className="flex items-start gap-2 text-xs sm:text-sm text-slate-600">
+            <ul className="space-y-1.5">
+              <li className="flex items-start gap-1.5 text-[10px] sm:text-xs text-slate-600">
                 <span className="text-primary-500 mt-0.5">1.</span>
-                <span>Select a conversation from the list to start chatting</span>
+                <span>Select a conversation from the list</span>
               </li>
-              <li className="flex items-start gap-2 text-xs sm:text-sm text-slate-600">
+              <li className="flex items-start gap-1.5 text-[10px] sm:text-xs text-slate-600">
                 <span className="text-primary-500 mt-0.5">2.</span>
-                <span>Tap the mic icon to send voice messages</span>
+                <span>Tap mic icon for voice messages</span>
               </li>
-              <li className="flex items-start gap-2 text-xs sm:text-sm text-slate-600">
+              <li className="flex items-start gap-1.5 text-[10px] sm:text-xs text-slate-600">
                 <span className="text-primary-500 mt-0.5">3.</span>
-                <span>Tap the image icon to share photos</span>
+                <span>Tap image icon to share photos</span>
               </li>
             </ul>
           </div>
