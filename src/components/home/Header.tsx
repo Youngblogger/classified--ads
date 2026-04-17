@@ -722,7 +722,7 @@ export default function Header() {
       </div>
 
       {/* MAIN HEADER */}
-      <div className="bg-primary-600 shadow-header h-16 relative z-10">
+      <div className="bg-primary-600 shadow-header h-16">
         <div className="container-app">
           <div className="flex items-center justify-between h-16 gap-4">
             {/* Logo */}
