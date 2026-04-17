@@ -625,7 +625,17 @@ export default function AdDetailPage() {
                           <Phone className="w-5 h-5" />{contactPhone}
                         </a>
                       ) : (
-                        <button onClick={() => setShowPhone(true)} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3">
+                        <button 
+                          onClick={() => {
+                            if (!isAuthenticated) {
+                              toast.error('Please login to view phone number');
+                              toggleLoginModal(true);
+                              return;
+                            }
+                            setShowPhone(true);
+                          }} 
+                          className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3"
+                        >
                           <Phone className="w-5 h-5" />Show Phone Number
                         </button>
                       )}
