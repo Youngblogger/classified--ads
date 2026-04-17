@@ -1327,16 +1327,101 @@ export default function MessagesPage() {
           </form>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center bg-[#efeae2]">
-          <div className="w-24 h-24 rounded-full bg-[#dcf8c6] flex items-center justify-center mb-4">
-            <svg className="w-12 h-12 text-[#54656f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+        <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-primary-50 p-4 sm:p-8">
+          {/* Main Illustration */}
+          <div className="relative w-40 h-40 sm:w-52 sm:h-52 mb-6 sm:mb-8">
+            {/* Background circles */}
+            <div className="absolute inset-0 bg-primary-100 rounded-full animate-pulse opacity-50"></div>
+            <div className="absolute inset-4 bg-primary-200 rounded-full animate-pulse opacity-30" style={{ animationDelay: '0.2s' }}></div>
+            <div className="absolute inset-8 bg-white rounded-full shadow-lg flex items-center justify-center">
+              <svg className="w-16 h-16 sm:w-20 sm:h-20 text-primary-500" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                <path d="M7 9h10v2H7zm0-3h10v2H7z"/>
+              </svg>
+            </div>
+            {/* Floating elements */}
+            <div className="absolute -top-2 -right-2 w-8 h-8 sm:w-10 sm:h-10 bg-accent-500 rounded-full flex items-center justify-center shadow-lg animate-bounce" style={{ animationDuration: '2s' }}>
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </div>
+            <div className="absolute -bottom-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-bounce" style={{ animationDuration: '2.5s', animationDelay: '0.5s' }}>
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
           </div>
-          <h2 className="text-2xl font-light text-[#41525d] mb-1">iList chat</h2>
-          <p className="text-sm text-[#667781] text-center max-w-md px-4">
-            Send and receive messages without keeping your phone online.
+
+          {/* Title */}
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2 text-center">
+            Welcome to iList Chat
+          </h2>
+          <p className="text-sm sm:text-base text-slate-500 text-center max-w-xs sm:max-w-md mb-6 sm:mb-8">
+            Connect with buyers and sellers directly. Your messages are private and secure.
           </p>
+
+          {/* Features */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-lg mb-6 sm:mb-8">
+            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-slate-100 flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <p className="text-xs sm:text-sm font-semibold text-slate-800">Private</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">End-to-end encrypted</p>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-slate-100 flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <p className="text-xs sm:text-sm font-semibold text-slate-800">Instant</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Real-time delivery</p>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-slate-100 flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <p className="text-xs sm:text-sm font-semibold text-slate-800">Share</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Photos & files</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tips */}
+          <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-slate-100 w-full max-w-lg">
+            <p className="text-xs sm:text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+              <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Quick Tips
+            </p>
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2 text-xs sm:text-sm text-slate-600">
+                <span className="text-primary-500 mt-0.5">1.</span>
+                <span>Select a conversation from the list to start chatting</span>
+              </li>
+              <li className="flex items-start gap-2 text-xs sm:text-sm text-slate-600">
+                <span className="text-primary-500 mt-0.5">2.</span>
+                <span>Tap the mic icon to send voice messages</span>
+              </li>
+              <li className="flex items-start gap-2 text-xs sm:text-sm text-slate-600">
+                <span className="text-primary-500 mt-0.5">3.</span>
+                <span>Tap the image icon to share photos</span>
+              </li>
+            </ul>
+          </div>
         </div>
       )}
 
