@@ -75,22 +75,8 @@ class ApiClient {
           
           if (!isAuthEndpoint && !isAdminEndpoint) {
             // Don't delete token immediately - check if it's expired
-            if (typeof window !== 'undefined') {
-              const isAlreadyRedirecting = (window as any).__authRedirecting;
-              
-              if (!isAlreadyRedirecting && !url.includes('/auth/me')) {
-                (window as any).__authRedirecting = true;
-                
-                // Show login modal instead of redirecting
-                setTimeout(() => {
-                  // Import and use UI store to show login modal
-                  import('@/lib/store').then(({ useUIStore }) => {
-                    const uiStore = useUIStore.getState();
-                    uiStore.toggleLoginModal();
-                  });
-                }, 500);
-              }
-            }
+            // Removed auto-show login modal on 401 to prevent it from showing on homepage visit
+            // User must explicitly click login button or navigate to protected routes
           } else if (isAdminEndpoint && !isAuthEndpoint) {
             deleteCookie('token');
             

@@ -141,9 +141,15 @@ function NotificationsContent() {
   };
 
   const markAllAsRead = async () => {
+    const unreadNotifications = notifications.filter(n => !n.read_at);
+    if (unreadNotifications.length === 0) {
+      toast('No unread notifications');
+      return;
+    }
+    
     try {
       await api.post('/notifications/mark-all-read');
-      setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
+      setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
       toast.success('All notifications marked as read');
     } catch (error) {
       console.error('Failed to mark all as read:', error);
