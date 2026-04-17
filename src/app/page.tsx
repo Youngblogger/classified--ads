@@ -196,11 +196,11 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
       </div>
       
       <div className="p-2 sm:p-3">
-        <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+        <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600">
           {formatPrice(ad.price, ad.currency)}
         </p>
         
-        <h3 className="font-semibold text-primary-600 line-clamp-2 group-hover:text-primary-700 transition-colors text-sm sm:text-base md:text-lg leading-snug mt-1">
+        <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-gray-700 transition-colors text-sm sm:text-base md:text-lg leading-snug mt-1">
           {ad.title}
         </h3>
         
