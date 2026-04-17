@@ -686,7 +686,7 @@ export default function Header() {
 
   if (isLoading) {
     return (
-      <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-primary-600">
+      <header className="sticky top-0 z-[100] w-full bg-primary-600">
         <div className="container-app">
           <div className="h-16 flex items-center justify-between">
             <div className="h-8 w-24 bg-white/20 rounded animate-pulse" />
@@ -803,7 +803,7 @@ export default function Header() {
                 
                 {/* Search Dropdown */}
                 {showSearchDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-fade-in">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[9999] overflow-hidden animate-fade-in">
                     <div className="max-h-[420px] overflow-y-auto custom-scrollbar">
                       {searchQuery.length >= 2 && searchResults ? (
                         <>
@@ -963,7 +963,7 @@ export default function Header() {
                       </button>
 
                       {messageDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-dropdown border border-slate-100 animate-fade-in z-50">
+                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-dropdown border border-slate-100 animate-fade-in z-[9999]">
                           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                             <h3 className="font-semibold text-slate-900">Messages</h3>
                             <Link 
@@ -1039,7 +1039,7 @@ export default function Header() {
                       </button>
 
                       {notificationOpen && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-dropdown border border-slate-100 animate-fade-in z-50">
+                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-dropdown border border-slate-100 animate-fade-in z-[9999]">
                           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                             <h3 className="font-semibold text-slate-900">Notifications</h3>
                             {unreadCount > 0 && (
@@ -1143,7 +1143,7 @@ export default function Header() {
                       </button>
                       
                       {showUserMenu && (
-                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-slate-100 py-2 z-50">
+                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-slate-100 py-2 z-[9999]">
                           <div className="px-4 py-3 border-b border-slate-100">
                             <p className="font-semibold text-slate-900 truncate">{user?.name}</p>
                             <p className="text-xs text-slate-500 truncate" title={user?.email}>{truncateEmail(user?.email)}</p>
@@ -1232,7 +1232,7 @@ export default function Header() {
 
               {/* Mega Menu */}
               {showMegaMenu && (
-                <div className="absolute top-full left-0 mt-2 w-[800px] max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 animate-fade-in">
+                <div className="absolute top-full left-0 mt-2 w-[800px] max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200 z-[9999] animate-fade-in">
                   <div className="p-4 border-b border-slate-100 sticky top-0 bg-white">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -1524,7 +1524,7 @@ export default function Header() {
           </nav>
 
           {/* Mobile Bottom Nav */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 safe-area-bottom z-50">
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 safe-area-bottom z-[9999]">
             <div className="flex items-center justify-around py-2 px-4">
               {/* Home */}
               <Link href="/" className="flex flex-col items-center gap-1 p-2">
@@ -1553,9 +1553,9 @@ export default function Header() {
                     <span className="text-xs text-slate-500">Chat</span>
                   </button>
                   
-                  {/* Mobile Chat Dropdown */}
+                    {/* Mobile Chat Dropdown */}
                   {mobileChatOpen && (
-                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 max-h-96 bg-white rounded-xl shadow-dropdown border border-slate-100 overflow-hidden">
+                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 max-h-96 bg-white rounded-xl shadow-dropdown border border-slate-100 overflow-hidden z-[9999]">
                       <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
                         <h3 className="font-semibold text-slate-900 text-sm">Messages</h3>
                         <Link 
@@ -1642,7 +1642,7 @@ export default function Header() {
                   
                   {/* Mobile Notifications Dropdown */}
                   {mobileNotificationsOpen && (
-                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 max-h-96 bg-white rounded-xl shadow-dropdown border border-slate-100 overflow-hidden">
+                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 max-h-96 bg-white rounded-xl shadow-dropdown border border-slate-100 overflow-hidden z-[200]">
                       <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
                         <h3 className="font-semibold text-slate-900 text-sm">Notifications</h3>
                         <Link 

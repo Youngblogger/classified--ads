@@ -523,16 +523,16 @@ export default function AdDetailPage() {
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{ad.title}</h1>
 
                 {/* Description with Show More on right */}
-                <div className="text-gray-600 whitespace-pre-wrap pt-2 text-sm sm:text-base">
+                <div className="text-gray-600 whitespace-pre-wrap pt-2 text-xs sm:text-sm md:text-base">
                   {ad.description ? (
                     <>
-                      <p className={showFullDescription ? '' : 'line-clamp-2 sm:line-clamp-3'}>
+                      <p className={`${showFullDescription ? '' : 'line-clamp-2 sm:line-clamp-3'} transition-all duration-300`}>
                         {ad.description}
                       </p>
                       <div className="flex justify-end">
                         <button 
                           onClick={() => setShowFullDescription(!showFullDescription)}
-                          className="text-primary-600 hover:text-primary-700 font-medium inline-flex items-center mt-1 sm:mt-2 text-sm"
+                          className="text-primary-600 hover:text-primary-700 active:scale-95 font-medium inline-flex items-center mt-1 gap-0.5 text-[10px] sm:text-xs md:text-sm transition-all duration-150"
                         >
                           {showFullDescription ? 'Show less' : 'Show more'}
                         </button>

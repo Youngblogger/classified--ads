@@ -133,7 +133,7 @@ export default function CategoryNav({ selectedCategory, onCategorySelect, classN
 
   return (
     <div 
-      className={`bg-white border-b border-gray-100 ${className}`}
+      className={`bg-white border-b border-gray-100 relative z-[50] ${className}`}
     >
       <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6 xl:container xl:mx-auto">
         <div className="relative">
