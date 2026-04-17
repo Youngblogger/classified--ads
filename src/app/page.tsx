@@ -474,8 +474,8 @@ export default function HomePage() {
 
         {/* Latest Ads - jiji.ng style */}
         <section className="py-4 bg-white">
-          <div className="px-4">
-            <div className="flex flex-nowrap items-center justify-between mb-2 sm:mb-3 gap-2">
+          <div className="px-2 sm:px-4 md:px-6 lg:px-8">
+            <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
               <h2 className="text-base sm:text-lg font-bold text-gray-900 whitespace-nowrap">
                 Latest Ads
               </h2>
@@ -485,7 +485,7 @@ export default function HomePage() {
             </div>
             
             {!mounted ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="bg-white rounded-lg overflow-hidden animate-pulse shadow-md border border-gray-200">
                     <div className="aspect-[3/2] bg-gray-200" />
@@ -517,7 +517,7 @@ export default function HomePage() {
               </>
             ) : recentAds.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-[8px]">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
                   {recentAds.map((ad: any, index: number) => (
                     <AdCardWithImage key={`${ad.id}-${index}`} ad={ad} index={index} />
                   ))}
