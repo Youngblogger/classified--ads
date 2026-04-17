@@ -8,6 +8,7 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3006'
 interface UseSocketOptions {
   userId?: number | null;
   onNewMessage?: (message: any) => void;
+  onMessageRead?: (data: { messageId: number; conversationId: number }) => void;
   onUserTyping?: (data: { conversationId: string; userId: number }) => void;
   onUserOffline?: (data: { conversationId: string; userId: number }) => void;
   onNotification?: (notification: any) => void;
@@ -18,6 +19,7 @@ interface UseSocketOptions {
 export function useSocket({
   userId,
   onNewMessage,
+  onMessageRead,
   onUserTyping,
   onUserOffline,
   onNotification,
@@ -81,6 +83,12 @@ export function useSocket({
         });
       }
 
+      if (onMessageRead) {
+        socket.on('messageRead', (data) => {
+          onMessageRead(data);
+        });
+      }
+
       if (onUserTyping) {
         socket.on('userTyping', onUserTyping);
         socket.on('userStoppedTyping', onUserTyping);
@@ -108,7 +116,7 @@ export function useSocket({
         socketRef.current = null;
       }
     };
-  }, [userId, onNewMessage, onUserTyping, onNotification, onPaymentCompleted, onPromotionActivated]);
+  }, [userId, onNewMessage, onMessageRead, onUserTyping, onNotification, onPaymentCompleted, onPromotionActivated]);
 
   const joinConversation = useCallback((conversationId: string) => {
     if (socketRef.current?.connected) {

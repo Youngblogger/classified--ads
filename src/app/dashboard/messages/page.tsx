@@ -162,7 +162,8 @@ export default function MessagesPage() {
       if (exists) return prev;
       
       if (selectedConversation && message.conversation_id === selectedConversation.id) {
-        return [...prev, message];
+        // Auto-mark as read if viewing the conversation
+        return [...prev, { ...message, status: 'seen' as const, is_read: true, read_at: new Date().toISOString() }];
       }
       return prev;
     });
@@ -176,12 +177,25 @@ export default function MessagesPage() {
     );
   }, [selectedConversation]);
 
+  // Handle message read receipt
+  const handleMessageRead = useCallback((data: { messageId: number; conversationId: number }) => {
+    console.log('Message read:', data);
+    setMessages((prev) => 
+      prev.map((msg) => 
+        msg.id === data.messageId 
+          ? { ...msg, status: 'seen', is_read: true, read_at: new Date().toISOString() } 
+          : msg
+      )
+    );
+  }, []);
+
   const socket = useSocket({
     userId: currentUserId,
     onNewMessage: handleNewMessage as any,
+    onMessageRead: handleMessageRead,
   });
 
-  const { joinConversation, leaveConversation, sendMessage, isUserOnline } = socket;
+  const { joinConversation, leaveConversation, sendMessage, isUserOnline, markRead } = socket;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -242,6 +256,31 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Emit read receipts for messages when loaded
+  useEffect(() => {
+    if (selectedConversation && messages.length > 0 && currentUserId && !loadingMessages) {
+      const otherUserId = selectedConversation.sender?.id === currentUserId 
+        ? selectedConversation.receiver?.id 
+        : selectedConversation.sender?.id;
+      
+      if (otherUserId) {
+        // Get unread messages from the other user
+        const unreadMessages = messages.filter(msg => 
+          msg.sender_id !== currentUserId && !msg.is_read && !msg.read_at
+        );
+        
+        // Emit read for each unread message
+        unreadMessages.forEach(msg => {
+          markRead({
+            conversationId: selectedConversation.id.toString(),
+            messageId: msg.id,
+            readerId: currentUserId
+          });
+        });
+      }
+    }
+  }, [messages, selectedConversation, currentUserId, loadingMessages, markRead]);
+
   const fetchConversations = async () => {
     try {
       setLoading(true);
@@ -277,6 +316,14 @@ export default function MessagesPage() {
       setConversations(prev => prev.map(c => 
         c.id === conversationId ? { ...c, unread: 0, unread_count: 0 } : c
       ));
+      
+      // Update all messages in this conversation to seen status
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        status: 'seen' as const,
+        is_read: true,
+        read_at: msg.read_at || new Date().toISOString()
+      })));
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
@@ -1082,8 +1129,14 @@ export default function MessagesPage() {
                             {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {isMe && (
-                            <span className={`text-[10px] ${msg.status === 'seen' ? 'text-[#53bdeb]' : msg.status === 'delivered' ? 'text-[#8696a0]' : 'text-[#8696a0]'}`}>
-                              {msg.status === 'seen' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : msg.status === 'sending' ? '○' : '✓'}
+                            <span className={`text-[10px] ${
+                              msg.status === 'seen' || msg.is_read || msg.read_at ? 'text-[#53bdeb]' : 
+                              msg.status === 'delivered' ? 'text-[#8696a0]' : 
+                              'text-[#8696a0]'
+                            }`}>
+                              {msg.status === 'seen' || msg.is_read || msg.read_at ? '✓✓' : 
+                               msg.status === 'delivered' ? '✓✓' : 
+                               msg.status === 'sending' ? '○' : '✓'}
                             </span>
                           )}
                         </div>
@@ -1124,8 +1177,12 @@ export default function MessagesPage() {
                         )}
                         <div className={`flex items-center gap-1 mt-0.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
                           {isMe && (
-                            <span className="text-[10px] text-[#6ab383]">
-                              {isRead ? '✓✓' : '✓'}
+                            <span className={`text-[10px] ${
+                              msg.status === 'seen' ? 'text-[#53bdeb]' : 
+                              msg.status === 'delivered' || msg.is_read || msg.read_at ? 'text-[#8696a0]' : 
+                              'text-[#8696a0]'
+                            }`}>
+                              {msg.status === 'seen' || msg.is_read || msg.read_at ? '✓✓' : '✓'}
                             </span>
                           )}
                           <span className={`text-[10px] ${isMe ? 'text-[#6ab383]' : 'text-gray-400'}`}>
@@ -1328,28 +1385,12 @@ export default function MessagesPage() {
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-primary-50 p-4 sm:p-8">
-          {/* Main Illustration */}
-          <div className="relative w-40 h-40 sm:w-52 sm:h-52 mb-6 sm:mb-8">
-            {/* Background circles */}
-            <div className="absolute inset-0 bg-primary-100 rounded-full animate-pulse opacity-50"></div>
-            <div className="absolute inset-4 bg-primary-200 rounded-full animate-pulse opacity-30" style={{ animationDelay: '0.2s' }}></div>
-            <div className="absolute inset-8 bg-white rounded-full shadow-lg flex items-center justify-center">
-              <svg className="w-16 h-16 sm:w-20 sm:h-20 text-primary-500" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-                <path d="M7 9h10v2H7zm0-3h10v2H7z"/>
-              </svg>
-            </div>
-            {/* Floating elements */}
-            <div className="absolute -top-2 -right-2 w-8 h-8 sm:w-10 sm:h-10 bg-accent-500 rounded-full flex items-center justify-center shadow-lg animate-bounce" style={{ animationDuration: '2s' }}>
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </div>
-            <div className="absolute -bottom-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-bounce" style={{ animationDuration: '2.5s', animationDelay: '0.5s' }}>
-              <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
+          {/* Icon */}
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mb-6 sm:mb-8">
+            <svg className="w-full h-full text-primary-500" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+              <path d="M7 9h10v2H7zm0-3h10v2H7z"/>
+            </svg>
           </div>
 
           {/* Title */}
