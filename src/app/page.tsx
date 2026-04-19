@@ -166,8 +166,21 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
     return <span className={`absolute top-1.5 sm:top-2 left-1.5 sm:left-2 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full ${badgeClasses}`}>{label}</span>;
   };
   
+  const handleAdClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const targetSlug = (ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`;
+    window.location.href = `http://localhost:3000/ad/${targetSlug}`;
+  };
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite(e);
+  };
+
   return (
-    <Link href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`} className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
+    <div onClick={handleAdClick} className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 cursor-pointer">
       <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
           <LazyImage
@@ -187,7 +200,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
         {getConditionBadge()}
         
         <button 
-          onClick={toggleFavorite}
+          onClick={handleFavoriteClick}
           disabled={favoriteLoading}
           className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 disabled:opacity-50 z-20 border border-gray-200"
         >
@@ -223,12 +236,12 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
           </p>
         )}
         
-        <div className="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 text-gray-500 text-xs sm:text-sm">
+<div className="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 text-gray-500 text-xs sm:text-sm">
           <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
           <span className="truncate">{getLocationDisplay()}</span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 

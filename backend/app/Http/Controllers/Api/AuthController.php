@@ -322,7 +322,82 @@ class AuthController extends Controller
             return response()->json(['message' => 'Google OAuth not configured'], 500);
         }
 
-        // GET request - return redirect URL
+        // Check for One Tap JWT credential
+        $credential = $request->input('credential');
+        
+        if ($credential) {
+            // Handle Google One Tap credential
+            try {
+                // Decode the JWT payload (without verification for now - we'll verify the audience)
+                $parts = explode('.', $credential);
+                if (count($parts) !== 3) {
+                    return response()->json(['message' => 'Invalid credential format'], 400);
+                }
+                
+                $payload = json_decode(base64_decode($parts[1]), true);
+                
+                if (!$payload || !isset($payload['email'])) {
+                    return response()->json(['message' => 'Invalid credential payload'], 400);
+                }
+                
+                // Verify audience matches our client ID
+                if (isset($payload['aud']) && $payload['aud'] !== $googleClientId) {
+                    return response()->json(['message' => 'Invalid credential audience'], 400);
+                }
+                
+                $email = $payload['email'];
+                $name = $payload['name'] ?? $payload['email'];
+                $googleAvatar = $payload['picture'] ?? null;
+                $googleId = $payload['sub'] ?? null;
+                
+                // Find or create user
+                $user = User::where('email', $email)->first();
+                
+                if (!$user) {
+                    $user = User::create([
+                        'name' => $name,
+                        'email' => $email,
+                        'password' => Hash::make(bin2hex(random_bytes(16))),
+                        'google_avatar' => $googleAvatar,
+                        'google_id' => $googleId,
+                        'email_verified_at' => now(),
+                    ]);
+                } else {
+                    // Update Google avatar if changed
+                    $updateData = [];
+                    if ($googleAvatar && $user->google_avatar !== $googleAvatar) {
+                        $updateData['google_avatar'] = $googleAvatar;
+                    }
+                    if ($googleId && !$user->google_id) {
+                        $updateData['google_id'] = $googleId;
+                    }
+                    if (!empty($updateData)) {
+                        $user->update($updateData);
+                    }
+                }
+
+                $token = $user->createToken('google_token')->plainTextToken;
+
+                return response()->json([
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                        'google_avatar' => $user->google_avatar,
+                        'avatar' => $user->avatar,
+                        'full_avatar_url' => $user->full_avatar_url,
+                        'verified' => $user->verified,
+                    ],
+                    'token' => $token,
+                ]);
+
+            } catch (\Exception $e) {
+                return response()->json(['message' => 'Google credential validation failed: ' . $e->getMessage()], 401);
+            }
+        }
+
+        // GET request - return redirect URL (legacy OAuth flow)
         if ($request->isMethod('GET')) {
             $redirectUri = rtrim($appUrl, '/') . '/auth/google/callback';
             $state = bin2hex(random_bytes(16));

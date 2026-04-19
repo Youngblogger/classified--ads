@@ -9,6 +9,7 @@ import LocationModal from '@/components/ui/LocationModal';
 import Preloader from '@/components/ui/Preloader';
 import AuthProvider from '@/components/providers/AuthProvider';
 import BottomNav from '@/components/ui/BottomNav';
+import GoogleOneTap from '@/components/auth/GoogleOneTap';
 
 export default function RootLayout({
   children,
@@ -50,6 +51,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col" style={{ fontFamily: 'Inter, system-ui, sans-serif', margin: 0, padding: 0 }}>
         <AuthProvider>
+          <GoogleOneTap />
           <Preloader />
           {children}
           <BottomNav />
