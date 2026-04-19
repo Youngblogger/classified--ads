@@ -190,7 +190,7 @@ export default function FavoritesPage() {
 
               {/* Content */}
               <div className="p-4">
-                <Link href={`/ad/${item.ad.slug}`}>
+                <Link href={`/ad/${(item.ad.slug && item.ad.slug !== 'undefined') ? item.ad.slug : `ad-${item.ad.id}`}`}>
                   <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-primary-600">
                     {item.ad.title}
                   </h3>
@@ -229,7 +229,7 @@ export default function FavoritesPage() {
                 </div>
 
                 <Link
-                  href={`/ad/${item.ad.slug}`}
+                  href={`/ad/${(item.ad.slug && item.ad.slug !== 'undefined') ? item.ad.slug : `ad-${item.ad.id}`}`}
                   className="block w-full py-2 text-center bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
                 >
                   View Details

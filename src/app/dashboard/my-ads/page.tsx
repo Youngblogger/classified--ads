@@ -280,7 +280,7 @@ export default function MyAdsPage() {
                 {/* Actions */}
                 <div className="grid grid-cols-2 gap-2">
                   <Link
-                    href={`/ad/${ad.slug}`}
+                    href={`/ad/${ad.slug || `ad-${ad.id}`}`}
                     target="_blank"
                     className="flex items-center justify-center gap-1 px-2 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
                   >

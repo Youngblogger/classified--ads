@@ -254,6 +254,22 @@ export function getAdImageUrl(img: any): string {
     return `${BACKEND_URL}/${url}`;
   }
   
+  if (url.startsWith('/')) {
+    return url;
+  }
+  
+  if (url.startsWith('json_dataset/')) {
+    return url.replace('json_dataset/images/', '/images/');
+  }
+  
+  if (url.includes('json_dataset')) {
+    return '/images/' + url.split('/').pop();
+  }
+  
+  if (!url.includes('/') && !url.includes(':')) {
+    return `/images/${url}`;
+  }
+  
   return `${BACKEND_URL}/storage/${url}`;
 }
 
@@ -291,7 +307,10 @@ export function getAdImages(ad: any): string[] {
   // Handle main_image + slider_images format
   if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
     images = ad.slider_images.map((img: any) => {
-      if (typeof img === 'string') return img;
+      if (typeof img === 'string') {
+        if (img.startsWith('/') || img.startsWith('http')) return img;
+        return `/images/${img}`;
+      }
       return getAdImageUrl(img);
     }).filter(Boolean);
   }
@@ -299,7 +318,8 @@ export function getAdImages(ad: any): string[] {
   // Fallback to main_image
   if (images.length === 0 && ad.main_image) {
     if (typeof ad.main_image === 'string') {
-      images = [ad.main_image];
+      const img = ad.main_image.startsWith('/') || ad.main_image.startsWith('http') ? ad.main_image : `/images/${ad.main_image}`;
+      images = [img];
     } else {
       images = [getAdImageUrl(ad.main_image)].filter(Boolean);
     }
@@ -309,7 +329,10 @@ export function getAdImages(ad: any): string[] {
   if (images.length === 0 && ad.images && Array.isArray(ad.images)) {
     images = ad.images.filter((img: any) => img && img !== null && img !== undefined)
       .map((img: any) => {
-        if (typeof img === 'string') return img;
+        if (typeof img === 'string') {
+          if (img.startsWith('/') || img.startsWith('http')) return img;
+          return `/images/${img}`;
+        }
         return getAdImageUrl(img);
       }).filter(Boolean);
   }

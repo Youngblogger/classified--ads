@@ -22,12 +22,16 @@ export default function LoginModal() {
   const [redirectUrl, setRedirectUrl] = useState('/');
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.self === window.top) {
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get('redirect');
-      if (redirect) {
-        setRedirectUrl(redirect);
+    try {
+      if (typeof window !== 'undefined' && window.self === window.top && window.location?.search) {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+        if (redirect) {
+          setRedirectUrl(redirect);
+        }
       }
+    } catch (e) {
+      // Ignore errors when in restricted context
     }
   }, []);
   const [phone, setPhone] = useState('');

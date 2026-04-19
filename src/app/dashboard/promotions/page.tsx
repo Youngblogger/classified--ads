@@ -542,7 +542,7 @@ export default function PromotionsPage() {
                     <div>
                       <h3 className="font-semibold text-gray-900 capitalize">{promotion.type} Promotion</h3>
                       <Link
-                        href={`/ad/${promotion.ad.slug}`}
+                        href={`/ad/${(promotion.ad as any)?.slug && (promotion.ad as any)?.slug !== 'undefined' ? (promotion.ad as any).slug : `ad-${(promotion as any).ad_id || promotion.id}`}`}
                         className="text-primary-600 hover:underline"
                       >
                         {promotion.ad.title}

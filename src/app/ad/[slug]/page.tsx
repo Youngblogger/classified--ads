@@ -124,7 +124,7 @@ export default function AdDetailPage() {
   };
 
   useEffect(() => {
-    if (!slug || slug === '[slug]') {
+    if (!slug || slug === '[slug]' || slug === 'undefined' || slug === 'ad-undefined') {
       setLoading(false);
       setError('Invalid ad URL');
       return;
@@ -163,10 +163,11 @@ export default function AdDetailPage() {
         setLoading(false);
       } catch (err: any) {
         if (!isMounted) return;
-        if (err.name === 'AbortError') {
-          setError('Unable to connect to server. Please check your connection.');
+        const isConnectionError = err.name === 'AbortError' || err.message?.includes('fetch');
+        if (isConnectionError) {
+          setError('Unable to connect to server. This page requires the backend API to be running at http://127.0.0.1:8000 to view ad details.');
         } else {
-          setError(err.message || 'Failed to load ad');
+          setError(err.message || 'Ad not found');
         }
         setLoading(false);
       }
@@ -186,8 +187,12 @@ export default function AdDetailPage() {
 
   // Set current URL only on client side (not in iframe)
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.self === window.top) {
-      setCurrentUrl(window.location.href);
+    try {
+      if (typeof window !== 'undefined' && window.self === window.top && window.location.href) {
+        setCurrentUrl(window.location.href);
+      }
+    } catch (e) {
+      // Ignore errors when in restricted context (iframes)
     }
   }, []);
 
@@ -285,16 +290,19 @@ export default function AdDetailPage() {
 
   const getImageUrl = (img: any) => {
     if (!img) return null;
+    let url = '';
     if (typeof img === 'string') {
-      if (img.startsWith('http://') || img.startsWith('https://')) return img;
-      return img;
+      url = img;
+    } else {
+      url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.original_url || '';
     }
-    const url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.original_url;
     if (!url) return null;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     if (url.startsWith('/storage/')) return `${BACKEND_URL}${url}`;
     if (url.startsWith('storage/')) return `${BACKEND_URL}/${url}`;
-    return `${BACKEND_URL}/storage/${url}`;
+    if (url.startsWith('/')) return url;
+    if (url.startsWith('json_dataset/')) return '/' + url;
+    return `/images/${url}`;
   };
 
   if (loading) return (
@@ -592,7 +600,6 @@ export default function AdDetailPage() {
                     id: ad.user?.id || ad.id || 0,
                     name: ad.user?.name || ad.sellerName || 'Unknown Seller',
                     avatar: ad.user?.avatar,
-                    avatar_url: ad.user?.avatar_url,
                     full_avatar_url: ad.user?.full_avatar_url || (ad.user?.avatar ? `${BACKEND_URL}/storage/${ad.user.avatar}` : null),
                     google_avatar: ad.user?.google_avatar,
                     facebook_avatar: ad.user?.facebook_avatar,
@@ -600,11 +607,8 @@ export default function AdDetailPage() {
                     created_at: ad.user?.created_at || ad.createdAt,
                     phone: ad.user?.phone || ad.sellerPhone,
                     location: ad.user?.location,
-                  }}
+                  } as any}
                   showFollowButton={true}
-                  showJoinedDate={true}
-                  showPhone={false}
-                  showLocation={false}
                 />
               ) : null}
 
@@ -629,7 +633,7 @@ export default function AdDetailPage() {
                           onClick={() => {
                             if (!isAuthenticated) {
                               toast.error('Please login to view phone number');
-                              toggleLoginModal(true);
+                              toggleLoginModal();
                               return;
                             }
                             setShowPhone(true);

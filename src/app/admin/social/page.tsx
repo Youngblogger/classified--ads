@@ -772,7 +772,7 @@ export default function SocialPostsPage() {
                   <tr key={post.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       {post.ad ? (
-                        <a href={`/ad/${post.ad.slug}`} target="_blank" className="text-primary-600 hover:underline">
+                        <a href={`/ad/${post.ad?.slug && post.ad?.slug !== 'undefined' ? post.ad.slug : `ad-${post.ad?.id || post.ad_id}`}`} target="_blank" className="text-primary-600 hover:underline">
                           {post.ad.title}
                         </a>
                       ) : (
@@ -912,8 +912,8 @@ export default function SocialPostsPage() {
                       </td>
                       <td className="px-6 py-4">
                         {post.ad ? (
-                          <a href={`/ad/${post.ad.slug}`} target="_blank" className="text-primary-600 hover:underline">
-                            {post.ad.title}
+<a href={`/ad/${post.ad?.slug && post.ad?.slug !== 'undefined' ? post.ad.slug : `ad-${post.ad?.id || post.ad_id}`}`} target="_blank" className="text-primary-600 hover:underline">
+                            {post.ad?.title || post.ad?.title || `Ad #${post.ad_id}`}
                           </a>
                         ) : (
                           <span className="text-gray-500">Ad #{post.ad_id}</span>

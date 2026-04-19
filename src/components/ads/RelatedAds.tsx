@@ -237,7 +237,7 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
             {ads.map((ad) => (
               <Link
                 key={ad.id}
-                href={`/ad/${ad.slug}`}
+                href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`}
                 className="group block bg-white rounded-lg sm:rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 sm:hover:-translate-y-1"
               >
                 <div className="relative aspect-[4/3] bg-gray-100">

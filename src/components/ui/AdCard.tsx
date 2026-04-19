@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, ImageIcon } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
-import { formatPrice, getAdImage, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
+import { formatPrice, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
 import { useState, memo, useCallback } from 'react';
 
 interface AdCardProps {
@@ -26,32 +26,40 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   
   const categoryName = getCategoryName();
   
-  // Get image URL - handles both formats
   const getImageUrl = (): string => {
-    // Try main_image first
+    const normalizeImage = (img: any): string => {
+      let url = '';
+      if (typeof img === 'string') {
+        url = img;
+      } else if (img && typeof img === 'object') {
+        url = img.url || img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.original_url || '';
+      }
+      if (!url) return '';
+      if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) return url;
+      if (url.startsWith('json_dataset/')) return '/' + url;
+      return `/images/${url}`;
+    };
+    
     if (ad.main_image) {
-      if (typeof ad.main_image === 'string') return ad.main_image;
-      return ad.main_image.url || ad.main_image.full_url || ad.main_image.thumbnail || '';
+      return normalizeImage(ad.main_image);
     }
     
-    // Try slider_images
     if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
-      const firstImg = ad.slider_images[0];
-      if (typeof firstImg === 'string') return firstImg;
-      return firstImg.url || firstImg.full_url || firstImg.thumbnail || '';
+      return normalizeImage(ad.slider_images[0]);
     }
     
-    // Try images array (standard format)
     if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
-      const firstImg = ad.images[0];
-      if (typeof firstImg === 'string') return firstImg;
-      return firstImg.url || firstImg.full_url || firstImg.thumbnail || '';
+      return normalizeImage(ad.images[0]);
     }
     
     return '';
   };
   
   const imageUrl = getImageUrl();
+  
+  const getSlug = useCallback(() => {
+    return (ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`;
+  }, [ad.slug, ad.id]);
   
   const getFallbackImage = useCallback(() => {
     const categoryName = typeof ad.category === 'object' ? ad.category?.name || ad.category?.slug : ad.category;
@@ -91,17 +99,15 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
                          condition === 'fair' ? 'bg-orange-50 text-orange-700' :
                          'bg-gray-50 text-gray-600';
     const label = condition === 'new' || condition === 'brand_new' || condition === 'brand new' ? 'Brand New' :
-                  condition === 'like_new' || condition === 'like new' ? 'Like New' :
-                  condition === 'good' ? 'Good' :
-                  condition === 'fair' ? 'Fair' : condition.charAt(0).toUpperCase() + condition.slice(1);
+                 condition === 'like_new' || condition === 'like new' ? 'Like New' :
+                 condition === 'good' ? 'Good' :
+                 condition === 'fair' ? 'Fair' : condition.charAt(0).toUpperCase() + condition.slice(1);
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClasses}`}>{label}</span>;
   };
 
-  const imageLoader = () => getAdImage(ad) || FALLBACK_IMAGE;
-
   if (variant === 'horizontal') {
     return (
-      <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row overflow-hidden">
+      <Link href={`/ad/${getSlug()}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row overflow-hidden block">
         <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0 bg-gray-100">
           {showFallback ? (
             <Image
@@ -133,8 +139,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             {formatPrice(ad.price, ad.currency)}
           </p>
           <h3 className="font-semibold text-dark line-clamp-1">{ad.title}</h3>
-          {ad.description && (
-            <p className="text-sm text-gray-500 mt-2 line-clamp-2">{ad.description}</p>
+          {((ad as any).short_description || ad.description) && (
+            <p className="text-sm text-gray-500 mt-2 line-clamp-2">{(ad as any).short_description || ad.description}</p>
           )}
           <div className="flex items-center gap-2 mt-2 text-gray-500 text-sm">
             <MapPin className="w-4 h-4" />
@@ -147,7 +153,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
 
   if (variant === 'compact') {
     return (
-      <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+      <Link href={`/ad/${getSlug()}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow block">
         <div className="relative aspect-square bg-gray-100">
           {showFallback ? (
             <Image
@@ -179,9 +185,9 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             {formatPrice(ad.price, ad.currency)}
           </p>
           <h3 className="font-medium text-dark text-sm line-clamp-1">{ad.title}</h3>
-          {(ad.short_description || ad.description) && (
+          {((ad as any).short_description || ad.description || (ad as any).excerpt || (ad as any).summary) && (
             <p className="text-gray-500 text-xs mt-1 line-clamp-2">
-              {ad.short_description || ad.description}
+              {(ad as any).short_description || ad.description || (ad as any).excerpt || (ad as any).summary}
             </p>
           )}
           <div className="flex items-center gap-1 mt-2 text-gray-400 text-xs">
@@ -194,7 +200,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   }
 
   return (
-    <Link href={`/ad/${ad.slug}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">
+    <Link href={`/ad/${getSlug()}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group block">
       <div className="relative h-auto min-h-[200px] overflow-hidden bg-gray-100">
         {showFallback ? (
           <Image
@@ -227,9 +233,9 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
         <h3 className="font-semibold text-dark line-clamp-2 group-hover:text-primary-600 transition-colors">
           {ad.title}
         </h3>
-        {(ad.short_description || ad.description) && (
+        {((ad as any).short_description || ad.description || (ad as any).excerpt || (ad as any).summary) && (
           <p className="text-gray-500 text-sm mt-2 line-clamp-2">
-            {ad.short_description || ad.description}
+            {(ad as any).short_description || ad.description || (ad as any).excerpt || (ad as any).summary}
           </p>
         )}
         <div className="flex items-center justify-between gap-2 mt-3 text-gray-500 text-sm flex-wrap">

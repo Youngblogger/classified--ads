@@ -90,6 +90,8 @@ function AdsPageContent() {
   const [selectedLocationSlug, setSelectedLocationSlug] = useState<string>(locationSlug);
   const [selectedLGA, setSelectedLGA] = useState<string>(lgaParam);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [priceMinRaw, setPriceMinRaw] = useState('');
+  const [priceMaxRaw, setPriceMaxRaw] = useState('');
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [condition, setCondition] = useState<string>('');
@@ -128,8 +130,8 @@ function AdsPageContent() {
     if (selectedCategoryId) params.set('category_id', selectedCategoryId.toString());
     if (selectedLocationSlug) params.set('location', selectedLocationSlug);
     if (selectedLGA) params.set('lga', selectedLGA);
-    if (priceMin) params.set('min_price', priceMin);
-    if (priceMax) params.set('max_price', priceMax);
+    if (priceMinRaw) params.set('min_price', priceMinRaw);
+    if (priceMaxRaw) params.set('max_price', priceMaxRaw);
     if (condition) params.set('condition', condition);
     
     // Sort mapping
@@ -179,7 +181,7 @@ function AdsPageContent() {
   useEffect(() => {
     setCurrentPage(1);
     fetchAds(1, true);
-  }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMin, priceMax, condition, sortBy]);
+  }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMinRaw, priceMaxRaw, condition, sortBy]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -251,6 +253,8 @@ function AdsPageContent() {
     setSelectedCategoryId(null);
     setSelectedLocationSlug('');
     setSelectedLGA('');
+    setPriceMinRaw('');
+    setPriceMaxRaw('');
     setPriceMin('');
     setPriceMax('');
     setCondition('');
@@ -385,39 +389,59 @@ function AdsPageContent() {
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Price Range</h3>
               <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(e.target.value)}
-                  placeholder="Min"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
-                />
-                <input
-                  type="number"
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(e.target.value)}
-                  placeholder="Max"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
-                />
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₦</span>
+                  <input
+                    type="text"
+                    value={priceMin}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[,]/g, '');
+                      setPriceMinRaw(raw);
+                      setPriceMin(raw ? Number(raw).toLocaleString('en-US') : '');
+                    }}
+                    placeholder="Min"
+                    className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₦</span>
+                  <input
+                    type="text"
+                    value={priceMax}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[,]/g, '');
+                      setPriceMaxRaw(raw);
+                      setPriceMax(raw ? Number(raw).toLocaleString('en-US') : '');
+                    }}
+                    placeholder="Max"
+                    className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Condition */}
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Condition</h3>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {['new', 'like_new', 'good', 'fair'].map((cond) => (
-                  <label key={cond} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="condition"
-                      value={cond}
-                      checked={condition === cond}
-                      onChange={(e) => setCondition(e.target.value)}
-                      className="text-primary-600"
-                    />
-                    <span className="capitalize">{cond === 'new' ? 'Brand New' : cond === 'like_new' ? 'Like New' : cond}</span>
-                  </label>
+                  <button
+                    key={cond}
+                    onClick={() => setCondition(condition === cond ? '' : cond)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      condition === cond
+                        ? cond === 'new' 
+                          ? 'bg-green-600 text-white' 
+                          : cond === 'like_new'
+                            ? 'bg-blue-600 text-white'
+                            : cond === 'good'
+                              ? 'bg-amber-600 text-white'
+                              : 'bg-orange-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {cond === 'new' ? 'Brand New' : cond === 'like_new' ? 'Like New' : cond === 'good' ? 'Good' : 'Fair'}
+                  </button>
                 ))}
               </div>
             </div>

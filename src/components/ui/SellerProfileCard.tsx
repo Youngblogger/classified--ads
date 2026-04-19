@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const BACKEND_URL = API_URL.replace('/api', '');
 
 interface SellerProfileCardProps {
   seller: {
@@ -18,11 +19,21 @@ interface SellerProfileCardProps {
     verified?: boolean;
     followers_count?: number;
     is_following?: boolean;
+    location?: string;
+    created_at?: string;
+    joined_date?: string;
+    member_since?: string;
+    rating?: number;
+    phone?: string;
+    is_verified?: boolean;
   };
   size?: 'sm' | 'md' | 'lg';
   showHoverEffect?: boolean;
   className?: string;
   showFollowButton?: boolean;
+  showJoinedDate?: boolean;
+  showPhone?: boolean;
+  showLocation?: boolean;
 }
 
 function formatDate(dateString?: string): string {
@@ -48,13 +59,14 @@ function formatFollowers(count?: number): string {
 }
 
 function getProfileImage(seller: SellerProfileCardProps['seller']): string | null {
+  const sellerAny = seller as any;
   // Try all possible avatar sources - match header order
   const imageSources = [
-    seller.full_avatar_url,
-    seller.avatar_url,
-    seller.avatar,
-    seller.google_avatar,
-    seller.facebook_avatar,
+    sellerAny.full_avatar_url,
+    sellerAny.avatar_url,
+    sellerAny.avatar,
+    sellerAny.google_avatar,
+    sellerAny.facebook_avatar,
   ];
   
   const image = imageSources.find(img => img && typeof img === 'string' && img.trim() !== '');
@@ -151,9 +163,10 @@ export default function SellerProfileCard({
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   
-    const isOwnProfile = user?.id === seller.id;
+    const sellerAny = seller as any;
+  const isOwnProfile = user?.id === seller.id;
   const profileImage = getProfileImage(seller);
-  const joinedDate = seller.joined_date || formatDate(seller.created_at || seller.member_since);
+  const joinedDate = sellerAny.joined_date || formatDate(sellerAny.created_at || sellerAny.member_since);
   
   const sizes = {
     sm: { image: 36, name: 13, title: 12, date: 10 },
@@ -338,7 +351,7 @@ export default function SellerProfileCard({
             >
               {seller.name || 'Unknown Seller'}
             </span>
-            {(seller.is_verified || seller.verified) && <VerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
+            {((seller as any).is_verified || seller.verified) && <VerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
             <span className="text-xs text-gray-300 flex-shrink-0">|</span>
             
             {showFollowButton && seller.id && (
@@ -379,9 +392,9 @@ export default function SellerProfileCard({
           </div>
           
           {/* Rating (if available) */}
-          {seller.rating !== undefined && seller.rating > 0 && (
+          {(seller as any).rating !== undefined && (seller as any).rating > 0 && (
             <div className="mt-1">
-              <StarRating rating={seller.rating} size={size === 'lg' ? 'md' : 'sm'} />
+              <StarRating rating={(seller as any).rating} size={size === 'lg' ? 'md' : 'sm'} />
             </div>
           )}
           

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Shield, Loader2 } from 'lucide-react';
 
-export default function SessionExpiredPage() {
+function SessionExpiredContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [countdown, setCountdown] = useState(3);
@@ -66,5 +66,13 @@ export default function SessionExpiredPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SessionExpiredPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-600" /></div>}>
+      <SessionExpiredContent />
+    </Suspense>
   );
 }

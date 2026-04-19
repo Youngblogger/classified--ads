@@ -29,8 +29,16 @@ function getImageUrl(url: string | null | undefined): string | null {
   if (url.startsWith('storage/')) {
     return `${BACKEND_URL}/${url}`;
   }
-  // Default: assume it's a filename
-  return `${BACKEND_URL}/storage/${url}`;
+  // Handle / prefix
+  if (url.startsWith('/')) {
+    return url;
+  }
+  // Handle json_dataset/ prefix
+  if (url.startsWith('json_dataset/')) {
+    return '/' + url;
+  }
+  // Default: assume it's a filename in /images/
+  return `/images/${url}`;
 }
 
 // Get audio URL - handles voice messages
@@ -245,7 +253,7 @@ export default function ChatModal({
       const fetchedMessages = response.data.data || response.data || [];
       
       // Deduplicate messages based on ID and content
-      const deduplicated = fetchedMessages.reduce((acc: Message[], msg) => {
+      const deduplicated = fetchedMessages.reduce((acc: Message[], msg: any) => {
         const exists = acc.some(existing => 
           (existing.id && msg.id && existing.id === msg.id) ||
           (existing.sender_id === msg.sender_id && 

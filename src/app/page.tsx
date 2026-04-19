@@ -32,7 +32,13 @@ function getImageUrl(img: any): string {
   if (url.startsWith('storage/')) {
     return `${BACKEND_URL}/${url}`;
   }
-  return `${BACKEND_URL}/storage/${url}`;
+  if (url.startsWith('/')) {
+    return url;
+  }
+  if (url.startsWith('json_dataset/')) {
+    return '/' + url;
+  }
+  return `/images/${url}`;
 }
 
 function LazyImage({ src, alt, className, style, onError }: { src: string; alt: string; className?: string; style?: React.CSSProperties; onError?: () => void }) {
@@ -68,21 +74,28 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   
+  const normalizeImage = (img: any): string => {
+    let url = '';
+    if (typeof img === 'string') {
+      url = img;
+    } else if (img && typeof img === 'object') {
+      url = img.url || img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.original_url || '';
+    }
+    if (!url) return FALLBACK_IMAGE;
+    if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('json_dataset/')) return '/' + url;
+    return `/images/${url}`;
+  };
+  
   // Extract image URL from various possible formats
   const getImageUrl = () => {
     // Check for images array
     if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
-      const firstImg = ad.images[0];
-      // If it's a string, use it directly
-      if (typeof firstImg === 'string') return firstImg;
-      // If it's an object, try various URL fields (in order of priority)
-      return firstImg.display_url || firstImg.thumbnail || firstImg.full_url || firstImg.url || firstImg.original_url || FALLBACK_IMAGE;
+      return normalizeImage(ad.images[0]);
     }
     // Check for single image field
     if (ad.image || ad.main_image) {
-      const img = ad.image || ad.main_image;
-      if (typeof img === 'string') return img;
-      return img.display_url || img.thumbnail || img.full_url || img.url || FALLBACK_IMAGE;
+      return normalizeImage(ad.image || ad.main_image);
     }
     return FALLBACK_IMAGE;
   };
@@ -154,7 +167,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   };
   
   return (
-    <Link href={`/ad/${ad.slug || ad.id}`} className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
+    <Link href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`} className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
       <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
           <LazyImage

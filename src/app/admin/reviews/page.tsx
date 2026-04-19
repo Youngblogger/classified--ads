@@ -411,7 +411,7 @@ const STEALTH_PREFIX = '/secure-control-9ja';
                   <div className="mt-4 flex items-center gap-2">
                     <span className="text-sm text-gray-500">For:</span>
                     <Link
-                      href={`/ad/${review.ad?.slug}`}
+                      href={`/ad/${review.ad?.slug && review.ad?.slug !== 'undefined' ? review.ad.slug : `ad-${review.ad?.id}`}`}
                       className="text-sm text-purple-600 hover:text-purple-700 font-medium"
                     >
                       {review.ad?.title || 'Unknown Ad'}
@@ -540,7 +540,7 @@ const STEALTH_PREFIX = '/secure-control-9ja';
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="font-medium text-gray-900 mb-2">Review for Ad</h3>
                 <Link
-                  href={`/ad/${selectedReview.ad?.slug}`}
+                  href={`/ad/${selectedReview.ad?.slug && selectedReview.ad?.slug !== 'undefined' ? selectedReview.ad.slug : `ad-${selectedReview.ad?.id}`}`}
                   className="text-purple-600 hover:text-purple-700 font-medium"
                 >
                   {selectedReview.ad?.title || 'Unknown Ad'}
