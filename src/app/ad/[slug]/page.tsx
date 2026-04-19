@@ -609,6 +609,8 @@ export default function AdDetailPage() {
                     location: ad.user?.location,
                   } as any}
                   showFollowButton={true}
+                  showLocation={false}
+                  showPhone={false}
                 />
               ) : null}
 
