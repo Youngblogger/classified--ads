@@ -216,6 +216,7 @@ export default function LoginModal() {
       resetForm();
       
       // Full page redirect to ensure auth state is loaded
+      window.scrollTo(0, 0);
       window.location.href = redirectUrl || '/';
       
     } catch (err: unknown) {
@@ -348,6 +349,7 @@ export default function LoginModal() {
       resetForm();
       
       // Full page redirect to ensure auth state is loaded
+      window.scrollTo(0, 0);
       window.location.href = redirectUrl || '/';
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid credentials';
@@ -419,31 +421,47 @@ export default function LoginModal() {
   };
 
   const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '190991791068-p65o95kslmp106ohlbdafsdthg702tn3.apps.googleusercontent.com';
+  const FACEBOOK_APP_ID = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || 'your_facebook_app_id';
+
+  const handleFacebookCredential = async (response: any) => {
+    setFacebookLoading(true);
+    setError('');
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+      const res = await fetch(`${apiUrl}/auth/facebook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ access_token: response.accessToken }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('auth-storage', JSON.stringify({ state: { token: data.token, user: data.user, isAuthenticated: true }, version: 0 }));
+        document.cookie = `token=${data.token};path=/;max-age=${24 * 60 * 60};SameSite=Lax`;
+        login(data.user, data.token);
+        toast.success(`Welcome, ${data.user?.name || 'User'}!`);
+        closeAllModals();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Facebook login failed');
+    } finally {
+      setFacebookLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isLoginModalOpen) return;
     if (typeof window === 'undefined') return;
-
-    const loadGoogleScript = () => {
-      if (document.getElementById('google-script')) return;
-      
-      const script = document.createElement('script');
-      script.id = 'google-script';
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        setTimeout(initGoogleButton, 300);
-      };
-      document.head.appendChild(script);
-    };
 
     const initGoogleButton = () => {
       const win = window as unknown as GoogleWindow;
       if (!win.google?.accounts?.id || !GOOGLE_CLIENT_ID) return;
       
       const container = document.getElementById('google-signin-button');
-      if (!container || container.children.length > 0) return;
+      if (!container) return;
 
       try {
         win.google.accounts.id.initialize({
@@ -451,6 +469,7 @@ export default function LoginModal() {
           callback: handleGoogleCredential,
         });
 
+        container.innerHTML = '';
         win.google.accounts.id.renderButton(container, {
           theme: 'outline',
           size: 'large',
@@ -461,6 +480,23 @@ export default function LoginModal() {
       } catch (e) {
         console.error('Google button init failed:', e);
       }
+    };
+
+    const loadGoogleScript = () => {
+      if (document.getElementById('google-script')) {
+        setTimeout(initGoogleButton, 100);
+        return;
+      }
+      
+      const script = document.createElement('script');
+      script.id = 'google-script';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        setTimeout(initGoogleButton, 500);
+      };
+      document.head.appendChild(script);
     };
 
     loadGoogleScript();
@@ -487,12 +523,13 @@ export default function LoginModal() {
         throw new Error(data.message || 'Google login failed');
       }
 
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('auth-storage', JSON.stringify({
-        state: { token: data.token, user: data.user, isAuthenticated: true },
-        version: 0
-      }));
+localStorage.setItem('authToken', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('auth-storage', JSON.stringify({
+          state: { token: data.token, user: data.user, isAuthenticated: true },
+          version: 0
+        }));
+        window.scrollTo(0, 0);
 
       const cookieMaxAge = 24 * 60 * 60;
       document.cookie = `token=${data.token};path=/;max-age=${cookieMaxAge};SameSite=Lax`;
@@ -502,6 +539,7 @@ export default function LoginModal() {
       closeAllModals();
       
       if (redirectUrl) {
+        window.scrollTo(0, 0);
         window.location.href = redirectUrl;
       }
     } catch (err: unknown) {
@@ -749,7 +787,7 @@ export default function LoginModal() {
             {/* Social Login - Only show for email */}
             {loginMethod === 'email' && (
               <>
-                <div className="relative my-4">
+                <div className="relative my-3">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-200"></div>
                   </div>
@@ -758,17 +796,17 @@ export default function LoginModal() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3">
-                  <div id="google-signin-button" className="w-full min-h-[50px]"></div>
+                <div className="flex flex-col gap-2">
+                  <div id="google-signin-button" className="w-full min-h-[46px]"></div>
                   <button 
                     onClick={handleFacebookLogin}
                     disabled={facebookLoading}
-                    className="flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 transition-all disabled:opacity-50 text-base font-medium text-gray-800 shadow-sm"
+                    className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 transition-all disabled:opacity-50 text-base font-medium text-gray-800 shadow-sm"
                   >
                     <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0">
                       <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
-                    <span>{facebookLoading ? 'Loading...' : 'Facebook'}</span>
+                    <span>{facebookLoading ? 'Loading...' : 'Continue with Facebook'}</span>
                   </button>
                 </div>
               </>
