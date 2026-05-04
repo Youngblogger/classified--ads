@@ -106,6 +106,8 @@ class AdController extends Controller
 
             $ad->increment('views');
 
+            $ad->attributes = $ad->attributes ?? [];
+
             return response()->json([
                 'data' => $ad,
             ]);
@@ -149,6 +151,7 @@ class AdController extends Controller
                 'condition' => 'required|in:new,like_new,good,fair',
                 'phone' => 'required|string|max:20',
                 'whatsapp' => 'nullable|string|max:20',
+                'attributes' => 'nullable|string',
             ]);
 
             // Check auto-approval settings
@@ -176,6 +179,15 @@ class AdController extends Controller
                 }
             }
             
+            $attributes = null;
+            if (!empty($validated['attributes'])) {
+                try {
+                    $attributes = json_decode($validated['attributes'], true);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to decode attributes: ' . $e->getMessage());
+                }
+            }
+            
             $ad = Ad::create([
                 'user_id' => $user->id,
                 'title' => $validated['title'],
@@ -190,6 +202,7 @@ class AdController extends Controller
                 'condition' => $validated['condition'],
                 'phone' => $validated['phone'],
                 'whatsapp' => $validated['whatsapp'] ?? null,
+                'attributes' => $attributes,
                 'slug' => Str::slug($validated['title']) . '-' . time(),
                 'status' => $autoApproval['should_auto_approve'] ? 'active' : 'pending',
             ]);

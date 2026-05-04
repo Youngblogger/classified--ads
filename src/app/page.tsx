@@ -79,10 +79,14 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
     if (typeof img === 'string') {
       url = img;
     } else if (img && typeof img === 'object') {
-      url = img.url || img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.original_url || '';
+      url = img.full_url || img.full_thumbnail_url || img.url || img.display_url || img.thumbnail_url || img.thumbnail || img.original_url || '';
     }
     if (!url) return FALLBACK_IMAGE;
-    if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/storage/') || url.startsWith('storage/')) {
+      return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+    }
+    if (url.startsWith('/')) return url;
     if (url.startsWith('json_dataset/')) return '/' + url;
     return `/images/${url}`;
   };
@@ -109,12 +113,10 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
     const lgaName = ad.lga || '';
     
-    if (!stateName && !lgaName) return 'N/A';
-    
     if (stateName && lgaName && stateName !== lgaName) {
       return `${lgaName}, ${stateName}`;
     }
-    return stateName || lgaName || 'N/A';
+    return stateName || lgaName || 'No location';
   };
 
   const toggleFavorite = async (e: React.MouseEvent) => {
@@ -327,6 +329,13 @@ export default function HomePage() {
       
       // Normalize ads to have images array
       console.log('Fetched ads, count:', newAds.length, 'hasMore:', hasMorePages, 'page:', pageNum);
+      if (newAds.length > 0) {
+        console.log('First ad structure:', JSON.stringify({
+          id: newAds[0].id,
+          title: newAds[0].title,
+          images: newAds[0].images,
+        }, null, 2));
+      }
       newAds = newAds.map((ad: any) => {
         if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
           const mainImg = ad.main_image || ad.slider_images[0];

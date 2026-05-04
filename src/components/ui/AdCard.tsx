@@ -82,12 +82,10 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
     const lgaName = ad.lga || '';
     
-    if (!stateName && !lgaName) return 'N/A';
-    
     if (stateName && lgaName && stateName !== lgaName) {
       return `${lgaName}, ${stateName}`;
     }
-    return stateName || lgaName || 'N/A';
+    return stateName || lgaName || 'No location';
   };
 
   const getConditionBadge = () => {
