@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Ad;
 use App\Models\Category;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SearchService
@@ -29,21 +30,26 @@ class SearchService
         $location = $params['location'] ?? null;
         $limit = $params['limit'] ?? 20;
 
-        $ads = $this->buildQuery($query, $categoryId, $minPrice, $maxPrice, $location)
-            ->where(function($q) {
-                $q->where('processing_status', 'completed')
-                  ->orWhere('is_seeded', true);
-            })
-            ->where('status', 'active')
-            ->get();
+        Log::info('SearchService::search - Params: ', $params);
 
-        $results = $this->scoreAndSort($ads, $query, $categoryId);
+        $ads = $this->buildQuery($query, $categoryId, $minPrice, $maxPrice, $location)->get();
+
+        Log::info('SearchService::search - Found ads: ' . count($ads));
+
+        $scoredResults = $this->scoreAndSort($ads, $query, $categoryId);
+
+        // Extract and format Ad objects
+        $results = [];
+        foreach ($scoredResults as $item) {
+            $ad = $item['ad'];
+            $results[] = $this->formatAdForResponse($ad);
+        }
 
         $results = array_slice($results, 0, $limit);
 
-        $relatedAds = $this->findRelatedAds($results, $categoryId, $limit);
+        $relatedAds = $this->findRelatedAds($scoredResults, $categoryId, $limit);
 
-        $autocomplete = $this->getAutocompleteSuggestions($query, $results);
+        $autocomplete = $this->getAutocompleteSuggestions($query, $ads);
 
         return [
             'results' => $results,
@@ -54,9 +60,61 @@ class SearchService
         ];
     }
 
+    private function formatAdForResponse($ad): array
+    {
+        return [
+            'id' => $ad->id,
+            'slug' => $ad->slug ?? 'ad-' . $ad->id,
+            'title' => $ad->title,
+            'description' => $ad->description ?? '',
+            'price' => (float) $ad->price,
+            'currency' => $ad->currency ?? 'NGN',
+            'condition' => $ad->condition,
+            'status' => $ad->status,
+            'views' => $ad->views ?? 0,
+            'created_at' => $ad->created_at ? $ad->created_at->toIso8601String() : null,
+            'updated_at' => $ad->updated_at ? $ad->updated_at->toIso8601String() : null,
+            'user' => $ad->user ? [
+                'id' => $ad->user->id,
+                'name' => $ad->user->name,
+                'avatar' => $ad->user->full_avatar_url ?? $ad->user->avatar_url,
+            ] : null,
+            'category' => $ad->category ? [
+                'id' => $ad->category->id,
+                'name' => $ad->category->name,
+                'slug' => $ad->category->slug,
+            ] : null,
+            'location' => $ad->location ? [
+                'id' => $ad->location->id,
+                'name' => $ad->location->name,
+            ] : null,
+            'state' => $ad->state ?? ($ad->location ? $ad->location->name : null),
+            'lga' => $ad->lga,
+            'images' => $ad->images ? $ad->images->map(function($img) {
+                return [
+                    'id' => $img->id,
+                    'url' => $img->url,
+                    'full_url' => $img->full_url ?? $img->url,
+                    'thumbnail_url' => $img->thumbnail_url,
+                    'is_primary' => (bool) $img->is_primary,
+                ];
+            })->toArray() : [],
+            'is_featured' => (bool) $ad->is_featured,
+            'is_verified' => (bool) $ad->is_verified,
+        ];
+    }
+
     private function buildQuery(string $query, ?int $categoryId, ?float $minPrice, ?float $maxPrice, ?string $location)
     {
-        $baseQuery = Ad::with(['images', 'category', 'location']);
+        $baseQuery = Ad::with(['images', 'category', 'location', 'user'])
+            ->where('status', 'active')
+            ->where(function($q) {
+                $q->where('is_seeded', true)
+                  ->orWhere(function($sq) {
+                      $sq->where('is_seeded', false)
+                         ->where('processing_status', 'completed');
+                  });
+            });
 
         if ($query) {
             $searchTerms = $this->extractKeywords($query);
@@ -90,15 +148,6 @@ class SearchService
                   ->orWhere('slug', 'like', '%' . Str::slug($location) . '%');
             });
         }
-
-        // Include seeded ads or real ads with completed processing
-        $baseQuery->where(function($q) {
-            $q->where('is_seeded', true)
-              ->orWhere(function($sq) {
-                  $sq->where('is_seeded', false)
-                     ->where('processing_status', 'completed');
-              });
-        });
 
         return $baseQuery;
     }
@@ -197,44 +246,26 @@ class SearchService
             }
 
             $results[] = [
-                'ad_id' => $ad->id,
-                'title' => $ad->title,
-                'price' => (float) $ad->price,
-                'currency' => $ad->currency,
-                'location' => $ad->location?->name,
-                'category' => $ad->category?->name,
-                'relevance_score' => min(100, $score),
-                'matched_on' => $matchedOn,
-                'verified' => $ad->verification_status === 'verified',
-                'featured' => $ad->is_featured,
-                'ai_confidence' => $ad->ai_confidence,
-                'created_at' => $ad->created_at->toIso8601String(),
-                'tags' => $adTags,
-                'images' => $ad->images->take(3)->map(fn($img) => [
-                    'url' => $img->thumbnail_url ?? $img->url,
-                    'is_primary' => $img->is_primary,
-                ])->toArray(),
+                'score' => $score,
+                'ad' => $ad,
             ];
         }
 
         usort($results, function($a, $b) {
-            if ($b['relevance_score'] !== $a['relevance_score']) {
-                return $b['relevance_score'] <=> $a['relevance_score'];
-            }
-            return $b['ai_confidence'] <=> $a['ai_confidence'];
+            return $b['score'] <=> $a['score'];
         });
 
         return $results;
     }
 
-    private function findRelatedAds(array $currentResults, ?int $categoryId, int $limit): array
+    private function findRelatedAds(array $scoredResults, ?int $categoryId, int $limit): array
     {
-        if (empty($currentResults)) {
+        if (empty($scoredResults)) {
             return [];
         }
 
-        $adIds = array_column($currentResults, 'ad_id');
-        $firstAd = reset($currentResults);
+        $adIds = array_map(function($item) { return $item['ad']->id; }, $scoredResults);
+        $firstAd = reset($scoredResults)['ad'];
         
         $query = Ad::with(['images', 'category', 'location'])
             ->where('status', 'active')
@@ -251,15 +282,8 @@ class SearchService
             $categoryIds = $this->getCategoryAndDescendants($categoryId);
             $query->whereIn('category_id', $categoryIds);
         } else {
-            $categoryIds = [];
-            foreach ($currentResults as $result) {
-                $ad = Ad::find($result['ad_id']);
-                if ($ad) {
-                    $categoryIds[] = $ad->category_id;
-                }
-            }
-            if (!empty($categoryIds)) {
-                $query->whereIn('category_id', array_unique($categoryIds));
+            if ($firstAd && isset($firstAd->category_id)) {
+                $query->where('category_id', $firstAd->category_id);
             }
         }
 
@@ -267,61 +291,27 @@ class SearchService
             ->limit($limit)
             ->get();
 
-        $results = [];
-        foreach ($relatedAds as $ad) {
-            $reasons = [];
-            
-            if ($ad->category_id == ($firstAd['category'] ?? null)) {
-                $reasons[] = 'Similar category';
-            }
-
-            $adTags = is_array($ad->tags) ? $ad->tags : [];
-            if (!empty($adTags)) {
-                $reasons[] = 'Related tags';
-            }
-
-            if ($ad->ai_confidence >= 70) {
-                $reasons[] = 'AI verified';
-            }
-
-            $results[] = [
-                'ad_id' => $ad->id,
-                'title' => $ad->title,
-                'price' => (float) $ad->price,
-                'location' => $ad->location?->name,
-                'relevance_reason' => implode(', ', $reasons) ?: 'Similar category and tags',
-                'image' => $ad->images->first()?->thumbnail_url ?? $ad->images->first()?->url,
-            ];
-        }
-
-        return $results;
+        return $relatedAds->map(function($ad) {
+            return $this->formatAdForResponse($ad);
+        })->toArray();
     }
 
-    private function getAutocompleteSuggestions(string $query, array $results): array
+    private function getAutocompleteSuggestions(string $query, $ads): array
     {
         $suggestions = [];
         $queryLower = strtolower($query);
         
         $titleMatches = [];
-        $tagMatches = [];
         
-        foreach ($results as $result) {
-            $title = strtolower($result['title'] ?? '');
+        foreach ($ads as $ad) {
+            $title = strtolower($ad->title ?? '');
             
-            if (stripos($title, $queryLower) !== false && !in_array($result['title'], $titleMatches)) {
-                $titleMatches[] = $result['title'];
-            }
-            
-            $tags = is_array($result['tags'] ?? []) ? $result['tags'] : [];
-            foreach ($tags as $tag) {
-                $tagLower = strtolower($tag);
-                if (stripos($tagLower, $queryLower) !== false && !in_array($tag, $tagMatches)) {
-                    $tagMatches[] = $tag;
-                }
+            if (stripos($title, $queryLower) !== false && !in_array($ad->title, $titleMatches)) {
+                $titleMatches[] = $ad->title;
             }
         }
         
-        $suggestions = array_merge($titleMatches, $tagMatches);
+        $suggestions = $titleMatches;
         
         if (count($suggestions) < 5) {
             $categoryMatches = Category::where('is_active', true)

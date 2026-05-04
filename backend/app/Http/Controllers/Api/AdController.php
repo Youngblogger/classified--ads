@@ -141,9 +141,9 @@ class AdController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'required|string|max:5000',
                 'price' => 'required|numeric|min:0',
-                'currency' => 'required|string|in:NGN,USD,EUR,GBP',
+                'currency' => 'nullable|string|in:NGN,USD,EUR,GBP',
                 'category_id' => 'required|exists:categories,id',
-                'location_id' => 'required|exists:locations,id',
+                'location_id' => 'nullable',
                 'state' => 'nullable|string|max:100',
                 'lga' => 'nullable|string|max:100',
                 'condition' => 'required|in:new,like_new,good,fair',
@@ -156,15 +156,35 @@ class AdController extends Controller
             
             $user = $request->user();
             
+            // Resolve location_id: could be numeric ID or slug
+            $locationId = null;
+            if ($validated['location_id']) {
+                if (is_numeric($validated['location_id'])) {
+                    $locationId = (int) $validated['location_id'];
+                } else {
+                    // Try to find by slug
+                    $loc = \App\Models\Location::where('slug', $validated['location_id'])->first();
+                    if ($loc) {
+                        $locationId = $loc->id;
+                    } else {
+                        // Try to find by name
+                        $loc = \App\Models\Location::where('name', $validated['location_id'])->first();
+                        if ($loc) {
+                            $locationId = $loc->id;
+                        }
+                    }
+                }
+            }
+            
             $ad = Ad::create([
                 'user_id' => $user->id,
                 'title' => $validated['title'],
                 'description' => $validated['description'],
                 'short_description' => substr($validated['description'], 0, 150),
                 'price' => $validated['price'],
-                'currency' => $validated['currency'],
+                'currency' => $validated['currency'] ?? 'NGN',
                 'category_id' => $validated['category_id'],
-                'location_id' => $validated['location_id'],
+                'location_id' => $locationId,
                 'state' => $validated['state'] ?? null,
                 'lga' => $validated['lga'] ?? null,
                 'condition' => $validated['condition'],

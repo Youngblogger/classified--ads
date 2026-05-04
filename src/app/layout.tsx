@@ -18,10 +18,8 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
   
-  // Check if we're on an admin page
   const isAdminPage = pathname?.startsWith('/admin');
   
-  // For admin pages, render without frontend-specific components
   if (isAdminPage) {
     return (
       <html lang="en">
@@ -40,7 +38,6 @@ export default function RootLayout({
     );
   }
   
-  // For frontend pages, render with all modals and components
   return (
     <html lang="en">
       <head>

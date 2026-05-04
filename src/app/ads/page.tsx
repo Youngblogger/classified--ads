@@ -159,8 +159,14 @@ function AdsPageContent() {
         setIsLoadingMore(true);
       }
       
-      const response = await fetch(`${API_URL}/search?${buildQueryParams(pageNum)}`);
+      const queryParams = buildQueryParams(pageNum);
+      console.log('[AdsPage] Fetching search with params:', queryParams);
+      
+      const response = await fetch(`${API_URL}/search?${queryParams}`);
       const data = await response.json();
+      
+      console.log('[AdsPage] Search API response:', data);
+      console.log('[AdsPage] data.data:', data.data);
       
       if (reset || pageNum === 1) {
         setAllAds(data.data || []);

@@ -242,10 +242,8 @@ export default function Header() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [messageDropdownOpen, setMessageDropdownOpen] = useState(false);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [mobileNotificationsOpen, setMobileNotificationsOpen] = useState(false);
-  const messageDropdownRef = useRef<HTMLDivElement>(null);
   const mobileChatRef = useRef<HTMLDivElement>(null);
   const mobileNotificationsRef = useRef<HTMLDivElement>(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -405,9 +403,6 @@ export default function Header() {
       }
       if (notificationRef.current && !notificationRef.current.contains(e.target as Node)) {
         setNotificationOpen(false);
-      }
-      if (messageDropdownRef.current && !messageDropdownRef.current.contains(e.target as Node)) {
-        setMessageDropdownOpen(false);
       }
       if (mobileChatRef.current && !mobileChatRef.current.contains(e.target as Node)) {
         setMobileChatOpen(false);
@@ -948,83 +943,7 @@ export default function Header() {
               <div className="hidden md:flex items-center gap-1">
                 {isAuthenticated ? (
                   <>
-                    {/* Messages Icon */}
-                    <div className="relative" ref={messageDropdownRef}>
-                      <button 
-                        onClick={() => setMessageDropdownOpen(!messageDropdownOpen)}
-                        className="p-2.5 hover:bg-primary-700 rounded-xl transition-colors relative"
-                      >
-                        <MessageSquare className="w-5 h-5 text-white" />
-                        {unreadMessagesCount > 0 && (
-                          <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                            {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
-                          </span>
-                        )}
-                      </button>
-
-                      {messageDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-dropdown border border-slate-100 animate-fade-in z-[9999]">
-                          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                            <h3 className="font-semibold text-slate-900">Messages</h3>
-                            <Link 
-                              href="/dashboard/messages"
-                              onClick={() => setMessageDropdownOpen(false)}
-                              className="text-xs text-primary-600 hover:text-primary-700"
-                            >
-                              View all
-                            </Link>
-                          </div>
-
-                          <div className="max-h-80 overflow-y-auto">
-                            {recentMessages.length === 0 ? (
-                              <div className="px-4 py-8 text-center text-slate-500">
-                                <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                No messages
-                              </div>
-                            ) : (
-                              recentMessages.map((conversation: any) => (
-                                <div 
-                                  key={conversation.id}
-                                  onClick={() => {
-                                    setMessageDropdownOpen(false);
-                                    router.push(`/dashboard/messages?conversation=${conversation.id}`);
-                                  }}
-                                  className="px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer transition-colors"
-                                >
-                                  <div className="flex items-start gap-3">
-                                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                                      <User className="w-5 h-5 text-primary-600" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium text-slate-900">
-                                          {conversation.sender?.name || conversation.receiver?.name || 'User'}
-                                        </p>
-                                        {conversation.unread_count > 0 && (
-                                          <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
-                                            {conversation.unread_count}
-                                          </span>
-                                        )}
-                                      </div>
-                                      {conversation.ad && (
-                                        <p className="text-xs text-primary-600 truncate">
-                                          Re: {conversation.ad.title}
-                                        </p>
-                                      )}
-                                      <p className="text-xs text-slate-500 mt-0.5 truncate">
-                                        {conversation.last_message?.content || conversation.last_message?.substring(0, 50) || 'No messages yet'}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Notifications Bell */}
+                    {/* Notifications Bell with Tabs */}
                     <div className="relative" ref={notificationRef}>
                       <button 
                         onClick={() => setNotificationOpen(!notificationOpen)}
@@ -1040,70 +959,176 @@ export default function Header() {
 
                       {notificationOpen && (
                         <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-dropdown border border-slate-100 animate-fade-in z-[9999]">
-                          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                            <h3 className="font-semibold text-slate-900">Notifications</h3>
-                            {unreadCount > 0 && (
-                              <button 
-                                onClick={handleMarkAllAsRead}
-                                className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                          <div className="px-4 py-3 border-b border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setActiveTab('notifications')}
+                                className={cn(
+                                  "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors",
+                                  activeTab === 'notifications' 
+                                    ? "bg-primary-100 text-primary-700" 
+                                    : "text-slate-500 hover:bg-slate-50"
+                                )}
                               >
-                                <Check className="w-3 h-3" />
-                                Mark all read
+                                <div className="flex items-center justify-center gap-2">
+                                  <Bell className="w-4 h-4" />
+                                  <span>Notifications</span>
+                                  {unreadCount > 0 && (
+                                    <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                                      {unreadCount > 9 ? '9+' : unreadCount}
+                                    </span>
+                                  )}
+                                </div>
                               </button>
-                            )}
+                              <button
+                                onClick={() => setActiveTab('messages')}
+                                className={cn(
+                                  "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors",
+                                  activeTab === 'messages' 
+                                    ? "bg-primary-100 text-primary-700" 
+                                    : "text-slate-500 hover:bg-slate-50"
+                                )}
+                              >
+                                <div className="flex items-center justify-center gap-2">
+                                  <MessageSquare className="w-4 h-4" />
+                                  <span>Messages</span>
+                                  {unreadMessagesCount > 0 && (
+                                    <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                                      {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                                    </span>
+                                  )}
+                                </div>
+                              </button>
+                            </div>
                           </div>
 
-                          <div className="max-h-80 overflow-y-auto">
-                            {recentNotifications.length === 0 ? (
-                              <div className="px-4 py-8 text-center text-slate-500">
-                                <BellOff className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                No notifications
-                              </div>
-                            ) : (
-                              recentNotifications.slice(0, 5).map((notif: any) => {
-                                const IconComponent = NOTIFICATION_ICONS[notif.type] || Bell;
-                                const iconColor = NOTIFICATION_COLORS[notif.type] || 'bg-slate-100 text-slate-600';
-                                return (
-                                  <div 
-                                    key={notif.id}
-                                    onClick={() => handleNotificationClick(notif)}
-                                    className={cn(
-                                      "px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer transition-colors",
-                                      !notif.read_at && "bg-primary-50/50"
-                                    )}
+                          {activeTab === 'notifications' && (
+                            <>
+                              {unreadCount > 0 && (
+                                <div className="px-4 py-2 border-b border-slate-100">
+                                  <button 
+                                    onClick={handleMarkAllAsRead}
+                                    className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
                                   >
-                                    <div className="flex items-start gap-3">
-                                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0", iconColor)}>
-                                        <IconComponent className="w-5 h-5" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-slate-900">{notif.title}</p>
-                                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notif.message}</p>
-                                        {notif.created_at && (
-                                          <p className="text-xs text-slate-400 mt-1">
-                                            {formatNotificationTime(notif.created_at)}
-                                          </p>
-                                        )}
-                                      </div>
-                                      {!notif.read_at && (
-                                        <div className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-2"></div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
+                                    <Check className="w-3 h-3" />
+                                    Mark all as read
+                                  </button>
+                                </div>
+                              )}
 
-                          <div className="px-4 py-3 border-t border-slate-100">
-                            <Link 
-                              href="/dashboard/notifications"
-                              className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
-                              onClick={() => setNotificationOpen(false)}
-                            >
-                              View all notifications
-                            </Link>
-                          </div>
+                              <div className="max-h-80 overflow-y-auto">
+                                {recentNotifications.length === 0 ? (
+                                  <div className="px-4 py-8 text-center text-slate-500">
+                                    <BellOff className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                    No notifications
+                                  </div>
+                                ) : (
+                                  recentNotifications.slice(0, 5).map((notif: any) => {
+                                    const IconComponent = NOTIFICATION_ICONS[notif.type] || Bell;
+                                    const iconColor = NOTIFICATION_COLORS[notif.type] || 'bg-slate-100 text-slate-600';
+                                    return (
+                                      <div 
+                                        key={notif.id}
+                                        onClick={() => handleNotificationClick(notif)}
+                                        className={cn(
+                                          "px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer transition-colors",
+                                          !notif.read_at && "bg-primary-50/50"
+                                        )}
+                                      >
+                                        <div className="flex items-start gap-3">
+                                          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0", iconColor)}>
+                                            <IconComponent className="w-5 h-5" />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-slate-900">{notif.title}</p>
+                                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notif.message}</p>
+                                            {notif.created_at && (
+                                              <p className="text-xs text-slate-400 mt-1">
+                                                {formatNotificationTime(notif.created_at)}
+                                              </p>
+                                            )}
+                                          </div>
+                                          {!notif.read_at && (
+                                            <div className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-2"></div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+
+                              <div className="px-4 py-3 border-t border-slate-100">
+                                <Link 
+                                  href="/dashboard/notifications"
+                                  className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                                  onClick={() => setNotificationOpen(false)}
+                                >
+                                  View all notifications
+                                </Link>
+                              </div>
+                            </>
+                          )}
+
+                          {activeTab === 'messages' && (
+                            <>
+                              <div className="max-h-80 overflow-y-auto">
+                                {recentMessages.length === 0 ? (
+                                  <div className="px-4 py-8 text-center text-slate-500">
+                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                    No messages
+                                  </div>
+                                ) : (
+                                  recentMessages.slice(0, 5).map((conversation: any) => (
+                                    <div 
+                                      key={conversation.id}
+                                      onClick={() => {
+                                        setNotificationOpen(false);
+                                        router.push(`/dashboard/messages?conversation=${conversation.id}`);
+                                      }}
+                                      className="px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer transition-colors"
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                          <User className="w-5 h-5 text-primary-600" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center justify-between">
+                                            <p className="text-sm font-medium text-slate-900">
+                                              {conversation.sender?.name || conversation.receiver?.name || 'User'}
+                                            </p>
+                                            {conversation.unread_count > 0 && (
+                                              <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                                                {conversation.unread_count}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {conversation.ad && (
+                                            <p className="text-xs text-primary-600 truncate">
+                                              Re: {conversation.ad.title}
+                                            </p>
+                                          )}
+                                          <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                            {conversation.last_message?.content || conversation.last_message?.substring(0, 50) || 'No messages yet'}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+
+                              <div className="px-4 py-3 border-t border-slate-100">
+                                <Link 
+                                  href="/dashboard/messages"
+                                  className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                                  onClick={() => setNotificationOpen(false)}
+                                >
+                                  View all messages
+                                </Link>
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1643,52 +1668,142 @@ export default function Header() {
                   {/* Mobile Notifications Dropdown */}
                   {mobileNotificationsOpen && (
                     <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 max-h-96 bg-white rounded-xl shadow-dropdown border border-slate-100 overflow-hidden z-[200]">
-                      <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
-                        <h3 className="font-semibold text-slate-900 text-sm">Notifications</h3>
-                        <Link 
-                          href="/dashboard/notifications"
-                          onClick={() => setMobileNotificationsOpen(false)}
-                          className="text-xs text-primary-600 hover:text-primary-700"
-                        >
-                          View all
-                        </Link>
+                      <div className="px-2 py-2 border-b border-slate-100">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setActiveTab('notifications')}
+                            className={cn(
+                              "flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors",
+                              activeTab === 'notifications' 
+                                ? "bg-primary-100 text-primary-700" 
+                                : "text-slate-500 hover:bg-slate-50"
+                            )}
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                              <Bell className="w-3 h-3" />
+                              <span>Alerts</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => setActiveTab('messages')}
+                            className={cn(
+                              "flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors",
+                              activeTab === 'messages' 
+                                ? "bg-primary-100 text-primary-700" 
+                                : "text-slate-500 hover:bg-slate-50"
+                            )}
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                              <MessageSquare className="w-3 h-3" />
+                              <span>Chat</span>
+                            </div>
+                          </button>
+                        </div>
                       </div>
-                      <div className="max-h-64 overflow-y-auto">
-                        {recentNotifications.length === 0 ? (
-                          <div className="px-4 py-6 text-center text-slate-500">
-                            <BellOff className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                            <p className="text-sm">No notifications</p>
-                          </div>
-                        ) : (
-                          recentNotifications.slice(0, 5).map((notif: any) => {
-                            const IconComponent = NOTIFICATION_ICONS[notif.type] || Bell;
-                            const iconColor = NOTIFICATION_COLORS[notif.type] || 'bg-slate-100 text-slate-600';
-                            return (
-                              <div 
-                                key={notif.id}
-                                onClick={() => {
-                                  setMobileNotificationsOpen(false);
-                                  handleNotificationClick(notif);
-                                }}
-                                className="px-3 py-2 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer"
-                              >
-                                <div className="flex items-start gap-2">
-                                  <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", iconColor)}>
-                                    <IconComponent className="w-4 h-4" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-slate-900 truncate">{notif.title}</p>
-                                    <p className="text-xs text-slate-500 truncate">{notif.message}</p>
-                                  </div>
-                                  {!notif.read_at && (
-                                    <div className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-1"></div>
-                                  )}
-                                </div>
+
+                      {activeTab === 'notifications' && (
+                        <>
+                          <div className="max-h-64 overflow-y-auto">
+                            {recentNotifications.length === 0 ? (
+                              <div className="px-4 py-6 text-center text-slate-500">
+                                <BellOff className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                <p className="text-sm">No notifications</p>
                               </div>
-                            );
-                          })
-                        )}
-                      </div>
+                            ) : (
+                              recentNotifications.slice(0, 5).map((notif: any) => {
+                                const IconComponent = NOTIFICATION_ICONS[notif.type] || Bell;
+                                const iconColor = NOTIFICATION_COLORS[notif.type] || 'bg-slate-100 text-slate-600';
+                                return (
+                                  <div 
+                                    key={notif.id}
+                                    onClick={() => {
+                                      setMobileNotificationsOpen(false);
+                                      handleNotificationClick(notif);
+                                    }}
+                                    className="px-3 py-2 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer"
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", iconColor)}>
+                                        <IconComponent className="w-4 h-4" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-slate-900 truncate">{notif.title}</p>
+                                        <p className="text-xs text-slate-500 truncate">{notif.message}</p>
+                                      </div>
+                                      {!notif.read_at && (
+                                        <div className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-1"></div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                          <div className="px-3 py-2 border-t border-slate-100">
+                            <Link 
+                              href="/dashboard/notifications"
+                              onClick={() => setMobileNotificationsOpen(false)}
+                              className="block text-center text-xs text-primary-600 hover:text-primary-700"
+                            >
+                              View all
+                            </Link>
+                          </div>
+                        </>
+                      )}
+
+                      {activeTab === 'messages' && (
+                        <>
+                          <div className="max-h-64 overflow-y-auto">
+                            {recentMessages.length === 0 ? (
+                              <div className="px-4 py-6 text-center text-slate-500">
+                                <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                <p className="text-sm">No messages</p>
+                              </div>
+                            ) : (
+                              recentMessages.slice(0, 5).map((conversation: any) => (
+                                <div 
+                                  key={conversation.id}
+                                  onClick={() => {
+                                    setMobileNotificationsOpen(false);
+                                    router.push(`/dashboard/messages?conversation=${conversation.id}`);
+                                  }}
+                                  className="px-3 py-2 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer"
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                      <User className="w-4 h-4 text-primary-600" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between">
+                                        <p className="text-sm font-medium text-slate-900 truncate">
+                                          {conversation.sender?.name || conversation.receiver?.name || 'User'}
+                                        </p>
+                                        {conversation.unread_count > 0 && (
+                                          <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                                            {conversation.unread_count}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-slate-500 truncate">
+                                        {conversation.last_message?.content || 'No messages yet'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                          <div className="px-3 py-2 border-t border-slate-100">
+                            <Link 
+                              href="/dashboard/messages"
+                              onClick={() => setMobileNotificationsOpen(false)}
+                              className="block text-center text-xs text-primary-600 hover:text-primary-700"
+                            >
+                              View all
+                            </Link>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

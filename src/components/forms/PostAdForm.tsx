@@ -596,10 +596,18 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       }
     } catch (err: any) {
       console.error('Post ad error:', err);
+      console.error('Full error response:', JSON.stringify(err.response?.data, null, 2));
       
       let errorMsg = 'Failed to post ad. Please try again.';
       
-      if (err.response?.data?.message) {
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        console.error('Validation errors object:', errors);
+        const firstError = Object.values(errors)[0];
+        if (Array.isArray(firstError) && firstError[0]) {
+          errorMsg = firstError[0];
+        }
+      } else if (err.response?.data?.message) {
         errorMsg = err.response.data.message;
       } else if (err.response?.data?.error) {
         errorMsg = err.response.data.error;
@@ -617,7 +625,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         errorMsg = 'Please login to post an ad.';
         toggleLoginModal();
       } else if (err.response?.status === 422) {
-        errorMsg = 'Validation error. Please check your input.';
+        console.error('Validation errors:', JSON.stringify(err.response?.data?.errors, null, 2));
+        errorMsg = 'Validation error: ' + JSON.stringify(err.response?.data?.errors);
       } else if (err.response?.status === 500) {
         errorMsg = 'Server error. Please try again later.';
       }

@@ -68,6 +68,8 @@ foreach ($adsData as $adData) {
         'condition' => $adData['condition'],
         'status' => 'active',
         'attributes' => $adData['specifications'],
+        'state' => $location->name,
+        'lga' => $location->name,
     ]);
 
     foreach ($adData['images'] as $index => $imagePath) {

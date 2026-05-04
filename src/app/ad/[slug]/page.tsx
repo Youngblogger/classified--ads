@@ -67,7 +67,11 @@ export default function AdDetailPage() {
   const params = useParams();
   const slug = params?.slug as string | undefined;
   
-  console.log('[AdDetailPage] Rendering, slug:', slug);
+  useEffect(() => {
+    console.log('[AdDetailPage] Current URL:', window.location.href);
+    console.log('[AdDetailPage] Slug from params:', slug);
+    console.log('[AdDetailPage] All params:', params);
+  }, [slug]);
   
   const [ad, setAd] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -124,7 +128,8 @@ export default function AdDetailPage() {
   };
 
   useEffect(() => {
-    if (!slug || slug === '[slug]' || slug === 'undefined' || slug === 'ad-undefined') {
+    if (!slug || slug === '[slug]' || slug === 'undefined' || slug === 'ad-undefined' || slug === 'null' || slug === 'ad-null') {
+      console.log('[AdDetailPage] Invalid slug:', slug);
       setLoading(false);
       setError('Invalid ad URL');
       return;
@@ -138,6 +143,8 @@ export default function AdDetailPage() {
       setLoading(true);
       setError(null);
 
+      console.log('[AdDetailPage] Fetching ad with slug:', slug);
+
       try {
         const response = await fetch(`${API_URL}/ads/${slug}`, {
           headers: { 'Accept': 'application/json' },
@@ -146,12 +153,16 @@ export default function AdDetailPage() {
 
         clearTimeout(timeoutId);
 
+        console.log('[AdDetailPage] API response status:', response.status);
+
         if (!response.ok) {
           throw new Error('Ad not found');
         }
 
         const data = await response.json();
         if (!isMounted) return;
+
+        console.log('[AdDetailPage] API response data:', data);
 
         if (data && data.data) {
           setAd(data.data);
@@ -163,6 +174,7 @@ export default function AdDetailPage() {
         setLoading(false);
       } catch (err: any) {
         if (!isMounted) return;
+        console.error('[AdDetailPage] Error fetching ad:', err);
         const isConnectionError = err.name === 'AbortError' || err.message?.includes('fetch');
         if (isConnectionError) {
           setError('Unable to connect to server. This page requires the backend API to be running at http://127.0.0.1:8000 to view ad details.');
@@ -714,10 +726,10 @@ export default function AdDetailPage() {
       {showSharePopup && (
         <>
           <div 
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" 
+            className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm" 
             onClick={() => setShowSharePopup(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden pointer-events-auto animate-in zoom-in-95 duration-300">
               {/* Header */}
               <div className="px-6 pt-6 pb-2">

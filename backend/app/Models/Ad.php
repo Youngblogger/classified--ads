@@ -60,4 +60,13 @@ class Ad extends Model
     {
         return $this->hasMany(Favorite::class);
     }
+
+    public function getStateAttribute($value)
+    {
+        if ($value) {
+            return $value;
+        }
+        
+        return $this->location ? $this->location->name : null;
+    }
 }
