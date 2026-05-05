@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, ChevronLeft, GripVertical, Loader2, Phone, MessageCircle, MapPinned, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, ChevronLeft, GripVertical, Loader2, Phone, MessageCircle, MapPinned, ArrowLeft, ChevronDown, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { adsApi } from '@/lib/api';
 import { useAuthStore, useUIStore } from '@/lib/store';
@@ -12,6 +12,7 @@ import CategorySelector from '@/components/ui/CategorySelector';
 import LocationSelector from '@/components/ui/LocationSelector';
 import DynamicField, { CategoryField } from './DynamicField';
 import structuredCategories from '@/data/structured-categories.json';
+import { usePostAdDraft, clearPostAdDraft, DraftImage } from '@/hooks/usePostAdDraft';
 
 interface StructuredCategory {
   category: string;
@@ -47,13 +48,34 @@ const MAX_IMAGES = 20;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_FORMATS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
 
+function dataURLToFile(dataURL: string, fileName: string, mimeType: string): File {
+  const byteString = atob(dataURL.split(',')[1]);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new File([ab], fileName, { type: mimeType });
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFormProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const { toggleLoginModal, toggleRegisterModal } = useUIStore();
+  const { hasDraft, saveDraftText, saveDraftImages, clearDraft } = usePostAdDraft();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [draftRestored, setDraftRestored] = useState(false);
   
   const [categories, setCategories] = useState<any[]>([]);
   
@@ -99,6 +121,107 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       setPhone(savedPhone);
     }
   }, []);
+
+  // Restore draft if available and form is empty
+  useEffect(() => {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('post-ad-draft') : null;
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw);
+      if (!draft?.savedAt || Date.now() - draft.savedAt > 24 * 60 * 60 * 1000) return;
+      if (!title && !description && !price && images.length === 0) {
+        if (draft.step) setStep(draft.step);
+        if (draft.title) setTitle(draft.title);
+        if (draft.description) setDescription(draft.description);
+        if (draft.price) setPrice(draft.price);
+        if (draft.negotiable !== undefined) setNegotiable(draft.negotiable);
+        if (draft.categoryId) setCategoryId(draft.categoryId);
+        if (draft.categoryBreadcrumb) setCategoryBreadcrumb(draft.categoryBreadcrumb);
+        if (draft.locationId) setLocationId(draft.locationId);
+        if (draft.locationBreadcrumb) setLocationBreadcrumb(draft.locationBreadcrumb);
+        if (draft.selectedStateName) setSelectedStateName(draft.selectedStateName);
+        if (draft.lgaId) setLgaId(draft.lgaId);
+        if (draft.condition) setCondition(draft.condition);
+        if (draft.phone) setPhone(draft.phone);
+        if (draft.whatsapp) setWhatsapp(draft.whatsapp);
+        if (draft.sameAsPhone !== undefined) setSameAsPhone(draft.sameAsPhone);
+        if (draft.selectedBrand) setSelectedBrand(draft.selectedBrand);
+        if (draft.selectedModel) setSelectedModel(draft.selectedModel);
+        if (draft.selectedConfig) setSelectedConfig(draft.selectedConfig);
+        if (draft.attributes) setAttributes(draft.attributes);
+        if (draft.images?.length > 0) {
+          const restoredImages = draft.images.map((img: DraftImage) => ({
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            file: dataURLToFile(img.base64, img.name, img.type),
+            preview: img.base64,
+            uploading: false,
+          }));
+          setImages(restoredImages);
+        }
+        setDraftRestored(true);
+      }
+    } catch {}
+  }, []);
+
+  // Auto-save draft while typing (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const textData = {
+        step,
+        title,
+        description,
+        price,
+        negotiable,
+        categoryId,
+        categoryBreadcrumb,
+        locationId,
+        locationBreadcrumb,
+        selectedStateName,
+        lgaId,
+        condition,
+        phone,
+        whatsapp,
+        sameAsPhone,
+        selectedBrand,
+        selectedModel,
+        selectedConfig,
+        attributes,
+      };
+      if (typeof window !== 'undefined') {
+        try {
+          const existing = localStorage.getItem('post-ad-draft');
+          const parsed = existing ? JSON.parse(existing) : {};
+          const merged = { ...parsed, ...textData, savedAt: Date.now() };
+          localStorage.setItem('post-ad-draft', JSON.stringify(merged));
+        } catch {}
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [step, title, description, price, negotiable, categoryId, categoryBreadcrumb, locationId, locationBreadcrumb, selectedStateName, lgaId, condition, phone, whatsapp, sameAsPhone, selectedBrand, selectedModel, selectedConfig, attributes]);
+
+  // Auto-save images when they change
+  useEffect(() => {
+    if (images.length === 0) return;
+    const timer = setTimeout(async () => {
+      const draftImages: DraftImage[] = [];
+      for (const img of images) {
+        try {
+          const base64 = await fileToBase64(img.file);
+          draftImages.push({ name: img.file.name, type: img.file.type, size: img.file.size, base64 });
+        } catch {}
+      }
+      if (draftImages.length > 0) {
+        try {
+          const existing = localStorage.getItem('post-ad-draft');
+          const parsed = existing ? JSON.parse(existing) : {};
+          parsed.images = draftImages;
+          parsed.savedAt = Date.now();
+          localStorage.setItem('post-ad-draft', JSON.stringify(parsed));
+        } catch {}
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [images]);
   
   // Get category name from categoryId
   const getCategoryName = (id: number | null): string => {
@@ -520,6 +643,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     }
 
     if (!isAuthenticated) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('authRedirect', '/post-ad');
+        sessionStorage.setItem('authRedirect', '/post-ad');
+      }
       toast.error('Please login to post an ad.');
       router.push('/login?redirect=/post-ad');
       return;
@@ -572,6 +699,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       setImages([]);
       setAttributes({});
       setCategoryFields([]);
+      
+      // Clear saved draft
+      clearPostAdDraft();
       
       // Show success message
       toast.success(
@@ -669,6 +799,24 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
   return (
     <div className="space-y-6">
+      {/* Draft Restored Banner */}
+      {draftRestored && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <AlertCircle className="w-5 h-5 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold text-amber-900">Continue where you left off</h4>
+            <p className="text-sm text-amber-700 mt-1">Your previous draft has been restored. Review your details and click &quot;Post Ad&quot; when ready.</p>
+          </div>
+          <button
+            onClick={() => setDraftRestored(false)}
+            className="p-1.5 hover:bg-amber-100 rounded-lg transition-colors flex-shrink-0"
+          >
+            <X className="w-4 h-4 text-amber-500" />
+          </button>
+        </div>
+      )}
       {/* Back Button */}
       <button
         onClick={goBack}

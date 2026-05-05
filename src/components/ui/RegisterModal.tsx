@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, Eye, EyeOff, User, Phone, CheckCircle, Loader2 } from 'lucide-react';
@@ -22,9 +22,24 @@ export default function RegisterModal() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [redirectUrl, setRedirectUrl] = useState('/');
   
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [pendingPhone, setPendingPhone] = useState('');
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.location?.search) {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+        if (redirect) {
+          setRedirectUrl(redirect);
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }, []);
 
   const checkPasswordStrength = (pwd: string) => {
     let strength = 0;
@@ -127,10 +142,14 @@ export default function RegisterModal() {
           localStorage.setItem('user_phone', phone);
         }
         
+        const targetUrl = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || redirectUrl || '/';
+        localStorage.removeItem('authRedirect');
+        sessionStorage.removeItem('authRedirect');
+        
         toast.success(`Account created successfully! Welcome, ${userName}!`);
         closeAllModals();
         resetForm();
-        router.push('/');
+        window.location.href = targetUrl;
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.';

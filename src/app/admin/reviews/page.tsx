@@ -94,7 +94,6 @@ export default function ReviewsManagementPage() {
       return '';
     }
   };
-const STEALTH_PREFIX = '/secure-control-9ja';
 
   const getImageUrl = (url: string | undefined): string => {
     if (!url) return '';
