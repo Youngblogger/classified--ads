@@ -427,28 +427,31 @@ function AdsPageContent() {
             </div>
 
             {/* Condition */}
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-4">Condition</h3>
-              <div className="flex flex-wrap gap-2">
-                {['new', 'like_new', 'good', 'fair'].map((cond) => (
-                  <button
-                    key={cond}
-                    onClick={() => setCondition(condition === cond ? '' : cond)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      condition === cond
-                        ? cond === 'new' 
-                          ? 'bg-green-600 text-white' 
-                          : cond === 'like_new'
-                            ? 'bg-blue-600 text-white'
-                            : cond === 'good'
-                              ? 'bg-amber-600 text-white'
-                              : 'bg-purple-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {cond === 'new' ? 'Brand New' : cond === 'like_new' ? 'Like New' : cond === 'good' ? 'Used' : 'Refurbished'}
-                  </button>
-                ))}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-900 text-sm px-1">Condition</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: 'new', label: 'Brand New', emoji: '✨', border: 'border-green-300', bg: 'bg-green-50', text: 'text-green-800' },
+                  { key: 'like_new', label: 'Like New', emoji: '💎', border: 'border-blue-300', bg: 'bg-blue-50', text: 'text-blue-800' },
+                  { key: 'good', label: 'Used', emoji: '🔹', border: 'border-amber-300', bg: 'bg-amber-50', text: 'text-amber-800' },
+                  { key: 'fair', label: 'Refurbished', emoji: '🔧', border: 'border-purple-300', bg: 'bg-purple-50', text: 'text-purple-800' },
+                ].map(({ key, label, emoji, border, bg, text }) => {
+                  const isActive = condition === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setCondition(isActive ? '' : key)}
+                      className={`flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 border-2 ${
+                        isActive
+                          ? `${border} ${bg} ${text} shadow-md scale-[0.98]`
+                          : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-base leading-none">{emoji}</span>
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
