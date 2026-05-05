@@ -274,10 +274,10 @@ function AdsPageContent() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <ResponsiveHeader />
       
-      <main className="flex-1 w-full px-4 pt-32 pb-6 md:px-6 md:pt-36 lg:px-8">
+      <main className="flex-1 w-full px-4 pt-40 pb-6 md:px-6 md:pt-48 lg:px-8">
         {/* Search Header */}
-        <div className="max-w-7xl mx-auto bg-white rounded-xl p-4 md:p-6 lg:p-8 mb-6 shadow-sm">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="max-w-7xl mx-auto bg-white rounded-xl p-4 sm:p-6 lg:p-8 mb-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-3">
             {/* Search Input */}
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -322,12 +322,27 @@ function AdsPageContent() {
         </div>
 
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
+          {/* Mobile Filter Overlay */}
+          {showFilters && (
+            <div
+              className="fixed inset-0 bg-black/40 z-[140] lg:hidden"
+              onClick={() => setShowFilters(false)}
+            />
+          )}
+
           {/* Filters Sidebar - Sticky */}
           <div className={`
             lg:w-64 lg:flex-shrink-0
-            ${showFilters ? 'block' : 'hidden lg:block'}
+            ${showFilters ? 'fixed inset-y-0 left-0 w-80 max-w-[85vw] z-[145] overflow-y-auto bg-gray-50 p-4 lg:relative lg:inset-auto lg:w-64 lg:max-w-none lg:z-auto lg:overflow-visible lg:bg-transparent lg:p-0' : 'hidden lg:block'}
           `}>
             <div className="lg:sticky lg:top-24 space-y-4">
+              {/* Mobile Close Button */}
+              <div className="flex items-center justify-between lg:hidden mb-2">
+                <h3 className="font-semibold text-gray-900 text-lg">Filters</h3>
+                <button onClick={() => setShowFilters(false)} className="p-2 hover:bg-gray-200 rounded-lg">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
               {/* Categories */}
               <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
@@ -465,26 +480,26 @@ function AdsPageContent() {
             </div>
           </div>
 
-          {/* Results */}
-          <div className="flex-1 bg-white rounded-xl p-4 md:p-6 shadow-sm">
-            {/* Results Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            {/* Results */}
+            <div className="flex-1 bg-white rounded-xl p-4 sm:p-6 shadow-sm">
+              {/* Results Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                   {localQuery ? `Results for "${localQuery}"` : 'All Ads'}
                 </h1>
-                <p className="text-gray-500">
+                <p className="text-sm sm:text-base text-gray-500">
                   {allAds.length} ads found
                   {currentPage < totalPages && ` (showing ${currentPage * 20} of ${totalPages * 20})`}
                 </p>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
                 {/* Sort */}
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg"
+                  className="text-sm sm:text-base px-3 sm:px-4 py-2 bg-white border border-gray-200 rounded-lg"
                 >
                   <option value="newest">Newest First</option>
                   <option value="price_asc">Price: Low to High</option>
