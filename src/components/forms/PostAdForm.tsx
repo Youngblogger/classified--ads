@@ -785,8 +785,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const conditionLabels = {
     'new': 'Brand New',
     'like_new': 'Like New',
-    'good': 'Good',
-    'fair': 'Fair'
+    'good': 'Used',
+    'fair': 'Refurbished'
   };
 
   const goBack = () => {
@@ -847,36 +847,36 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
       {/* Step 1: Category & Location */}
       {step === 1 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Category */}
           <div>
-            <label className="block text-base font-semibold text-gray-800 mb-3">
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
               Category <span className="text-red-500">*</span>
             </label>
             <button
               onClick={() => setShowCategorySelector(true)}
-              className="w-full flex items-center justify-between p-5 border-2 border-gray-200 rounded-2xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
+              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
             >
-              <span className={`text-lg font-medium ${categoryBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
+              <span className={`text-base font-medium ${categoryBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
                 {categoryBreadcrumb || 'Select Category'}
               </span>
-              <ChevronRight className="w-6 h-6 text-gray-400" />
+              <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
           </div>
 
           {/* Location */}
           <div>
-            <label className="block text-base font-semibold text-gray-800 mb-3">
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
               Location <span className="text-red-500">*</span>
             </label>
             <button
               onClick={() => setShowLocationSelector(true)}
-              className="w-full flex items-center justify-between p-5 border-2 border-gray-200 rounded-2xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
+              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
             >
-              <span className={`text-lg font-medium ${locationBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
+              <span className={`text-base font-medium ${locationBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
                 {locationBreadcrumb || 'Select Location'}
               </span>
-              <ChevronRight className="w-6 h-6 text-gray-400" />
+              <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
           </div>
         </div>
@@ -1005,8 +1005,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               {([
                 { key: 'new', label: 'Brand New', color: 'emerald' },
                 { key: 'like_new', label: 'Like New', color: 'blue' },
-                { key: 'good', label: 'Good', color: 'amber' },
-                { key: 'fair', label: 'Fair', color: 'purple' }
+                { key: 'good', label: 'Used', color: 'amber' },
+                { key: 'fair', label: 'Refurbished', color: 'purple' }
               ] as const).map(({ key, label, color }) => {
                 const isSelected = condition === key;
                 const colorClasses = {
