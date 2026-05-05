@@ -69,7 +69,7 @@ export default function LoginPage() {
         </div>
       </main>
       <Footer />
-      <LoginModal />
+      <LoginModal forceRedirectUrl={redirectUrl} />
     </div>
   );
 }

@@ -26,7 +26,7 @@ const isValidPhone = (phone: string): boolean => {
   return length >= 11 && length <= 14;
 };
 
-export default function LoginModal() {
+export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: string } = {}) {
   const router = useRouter();
   const { isLoginModalOpen, toggleLoginModal, toggleRegisterModal, closeAllModals } = useUIStore();
   const { login, setLoading } = useAuthStore();
@@ -36,11 +36,27 @@ export default function LoginModal() {
 
   useEffect(() => {
     try {
-      if (typeof window !== 'undefined' && window.self === window.top && window.location?.search) {
+      if (typeof window !== 'undefined') {
+        // Priority 1: prop passed from parent (e.g. login page)
+        if (forceRedirectUrl && forceRedirectUrl !== '/') {
+          setRedirectUrl(forceRedirectUrl);
+          localStorage.setItem('authRedirect', forceRedirectUrl);
+          sessionStorage.setItem('authRedirect', forceRedirectUrl);
+          return;
+        }
+        // Priority 2: URL query parameter
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get('redirect');
         if (redirect) {
           setRedirectUrl(redirect);
+          localStorage.setItem('authRedirect', redirect);
+          sessionStorage.setItem('authRedirect', redirect);
+        } else {
+          // Priority 3: stored redirect from previous navigation
+          const storedRedirect = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect');
+          if (storedRedirect) {
+            setRedirectUrl(storedRedirect);
+          }
         }
       }
     } catch (e) {

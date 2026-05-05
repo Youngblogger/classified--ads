@@ -669,11 +669,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       if (phone) formData.append('phone', phone);
       if (whatsapp) formData.append('whatsapp', whatsapp);
       
-      // Add dynamic attributes
+      // Add dynamic attributes (always send, even if empty)
       if (Object.keys(attributes).length > 0) {
         console.log('Posting ad with attributes:', attributes);
-        formData.append('attributes', JSON.stringify(attributes));
       }
+      formData.append('attributes', JSON.stringify(attributes));
       
       images.forEach((img, index) => {
         formData.append('images[]', img.file);
@@ -1459,7 +1459,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       </div>
 
       {/* Category Modal */}
-      <div id="category-modal" className="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+      <div id="category-modal" className="fixed inset-0 bg-black/50 z-[150] hidden flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
           <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-semibold">Select Category</h3>
