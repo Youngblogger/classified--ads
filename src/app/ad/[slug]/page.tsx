@@ -436,10 +436,10 @@ export default function AdDetailPage() {
                           label = 'Like New';
                         } else if (condition === 'good') {
                           badgeClass = 'bg-amber-50 text-amber-700';
-                          label = 'Good';
+                          label = 'Used';
                         } else if (condition === 'fair') {
-                          badgeClass = 'bg-orange-50 text-orange-700';
-                          label = 'Fair';
+                          badgeClass = 'bg-purple-50 text-purple-700';
+                          label = 'Refurbished';
                         } else {
                           badgeClass = 'bg-gray-50 text-gray-600';
                           label = condition.charAt(0).toUpperCase() + condition.slice(1);

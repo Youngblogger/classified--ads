@@ -75,7 +75,7 @@ export default function ShareModal({ isOpen, onClose, title, price, currency }: 
       url: `https://wa.me/?text=${encodeURIComponent(text + '\n' + url)}`
     },
     {
-      name: 'Twitter/X',
+      name: 'X',
       icon: <TwitterIcon className="w-6 h-6" />,
       color: 'bg-black hover:bg-gray-800',
       url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`

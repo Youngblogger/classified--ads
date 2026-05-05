@@ -157,10 +157,10 @@ export default function RelatedAds({ currentAdId, categoryId, initialAds }: Rela
       label = 'Like New';
     } else if (isGood) {
       badgeClass = 'bg-amber-50 text-amber-700';
-      label = 'Good';
+      label = 'Used';
     } else if (isFair) {
-      badgeClass = 'bg-orange-50 text-orange-700';
-      label = 'Fair';
+      badgeClass = 'bg-purple-50 text-purple-700';
+      label = 'Refurbished';
     }
     
     return (

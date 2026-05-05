@@ -442,11 +442,11 @@ function AdsPageContent() {
                             ? 'bg-blue-600 text-white'
                             : cond === 'good'
                               ? 'bg-amber-600 text-white'
-                              : 'bg-orange-600 text-white'
+                              : 'bg-purple-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {cond === 'new' ? 'Brand New' : cond === 'like_new' ? 'Like New' : cond === 'good' ? 'Good' : 'Fair'}
+                    {cond === 'new' ? 'Brand New' : cond === 'like_new' ? 'Like New' : cond === 'good' ? 'Used' : 'Refurbished'}
                   </button>
                 ))}
               </div>

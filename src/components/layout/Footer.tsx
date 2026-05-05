@@ -3,11 +3,16 @@
 import Link from 'next/link';
 import {
   Facebook,
-  Twitter,
   Instagram,
   ArrowRight,
   Search
 } from 'lucide-react';
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+);
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -53,7 +58,7 @@ export default function Footer() {
   const socialLinks = [
     { label: 'Facebook', href: 'https://facebook.com/ilist', icon: Facebook },
     { label: 'Instagram', href: 'https://instagram.com/ilist', icon: Instagram },
-    { label: 'Twitter (X)', href: 'https://twitter.com/ilist', icon: Twitter },
+    { label: 'X', href: 'https://twitter.com/ilist', icon: XIcon },
   ];
 
   const popularSearches = [
@@ -71,7 +76,7 @@ export default function Footer() {
     <footer className="bg-slate-900 text-white">
       {/* Main Footer Grid */}
       <div className="container-app py-16">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
           {/* Column 1: Company */}
           <div>
             <h3 className="text-base font-semibold mb-4 text-white">Company</h3>
@@ -155,28 +160,6 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
-
-          {/* Column 6: Connect */}
-          <div>
-            <h3 className="text-base font-semibold mb-4 text-white">Connect</h3>
-            <div className="flex flex-col gap-3">
-              {socialLinks.map((social) => {
-                const Icon = social.icon;
-                return (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm transition-colors text-slate-400 hover:text-white"
-                  >
-                    <Icon className="w-4 h-4" />
-                    {social.label}
-                  </a>
-                );
-              })}
-            </div>
           </div>
         </div>
 
