@@ -75,15 +75,15 @@ const STEALTH_PREFIX = '/secure-control-9ja';
 
 const getToken = () => {
   if (typeof window === 'undefined') return '';
-  let token: string | null = localStorage.getItem('admin_token') || localStorage.getItem('authToken');
+  let token: string | null = localStorage.getItem('admin_token');
   if (!token) {
     try {
-      const parsed = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+      const parsed = JSON.parse(localStorage.getItem('admin-auth-storage') || '{}');
       token = parsed.state?.token;
     } catch {}
   }
   if (!token) {
-    const cookieToken = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+    const cookieToken = document.cookie.split('; ').find(row => row.startsWith('admin_token='))?.split('=')[1];
     token = cookieToken || null;
   }
   return token || '';

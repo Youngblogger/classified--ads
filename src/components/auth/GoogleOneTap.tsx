@@ -11,8 +11,10 @@ interface GoogleWindow {
   google?: {
     accounts?: {
       id?: {
-        initialize: (config: { client_id: string; callback: (response: { credential: string }) => void }) => void;
-        prompt: () => void;
+        initialize: (config: { client_id: string; auto_select: boolean; callback: (response: { credential: string }) => void }) => void;
+        prompt: (momentListener?: (res: { isNotDisplayed: boolean; isSkippedMoment: boolean; isDismissedMoment: boolean }) => void) => void;
+        disableAutoSelect: () => void;
+        storeCredential: (credentials: { id: string; password: string }) => void;
       };
     };
   };
@@ -43,23 +45,55 @@ const loadGoogleScript = (onLoad: () => void) => {
   document.head.appendChild(script);
 };
 
+function hasStoredToken(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hasAuthStorage = !!localStorage.getItem('auth-storage');
+  const hasAuthToken = !!localStorage.getItem('authToken');
+  const hasCookie = document.cookie.includes('token=');
+  return hasAuthStorage || hasAuthToken || hasCookie;
+}
+
 export default function GoogleOneTap() {
   const { isAuthenticated } = useAuthStore();
-  const initialized = useRef(false);
+  const hasShownRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || isAuthenticated || initialized.current) return;
-    initialized.current = true;
+    if (typeof window === 'undefined') return;
+    if (isAuthenticated || hasStoredToken()) {
+      hasShownRef.current = false;
+      return;
+    }
 
     loadGoogleScript(() => {
       const win = window as unknown as GoogleWindow;
       if (!win.google?.accounts?.id) return;
       try {
-        win.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredential });
+        document.cookie.split(';').forEach((c) => {
+          if (c.trim().startsWith('g_state=')) {
+            document.cookie = 'g_state=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+            document.cookie = 'g_state=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + window.location.hostname;
+          }
+        });
+
+        win.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          auto_select: true,
+          callback: handleCredential,
+          ux_mode: 'popup',
+        });
         setTimeout(() => {
-          try { win.google?.accounts?.id?.prompt(); } catch (e) { console.log('One Tap not available'); }
+          if (hasShownRef.current || isAuthenticated || hasStoredToken()) return;
+          try {
+            win.google?.accounts?.id?.prompt((notification: any) => {
+              if (notification && (notification.isNotDisplayed || notification.isSkippedMoment || notification.isDismissedMoment)) {
+                hasShownRef.current = false;
+              } else {
+                hasShownRef.current = true;
+              }
+            });
+          } catch (e) { /* silent */ }
         }, ONE_TAP_DELAY);
-      } catch (e) { console.log('One Tap init failed'); }
+      } catch (e) { /* silent */ }
     });
   }, [isAuthenticated]);
 

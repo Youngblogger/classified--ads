@@ -82,6 +82,18 @@ export default function ReviewsManagementPage() {
   const [actionReason, setActionReason] = useState('');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+  const STEALTH_PREFIX = '/secure-control-9ja';
+
+  const getAdminToken = () => {
+    const token = localStorage.getItem('admin_token');
+    if (token) return token;
+    try {
+      const parsed = JSON.parse(localStorage.getItem('admin-auth-storage') || '{}');
+      return parsed.state?.token || '';
+    } catch {
+      return '';
+    }
+  };
 const STEALTH_PREFIX = '/secure-control-9ja';
 
   const getImageUrl = (url: string | undefined): string => {
@@ -117,7 +129,7 @@ const STEALTH_PREFIX = '/secure-control-9ja';
       // Use direct fetch for admin reviews
       const response = await fetch(`${API_URL}${STEALTH_PREFIX}/reports`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token : ''}`,
+          'Authorization': `Bearer ${getAdminToken()}`,
           'Accept': 'application/json',
         }
       });
@@ -172,7 +184,7 @@ const STEALTH_PREFIX = '/secure-control-9ja';
         await fetch(`${API_URL}/reviews/${selectedReview.id}/status`, {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token : ''}`,
+            'Authorization': `Bearer ${getAdminToken()}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
@@ -183,7 +195,7 @@ const STEALTH_PREFIX = '/secure-control-9ja';
         await fetch(`${API_URL}/reviews/${selectedReview.id}/status`, {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token : ''}`,
+            'Authorization': `Bearer ${getAdminToken()}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },

@@ -18,8 +18,8 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('admin_token') || localStorage.getItem('authToken');
-      const user = localStorage.getItem('user');
+      const token = localStorage.getItem('admin_token');
+      const user = localStorage.getItem('admin_user');
       
       if (token && user) {
         try {
@@ -86,9 +86,8 @@ export default function AdminLoginPage() {
         const user = response.data.user;
         
         localStorage.setItem('admin_token', token);
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('auth-storage', JSON.stringify({
+        localStorage.setItem('admin_user', JSON.stringify(user));
+        localStorage.setItem('admin-auth-storage', JSON.stringify({
           state: { user, token, isAuthenticated: true, isLoading: false, hasHydrated: true },
           version: 0
         }));

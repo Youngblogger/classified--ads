@@ -1,7 +1,7 @@
 'use client';
 
 import '../globals.css';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -99,6 +99,49 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const notificationModalRef = useRef<HTMLDivElement>(null);
+  const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Admin inactivity timeout - 2 hours (7,200,000 ms)
+  const ADMIN_INACTIVITY_TIMEOUT = 2 * 60 * 60 * 1000;
+
+  const resetInactivityTimer = useCallback(() => {
+    if (!isVerified) return;
+    
+    localStorage.setItem('admin_last_activity', String(Date.now()));
+    
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    
+    inactivityTimerRef.current = setTimeout(() => {
+      handleLogout();
+    }, ADMIN_INACTIVITY_TIMEOUT);
+  }, [isVerified]);
+
+  useEffect(() => {
+    if (!isVerified) return;
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    
+    const handleActivity = () => {
+      resetInactivityTimer();
+    };
+
+    events.forEach(event => {
+      window.addEventListener(event, handleActivity, { passive: true });
+    });
+
+    resetInactivityTimer();
+
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, handleActivity);
+      });
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [isVerified, resetInactivityTimer]);
 
   // Login form state - MUST be before any early returns
   const [loginEmail, setLoginEmail] = useState('');
@@ -124,12 +167,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         const user = response.data.user;
         
         localStorage.setItem('admin_token', token);
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('auth-storage', JSON.stringify({
+        localStorage.setItem('admin_user', JSON.stringify(user));
+        localStorage.setItem('admin-auth-storage', JSON.stringify({
           state: { user, token, isAuthenticated: true, isLoading: false, hasHydrated: true },
           version: 0
         }));
+        
+        setCookie('admin_token', token, 7);
         
         login(user, token);
         setIsVerified(true);
@@ -209,30 +253,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       return;
     }
     
-    const token = localStorage.getItem('admin_token');
-    const userData = localStorage.getItem('user');
+    const adminToken = localStorage.getItem('admin_token');
+    const adminUserData = localStorage.getItem('admin_user');
     
-    if (token && userData) {
+    if (adminToken && adminUserData) {
       try {
-        const user = JSON.parse(userData);
-        // Only auto-login if it has admin_token (not regular authToken)
-        if (user.role === 'admin' && token) {
-          setVerifiedUser(user);
-          setUser(user);
-          setIsVerified(true);
-          setInitialTokenChecked(true);
-          setAuthChecked(true);
-          
-          // Verify with backend in background
-          api.get('/secure-control-9ja/auth/me').then(response => {
-            if (response.data?.user?.role !== 'admin') {
-              logout();
-              setIsVerified(false);
-            }
-          }).catch(() => {});
-          
-          return;
-        }
+        const user = JSON.parse(adminUserData);
+        setVerifiedUser(user);
+        setUser(user);
+        setIsVerified(true);
+        setInitialTokenChecked(true);
+        setAuthChecked(true);
+        
+        api.get('/secure-control-9ja/auth/me').then(response => {
+          if (response.data?.user?.role !== 'admin') {
+            logout();
+            setIsVerified(false);
+          }
+        }).catch(() => {});
+        
+        return;
       } catch {}
     }
     
@@ -347,12 +387,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   const handleLogout = async () => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+
     try {
-      const tokenFromCookie = getCookie('token') || localStorage.getItem('admin_token');
+      const adminToken = localStorage.getItem('admin_token');
       await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/secure-control-9ja/auth/logout`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${tokenFromCookie || token}`,
+          'Authorization': `Bearer ${adminToken || token}`,
           'Accept': 'application/json',
         },
       });
@@ -360,25 +405,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       console.log('Logout API error:', e);
     }
     
-    // Clear cookies
-    deleteCookie('token');
     deleteCookie('admin_token');
     
-    // Clear localStorage
-    localStorage.removeItem('auth-storage');
+    localStorage.removeItem('admin-auth-storage');
     localStorage.removeItem('admin_token');
-    sessionStorage.clear();
+    localStorage.removeItem('admin_user');
+    localStorage.removeItem('admin_last_activity');
     
-    // Clear all cookies
     document.cookie.split(';').forEach((cookie) => {
       const name = cookie.trim().split('=')[0];
-      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+      if (name === 'admin_token') {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+      }
     });
     
-    // Call logout from store
     logout();
     
-    // Full page redirect
     window.location.href = '/admin/login';
   };
 
