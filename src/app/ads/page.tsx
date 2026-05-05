@@ -308,10 +308,10 @@ function AdsPageContent() {
               )}
             </div>
 
-            {/* Mobile Filter Toggle */}
+            {/* Mobile/Tablet Filter Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 rounded-xl"
+              className="lg:hidden flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-xl font-medium shrink-0 hover:bg-primary-700 transition-colors"
             >
               <SlidersHorizontal className="w-5 h-5" />
               Filters
@@ -333,7 +333,7 @@ function AdsPageContent() {
           {/* Filters Sidebar - Sticky */}
           <div className={`
             lg:w-64 lg:flex-shrink-0
-            ${showFilters ? 'fixed inset-y-0 left-0 w-80 max-w-[85vw] z-[145] overflow-y-auto bg-gray-50 p-4 lg:relative lg:inset-auto lg:w-64 lg:max-w-none lg:z-auto lg:overflow-visible lg:bg-transparent lg:p-0' : 'hidden lg:block'}
+            ${showFilters ? 'fixed inset-y-0 left-0 w-[90vw] max-w-sm z-[145] overflow-y-auto bg-gray-50 p-5 lg:relative lg:inset-auto lg:w-64 lg:max-w-none lg:z-auto lg:overflow-visible lg:bg-transparent lg:p-0 lg:px-0' : 'hidden lg:block'}
           `}>
             <div className="lg:sticky lg:top-24 space-y-4">
               {/* Mobile Close Button */}
@@ -409,9 +409,9 @@ function AdsPageContent() {
             {/* Price Range */}
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Price Range</h3>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₦</span>
+              <div className="space-y-2">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
                   <input
                     type="text"
                     value={priceMin}
@@ -420,12 +420,12 @@ function AdsPageContent() {
                       setPriceMinRaw(raw);
                       setPriceMin(raw ? Number(raw).toLocaleString('en-US') : '');
                     }}
-                    placeholder="Min"
-                    className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                    placeholder="Min price"
+                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
                   />
                 </div>
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₦</span>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
                   <input
                     type="text"
                     value={priceMax}
@@ -434,8 +434,8 @@ function AdsPageContent() {
                       setPriceMaxRaw(raw);
                       setPriceMax(raw ? Number(raw).toLocaleString('en-US') : '');
                     }}
-                    placeholder="Max"
-                    className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                    placeholder="Max price"
+                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
                   />
                 </div>
               </div>
