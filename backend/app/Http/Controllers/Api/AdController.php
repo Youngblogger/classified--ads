@@ -50,11 +50,26 @@ class AdController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->offset($offset)
                 ->limit($limit)
-                ->get();
-
-            $allAds->each(function($ad) {
-                $ad->setRelation('images', $ad->images);
-            });
+                ->get()
+                ->map(function($ad) {
+                    $data = $ad->toArray();
+                    $data['images'] = $ad->images->toArray();
+                    
+                    // Fetch attributes directly from DB to avoid Eloquent conflict
+                    $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
+                        ->where('id', $ad->id)
+                        ->value('attributes');
+                    $attrs = [];
+                    if ($dbAttrs) {
+                        $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
+                        if (is_array($decoded)) {
+                            $attrs = $decoded;
+                        }
+                    }
+                    $data['attributes'] = $attrs;
+                    
+                    return $data;
+                });
 
             return response()->json([
                 'data' => $allAds->values(),
@@ -67,6 +82,7 @@ class AdController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch ads: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json(['error' => 'Failed to load ads', 'message' => $e->getMessage()], 500);
         }
     }
@@ -105,15 +121,34 @@ class AdController extends Controller
             }
 
             $ad->increment('views');
+            $ad->load(['images', 'category', 'location', 'user']);
 
-            $ad->attributes = $ad->attributes ?? [];
+            // Fetch attributes column directly via DB to avoid Eloquent conflict with 'attributes' column name
+            $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
+                ->where('id', $ad->id)
+                ->value('attributes');
+            
+            Log::info('Ad show - Raw attributes from DB:', ['slug' => $slug, 'raw' => $dbAttrs]);
+            
+            $attributes = [];
+            if ($dbAttrs) {
+                $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
+                if (is_array($decoded)) {
+                    $attributes = $decoded;
+                }
+            }
+            Log::info('Ad show - Parsed attributes:', ['parsed' => $attributes]);
+
+            $response = $ad->toArray();
+            $response['attributes'] = $attributes;
 
             return response()->json([
-                'data' => $ad,
+                'data' => $response,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch ad: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to load ad'], 500);
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json(['error' => 'Failed to load ad', 'message' => $e->getMessage()], 500);
         }
     }
 
@@ -139,6 +174,9 @@ class AdController extends Controller
     public function store(Request $request)
     {
         try {
+            Log::info('=== Ad Store Request ===');
+            Log::info('Request attributes:', ['raw' => $request->input('attributes')]);
+            
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string|max:5000',
@@ -153,6 +191,8 @@ class AdController extends Controller
                 'whatsapp' => 'nullable|string|max:20',
                 'attributes' => 'nullable|string',
             ]);
+
+            Log::info('Validated attributes:', ['raw' => $validated['attributes']]);
 
             // Check auto-approval settings
             $autoApproval = $this->checkAutoApproval();
@@ -182,11 +222,20 @@ class AdController extends Controller
             $attributes = null;
             if (!empty($validated['attributes'])) {
                 try {
-                    $attributes = json_decode($validated['attributes'], true);
+                    // HTML entity decode first (FormData may encode quotes as &quot;)
+                    $raw = html_entity_decode($validated['attributes'], ENT_QUOTES, 'UTF-8');
+                    $decoded = json_decode($raw, true);
+                    Log::info('Ad store - Decoded attributes:', ['raw' => $raw, 'decoded' => $decoded]);
+                    if (is_array($decoded)) {
+                        $attributes = json_encode($decoded);
+                        Log::info('Ad store - Attributes to save:', ['json' => $attributes]);
+                    }
                 } catch (\Exception $e) {
                     Log::warning('Failed to decode attributes: ' . $e->getMessage());
                 }
             }
+            
+            Log::info('Attributes before save:', ['attributes' => $attributes]);
             
             $ad = Ad::create([
                 'user_id' => $user->id,
@@ -202,10 +251,19 @@ class AdController extends Controller
                 'condition' => $validated['condition'],
                 'phone' => $validated['phone'],
                 'whatsapp' => $validated['whatsapp'] ?? null,
-                'attributes' => $attributes,
                 'slug' => Str::slug($validated['title']) . '-' . time(),
                 'status' => $autoApproval['should_auto_approve'] ? 'active' : 'pending',
             ]);
+            
+            // Set attributes column directly via DB to avoid Eloquent conflict
+            if ($attributes !== null) {
+                \Illuminate\Support\Facades\DB::table('ads')
+                    ->where('id', $ad->id)
+                    ->update(['attributes' => $attributes]);
+                Log::info('Attributes saved via direct DB update');
+            }
+            
+            Log::info('Ad created:', ['id' => $ad->id]);
 
             if ($request->hasFile('images')) {
                 $images = $request->file('images');

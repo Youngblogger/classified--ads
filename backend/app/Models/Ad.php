@@ -21,7 +21,6 @@ class Ad extends Model
         'is_featured' => 'boolean',
         'is_verified' => 'boolean',
         'price' => 'decimal:2',
-        'attributes' => 'array',
         'tags' => 'array',
         'image_validation' => 'array',
     ];

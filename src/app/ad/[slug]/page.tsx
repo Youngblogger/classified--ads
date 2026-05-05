@@ -594,11 +594,18 @@ export default function AdDetailPage() {
                 </div>
 
                 {/* Specifications Section */}
-                {(ad.attributes && Object.keys(ad.attributes).length > 0) || (ad.specifications && Object.keys(ad.specifications).length > 0) ? (
-                  <div className="mt-6 pt-4 border-t border-gray-200">
-                    <AdAttributes attributes={ad.attributes || ad.specifications} />
-                  </div>
-                ) : null}
+                {(() => {
+                  const specs = ad.attributes || ad.specifications;
+                  console.log('[AdDetail] Attributes:', specs);
+                  if (!specs || Object.keys(specs).length === 0) {
+                    return null;
+                  }
+                  return (
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                      <AdAttributes attributes={specs} />
+                    </div>
+                  );
+                })()}
               </div>
 
             </div>

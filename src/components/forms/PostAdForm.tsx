@@ -544,6 +544,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       
       // Add dynamic attributes
       if (Object.keys(attributes).length > 0) {
+        console.log('Posting ad with attributes:', attributes);
         formData.append('attributes', JSON.stringify(attributes));
       }
       

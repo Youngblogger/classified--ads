@@ -41,8 +41,9 @@ class SearchService
         // Extract and format Ad objects
         $results = [];
         foreach ($scoredResults as $item) {
-            $ad = $item['ad'];
-            $results[] = $this->formatAdForResponse($ad);
+            if ($item['ad']) {
+                $results[] = $this->formatAdForResponse($item['ad']);
+            }
         }
 
         $results = array_slice($results, 0, $limit);
@@ -62,6 +63,18 @@ class SearchService
 
     private function formatAdForResponse($ad): array
     {
+        // Fetch attributes directly from DB to avoid Eloquent conflict
+        $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
+            ->where('id', $ad->id)
+            ->value('attributes');
+        $attributes = [];
+        if ($dbAttrs) {
+            $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
+            if (is_array($decoded)) {
+                $attributes = $decoded;
+            }
+        }
+        
         return [
             'id' => $ad->id,
             'slug' => $ad->slug ?? 'ad-' . $ad->id,
@@ -90,6 +103,7 @@ class SearchService
             ] : null,
             'state' => $ad->state ?? ($ad->location ? $ad->location->name : null),
             'lga' => $ad->lga,
+            'attributes' => $attributes,
             'images' => $ad->images ? $ad->images->map(function($img) {
                 return [
                     'id' => $img->id,
@@ -184,7 +198,12 @@ class SearchService
         $queryTerms = $this->extractKeywords($query);
         $results = [];
 
+        if (!is_iterable($ads)) {
+            return $results;
+        }
+
         foreach ($ads as $ad) {
+            if (!$ad) continue;
             $score = 0;
             $matchedOn = [];
 
@@ -264,8 +283,15 @@ class SearchService
             return [];
         }
 
-        $adIds = array_map(function($item) { return $item['ad']->id; }, $scoredResults);
         $firstAd = reset($scoredResults)['ad'];
+        if (!$firstAd) return [];
+
+        $adIds = [];
+        foreach ($scoredResults as $item) {
+            if ($item['ad']) {
+                $adIds[] = $item['ad']->id;
+            }
+        }
         
         $query = Ad::with(['images', 'category', 'location'])
             ->where('status', 'active')
@@ -301,9 +327,14 @@ class SearchService
         $suggestions = [];
         $queryLower = strtolower($query);
         
+        if (!is_iterable($ads)) {
+            return $suggestions;
+        }
+        
         $titleMatches = [];
         
         foreach ($ads as $ad) {
+            if (!$ad) continue;
             $title = strtolower($ad->title ?? '');
             
             if (stripos($title, $queryLower) !== false && !in_array($ad->title, $titleMatches)) {
