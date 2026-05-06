@@ -12,7 +12,7 @@ export default function PostAdPage() {
         <ResponsiveHeader />
       </div>
       
-      <main className="flex-1 pt-28 md:pt-32 py-8">
+      <main className="flex-1 pt-40 md:pt-48 py-8">
         <div className="container-app">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Form */}
