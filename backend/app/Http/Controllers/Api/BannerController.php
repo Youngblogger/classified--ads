@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use Illuminate\Http\Request;
 use App\Services\CloudinaryService;
+use App\Jobs\Cloudinary\DeleteCloudinaryFileJob;
 use Illuminate\Support\Facades\Storage;
 
 class BannerController extends Controller
@@ -66,18 +67,23 @@ class BannerController extends Controller
         if ($request->hasFile('image')) {
             $cloudinary = new CloudinaryService();
             $file = $request->file('image');
-            $tempPath = $file->getPathname();
-            $publicId = 'banners/' . time() . '_' . bin2hex(random_bytes(4));
 
-            $uploadResult = $cloudinary->uploadImage($tempPath, [
-                'folder' => 'classified-ads/banners',
-                'public_id' => $publicId,
+            $validation = $cloudinary->validateImageFile($file->getPathname());
+            if (!$validation['valid']) {
+                return response()->json(['error' => 'Invalid image: ' . $validation['error']], 422);
+            }
+
+            $uploadResult = $cloudinary->uploadImage($file->getPathname(), [
+                'folder' => 'banners',
+                'tags' => ['banner'],
             ]);
 
-            if ($uploadResult['success']) {
-                $validated['image_url'] = $uploadResult['secure_url'];
-                $validated['banner_public_id'] = $uploadResult['public_id'];
+            if (!$uploadResult['success']) {
+                return response()->json(['error' => 'Failed to upload banner: ' . ($uploadResult['error'] ?? 'Unknown error')], 500);
             }
+
+            $validated['image_url'] = $uploadResult['secure_url'];
+            $validated['banner_public_id'] = $uploadResult['public_id'];
         } elseif (!empty($validated['image_url'])) {
             // image_url is already set from form
         }
@@ -157,10 +163,9 @@ class BannerController extends Controller
     public function destroy($id)
     {
         $banner = Banner::findOrFail($id);
-        $cloudinary = new CloudinaryService();
 
         if ($banner->banner_public_id) {
-            $cloudinary->deleteImage($banner->banner_public_id);
+            DeleteCloudinaryFileJob::dispatch($banner->banner_public_id, 'banner');
         } elseif ($banner->image && !str_starts_with($banner->image, 'http')) {
             $path = str_replace('/storage/', '', $banner->image);
             Storage::disk('public')->delete($path);

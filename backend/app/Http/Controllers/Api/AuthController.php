@@ -202,12 +202,19 @@ class AuthController extends Controller
             if ($request->hasFile('avatar')) {
                 $cloudinary = new CloudinaryService();
                 $file = $request->file('avatar');
-                $tempPath = $file->getPathname();
-                $publicId = 'avatars/' . $user->id . '_' . time();
-                
-                $uploadResult = $cloudinary->uploadImage($tempPath, [
-                    'folder' => 'classified-ads/avatars',
-                    'public_id' => $publicId,
+
+                $validation = $cloudinary->validateImageFile($file->getPathname());
+                if (!$validation['valid']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid avatar: ' . $validation['error'],
+                    ], 422);
+                }
+
+                $uploadResult = $cloudinary->uploadImage($file->getPathname(), [
+                    'folder' => 'avatars',
+                    'user_id' => $user->id,
+                    'tags' => ['avatar', 'user_' . $user->id],
                 ]);
 
                 if ($uploadResult['success']) {
@@ -216,8 +223,10 @@ class AuthController extends Controller
                         'avatar_public_id' => $uploadResult['public_id'],
                     ]);
                 } else {
-                    $avatarUrl = '/storage/avatars/default.png';
-                    $user->update(['avatar' => $avatarUrl]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to upload avatar: ' . ($uploadResult['error'] ?? 'Unknown error'),
+                    ], 500);
                 }
             }
 

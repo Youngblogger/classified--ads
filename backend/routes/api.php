@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\SocialSettingsController;
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Middleware\AdminRateLimiter;
 use App\Http\Middleware\SecureAdminAuth;
+use App\Http\Controllers\Api\CloudinaryController;
 use App\Http\Controllers\Api\AdModerationController;
 use Illuminate\Support\Facades\Route;
 
@@ -246,8 +247,14 @@ Route::get('/search/recent', [SearchController::class, 'recentSearches']);
 // Public banners
 Route::get('/banners/active', [BannerController::class, 'active']);
 
-// Homepage - aggregated endpoint
-Route::get('/homepage', [App\Http\Controllers\Api\HomepageController::class, 'index']);
+// Cloudinary routes - get config and signed upload params
+Route::get('/cloudinary/config', [CloudinaryController::class, 'getConfig']);
+
+Route::middleware('auth.api')->group(function () {
+    Route::get('/cloudinary/upload-params', [CloudinaryController::class, 'getSignedUploadParams']);
+    Route::post('/cloudinary/upload-callback', [CloudinaryController::class, 'uploadCallback']);
+    Route::post('/cloudinary/validate-image', [CloudinaryController::class, 'validateImage']);
+});
 Route::get('/homepage/clear-cache', [App\Http\Controllers\Api\HomepageController::class, 'clearCache']);
 
 Route::prefix('ads')->group(function () {

@@ -8,6 +8,8 @@ use App\Models\AdImage;
 use App\Services\AdminEmailNotificationService;
 use Illuminate\Http\Request;
 use App\Services\CloudinaryService;
+use App\Services\AdImageCacheService;
+use App\Jobs\Cloudinary\DeleteCloudinaryFileJob;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -112,7 +114,7 @@ class AdController extends Controller
     public function show(Request $request, $slug)
     {
         try {
-            $ad = Ad::with(['images', 'category', 'location', 'user'])
+            $ad = Ad::with(['category', 'location', 'user'])
                 ->where('slug', $slug)
                 ->where('status', 'active')
                 ->first();
@@ -121,8 +123,10 @@ class AdController extends Controller
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
+            $cacheService = new AdImageCacheService();
+            $cachedImages = $cacheService->getCachedUrls($ad->id);
+
             $ad->increment('views');
-            $ad->load(['images', 'category', 'location', 'user']);
 
             // Fetch attributes column directly via DB to avoid Eloquent conflict with 'attributes' column name
             $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
@@ -141,6 +145,7 @@ class AdController extends Controller
             Log::info('Ad show - Parsed attributes:', ['parsed' => $attributes]);
 
             $response = $ad->toArray();
+            $response['images'] = $cachedImages;
             $response['attributes'] = $attributes;
 
             return response()->json([
@@ -156,15 +161,18 @@ class AdController extends Controller
     public function showById(Request $request, $id)
     {
         try {
-            $ad = Ad::with(['images', 'category', 'location', 'user'])
-                ->find($id);
+            $ad = Ad::with(['category', 'location', 'user'])->find($id);
 
             if (!$ad) {
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
+            $cacheService = new AdImageCacheService();
+            $response = $ad->toArray();
+            $response['images'] = $cacheService->getCachedUrls($ad->id);
+
             return response()->json([
-                'data' => $ad,
+                'data' => $response,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch ad: ' . $e->getMessage());
@@ -269,17 +277,27 @@ class AdController extends Controller
             if ($request->hasFile('images')) {
                 $cloudinary = new CloudinaryService();
                 $images = $request->file('images');
-                foreach ($images as $index => $image) {
-                    $tempPath = $image->getPathname();
-                    $publicId = 'ads/' . Str::uuid()->toString();
+                $uploadErrors = [];
 
-                    $uploadResult = $cloudinary->uploadImage($tempPath, [
-                        'folder' => 'classified-ads/ads',
-                        'public_id' => $publicId,
+                foreach ($images as $index => $image) {
+                    $validation = $cloudinary->validateImageFile($image->getPathname());
+                    if (!$validation['valid']) {
+                        $uploadErrors[] = $validation['error'];
+                        continue;
+                    }
+
+                    $uploadResult = $cloudinary->uploadImage($image->getPathname(), [
+                        'folder' => 'ads',
+                        'user_id' => $user->id,
+                        'tags' => ['ad', 'ad_' . $ad->id],
                     ]);
 
                     if (!$uploadResult['success']) {
-                        Log::error('Cloudinary upload failed for ad image: ' . ($uploadResult['error'] ?? 'Unknown error'));
+                        Log::error('Cloudinary upload failed for ad image', [
+                            'ad_id' => $ad->id,
+                            'error' => $uploadResult['error'] ?? 'Unknown',
+                        ]);
+                        $uploadErrors[] = $uploadResult['error'] ?? 'Upload failed';
                         continue;
                     }
 
@@ -288,12 +306,23 @@ class AdController extends Controller
                         'url' => $uploadResult['secure_url'],
                         'original_url' => $uploadResult['secure_url'],
                         'thumbnail_url' => $uploadResult['thumbnail_url'],
+                        'medium_url' => $uploadResult['optimized_url'] ?? null,
                         'public_id' => $uploadResult['public_id'],
                         'width' => $uploadResult['width'] ?? null,
                         'height' => $uploadResult['height'] ?? null,
                         'file_size' => $uploadResult['bytes'] ?? null,
                         'is_primary' => $index === 0,
                         'sort_order' => $index,
+                    ]);
+                }
+
+                $cacheService = new AdImageCacheService();
+                $cacheService->invalidateAdCache($ad->id);
+
+                if (!empty($uploadErrors)) {
+                    Log::warning('Some ad images failed to upload', [
+                        'ad_id' => $ad->id,
+                        'errors' => $uploadErrors,
                     ]);
                 }
             }
@@ -451,10 +480,13 @@ class AdController extends Controller
                 return response()->json(['error' => 'Ad not found or unauthorized'], 404);
             }
 
+            $cacheService = new AdImageCacheService();
+            $cacheService->invalidateAdCache($ad->id);
+
             $cloudinary = new CloudinaryService();
             foreach ($ad->images as $image) {
                 if ($image->public_id) {
-                    $cloudinary->deleteImage($image->public_id);
+                    DeleteCloudinaryFileJob::dispatch($image->public_id, 'ad_image');
                 } elseif ($image->url && !str_starts_with($image->url, 'http')) {
                     Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
                 }
@@ -478,10 +510,13 @@ class AdController extends Controller
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
+            $cacheService = new AdImageCacheService();
+            $cacheService->invalidateAdCache($ad->id);
+
             $cloudinary = new CloudinaryService();
             foreach ($ad->images as $image) {
                 if ($image->public_id) {
-                    $cloudinary->deleteImage($image->public_id);
+                    DeleteCloudinaryFileJob::dispatch($image->public_id, 'ad_image');
                 } elseif ($image->url && !str_starts_with($image->url, 'http')) {
                     Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
                 }
@@ -542,6 +577,9 @@ class AdController extends Controller
                 $uploadedImages[] = $adImage;
             }
 
+            $cacheService = new AdImageCacheService();
+            $cacheService->invalidateAdCache($ad->id);
+
             return response()->json([
                 'message' => 'Images uploaded successfully',
                 'data' => $uploadedImages,
@@ -569,12 +607,15 @@ class AdController extends Controller
 
             $cloudinary = new CloudinaryService();
             if ($image->public_id) {
-                $cloudinary->deleteImage($image->public_id);
+                DeleteCloudinaryFileJob::dispatch($image->public_id, 'ad_image');
             } elseif ($image->url && !str_starts_with($image->url, 'http')) {
                 Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
             }
 
             $image->delete();
+            $cacheService = new AdImageCacheService();
+            $cacheService->invalidateAdCache($id);
+            $cacheService->invalidateImageCache($imageId);
 
             return response()->json(['message' => 'Image deleted successfully']);
         } catch (\Exception $e) {

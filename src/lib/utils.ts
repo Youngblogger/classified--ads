@@ -5,8 +5,58 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
+export const CLOUDINARY_CLOUD_NAME = 'dcklcvihq';
 
 export const FALLBACK_IMAGE = '/placeholder-image.svg';
+
+export function getCloudinaryUrl(publicId: string, options?: {
+  width?: number;
+  height?: number;
+  crop?: string;
+  gravity?: string;
+  quality?: string | number;
+}): string {
+  if (!publicId) return FALLBACK_IMAGE;
+
+  const transformations: string[] = [];
+
+  if (options?.width) transformations.push(`w_${options.width}`);
+  if (options?.height) transformations.push(`h_${options.height}`);
+  if (options?.crop) transformations.push(`c_${options.crop}`);
+  if (options?.gravity) transformations.push(`g_${options.gravity}`);
+  transformations.push(`q_${options?.quality ?? 'auto'}`);
+  transformations.push('f_auto');
+
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${transformations.join(',')}/${publicId}`;
+}
+
+export function getCloudinaryThumbnail(publicId: string, size = 300): string {
+  return getCloudinaryUrl(publicId, {
+    width: size,
+    height: size,
+    crop: 'fill',
+    gravity: 'auto',
+    quality: 80,
+  });
+}
+
+export function getCloudinaryBlurUrl(publicId: string): string {
+  return getCloudinaryUrl(publicId, {
+    width: 50,
+    quality: 1,
+  }).replace('/upload/', '/upload/e_blur:500,');
+}
+
+export function getCloudinarySrcset(publicId: string, breakpoints = [320, 640, 768, 1024, 1280]): string {
+  if (!publicId) return '';
+  return breakpoints
+    .map((w) => `${getCloudinaryUrl(publicId, { width: w, crop: 'scale' })} ${w}w`)
+    .join(', ');
+}
+
+export function getCloudinarySizes(defaultWidth = 800): string {
+  return `(max-width: 640px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 768px, ${defaultWidth}px`;
+}
 
 export const CATEGORY_FALLBACK_IMAGES: Record<string, string[]> = {
   Vehicles: [

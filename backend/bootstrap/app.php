@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.rate' => \App\Http\Middleware\AdminRateLimiter::class,
             'admin.ip' => \App\Http\Middleware\AdminIpRestriction::class,
             'sanitize' => \App\Http\Middleware\SanitizeInput::class,
+            'throttle.uploads' => \App\Http\Middleware\ThrottleUploads::class,
         ]);
         
         // Apply sanitization middleware to API routes
