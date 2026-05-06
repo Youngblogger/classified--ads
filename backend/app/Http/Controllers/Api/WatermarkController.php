@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\WatermarkSetting;
+use App\Services\CloudinaryService;
 use App\Jobs\RegenerateAllWatermarksJob;
 use Illuminate\Http\Request;
 
@@ -54,18 +55,33 @@ class WatermarkController extends Controller
             'logo' => 'required|image|mimes:png,gif,webp|max:5120',
         ]);
 
+        $cloudinary = new CloudinaryService();
         $file = $request->file('logo');
-        $filename = 'watermark_logo.' . $file->getClientOriginalExtension();
-        $path = 'logos/' . $filename;
+        $tempPath = $file->getPathname();
+        $publicId = 'watermark/logo_' . time();
 
-        \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getPathname()));
+        $uploadResult = $cloudinary->uploadImage($tempPath, [
+            'folder' => 'classified-ads/watermarks',
+            'public_id' => $publicId,
+        ]);
 
-        $url = \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+        if (!$uploadResult['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload logo: ' . ($uploadResult['error'] ?? 'Unknown error'),
+            ], 500);
+        }
+
+        $url = $uploadResult['secure_url'];
 
         $settings = WatermarkSetting::getSettings();
-        $settings->update(['logo_url' => $url]);
+        $settings->update([
+            'logo_url' => $url,
+            'logo_public_id' => $uploadResult['public_id'],
+        ]);
 
         return response()->json([
+            'success' => true,
             'logo_url' => $url,
             'settings' => $settings,
         ]);

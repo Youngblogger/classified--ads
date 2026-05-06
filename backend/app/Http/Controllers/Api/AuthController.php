@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use App\Services\OtpService;
 use App\Services\ReferralService;
 use App\Services\AdminEmailNotificationService;
@@ -199,14 +200,25 @@ class AuthController extends Controller
             $user = $request->user();
             
             if ($request->hasFile('avatar')) {
+                $cloudinary = new CloudinaryService();
                 $file = $request->file('avatar');
-                $filename = 'avatars/' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $tempPath = $file->getPathname();
+                $publicId = 'avatars/' . $user->id . '_' . time();
                 
-                // Store in public disk
-                $path = $file->storeAs('avatars', $user->id . '_' . time() . '.' . $file->getClientOriginalExtension(), 'public');
-                $avatarUrl = '/storage/' . $path;
-                
-                $user->update(['avatar' => $avatarUrl]);
+                $uploadResult = $cloudinary->uploadImage($tempPath, [
+                    'folder' => 'classified-ads/avatars',
+                    'public_id' => $publicId,
+                ]);
+
+                if ($uploadResult['success']) {
+                    $user->update([
+                        'avatar' => $uploadResult['secure_url'],
+                        'avatar_public_id' => $uploadResult['public_id'],
+                    ]);
+                } else {
+                    $avatarUrl = '/storage/avatars/default.png';
+                    $user->update(['avatar' => $avatarUrl]);
+                }
             }
 
             return response()->json([

@@ -13,6 +13,7 @@ import LocationSelector from '@/components/ui/LocationSelector';
 import DynamicField, { CategoryField } from './DynamicField';
 import structuredCategories from '@/data/structured-categories.json';
 import { usePostAdDraft, clearPostAdDraft, DraftImage } from '@/hooks/usePostAdDraft';
+import { compressImage, CompressedImage } from '@/lib/imageCompression';
 
 interface StructuredCategory {
   category: string;
@@ -507,7 +508,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     return null;
   };
 
-  const processFiles = useCallback((files: FileList | File[]) => {
+  const processFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const remainingSlots = MAX_IMAGES - images.length;
     
@@ -520,19 +521,26 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     const newImages: ImageFile[] = [];
     const errors: string[] = [];
 
-    filesToAdd.forEach((file) => {
+    for (const file of filesToAdd) {
       const error = validateFile(file);
       if (error) {
         errors.push(`${file.name}: ${error}`);
-      } else {
+        continue;
+      }
+
+      try {
+        const compressed = await compressImage(file);
         newImages.push({
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          file,
-          preview: URL.createObjectURL(file),
+          file: compressed.file,
+          preview: compressed.preview,
           uploading: false,
         });
+      } catch (err) {
+        errors.push(`${file.name}: Failed to process image`);
+        console.error('Image compression error:', err);
       }
-    });
+    }
 
     if (errors.length > 0) {
       errors.forEach(err => toast.error(err));

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use Illuminate\Http\Request;
+use App\Services\CloudinaryService;
 use Illuminate\Support\Facades\Storage;
 
 class BannerController extends Controller
@@ -63,8 +64,20 @@ class BannerController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('banners', 'public');
-            $validated['image_url'] = url('storage/' . $path);
+            $cloudinary = new CloudinaryService();
+            $file = $request->file('image');
+            $tempPath = $file->getPathname();
+            $publicId = 'banners/' . time() . '_' . bin2hex(random_bytes(4));
+
+            $uploadResult = $cloudinary->uploadImage($tempPath, [
+                'folder' => 'classified-ads/banners',
+                'public_id' => $publicId,
+            ]);
+
+            if ($uploadResult['success']) {
+                $validated['image_url'] = $uploadResult['secure_url'];
+                $validated['banner_public_id'] = $uploadResult['public_id'];
+            }
         } elseif (!empty($validated['image_url'])) {
             // image_url is already set from form
         }
@@ -109,8 +122,20 @@ class BannerController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('banners', 'public');
-            $validated['image_url'] = url('storage/' . $path);
+            $cloudinary = new CloudinaryService();
+            $file = $request->file('image');
+            $tempPath = $file->getPathname();
+            $publicId = 'banners/' . time() . '_' . bin2hex(random_bytes(4));
+
+            $uploadResult = $cloudinary->uploadImage($tempPath, [
+                'folder' => 'classified-ads/banners',
+                'public_id' => $publicId,
+            ]);
+
+            if ($uploadResult['success']) {
+                $validated['image_url'] = $uploadResult['secure_url'];
+                $validated['banner_public_id'] = $uploadResult['public_id'];
+            }
         }
 
         // Map fields
@@ -132,9 +157,11 @@ class BannerController extends Controller
     public function destroy($id)
     {
         $banner = Banner::findOrFail($id);
+        $cloudinary = new CloudinaryService();
 
-        // Delete image
-        if ($banner->image) {
+        if ($banner->banner_public_id) {
+            $cloudinary->deleteImage($banner->banner_public_id);
+        } elseif ($banner->image && !str_starts_with($banner->image, 'http')) {
             $path = str_replace('/storage/', '', $banner->image);
             Storage::disk('public')->delete($path);
         }

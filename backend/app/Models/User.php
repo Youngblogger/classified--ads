@@ -28,6 +28,7 @@ class User extends Authenticatable
         'role',
         'status',
         'avatar',
+        'avatar_public_id',
         'google_avatar',
         'facebook_avatar',
         'phone',

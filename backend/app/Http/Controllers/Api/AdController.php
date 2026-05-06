@@ -7,6 +7,7 @@ use App\Models\Ad;
 use App\Models\AdImage;
 use App\Services\AdminEmailNotificationService;
 use Illuminate\Http\Request;
+use App\Services\CloudinaryService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -266,13 +267,31 @@ class AdController extends Controller
             Log::info('Ad created:', ['id' => $ad->id]);
 
             if ($request->hasFile('images')) {
+                $cloudinary = new CloudinaryService();
                 $images = $request->file('images');
                 foreach ($images as $index => $image) {
-                    $path = $image->store('ads', 'public');
+                    $tempPath = $image->getPathname();
+                    $publicId = 'ads/' . Str::uuid()->toString();
+
+                    $uploadResult = $cloudinary->uploadImage($tempPath, [
+                        'folder' => 'classified-ads/ads',
+                        'public_id' => $publicId,
+                    ]);
+
+                    if (!$uploadResult['success']) {
+                        Log::error('Cloudinary upload failed for ad image: ' . ($uploadResult['error'] ?? 'Unknown error'));
+                        continue;
+                    }
+
                     AdImage::create([
                         'ad_id' => $ad->id,
-                        'url' => '/storage/' . $path,
-                        'original_url' => '/storage/' . $path,
+                        'url' => $uploadResult['secure_url'],
+                        'original_url' => $uploadResult['secure_url'],
+                        'thumbnail_url' => $uploadResult['thumbnail_url'],
+                        'public_id' => $uploadResult['public_id'],
+                        'width' => $uploadResult['width'] ?? null,
+                        'height' => $uploadResult['height'] ?? null,
+                        'file_size' => $uploadResult['bytes'] ?? null,
                         'is_primary' => $index === 0,
                         'sort_order' => $index,
                     ]);
@@ -432,8 +451,11 @@ class AdController extends Controller
                 return response()->json(['error' => 'Ad not found or unauthorized'], 404);
             }
 
+            $cloudinary = new CloudinaryService();
             foreach ($ad->images as $image) {
-                if ($image->url) {
+                if ($image->public_id) {
+                    $cloudinary->deleteImage($image->public_id);
+                } elseif ($image->url && !str_starts_with($image->url, 'http')) {
                     Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
                 }
             }
@@ -456,8 +478,11 @@ class AdController extends Controller
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
+            $cloudinary = new CloudinaryService();
             foreach ($ad->images as $image) {
-                if ($image->url) {
+                if ($image->public_id) {
+                    $cloudinary->deleteImage($image->public_id);
+                } elseif ($image->url && !str_starts_with($image->url, 'http')) {
                     Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
                 }
             }
@@ -484,15 +509,33 @@ class AdController extends Controller
                 return response()->json(['error' => 'No images uploaded'], 422);
             }
 
+            $cloudinary = new CloudinaryService();
             $uploadedImages = [];
             $existingCount = $ad->images()->count();
             
             foreach ($request->file('images') as $index => $image) {
-                $path = $image->store('ads', 'public');
+                $tempPath = $image->getPathname();
+                $publicId = 'ads/' . Str::uuid()->toString();
+
+                $uploadResult = $cloudinary->uploadImage($tempPath, [
+                    'folder' => 'classified-ads/ads',
+                    'public_id' => $publicId,
+                ]);
+
+                if (!$uploadResult['success']) {
+                    Log::error('Cloudinary upload failed for ad image: ' . ($uploadResult['error'] ?? 'Unknown error'));
+                    continue;
+                }
+
                 $adImage = AdImage::create([
                     'ad_id' => $ad->id,
-                    'url' => '/storage/' . $path,
-                    'original_url' => '/storage/' . $path,
+                    'url' => $uploadResult['secure_url'],
+                    'original_url' => $uploadResult['secure_url'],
+                    'thumbnail_url' => $uploadResult['thumbnail_url'],
+                    'public_id' => $uploadResult['public_id'],
+                    'width' => $uploadResult['width'] ?? null,
+                    'height' => $uploadResult['height'] ?? null,
+                    'file_size' => $uploadResult['bytes'] ?? null,
                     'is_primary' => ($existingCount === 0 && $index === 0),
                     'sort_order' => $existingCount + $index,
                 ]);
@@ -524,7 +567,10 @@ class AdController extends Controller
                 return response()->json(['error' => 'Image not found'], 404);
             }
 
-            if ($image->url) {
+            $cloudinary = new CloudinaryService();
+            if ($image->public_id) {
+                $cloudinary->deleteImage($image->public_id);
+            } elseif ($image->url && !str_starts_with($image->url, 'http')) {
                 Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
             }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Wallet;
 use App\Models\Transaction;
+use App\Services\CloudinaryService;
 use App\Services\FraudDetectionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -257,11 +258,25 @@ class WalletController extends Controller
         }
 
         // Store the proof image
-        $path = $request->file('proof')->store('bank-transfer-proofs', 'public');
+        $cloudinary = new CloudinaryService();
+        $proofFile = $request->file('proof');
+        $tempPath = $proofFile->getPathname();
+        $publicId = 'bank-proofs/' . $transaction->reference . '_' . time();
+
+        $uploadResult = $cloudinary->uploadImage($tempPath, [
+            'folder' => 'classified-ads/bank-proofs',
+            'public_id' => $publicId,
+        ]);
+
+        if (!$uploadResult['success']) {
+            return response()->json([
+                'message' => 'Failed to upload proof: ' . ($uploadResult['error'] ?? 'Unknown error'),
+            ], 500);
+        }
         
-        // Get image hash for fraud detection
+        // Get image hash for fraud detection (use local temp file before upload)
         $fraudService = new FraudDetectionService();
-        $proofHash = $fraudService->getImageHash($request->file('proof'));
+        $proofHash = $fraudService->getImageHash($proofFile);
         
         // Run fraud detection on the proof
         $fraudAnalysis = $fraudService->analyze([
@@ -269,11 +284,12 @@ class WalletController extends Controller
             'amount' => $transaction->amount,
             'reference' => $transaction->reference,
             'proof_hash' => $proofHash,
-            'filename' => $request->file('proof')->getClientOriginalName(),
+            'filename' => $proofFile->getClientOriginalName(),
         ]);
 
         $metadata = json_decode($transaction->metadata ?? '{}', true);
-        $metadata['proof_path'] = $path;
+        $metadata['proof_path'] = $uploadResult['public_id'];
+        $metadata['proof_public_id'] = $uploadResult['public_id'];
         $metadata['proof_hash'] = $proofHash;
         $metadata['risk_flags'] = array_merge(
             $metadata['risk_flags'] ?? [],
@@ -282,7 +298,7 @@ class WalletController extends Controller
         $metadata['risk_level'] = $fraudAnalysis['risk_level'];
 
         $transaction->update([
-            'proof_image_url' => $path,
+            'proof_image_url' => $uploadResult['secure_url'],
             'is_suspicious' => $fraudAnalysis['is_suspicious'],
             'metadata' => json_encode($metadata),
         ]);
