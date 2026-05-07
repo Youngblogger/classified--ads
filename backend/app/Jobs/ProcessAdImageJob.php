@@ -60,6 +60,7 @@ class ProcessAdImageJob implements ShouldQueue
                 'ad_id' => $this->adId,
                 'url' => $result['url'],
                 'original_url' => $result['original_url'],
+                'medium_url' => $result['medium_url'],
                 'thumbnail_url' => $result['thumbnail_url'],
                 'file_size' => $result['file_size'],
                 'is_primary' => $this->isPrimary,

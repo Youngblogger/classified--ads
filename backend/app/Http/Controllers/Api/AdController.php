@@ -627,16 +627,17 @@ class AdController extends Controller
     public function updateById(Request $request, $id)
     {
         try {
-            $ad = Ad::find($id);
+            $ad = Ad::where('id', $id)->where('user_id', $request->user()->id)->first();
 
             if (!$ad) {
-                return response()->json(['error' => 'Ad not found'], 404);
+                return response()->json(['error' => 'Ad not found or unauthorized'], 404);
             }
 
             $validated = $request->validate([
                 'title' => 'sometimes|string|max:255',
                 'description' => 'sometimes|string|max:5000',
                 'price' => 'sometimes|numeric|min:0',
+                'negotiable' => 'sometimes|in:0,1,true,false,yes,no',
                 'currency' => 'sometimes|string|in:NGN,USD,EUR,GBP',
                 'category_id' => 'sometimes|exists:categories,id',
                 'location_id' => 'sometimes|exists:locations,id',
@@ -648,9 +649,64 @@ class AdController extends Controller
                 'status' => 'sometimes|in:active,pending,rejected,expired',
                 'is_featured' => 'sometimes|boolean',
                 'is_verified' => 'sometimes|boolean',
+                'removed_images' => 'sometimes|string',
+                'primary_image_id' => 'sometimes|integer|exists:ad_images,id',
+                'images.*' => 'image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             ]);
 
-            $ad->update($validated);
+            $fillableData = array_intersect_key($validated, array_flip([
+                'title', 'description', 'price', 'negotiable', 'currency',
+                'category_id', 'location_id', 'state', 'lga', 'condition',
+                'phone', 'whatsapp', 'status', 'is_featured', 'is_verified',
+            ]));
+
+            if (isset($validated['negotiable'])) {
+                $fillableData['negotiable'] = filter_var($validated['negotiable'], FILTER_VALIDATE_BOOLEAN);
+            }
+
+            $ad->update($fillableData);
+
+            if (isset($validated['removed_images'])) {
+                $removedIds = json_decode($validated['removed_images'], true);
+                if (is_array($removedIds)) {
+                    AdImage::where('ad_id', $ad->id)
+                        ->whereIn('id', $removedIds)
+                        ->each(function ($image) {
+                            $this->deleteImageFiles($image);
+                            $image->delete();
+                        });
+                }
+            }
+
+            if ($request->hasFile('images')) {
+                $imageService = new \App\Services\ImageProcessingService();
+                $existingCount = $ad->images()->count();
+                $maxImages = \App\Services\ImageProcessingService::getMaxImagesPerAd();
+                $files = $request->file('images');
+                $allowedSlots = $maxImages - $existingCount;
+
+                foreach (array_slice($files, 0, $allowedSlots) as $index => $file) {
+                    $imageService->validateImage($file);
+                    $tempFilename = \Str::uuid() . '.' . $file->getClientOriginalExtension();
+                    $tempPath = 'temp/' . $tempFilename;
+                    \Illuminate\Support\Facades\Storage::disk('public')->put($tempPath, file_get_contents($file->getPathname()));
+
+                    $isPrimary = ($existingCount === 0 && $index === 0);
+
+                    \App\Jobs\ProcessAdImageJob::dispatch(
+                        $ad->id,
+                        $tempPath,
+                        $existingCount + $index,
+                        $isPrimary
+                    );
+                }
+            }
+
+            if (isset($validated['primary_image_id'])) {
+                \App\Models\AdImage::where('ad_id', $ad->id)->update(['is_primary' => false]);
+                \App\Models\AdImage::where('id', $validated['primary_image_id'])->update(['is_primary' => true]);
+            }
+
             $ad->refresh();
             $ad->load(['images', 'category', 'location', 'user']);
 
@@ -664,6 +720,62 @@ class AdController extends Controller
             Log::error('Failed to update ad by ID: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to update ad', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    private function deleteImageFiles($image): void
+    {
+        $paths = array_filter([
+            $image->url,
+            $image->original_url,
+            $image->thumbnail_url,
+            $image->medium_url,
+        ]);
+
+        foreach ($paths as $path) {
+            $this->deleteSingleImageFile($path);
+        }
+    }
+
+    private function deleteSingleImageFile(string $path): void
+    {
+        if (empty($path)) return;
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            if (str_contains($path, 'cloudinary.com')) {
+                $publicId = $this->extractPublicIdFromCloudinaryUrl($path);
+                if ($publicId) {
+                    try {
+                        $cloudinaryService = app(\App\Services\CloudinaryService::class);
+                        $cloudinaryService->deleteImage($publicId);
+                    } catch (\Exception $e) {
+                        Log::warning('Failed to delete Cloudinary image: ' . $e->getMessage());
+                    }
+                }
+            }
+            return;
+        }
+
+        $storagePath = str_replace('/storage/', '', parse_url($path, PHP_URL_PATH) ?: $path);
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($storagePath)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($storagePath);
+        }
+    }
+
+    private function extractPublicIdFromCloudinaryUrl(string $url): ?string
+    {
+        $parts = parse_url($url);
+        if (!isset($parts['path'])) return null;
+        $path = ltrim($parts['path'], '/');
+        $path = preg_replace('/\.[^.]+$/', '', $path);
+        $segments = explode('/', $path);
+        $uploadIndex = array_search('upload', $segments);
+        if ($uploadIndex !== false && isset($segments[$uploadIndex + 1])) {
+            if (preg_match('/^v\d+$/', $segments[$uploadIndex + 1])) {
+                return implode('/', array_slice($segments, $uploadIndex + 2));
+            }
+            return implode('/', array_slice($segments, $uploadIndex + 1));
+        }
+        return null;
     }
 
     public function destroy(Request $request, $slug)
