@@ -1,11 +1,15 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, CheckCircle, XCircle, Zap, Home, ArrowLeft } from 'lucide-react';
-import { promotionsApi, growthApi } from '@/lib/api';
+import { Loader2, CheckCircle, XCircle, Zap, Home, ArrowLeft, RefreshCw } from 'lucide-react';
+import { paymentApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const POLL_INTERVAL = 3000;
+const MAX_POLL_ATTEMPTS = 40;
 
 function PaymentCallbackContent() {
   const searchParams = useSearchParams();
@@ -14,6 +18,8 @@ function PaymentCallbackContent() {
   const [message, setMessage] = useState('Verifying payment...');
   const [paymentType, setPaymentType] = useState<'boost' | 'promotion' | 'unknown'>('unknown');
   const [adId, setAdId] = useState<number | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const attemptRef = useRef(0);
 
   useEffect(() => {
     const reference = searchParams.get('reference');
@@ -26,11 +32,22 @@ function PaymentCallbackContent() {
       return;
     }
 
-    const verifyPayment = async () => {
+    const pollVerify = async () => {
+      if (attemptRef.current >= MAX_POLL_ATTEMPTS) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        setStatus('failed');
+        setMessage('Payment verification timed out. Please check your dashboard.');
+        return;
+      }
+
+      attemptRef.current += 1;
+
       try {
-        const response = await promotionsApi.verifyPayment(ref);
+        const response = await paymentApi.verifyPayment(ref);
 
         if (response.data.success) {
+          if (pollRef.current) clearInterval(pollRef.current);
+
           const payment = response.data.payment;
           const type = payment?.type || 'unknown';
           setPaymentType(type as any);
@@ -39,33 +56,54 @@ function PaymentCallbackContent() {
             setAdId(payment.ad_id);
           }
 
+          setStatus('success');
+          setMessage('Payment confirmed successfully!');
+
           if (type === 'boost') {
-            setStatus('success');
-            setMessage('Payment successful! Your ad boost has been activated.');
             toast.success('Boost activated successfully!');
           } else {
-            setStatus('success');
-            setMessage('Payment successful! Your promotion has been activated.');
             toast.success('Payment successful!');
           }
         } else {
-          setStatus('failed');
-          setMessage(response.data.message || 'Payment verification failed');
+          const code = response.data.code;
+
+          if (code === 'pending') {
+            setMessage('Payment still processing...');
+          } else if (code === 'validation_failed') {
+            if (pollRef.current) clearInterval(pollRef.current);
+            setStatus('failed');
+            setMessage(response.data.message || 'Payment validation failed');
+          } else if (code === 'gateway_error') {
+            setMessage('Contacting payment gateway...');
+          }
         }
       } catch (error: any) {
-        console.error('Payment verification error:', error);
+        const httpStatus = error.response?.status;
 
-        if (error.response?.status === 404 || error.response?.status === 400) {
+        if (httpStatus === 202 || httpStatus === 400) {
+          const data = error.response?.data;
+
+          if (data?.code === 'pending') {
+            setMessage('Payment still processing...');
+          } else if (data?.code === 'validation_failed' || data?.code === 'payment_not_found') {
+            if (pollRef.current) clearInterval(pollRef.current);
+            setStatus('failed');
+            setMessage(data.message || 'Payment not found');
+          }
+        } else if (httpStatus === 404) {
+          if (pollRef.current) clearInterval(pollRef.current);
           setStatus('failed');
-          setMessage('Payment may still be processing. Check your dashboard for updates.');
-        } else {
-          setStatus('failed');
-          setMessage(error.response?.data?.message || 'Payment verification failed');
+          setMessage('Payment reference not found');
         }
       }
     };
 
-    verifyPayment();
+    pollVerify();
+    pollRef.current = setInterval(pollVerify, POLL_INTERVAL);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [searchParams, router]);
 
   const getRedirectUrl = () => {
@@ -146,6 +184,18 @@ function PaymentCallbackContent() {
               >
                 <ArrowLeft className="w-4 h-4" />
                 Go Back
+              </button>
+              <button
+                onClick={() => {
+                  setStatus('loading');
+                  setMessage('Retrying verification...');
+                  attemptRef.current = 0;
+                  window.location.reload();
+                }}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Retry
               </button>
               <Link
                 href="/"

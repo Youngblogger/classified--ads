@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\SellerReviewController;
 use App\Http\Controllers\Api\WatermarkController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\PaymentWebhookController;
+use App\Http\Controllers\Api\PaymentVerificationController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\CreditController;
@@ -420,6 +421,10 @@ Route::middleware('auth.api')->group(function () {
 
 // Webhook routes (no auth required)
 Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'handlePaystackWebhook']);
+
+// Payment verification routes (no auth - callback polling)
+Route::post('/payments/verify', [PaymentVerificationController::class, 'verify']);
+Route::get('/payments/status/{reference}', [PaymentVerificationController::class, 'status']);
 
 // Payment callback (redirect from Paystack)
 Route::get('/payments/callback', function () {
