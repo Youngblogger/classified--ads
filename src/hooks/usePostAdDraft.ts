@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 const DRAFT_KEY = 'post-ad-draft';
 const DRAFT_TTL = 24 * 60 * 60 * 1000;
 
-interface DraftImage {
+export interface DraftImage {
   name: string;
   type: string;
   size: number;
@@ -86,7 +86,6 @@ function saveDraft(draft: Partial<PostAdDraft>) {
       selectedConfig: '',
       attributes: {},
       images: [],
-      savedAt: Date.now(),
       ...existing,
       ...draft,
       savedAt: Date.now(),
@@ -180,4 +179,5 @@ export function usePostAdDraft(): UsePostAdDraftReturn {
   };
 }
 
-export { getDraft, saveDraft, PostAdDraft };
+export { getDraft, saveDraft };
+export type { PostAdDraft };

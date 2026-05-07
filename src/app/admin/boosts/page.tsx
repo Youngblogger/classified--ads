@@ -53,12 +53,12 @@ export default function BoostsPage() {
       params.limit = '20';
       params.page = String(page);
 
-      const res = await adminApi.get('/secure-control-9ja/boosts', { params });
+      const res = await adminApi.getBoosts(params);
       const data = res.data;
       setBoosts(data.data || []);
       setTotalPages(data.meta?.last_page || 1);
 
-      const statsRes = await adminApi.get('/secure-control-9ja/dashboard');
+      const statsRes = await adminApi.getDashboard();
       const s = statsRes.data.stats;
       setStats({
         total: s.active_boosts || 0,
@@ -76,7 +76,7 @@ export default function BoostsPage() {
   const handleDeactivate = async (id: number) => {
     if (!confirm('Deactivate this boost?')) return;
     try {
-      await adminApi.post(`/secure-control-9ja/boosts/${id}/deactivate`);
+      await adminApi.deactivateBoost(id);
       toast.success('Boost deactivated');
       fetchData();
     } catch {
@@ -88,7 +88,7 @@ export default function BoostsPage() {
     if (!extendModal.boostId) return;
     setExtending(true);
     try {
-      await adminApi.post(`/secure-control-9ja/boosts/${extendModal.boostId}/extend`, { days: extendDays });
+      await adminApi.extendBoost(extendModal.boostId, extendDays);
       toast.success(`Boost extended by ${extendDays} days`);
       setExtendModal({ open: false, boostId: null });
       fetchData();

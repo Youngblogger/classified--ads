@@ -11,7 +11,7 @@ interface GoogleWindow {
   google?: {
     accounts?: {
       id?: {
-        initialize: (config: { client_id: string; auto_select: boolean; callback: (response: { credential: string }) => void }) => void;
+        initialize: (config: { client_id: string; auto_select: boolean; callback: (response: { credential: string }) => void; ux_mode?: string }) => void;
         prompt: (momentListener?: (res: { isNotDisplayed: boolean; isSkippedMoment: boolean; isDismissedMoment: boolean }) => void) => void;
         disableAutoSelect: () => void;
         storeCredential: (credentials: { id: string; password: string }) => void;

@@ -49,7 +49,7 @@ export default function ShareButton({
     setError(null);
 
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
       const response = await fetch(`${apiBaseUrl}/ads/${adId}/share-link`);
 
       if (!response.ok) {

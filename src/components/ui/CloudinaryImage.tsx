@@ -211,7 +211,6 @@ export default function CloudinaryImage({
             className={imageClasses}
             style={{ objectFit }}
             sizes={getDefaultSizes()}
-            srcSet={responsive && !fill ? getSrcSet() : undefined}
             loading={priority ? 'eager' : loading}
             priority={priority}
             onLoad={handleLoad}

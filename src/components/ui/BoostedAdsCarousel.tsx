@@ -194,7 +194,7 @@ export default function BoostedAdsCarousel() {
         if (!res.ok) return;
         const json = await res.json();
         if (json?.data && Array.isArray(json.data)) {
-          const boosted = json.data.filter((ad: BoostedAd) => ad.is_boosted && ad.boost_type);
+          const boosted = (json.data as BoostedAd[]).filter((ad) => ad.is_boosted && ad.boost_type);
           const sorted = sortAdsByBoostPriority(boosted);
           setBoostedAds(sorted.slice(0, 20));
         }

@@ -57,7 +57,7 @@ export function getBoostConfig(boostType: BoostType | string | null | undefined)
   return BOOST_UI_CONFIG[boostType as BoostType];
 }
 
-export function sortAdsByBoostPriority(ads: Array<{ is_boosted?: boolean; boost_type?: string | null; [key: string]: any }>) {
+export function sortAdsByBoostPriority<T extends { is_boosted?: boolean; boost_type?: string | null }>(ads: T[]): T[] {
   return [...ads].sort((a, b) => {
     const configA = getBoostConfig(a.boost_type);
     const configB = getBoostConfig(b.boost_type);

@@ -835,7 +835,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           <span className="text-sm">Back</span>
         </button>
       )}
-      )}
 
       {/* Progress Steps */}
       <div className="flex items-center justify-center gap-2 mb-8">

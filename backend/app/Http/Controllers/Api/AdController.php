@@ -640,7 +640,7 @@ class AdController extends Controller
                 'negotiable' => 'sometimes|in:0,1,true,false,yes,no',
                 'currency' => 'sometimes|string|in:NGN,USD,EUR,GBP',
                 'category_id' => 'sometimes|exists:categories,id',
-                'location_id' => 'sometimes|exists:locations,id',
+                'location_id' => 'sometimes|string|max:100',
                 'state' => 'sometimes|string|max:100',
                 'lga' => 'sometimes|string|max:100',
                 'condition' => 'sometimes|in:new,like_new,good,fair',
@@ -656,12 +656,29 @@ class AdController extends Controller
 
             $fillableData = array_intersect_key($validated, array_flip([
                 'title', 'description', 'price', 'negotiable', 'currency',
-                'category_id', 'location_id', 'state', 'lga', 'condition',
+                'category_id', 'condition',
                 'phone', 'whatsapp', 'status', 'is_featured', 'is_verified',
+                'state', 'lga',
             ]));
 
             if (isset($validated['negotiable'])) {
                 $fillableData['negotiable'] = filter_var($validated['negotiable'], FILTER_VALIDATE_BOOLEAN);
+            }
+
+            if (isset($validated['location_id'])) {
+                if (is_numeric($validated['location_id'])) {
+                    $fillableData['location_id'] = (int) $validated['location_id'];
+                } else {
+                    $loc = \App\Models\Location::where('slug', $validated['location_id'])->first();
+                    if ($loc) {
+                        $fillableData['location_id'] = $loc->id;
+                    } else {
+                        $loc = \App\Models\Location::where('name', $validated['location_id'])->first();
+                        if ($loc) {
+                            $fillableData['location_id'] = $loc->id;
+                        }
+                    }
+                }
             }
 
             $ad->update($fillableData);

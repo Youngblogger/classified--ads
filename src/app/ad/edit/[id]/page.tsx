@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { adsApi } from '@/lib/api';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { getPhoneValidationError, getAdImageUrl } from '@/lib/utils';
 import CategorySelector from '@/components/ui/CategorySelector';
 import LocationSelector from '@/components/ui/LocationSelector';
@@ -234,9 +235,11 @@ export default function EditAdPage() {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <ResponsiveHeader />
-        <div className="flex-1 flex items-start justify-center pt-[180px] px-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-        </div>
+        <main className="flex-1 pt-[150px] md:pt-[200px] pb-8 px-4">
+          <div className="max-w-3xl mx-auto">
+            <FormSkeleton />
+          </div>
+        </main>
         <Footer />
       </div>
     );

@@ -241,7 +241,7 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
                         <div>
                           <p className="text-sm font-semibold text-blue-900">Boost is active</p>
                           <p className="text-xs text-blue-700 mt-1">
-                            {renewalInfo?.days_remaining !== null && formatTimeRemaining(renewalInfo.days_remaining)}
+                            {renewalInfo !== null && renewalInfo.days_remaining != null && formatTimeRemaining(renewalInfo.days_remaining)}
                           </p>
                           {renewalInfo?.will_extend_to && (
                             <p className="text-xs text-blue-600 mt-1">

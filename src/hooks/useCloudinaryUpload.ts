@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 import { getAuthToken } from '@/lib/cookies';
-import { compressImage, CompressedImage } from './imageCompression';
+import { compressImage, CompressedImage } from '@/lib/imageCompression';
 
 export interface CloudinaryUploadResult {
   public_id: string;

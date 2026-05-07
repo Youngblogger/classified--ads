@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary, getOptimizedImageUrl } from '@/lib/cloudinary';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
