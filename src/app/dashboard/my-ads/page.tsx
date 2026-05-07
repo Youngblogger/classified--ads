@@ -8,6 +8,7 @@ import { adsApi } from '@/lib/api';
 import { getAdImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import BoostAdModal from '@/components/ui/BoostAdModal';
 
 const EditIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,6 +89,11 @@ export default function MyAdsPage() {
     adTitle: null
   });
   const [deleting, setDeleting] = useState(false);
+  const [boostModal, setBoostModal] = useState<{ show: boolean; adId: number | null; adTitle: string | null }>({
+    show: false,
+    adId: null,
+    adTitle: null
+  });
 
   useEffect(() => {
     fetchAds();
@@ -144,8 +150,8 @@ export default function MyAdsPage() {
     }
   };
 
-  const handlePromote = (adId: number) => {
-    router.push(`/dashboard/promotions?ad_id=${adId}`);
+  const handlePromote = (adId: number, adTitle: string) => {
+    setBoostModal({ show: true, adId, adTitle });
   };
 
   const getStatusCount = (status: StatusFilter) => {
@@ -301,13 +307,13 @@ export default function MyAdsPage() {
                     <TrashIcon className="w-4 h-4" />
                     <span>Delete</span>
                   </button>
-                  <Link
-                    href={`/dashboard/promotions?ad_id=${ad.id}`}
+                  <button
+                    onClick={() => handlePromote(ad.id, ad.title)}
                     className="flex items-center justify-center gap-1 px-2 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
                   >
                     <ZapIcon className="w-4 h-4" />
-                    <span>Promote</span>
-                  </Link>
+                    <span>Boost</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -367,6 +373,13 @@ export default function MyAdsPage() {
           </div>
         </div>
       )}
+
+      <BoostAdModal
+        adId={boostModal.adId ?? 0}
+        adTitle={boostModal.adTitle ?? ''}
+        isOpen={boostModal.show}
+        onClose={() => setBoostModal({ show: false, adId: null, adTitle: null })}
+      />
     </div>
   );
 }

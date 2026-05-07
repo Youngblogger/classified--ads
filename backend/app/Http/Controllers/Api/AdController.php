@@ -669,6 +669,69 @@ class AdController extends Controller
         }
     }
 
+    public function myAds(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $limit = $request->input('limit', 20);
+            $page = $request->input('page', 1);
+            $offset = ($page - 1) * $limit;
+
+            $query = Ad::with(['images', 'category', 'location'])
+                ->where('user_id', $user->id);
+
+            if ($request->input('status')) {
+                $query->where('status', $request->input('status'));
+            }
+
+            $query->orderBy('created_at', 'desc');
+
+            $totalCount = (clone $query)->count();
+            $lastPage = $limit > 0 ? ceil($totalCount / $limit) : 1;
+
+            $ads = $query
+                ->offset($offset)
+                ->limit($limit)
+                ->get();
+
+            $ads = $ads->map(function ($ad) {
+                $data = $ad->toArray();
+                $data['images'] = $ad->images->toArray();
+
+                $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
+                    ->where('id', $ad->id)
+                    ->value('attributes');
+                $attrs = [];
+                if ($dbAttrs) {
+                    $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
+                    if (is_array($decoded)) {
+                        $attrs = $decoded;
+                    }
+                }
+                $data['attributes'] = $attrs;
+
+                $boost = $ad->activeBoost;
+                $data['is_boosted'] = $boost !== null;
+                $data['boost_type'] = $boost?->boost_type;
+
+                return $data;
+            });
+
+            return response()->json([
+                'data' => $ads->values(),
+                'meta' => [
+                    'total' => $totalCount,
+                    'current_page' => $page,
+                    'per_page' => $limit,
+                    'last_page' => $lastPage,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch my ads: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load ads', 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function similarAds(Request $request)
     {
         try {
