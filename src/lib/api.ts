@@ -234,9 +234,8 @@ export const adsApi = {
   create: (data: FormData) => api.upload('/ads', data),
   update: (id: number, data: FormData) => {
     const token = getAuthToken() || getCookie('token');
-    return api.put(`/ads/${id}`, data, {
+    return api.post(`/ads/${id}`, data, {
       headers: {
-        'Content-Type': 'multipart/form-data',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });

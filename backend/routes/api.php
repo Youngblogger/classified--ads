@@ -309,7 +309,7 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/ads', [AdController::class, 'store']);
     Route::post('/ads/boost-on-publish', [AdController::class, 'boostOnPublish']);
     Route::get('/ads/{id}', [AdController::class, 'showById'])->where('id', '[0-9]+');
-    Route::put('/ads/{id}', [AdController::class, 'updateById'])->where('id', '[0-9]+');
+    Route::match(['post', 'put'], '/ads/{id}', [AdController::class, 'updateById'])->where('id', '[0-9]+');
     Route::put('/ads/{slug}', [AdController::class, 'update']);
     Route::delete('/ads/{slug}', [AdController::class, 'destroy']);
     Route::get('/my-ads', [AdController::class, 'myAds']);
