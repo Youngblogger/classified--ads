@@ -2,7 +2,7 @@
 
 import '@/app/globals.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import {
   Upload, X, Check, ChevronRight, Loader2, ArrowLeft,
@@ -233,8 +233,8 @@ export default function EditAdPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
+        <ResponsiveHeader />
+        <div className="flex-1 flex items-start justify-center pt-[180px] px-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
         <Footer />
@@ -245,8 +245,8 @@ export default function EditAdPage() {
   if (adNotFound) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
+        <ResponsiveHeader />
+        <div className="flex-1 flex items-start justify-center pt-[180px] px-4">
           <div className="text-center bg-white rounded-2xl shadow-card p-8">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Ad Not Found</h2>
             <p className="text-gray-500 mb-4">This ad doesn&apos;t exist or you don&apos;t have permission to edit it.</p>
@@ -265,9 +265,9 @@ export default function EditAdPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
+      <ResponsiveHeader />
 
-      <main className="flex-1 py-8">
+      <main className="flex-1 pt-[150px] md:pt-[200px] pb-8 px-4">
         <div className="container-app">
           <div className="max-w-3xl mx-auto">
             <div className="space-y-6">

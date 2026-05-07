@@ -113,10 +113,13 @@ export default function MobileHeader() {
         {/* Logo */}
         <Link 
           href="/" 
-          className="flex-shrink-0 flex items-center gap-0.5"
+          className="flex-shrink-0 flex items-center gap-1"
         >
-          <span className="text-base font-bold text-white">i</span>
-          <span className="text-base font-bold text-white">List</span>
+          <img 
+            src="/icons/iList-white.png" 
+            alt="iList" 
+            className="h-8 w-auto"
+          />
         </Link>
 
         {/* Location Selector */}

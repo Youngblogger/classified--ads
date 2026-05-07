@@ -232,7 +232,15 @@ export const adsApi = {
   getRecent: (limit?: number) => api.get('/ads/recent', { params: { limit } }),
   getSimilar: (adId: number, limit?: number) => api.get(`/ads/${adId}/similar`, { params: { limit } }),
   create: (data: FormData) => api.upload('/ads', data),
-  update: (id: number, data: FormData) => api.upload(`/ads/${id}`, data),
+  update: (id: number, data: FormData) => {
+    const token = getAuthToken() || getCookie('token');
+    return api.put(`/ads/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  },
   delete: (slug: string) => api.delete(`/ads/${slug}`),
   deleteById: (id: number) => api.delete(`/ads/${id}`),
   incrementViews: (id: number) => api.post(`/ads/${id}/views`),
