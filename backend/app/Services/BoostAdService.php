@@ -7,6 +7,8 @@ use App\Models\BoostedAd;
 use App\Models\PaymentIntent;
 use App\Models\User;
 use App\Events\AdBoosted;
+use App\Events\BoostExpired;
+use App\Events\BoostRenewed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -116,6 +118,7 @@ class BoostAdService
                 'type' => 'boost',
                 'email' => $user?->email ?? '',
                 'metadata' => [
+                    'action' => 'new_boost',
                     'boost_type' => $boostType,
                     'duration_days' => $durationDays,
                 ],
@@ -146,6 +149,113 @@ class BoostAdService
         });
     }
 
+    public function renewBoost(int $adId, int $userId, string $boostType, int $durationDays): array
+    {
+        $canRenew = $this->canRenewBoost($adId, $userId, $boostType);
+
+        if (!$canRenew['can_renew']) {
+            return [
+                'success' => false,
+                'error' => $canRenew['reason'],
+                'code' => $canRenew['code'],
+            ];
+        }
+
+        $price = $this->calculatePrice($boostType, $durationDays);
+
+        $user = User::find($userId);
+        $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
+
+        return DB::transaction(function () use ($ad, $userId, $boostType, $durationDays, $price, $user) {
+            $paymentService = app(PaymentService::class);
+
+            $result = $paymentService->initializePayment([
+                'user_id' => $userId,
+                'ad_id' => $ad->id,
+                'amount' => $price,
+                'currency' => 'NGN',
+                'type' => 'boost',
+                'email' => $user?->email ?? '',
+                'metadata' => [
+                    'action' => 'renew_boost',
+                    'boost_type' => $boostType,
+                    'duration_days' => $durationDays,
+                ],
+            ]);
+
+            if (!$result['success']) {
+                return $result;
+            }
+
+            Log::info('Boost renewal payment initiated', [
+                'ad_id' => $ad->id,
+                'user_id' => $userId,
+                'boost_type' => $boostType,
+                'duration_days' => $durationDays,
+                'price' => $price,
+                'reference' => $result['payment_intent']->reference,
+            ]);
+
+            return [
+                'success' => true,
+                'payment_intent' => $result['payment_intent'],
+                'authorization_url' => $result['authorization_url'] ?? null,
+                'access_code' => $result['access_code'] ?? null,
+                'price' => $price,
+                'boost_type' => $boostType,
+                'duration_days' => $durationDays,
+            ];
+        });
+    }
+
+    public function canRenewBoost(int $adId, int $userId, ?string $boostType = null): array
+    {
+        $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
+
+        if (!$ad) {
+            return ['can_renew' => false, 'reason' => 'Ad not found or unauthorized', 'code' => 'ad_not_found'];
+        }
+
+        if ($ad->status !== 'active') {
+            return ['can_renew' => false, 'reason' => 'Cannot renew boost for sold, closed, or expired ads', 'code' => 'ad_not_active'];
+        }
+
+        $query = BoostedAd::where('ad_id', $adId)->where('user_id', $userId);
+
+        if ($boostType) {
+            $query->where('boost_type', $boostType);
+        }
+
+        $hasActiveBoost = (clone $query)->active()->exists();
+        $hasExpiredBoost = (clone $query)->where('status', 'expired')->exists();
+
+        if ($hasActiveBoost) {
+            $activeBoost = $query->active()->latest('end_time')->first();
+
+            return [
+                'can_renew' => true,
+                'reason' => null,
+                'code' => null,
+                'boost_status' => 'active',
+                'current_end_time' => $activeBoost->end_time->toISOString(),
+                'days_remaining' => now()->diffInDays($activeBoost->end_time, false),
+                'will_extend_to' => $activeBoost->end_time->addDays(7)->toISOString(),
+            ];
+        }
+
+        if ($hasExpiredBoost) {
+            return [
+                'can_renew' => true,
+                'reason' => null,
+                'code' => null,
+                'boost_status' => 'expired',
+                'will_start_from' => now()->toISOString(),
+            ];
+        }
+
+        return ['can_renew' => false, 'reason' => 'No previous boost found for this ad', 'code' => 'no_previous_boost'];
+    }
+
     public function activateBoost(string $paymentReference): array
     {
         $paymentIntent = PaymentIntent::where('reference', $paymentReference)
@@ -167,7 +277,6 @@ class BoostAdService
             ];
         }
 
-        // Verify ownership: ensure the ad belongs to the payment intent's user
         $ad = \App\Models\Ad::where('id', $paymentIntent->ad_id)
             ->where('user_id', $paymentIntent->user_id)
             ->first();
@@ -184,38 +293,72 @@ class BoostAdService
             ];
         }
 
+        $metadata = $paymentIntent->metadata ?? [];
+        $boostType = $metadata['boost_type'] ?? 'top';
+        $durationDays = $metadata['duration_days'] ?? 7;
+        $action = $metadata['action'] ?? 'new_boost';
+
         $existingBoost = BoostedAd::where('ad_id', $paymentIntent->ad_id)
             ->active()
-            ->where('boost_type', $paymentIntent->metadata['boost_type'])
+            ->where('boost_type', $boostType)
             ->first();
 
+        $wasExpired = false;
+
         if ($existingBoost) {
-            $endTime = $existingBoost->end_time->addDays($paymentIntent->metadata['duration_days']);
-            $existingBoost->update(['end_time' => $endTime]);
+            $endTime = $existingBoost->end_time->addDays($durationDays);
+            $existingBoost->update([
+                'end_time' => $endTime,
+                'payment_reference' => $paymentIntent->reference,
+            ]);
             $boost = $existingBoost->fresh();
         } else {
-            $boost = BoostedAd::create([
-                'ad_id' => $paymentIntent->ad_id,
-                'user_id' => $paymentIntent->user_id,
-                'boost_type' => $paymentIntent->metadata['boost_type'],
-                'start_time' => now(),
-                'end_time' => now()->addDays($paymentIntent->metadata['duration_days']),
-                'status' => 'active',
-                'payment_reference' => $paymentReference,
-            ]);
+            $recentExpired = BoostedAd::where('ad_id', $paymentIntent->ad_id)
+                ->where('boost_type', $boostType)
+                ->where('status', 'expired')
+                ->latest('end_time')
+                ->first();
+
+            if ($recentExpired && $action === 'renew_boost') {
+                $recentExpired->update([
+                    'status' => 'active',
+                    'start_time' => now(),
+                    'end_time' => now()->addDays($durationDays),
+                    'payment_reference' => $paymentIntent->reference,
+                ]);
+                $boost = $recentExpired->fresh();
+                $wasExpired = true;
+            } else {
+                $boost = BoostedAd::create([
+                    'ad_id' => $paymentIntent->ad_id,
+                    'user_id' => $paymentIntent->user_id,
+                    'boost_type' => $boostType,
+                    'start_time' => now(),
+                    'end_time' => now()->addDays($durationDays),
+                    'status' => 'active',
+                    'payment_reference' => $paymentIntent->reference,
+                ]);
+            }
         }
 
-        event(new AdBoosted($boost));
+        if ($wasExpired) {
+            event(new BoostRenewed($boost, true));
+        } else {
+            event(new AdBoosted($boost));
+        }
 
         Log::info('Boost activated', [
             'ad_id' => $paymentIntent->ad_id,
             'boost_id' => $boost->id,
+            'action' => $action,
+            'was_renewed' => $wasExpired,
             'payment_reference' => $paymentReference,
         ]);
 
         return [
             'success' => true,
             'boost' => $boost,
+            'was_renewed' => $wasExpired,
         ];
     }
 
@@ -232,6 +375,18 @@ class BoostAdService
             ->active()
             ->latest('start_time')
             ->first();
+    }
+
+    public function getLatestExpiredBoost(int $adId, ?string $boostType = null): ?BoostedAd
+    {
+        $query = BoostedAd::where('ad_id', $adId)
+            ->where('status', 'expired');
+
+        if ($boostType) {
+            $query->where('boost_type', $boostType);
+        }
+
+        return $query->latest('end_time')->first();
     }
 
     public function getBoostPriority(int $adId): int
@@ -259,6 +414,9 @@ class BoostAdService
         }
 
         $activeBoost = $this->getActiveBoost($adId);
+        $expiredBoost = $this->getLatestExpiredBoost($adId);
+
+        $canRenew = $this->canRenewBoost($adId, $userId);
 
         $recentBoosts = BoostedAd::where('ad_id', $adId)
             ->orderBy('created_at', 'desc')
@@ -275,14 +433,50 @@ class BoostAdService
                 'time_remaining' => $activeBoost->end_time->diffForHumans(),
                 'days_remaining' => now()->diffInDays($activeBoost->end_time, false),
             ] : null,
+            'expired_boost' => $expiredBoost ? [
+                'id' => $expiredBoost->id,
+                'boost_type' => $expiredBoost->boost_type,
+                'expired_at' => $expiredBoost->end_time->toISOString(),
+            ] : null,
+            'can_renew' => $canRenew['can_renew'],
+            'renewal_info' => $canRenew['can_renew'] ? [
+                'boost_status' => $canRenew['boost_status'],
+                'current_end_time' => $canRenew['current_end_time'] ?? null,
+                'days_remaining' => $canRenew['days_remaining'] ?? null,
+                'will_extend_to' => $canRenew['will_extend_to'] ?? null,
+                'will_start_from' => $canRenew['will_start_from'] ?? null,
+            ] : null,
             'recent_boosts' => $recentBoosts->map(fn($b) => [
                 'boost_type' => $b->boost_type,
                 'status' => $b->status,
+                'start_time' => $b->start_time->toISOString(),
+                'end_time' => $b->end_time->toISOString(),
                 'created_at' => $b->created_at->toISOString(),
             ]),
             'prices' => $this->getBoostPrices(),
             'available_durations' => $this->getAvailableDurations(),
         ];
+    }
+
+    public function expireBoosts(): int
+    {
+        $expiredCount = 0;
+
+        BoostedAd::where('status', 'active')
+            ->where('end_time', '<=', now())
+            ->chunk(100, function ($boosts) use (&$expiredCount) {
+                foreach ($boosts as $boost) {
+                    $boost->update(['status' => 'expired']);
+                    event(new BoostExpired($boost));
+                    $expiredCount++;
+                }
+            });
+
+        if ($expiredCount > 0) {
+            Log::info('Boosts expired', ['count' => $expiredCount]);
+        }
+
+        return $expiredCount;
     }
 
     public function expireOldBoosts(): int

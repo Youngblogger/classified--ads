@@ -37,10 +37,21 @@ class BoostedAd extends Model
         return $this->status === 'active' && $this->end_time > now();
     }
 
+    public function isExpired(): bool
+    {
+        return $this->status === 'expired' || $this->end_time <= now();
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active')
             ->where('end_time', '>', now());
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('status', 'active')
+            ->where('end_time', '<=', now());
     }
 
     public function scopeForAd($query, int $adId)

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Zap, Loader2, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { X, Zap, Loader2, CheckCircle, AlertCircle, ArrowRight, Clock, RotateCcw, Timer } from 'lucide-react';
 import { getAuthToken } from '@/lib/cookies';
 import toast from 'react-hot-toast';
 
@@ -32,6 +32,16 @@ const DURATION_LABELS: Record<number, string> = {
   30: '30 days',
 };
 
+type BoostStatus = 'none' | 'active' | 'expired' | 'checking';
+
+interface RenewalInfo {
+  boost_status: 'active' | 'expired';
+  current_end_time: string | null;
+  days_remaining: number | null;
+  will_extend_to: string | null;
+  will_start_from: string | null;
+}
+
 export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAdModalProps) {
   const [boostType, setBoostType] = useState<BoostType>('top');
   const [duration, setDuration] = useState(7);
@@ -40,6 +50,9 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
   const [fetchingPrices, setFetchingPrices] = useState(false);
   const [step, setStep] = useState<'select' | 'processing' | 'success'>('select');
   const [prices, setPrices] = useState<Record<string, number>>({});
+  const [boostStatus, setBoostStatus] = useState<BoostStatus>('checking');
+  const [renewalInfo, setRenewalInfo] = useState<RenewalInfo | null>(null);
+  const [isRenewal, setIsRenewal] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -47,7 +60,11 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
       setBoostType('top');
       setDuration(7);
       setPrice(null);
+      setBoostStatus('checking');
+      setRenewalInfo(null);
+      setIsRenewal(false);
       fetchPrices();
+      fetchBoostStatus();
     }
   }, [isOpen]);
 
@@ -74,6 +91,38 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
     }
   };
 
+  const fetchBoostStatus = async () => {
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        setBoostStatus('none');
+        return;
+      }
+      const response = await fetch(`${API_URL}/ads/${adId}/boost-status`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const statusData = data.data;
+        if (statusData?.has_active_boost && statusData?.active_boost) {
+          setBoostStatus('active');
+          setBoostType(statusData.active_boost.boost_type);
+          setRenewalInfo(statusData.renewal_info);
+        } else if (statusData?.expired_boost && statusData?.can_renew) {
+          setBoostStatus('expired');
+          setBoostType(statusData.expired_boost.boost_type);
+          setRenewalInfo(statusData.renewal_info);
+        } else {
+          setBoostStatus('none');
+        }
+      } else {
+        setBoostStatus('none');
+      }
+    } catch {
+      setBoostStatus('none');
+    }
+  };
+
   const calculatePrice = () => {
     const basePrice = prices[boostType] || 5;
     const multiplier = duration >= 30 ? 0.7 : duration >= 14 ? 0.8 : duration >= 7 ? 0.85 : duration >= 3 ? 0.9 : 1.0;
@@ -96,11 +145,11 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
     setStep('processing');
     setLoading(true);
 
-    // Get CSRF token from meta tag if available
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const endpoint = isRenewal ? `${API_URL}/ads/${adId}/boost-renew` : `${API_URL}/ads/${adId}/boost`;
 
     try {
-      const response = await fetch(`${API_URL}/ads/${adId}/boost`, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -134,6 +183,15 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
     }
   };
 
+  const formatTimeRemaining = (days: number | null): string => {
+    if (days === null) return 'Calculating...';
+    if (days < 1) return 'Less than a day';
+    if (days === 1) return '1 day remaining';
+    return `${Math.floor(days)} days remaining`;
+  };
+
+  const canRenew = boostStatus === 'active' || boostStatus === 'expired';
+
   if (!isOpen) return null;
 
   const boostTypeData = BOOST_TYPES.find(b => b.value === boostType)!;
@@ -148,7 +206,9 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-amber-500" />
-            <h2 className="text-lg font-bold text-gray-900">Boost Your Ad</h2>
+            <h2 className="text-lg font-bold text-gray-900">
+              {isRenewal ? 'Renew Boost' : 'Boost Your Ad'}
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -167,90 +227,144 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
                 Boosting: <span className="font-semibold text-gray-900">{adTitle}</span>
               </p>
 
-              {fetchingPrices ? (
+              {boostStatus === 'checking' ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-sky-600" />
                 </div>
               ) : (
                 <>
-                  {/* Boost Type Selection */}
-                  <div className="mb-5">
-                    <p className="text-sm font-semibold text-gray-700 mb-3">Select boost type</p>
-                    <div className="space-y-2">
-                      {BOOST_TYPES.map((type) => (
-                        <button
-                          key={type.value}
-                          onClick={() => setBoostType(type.value)}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 text-left ${
-                            boostType === type.value
-                              ? 'border-sky-500 bg-sky-50 text-sky-700'
-                              : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700'
-                          }`}
-                        >
-                          <span className="text-xl">{type.icon}</span>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold">{type.label}</p>
-                            <p className="text-xs text-gray-500">{type.description}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold">₦{prices[type.value]?.toFixed(2)}</p>
-                            <p className="text-xs text-gray-500">/day</p>
-                          </div>
-                          {boostType === type.value && (
-                            <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0" />
+                  {/* Current Boost Status Banner */}
+                  {boostStatus === 'active' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5">
+                      <div className="flex items-start gap-3">
+                        <Timer className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-blue-900">Boost is active</p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            {renewalInfo?.days_remaining !== null && formatTimeRemaining(renewalInfo.days_remaining)}
+                          </p>
+                          {renewalInfo?.will_extend_to && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              Renew to extend until {new Date(renewalInfo.will_extend_to).toLocaleDateString()}
+                            </p>
                           )}
-                        </button>
-                      ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Duration Selection */}
-                  <div className="mb-5">
-                    <p className="text-sm font-semibold text-gray-700 mb-3">Select duration</p>
-                    <div className="flex flex-wrap gap-2">
-                      {DURATIONS.map((d) => {
-                        const discount = d >= 30 ? '30% off' : d >= 14 ? '20% off' : d >= 7 ? '15% off' : d >= 3 ? '10% off' : null;
-                        return (
-                          <button
-                            key={d}
-                            onClick={() => setDuration(d)}
-                            className={`flex flex-col items-center px-4 py-2.5 rounded-xl border-2 transition-all duration-200 min-w-[80px] ${
-                              duration === d
-                                ? 'border-sky-500 bg-sky-50'
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          >
-                            <span className={`text-sm font-semibold ${duration === d ? 'text-sky-700' : 'text-gray-700'}`}>
-                              {d}d
-                            </span>
-                            {discount && (
-                              <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-0.5">
-                                {discount}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
+                  {boostStatus === 'expired' && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
+                      <div className="flex items-start gap-3">
+                        <Clock className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-amber-900">Boost has expired</p>
+                          <p className="text-xs text-amber-700 mt-1">
+                            Renew to reactivate your boost
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Price Summary */}
-                  {price !== null && (
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-600">{boostTypeData.label}</span>
-                        <span className="text-sm font-medium">₦{prices[boostType]?.toFixed(2)}/day</span>
-                      </div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-600">Duration</span>
-                        <span className="text-sm font-medium">{DURATION_LABELS[duration]}</span>
-                      </div>
-                      <hr className="border-gray-200 my-2" />
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-bold text-gray-900">Total</span>
-                        <span className="text-xl font-bold text-sky-600">₦{price.toFixed(2)}</span>
-                      </div>
+                  {fetchingPrices ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-sky-600" />
                     </div>
+                  ) : (
+                    <>
+                      {/* Boost Type Selection */}
+                      <div className="mb-5">
+                        <p className="text-sm font-semibold text-gray-700 mb-3">
+                          {canRenew ? 'Select boost type (pre-filled)' : 'Select boost type'}
+                        </p>
+                        <div className="space-y-2">
+                          {BOOST_TYPES.map((type) => (
+                            <button
+                              key={type.value}
+                              onClick={() => setBoostType(type.value)}
+                              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 text-left ${
+                                boostType === type.value
+                                  ? 'border-sky-500 bg-sky-50 text-sky-700'
+                                  : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700'
+                              }`}
+                            >
+                              <span className="text-xl">{type.icon}</span>
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold">{type.label}</p>
+                                <p className="text-xs text-gray-500">{type.description}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold">₦{prices[type.value]?.toFixed(2)}</p>
+                                <p className="text-xs text-gray-500">/day</p>
+                              </div>
+                              {boostType === type.value && (
+                                <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Duration Selection */}
+                      <div className="mb-5">
+                        <p className="text-sm font-semibold text-gray-700 mb-3">Select duration</p>
+                        <div className="flex flex-wrap gap-2">
+                          {DURATIONS.map((d) => {
+                            const discount = d >= 30 ? '30% off' : d >= 14 ? '20% off' : d >= 7 ? '15% off' : d >= 3 ? '10% off' : null;
+                            return (
+                              <button
+                                key={d}
+                                onClick={() => setDuration(d)}
+                                className={`flex flex-col items-center px-4 py-2.5 rounded-xl border-2 transition-all duration-200 min-w-[80px] ${
+                                  duration === d
+                                    ? 'border-sky-500 bg-sky-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <span className={`text-sm font-semibold ${duration === d ? 'text-sky-700' : 'text-gray-700'}`}>
+                                  {d}d
+                                </span>
+                                {discount && (
+                                  <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-0.5">
+                                    {discount}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Price Summary */}
+                      {price !== null && (
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-600">{boostTypeData.label}</span>
+                            <span className="text-sm font-medium">₦{prices[boostType]?.toFixed(2)}/day</span>
+                          </div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-600">Duration</span>
+                            <span className="text-sm font-medium">{DURATION_LABELS[duration]}</span>
+                          </div>
+                          {canRenew && (
+                            <>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-gray-600">
+                                  {boostStatus === 'active' ? 'Extends by' : 'New duration'}
+                                </span>
+                                <span className="text-sm font-medium">+{DURATION_LABELS[duration]}</span>
+                              </div>
+                            </>
+                          )}
+                          <hr className="border-gray-200 my-2" />
+                          <div className="flex items-center justify-between">
+                            <span className="text-base font-bold text-gray-900">Total</span>
+                            <span className="text-xl font-bold text-sky-600">₦{price.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -264,15 +378,26 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
               >
                 Cancel
               </button>
-              <button
-                onClick={handleBoost}
-                disabled={fetchingPrices || price === null}
-                className="flex-1 px-5 py-3 bg-gradient-to-r from-sky-600 to-sky-700 text-white rounded-xl font-semibold hover:from-sky-700 hover:to-sky-800 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Zap className="w-4 h-4" />
-                <span>Pay ₦{price?.toFixed(2)}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {boostStatus !== 'checking' && (
+                <button
+                  onClick={() => {
+                    setIsRenewal(canRenew);
+                    handleBoost();
+                  }}
+                  disabled={fetchingPrices || price === null}
+                  className={`flex-1 px-5 py-3 text-white rounded-xl font-semibold transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    canRenew
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
+                      : 'bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800'
+                  }`}
+                >
+                  {canRenew ? <RotateCcw className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+                  <span>
+                    {canRenew ? 'Renew ₦' : 'Pay ₦'}{price?.toFixed(2)}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </>
         )}
@@ -282,7 +407,9 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
             <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center mb-4">
               <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Processing your boost</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {isRenewal ? 'Processing your renewal' : 'Processing your boost'}
+            </h3>
             <p className="text-sm text-gray-500 text-center">Redirecting to secure payment...</p>
           </div>
         )}

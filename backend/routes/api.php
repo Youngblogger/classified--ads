@@ -312,6 +312,8 @@ Route::middleware('auth.api')->group(function () {
     Route::put('/ads/{slug}', [AdController::class, 'update']);
     Route::delete('/ads/{slug}', [AdController::class, 'destroy']);
     Route::get('/my-ads', [AdController::class, 'myAds']);
+    Route::post('/ads/{id}/close', [AdController::class, 'closeAd']);
+    Route::post('/ads/{id}/renew', [AdController::class, 'renewAd']);
 
     Route::post('/ads/{adId}/images', [AdImageController::class, 'store']);
     Route::put('/ads/{adId}/images/{imageId}', [AdImageController::class, 'update']);
@@ -320,6 +322,8 @@ Route::middleware('auth.api')->group(function () {
     // Growth & Monetization
     Route::post('/ads/{id}/boost', [GrowthController::class, 'boostAd']);
     Route::get('/ads/{id}/boost-status', [GrowthController::class, 'getBoostStatus']);
+    Route::post('/ads/{id}/boost-renew', [GrowthController::class, 'renewBoost']);
+    Route::get('/ads/{id}/boost-renewal-check', [GrowthController::class, 'checkRenewal']);
     Route::post('/ads/{id}/save', [GrowthController::class, 'saveAd']);
     Route::delete('/ads/{id}/unsave', [GrowthController::class, 'unsaveAd']);
     Route::get('/ads/{id}/saved-check', [GrowthController::class, 'checkSavedStatus']);

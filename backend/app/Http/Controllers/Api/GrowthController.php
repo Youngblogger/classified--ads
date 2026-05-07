@@ -93,6 +93,77 @@ class GrowthController extends Controller
         ]);
     }
 
+    public function renewBoost(Request $request, int $id, BoostAdService $boostService)
+    {
+        $user = $request->user();
+
+        $key = 'boost-renewal-attempts:' . $user->id;
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Too many renewal attempts. Please try again in ' . RateLimiter::availableIn($key) . ' seconds.',
+            ], 429);
+        }
+        RateLimiter::hit($key, 3600);
+
+        $validated = $request->validate([
+            'boost_type' => 'required|in:top,featured,highlight',
+            'duration_days' => 'required|integer|in:1,3,7,14,30',
+        ]);
+
+        $result = $boostService->renewBoost(
+            $id,
+            $user->id,
+            $validated['boost_type'],
+            $validated['duration_days']
+        );
+
+        if (!$result['success']) {
+            $status = match ($result['code'] ?? '') {
+                'ad_not_found' => 404,
+                'ad_not_active' => 422,
+                default => 400,
+            };
+
+            return response()->json([
+                'success' => false,
+                'error' => $result['error'],
+            ], $status);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'payment_intent' => $result['payment_intent']->reference,
+                'authorization_url' => $result['authorization_url'] ?? null,
+                'access_code' => $result['access_code'] ?? null,
+                'amount' => $result['price'],
+                'boost_type' => $result['boost_type'],
+                'duration_days' => $result['duration_days'],
+                'is_renewal' => true,
+            ],
+        ]);
+    }
+
+    public function checkRenewal(Request $request, int $id, BoostAdService $boostService)
+    {
+        $result = $boostService->canRenewBoost($id, $request->user()->id);
+
+        if (!$result['can_renew']) {
+            return response()->json([
+                'success' => false,
+                'can_renew' => false,
+                'reason' => $result['reason'],
+            ], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'can_renew' => true,
+            'data' => $result,
+        ]);
+    }
+
     public function getShareLink(int $id, ShareService $shareService)
     {
         $ad = Ad::where('id', $id)->where('status', 'active')->first();

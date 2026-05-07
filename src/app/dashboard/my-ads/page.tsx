@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ImageIcon, MapPin, Star, X } from 'lucide-react';
+import { ImageIcon, MapPin, Star, X, Ban, RefreshCw } from 'lucide-react';
 import { adsApi } from '@/lib/api';
 import { getAdImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import BoostAdModal from '@/components/ui/BoostAdModal';
+import { getAuthToken } from '@/lib/cookies';
 
 const EditIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -53,13 +54,26 @@ const ZapIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const BanIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728A9 9 0 015.636 5.636" />
+  </svg>
+);
 
-type StatusFilter = 'all' | 'active' | 'pending' | 'sold';
+const RefreshCwIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+);
+
+
+type StatusFilter = 'all' | 'active' | 'pending' | 'sold' | 'expired';
 
 const statusConfig = {
   active: { label: 'Active', class: 'bg-green-100 text-green-800' },
   pending: { label: 'Pending', class: 'bg-yellow-100 text-yellow-800' },
-  sold: { label: 'Sold', class: 'bg-gray-100 text-gray-800' },
+  sold: { label: 'Closed', class: 'bg-gray-100 text-gray-800' },
+  expired: { label: 'Expired', class: 'bg-red-100 text-red-800' },
 };
 
 const formatPrice = (price: number | string): string => {
@@ -94,6 +108,18 @@ export default function MyAdsPage() {
     adId: null,
     adTitle: null
   });
+  const [closeModal, setCloseModal] = useState<{ show: boolean; adId: number | null; adTitle: string | null }>({
+    show: false,
+    adId: null,
+    adTitle: null
+  });
+  const [closing, setClosing] = useState(false);
+  const [renewModal, setRenewModal] = useState<{ show: boolean; adId: number | null; adTitle: string | null }>({
+    show: false,
+    adId: null,
+    adTitle: null
+  });
+  const [renewing, setRenewing] = useState(false);
 
   useEffect(() => {
     fetchAds();
@@ -154,6 +180,66 @@ export default function MyAdsPage() {
     setBoostModal({ show: true, adId, adTitle });
   };
 
+  const handleCloseClick = (adId: number, adTitle: string) => {
+    setCloseModal({ show: true, adId, adTitle });
+  };
+
+  const confirmClose = async () => {
+    if (!closeModal.adId) return;
+    setClosing(true);
+    const previousAds = [...ads];
+    setAds(prev => prev.filter(ad => ad.id !== closeModal.adId));
+    setCloseModal({ show: false, adId: null, adTitle: null });
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/ads/${closeModal.adId}/close`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      if (!response.ok) throw new Error('Failed to close ad');
+      toast.success('Ad closed successfully');
+      fetchAds();
+    } catch {
+      setAds(previousAds);
+      toast.error('Failed to close ad');
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  const handleRenewClick = (adId: number, adTitle: string) => {
+    setRenewModal({ show: true, adId, adTitle });
+  };
+
+  const confirmRenew = async () => {
+    if (!renewModal.adId) return;
+    setRenewing(true);
+    const previousAds = [...ads];
+    setAds(prev => prev.filter(ad => ad.id !== renewModal.adId));
+    setRenewModal({ show: false, adId: null, adTitle: null });
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/ads/${renewModal.adId}/renew`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      if (!response.ok) throw new Error('Failed to renew ad');
+      toast.success('Ad submitted for re-approval');
+      fetchAds();
+    } catch {
+      setAds(previousAds);
+      toast.error('Failed to renew ad');
+    } finally {
+      setRenewing(false);
+    }
+  };
+
   const getStatusCount = (status: StatusFilter) => {
     if (status === 'all') return ads.length;
     return ads.filter(ad => ad.status === status).length;
@@ -186,7 +272,7 @@ export default function MyAdsPage() {
 
           {/* Status Filter Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0">
-            {(['all', 'active', 'pending', 'sold'] as StatusFilter[]).map((status) => (
+            {(['all', 'active', 'pending', 'sold', 'expired'] as StatusFilter[]).map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -293,26 +379,57 @@ export default function MyAdsPage() {
                     <EyeIcon className="w-4 h-4" />
                     <span>Preview</span>
                   </Link>
-                  <Link
-                    href={`/ad/edit/${ad.id}`}
-                    className="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    <EditIcon className="w-4 h-4" />
-                    <span>Edit</span>
-                  </Link>
-                  <button 
+                  {(ad.status === 'active' || ad.status === 'pending') && (
+                    <Link
+                      href={`/ad/edit/${ad.id}`}
+                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      <EditIcon className="w-4 h-4" />
+                      <span>Edit</span>
+                    </Link>
+                  )}
+                  {(ad.status === 'active' || ad.status === 'pending') && (
+                    <button
+                      onClick={() => handlePromote(ad.id, ad.title)}
+                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
+                    >
+                      <ZapIcon className="w-4 h-4" />
+                      <span>Boost</span>
+                    </button>
+                  )}
+                  {(ad.status === 'active' || ad.status === 'pending') && (
+                    <button
+                      onClick={() => handleCloseClick(ad.id, ad.title)}
+                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      <BanIcon className="w-4 h-4" />
+                      <span>Close</span>
+                    </button>
+                  )}
+                  {(ad.status === 'sold' || ad.status === 'expired') && (
+                    <button
+                      onClick={() => handleRenewClick(ad.id, ad.title)}
+                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-sm"
+                    >
+                      <RefreshCwIcon className="w-4 h-4" />
+                      <span>Renew</span>
+                    </button>
+                  )}
+                  {(ad.status === 'sold' || ad.status === 'expired') && (
+                    <Link
+                      href={`/ad/edit/${ad.id}`}
+                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      <EditIcon className="w-4 h-4" />
+                      <span>Edit</span>
+                    </Link>
+                  )}
+                  <button
                     onClick={() => handleDeleteClick(ad.id, ad.slug, ad.title)}
                     className="flex items-center justify-center gap-1 px-2 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
                   >
                     <TrashIcon className="w-4 h-4" />
                     <span>Delete</span>
-                  </button>
-                  <button
-                    onClick={() => handlePromote(ad.id, ad.title)}
-                    className="flex items-center justify-center gap-1 px-2 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
-                  >
-                    <ZapIcon className="w-4 h-4" />
-                    <span>Boost</span>
                   </button>
                 </div>
               </div>
@@ -368,6 +485,82 @@ export default function MyAdsPage() {
                 className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Close Confirmation Modal */}
+      {closeModal.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Close Ad</h3>
+              <button 
+                onClick={() => setCloseModal({ show: false, adId: null, adTitle: null })}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Are you sure you want to close <span className="font-semibold">&quot;{closeModal.adTitle}&quot;</span>?
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              The ad will be marked as sold and any active boost will expire. You can renew it later.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCloseModal({ show: false, adId: null, adTitle: null })}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmClose}
+                disabled={closing}
+                className="flex-1 px-4 py-2.5 bg-gray-700 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {closing ? 'Closing...' : 'Close Ad'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Renew Confirmation Modal */}
+      {renewModal.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Renew Ad</h3>
+              <button 
+                onClick={() => setRenewModal({ show: false, adId: null, adTitle: null })}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Reactivate <span className="font-semibold">&quot;{renewModal.adTitle}&quot;</span>?
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              The ad will be submitted for re-approval. Once approved, it will be visible again.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setRenewModal({ show: false, adId: null, adTitle: null })}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRenew}
+                disabled={renewing}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all disabled:opacity-50"
+              >
+                {renewing ? 'Renewing...' : 'Renew Ad'}
               </button>
             </div>
           </div>

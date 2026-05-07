@@ -49,12 +49,19 @@ class AdController extends Controller
             }
 
             try {
-                $boostedAdIds = BoostedAd::active()
-                    ->pluck('ad_id')
+                $boostedAds = BoostedAd::active()
+                    ->get()
+                    ->pluck('boost_type', 'ad_id')
                     ->toArray();
             } catch (\Exception $e) {
-                $boostedAdIds = [];
+                $boostedAds = [];
             }
+
+            $boostPriorities = [
+                'top' => 3000,
+                'featured' => 2000,
+                'highlight' => 1000,
+            ];
 
             $query->orderByRaw('is_featured DESC')
                 ->orderBy('created_at', 'desc')
@@ -68,10 +75,13 @@ class AdController extends Controller
                 ->limit($limit)
                 ->get();
 
-            if (!empty($boostedAdIds)) {
-                $boostedSet = array_flip($boostedAdIds);
-                $allAds = $allAds->sortByDesc(function ($ad) use ($boostedSet) {
-                    return isset($boostedSet[$ad->id]) ? 1 : 0;
+            if (!empty($boostedAds)) {
+                $allAds = $allAds->sortByDesc(function ($ad) use ($boostedAds, $boostPriorities) {
+                    if (!isset($boostedAds[$ad->id])) {
+                        return 0;
+                    }
+
+                    return $boostPriorities[$boostedAds[$ad->id]] ?? 0;
                 })->values();
             }
 
@@ -771,5 +781,62 @@ class AdController extends Controller
             Log::error('Failed to fetch similar ads: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load similar ads', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function closeAd(Request $request, int $id)
+    {
+        $user = $request->user();
+
+        $ad = Ad::where('id', $id)->where('user_id', $user->id)->first();
+
+        if (!$ad) {
+            return response()->json(['error' => 'Ad not found or unauthorized'], 404);
+        }
+
+        if (!in_array($ad->status, ['active', 'pending'])) {
+            return response()->json([
+                'error' => 'Ad cannot be closed',
+                'current_status' => $ad->status,
+            ], 400);
+        }
+
+        $ad->update(['status' => 'sold']);
+
+        $activeBoost = $ad->activeBoost;
+        if ($activeBoost) {
+            $activeBoost->update(['status' => 'expired']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ad closed successfully',
+            'data' => ['status' => 'sold'],
+        ]);
+    }
+
+    public function renewAd(Request $request, int $id)
+    {
+        $user = $request->user();
+
+        $ad = Ad::where('id', $id)->where('user_id', $user->id)->first();
+
+        if (!$ad) {
+            return response()->json(['error' => 'Ad not found or unauthorized'], 404);
+        }
+
+        if (!in_array($ad->status, ['expired', 'sold'])) {
+            return response()->json([
+                'error' => 'Ad is already active',
+                'current_status' => $ad->status,
+            ], 400);
+        }
+
+        $ad->update(['status' => 'pending']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ad submitted for re-approval',
+            'data' => ['status' => 'pending'],
+        ]);
     }
 }

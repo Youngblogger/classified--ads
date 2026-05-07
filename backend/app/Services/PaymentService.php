@@ -6,6 +6,7 @@ use App\Models\PaymentIntent;
 use App\Models\PaymentLog;
 use App\Models\BoostedAd;
 use App\Events\AdBoosted;
+use App\Events\BoostRenewed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -374,6 +375,7 @@ class PaymentService
         $metadata = $paymentIntent->metadata ?? [];
         $boostType = $metadata['boost_type'] ?? 'top';
         $durationDays = $metadata['duration_days'] ?? 7;
+        $action = $metadata['action'] ?? 'new_boost';
 
         if (!in_array($boostType, ['top', 'featured', 'highlight'])) {
             $this->logPaymentEvent(
@@ -407,10 +409,48 @@ class PaymentService
             ];
         }
 
+        $ad = \App\Models\Ad::where('id', $paymentIntent->ad_id)
+            ->where('user_id', $paymentIntent->user_id)
+            ->first();
+
+        if (!$ad) {
+            $this->logPaymentEvent(
+                $paymentIntent->id,
+                $paymentIntent->reference,
+                'boost_activation',
+                'failed',
+                [],
+                'Ad not found or ownership mismatch'
+            );
+
+            return [
+                'success' => false,
+                'error' => 'Ad not found or unauthorized',
+            ];
+        }
+
+        if ($ad->status !== 'active') {
+            $this->logPaymentEvent(
+                $paymentIntent->id,
+                $paymentIntent->reference,
+                'boost_activation',
+                'rejected',
+                ['ad_status' => $ad->status],
+                'Cannot boost inactive ad'
+            );
+
+            return [
+                'success' => false,
+                'error' => 'Ad is not active',
+            ];
+        }
+
         $existingBoost = BoostedAd::where('ad_id', $paymentIntent->ad_id)
             ->active()
             ->where('boost_type', $boostType)
             ->first();
+
+        $wasExpired = false;
 
         if ($existingBoost) {
             $endTime = $existingBoost->end_time->addDays($durationDays);
@@ -420,18 +460,39 @@ class PaymentService
             ]);
             $boost = $existingBoost->fresh();
         } else {
-            $boost = BoostedAd::create([
-                'ad_id' => $paymentIntent->ad_id,
-                'user_id' => $paymentIntent->user_id,
-                'boost_type' => $boostType,
-                'start_time' => now(),
-                'end_time' => now()->addDays($durationDays),
-                'status' => 'active',
-                'payment_reference' => $paymentIntent->reference,
-            ]);
+            $recentExpired = BoostedAd::where('ad_id', $paymentIntent->ad_id)
+                ->where('boost_type', $boostType)
+                ->where('status', 'expired')
+                ->latest('end_time')
+                ->first();
+
+            if ($recentExpired && $action === 'renew_boost') {
+                $recentExpired->update([
+                    'status' => 'active',
+                    'start_time' => now(),
+                    'end_time' => now()->addDays($durationDays),
+                    'payment_reference' => $paymentIntent->reference,
+                ]);
+                $boost = $recentExpired->fresh();
+                $wasExpired = true;
+            } else {
+                $boost = BoostedAd::create([
+                    'ad_id' => $paymentIntent->ad_id,
+                    'user_id' => $paymentIntent->user_id,
+                    'boost_type' => $boostType,
+                    'start_time' => now(),
+                    'end_time' => now()->addDays($durationDays),
+                    'status' => 'active',
+                    'payment_reference' => $paymentIntent->reference,
+                ]);
+            }
         }
 
-        event(new AdBoosted($boost));
+        if ($wasExpired) {
+            event(new BoostRenewed($boost, true));
+        } else {
+            event(new AdBoosted($boost));
+        }
 
         $this->logPaymentEvent(
             $paymentIntent->id,
@@ -442,6 +503,8 @@ class PaymentService
                 'ad_id' => $paymentIntent->ad_id,
                 'boost_id' => $boost->id,
                 'boost_type' => $boostType,
+                'action' => $action,
+                'was_renewed' => $wasExpired,
             ],
             null
         );
@@ -450,11 +513,14 @@ class PaymentService
             'ad_id' => $paymentIntent->ad_id,
             'boost_id' => $boost->id,
             'boost_type' => $boostType,
+            'action' => $action,
+            'was_renewed' => $wasExpired,
         ]);
 
         return [
             'success' => true,
             'boost' => $boost,
+            'was_renewed' => $wasExpired,
         ];
     }
 
