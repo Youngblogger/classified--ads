@@ -108,6 +108,10 @@ module.exports = {
         'scale-in': 'scaleIn 0.2s ease-out',
         'slide-in-right': 'slideInRight 0.3s ease-out',
         'bounce-seq': 'bounceSeq 0.6s ease-in-out infinite',
+        'premium-pulse': 'premiumPulse 3s ease-in-out infinite',
+        'premium-glow': 'premiumGlow 2s ease-in-out infinite',
+        'premium-shimmer': 'premiumShimmer 3s ease-in-out infinite',
+        'premium-sparkle': 'premiumSparkle 2s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -134,6 +138,22 @@ module.exports = {
           '0%, 100%': { transform: 'translateY(0)' },
           '30%': { transform: 'translateY(-8px)' },
           '60%': { transform: 'translateY(0)' },
+        },
+        premiumPulse: {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.02)', opacity: '0.95' },
+        },
+        premiumGlow: {
+          '0%, 100%': { boxShadow: '0 0 8px 2px rgba(251, 191, 36, 0.3)' },
+          '50%': { boxShadow: '0 0 16px 4px rgba(251, 191, 36, 0.5)' },
+        },
+        premiumShimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        premiumSparkle: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.8', transform: 'scale(0.98)' },
         },
       },
     },

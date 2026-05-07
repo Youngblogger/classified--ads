@@ -10,6 +10,8 @@ import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { formatPrice, formatRelativeTime, FALLBACK_IMAGE } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
+import PremiumBadge from '@/components/ui/PremiumBadge';
+import BoostedAdsCarousel from '@/components/ui/BoostedAdsCarousel';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
 const BACKEND_URL = API_URL.replace('/api', '');
@@ -200,6 +202,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
         )}
         
         {getConditionBadge()}
+        <PremiumBadge boostType={ad.boost_type} size="sm" />
         
         <button 
           onClick={handleFavoriteClick}
@@ -506,6 +509,9 @@ export default function HomePage() {
         </section>
 
 
+
+        {/* Boosted Ads Carousel */}
+        <BoostedAdsCarousel />
 
         {/* Latest Ads - jiji.ng style */}
         <section className="py-4 bg-white">

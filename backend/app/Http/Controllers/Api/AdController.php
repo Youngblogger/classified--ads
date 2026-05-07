@@ -107,6 +107,14 @@ class AdController extends Controller
                 $boost = $ad->activeBoost;
                 $data['is_boosted'] = $boost !== null;
                 $data['boost_type'] = $boost?->boost_type;
+                $data['boost_end_time'] = $boost?->end_time;
+
+                $boostPriorities = [
+                    'top' => 3000,
+                    'featured' => 2000,
+                    'highlight' => 1000,
+                ];
+                $data['boost_priority_score'] = $boost ? ($boostPriorities[$boost->boost_type] ?? 0) : 0;
 
                 $freshnessHours = now()->diffInHours($ad->created_at);
                 $data['freshness_score'] = max(0, 100 - ($freshnessHours / 24));
@@ -197,6 +205,14 @@ class AdController extends Controller
             $boost = $ad->activeBoost;
             $response['is_boosted'] = $boost !== null;
             $response['boost_type'] = $boost?->boost_type;
+            $response['boost_end_time'] = $boost?->end_time;
+
+            $boostPriorities = [
+                'top' => 3000,
+                'featured' => 2000,
+                'highlight' => 1000,
+            ];
+            $response['boost_priority_score'] = $boost ? ($boostPriorities[$boost->boost_type] ?? 0) : 0;
 
             if ($userId) {
                 $savedAdService = new \App\Services\SavedAdService();
@@ -847,6 +863,14 @@ class AdController extends Controller
                 $boost = $ad->activeBoost;
                 $data['is_boosted'] = $boost !== null;
                 $data['boost_type'] = $boost?->boost_type;
+                $data['boost_end_time'] = $boost?->end_time;
+
+                $boostPriorities = [
+                    'top' => 3000,
+                    'featured' => 2000,
+                    'highlight' => 1000,
+                ];
+                $data['boost_priority_score'] = $boost ? ($boostPriorities[$boost->boost_type] ?? 0) : 0;
 
                 return $data;
             });

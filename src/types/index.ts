@@ -80,6 +80,10 @@ export interface Ad {
   sellerPhone?: string;
   featured?: boolean;
   is_featured?: boolean;
+  is_boosted?: boolean;
+  boost_type?: 'top' | 'featured' | 'highlight' | null;
+  boost_end_time?: string | null;
+  boost_priority_score?: number;
 }
 
 export interface AdImage {

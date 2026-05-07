@@ -6,6 +6,7 @@ import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
 import { formatPrice, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
 import { useState, memo, useCallback } from 'react';
+import PremiumBadge from './PremiumBadge';
 
 interface AdCardProps {
   ad: Ad;
@@ -128,6 +129,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             />
           )}
           {getConditionBadge()}
+          <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
         </div>
         <div className="flex-1 p-4">
           {categoryName && (
@@ -174,6 +176,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             />
           )}
           {getConditionBadge()}
+          <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
         </div>
         <div className="p-3">
           {categoryName && (
@@ -220,6 +223,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             priority={priority}
           />
         )}
+        {getConditionBadge()}
+        <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
       </div>
       <div className="p-4">
         {categoryName && (
