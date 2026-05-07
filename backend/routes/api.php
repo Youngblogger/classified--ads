@@ -24,7 +24,6 @@ use App\Http\Controllers\Api\WatermarkController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\PaymentVerificationController;
-use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\SocialPostController;
@@ -393,13 +392,6 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/wallet/verify', [WalletController::class, 'verify']);
     Route::post('/wallet/check-balance', [WalletController::class, 'checkBalance']);
     Route::post('/wallet/bank-transfer-proof', [WalletController::class, 'bankTransferProof']);
-
-    // Promotions
-    Route::get('/promotions/plans', [PromotionController::class, 'plans']);
-    Route::post('/promotions/buy', [PromotionController::class, 'buy']);
-    Route::get('/promotions/my-promotions', [PromotionController::class, 'myPromotions']);
-    Route::get('/promotions/ad/{adId}', [PromotionController::class, 'adPromotions']);
-    Route::post('/promotions/{id}/cancel', [PromotionController::class, 'cancelPromotion']);
 
     // Referral System
     Route::get('/referral/my-code', [ReferralController::class, 'myCode']);

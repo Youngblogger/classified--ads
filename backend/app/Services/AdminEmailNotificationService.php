@@ -179,20 +179,6 @@ class AdminEmailNotificationService
         return self::send($subject, 'Payment Received', $message, ['payment_id' => $payment->id]);
     }
 
-    public static function promotionActivated($promotion)
-    {
-        $subject = "Promotion Activated: {$promotion->plan->name}";
-        $message = "A promotion has been activated.\n\n" .
-                   "User: {$promotion->user->name} ({$promotion->user->email})\n" .
-                   "Plan: {$promotion->plan->name}\n" .
-                   "Amount Paid: ₦" . number_format($promotion->amount, 2) . "\n" .
-                   "Duration: {$promotion->duration} days\n" .
-                   "Date: {$promotion->created_at->format('Y-m-d H:i:s')}\n\n" .
-                   "View in admin panel: " . url("/admin/promotions");
-        
-        return self::send($subject, 'Promotion Activated', $message, ['promotion_id' => $promotion->id]);
-    }
-
     public static function bulkUserRegistration($count, $timeframe)
     {
         $subject = "Bulk User Registration Alert";

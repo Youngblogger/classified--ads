@@ -92,25 +92,6 @@ class NotificationService
             ]);
     }
 
-    // Promotion Notifications
-    public static function promotionActivated($promotion)
-    {
-        return self::send($promotion->user_id ?? $promotion->ad->user_id, 'promotion_activated', 'Promotion Activated! 🚀', 
-            "Your promotion '{$promotion->plan->name}' has been activated!", [
-                'promotion_id' => $promotion->id,
-                'plan_name' => $promotion->plan->name ?? 'Premium'
-            ]);
-    }
-
-    public static function promotionExpired($promotion)
-    {
-        return self::send($promotion->user_id ?? $promotion->ad->user_id, 'promotion_expired', 'Promotion Expired', 
-            "Your promotion on '{$promotion->ad->title}' has expired. Renew to keep your ad featured!", [
-                'promotion_id' => $promotion->id,
-                'ad_id' => $promotion->ad_id
-            ]);
-    }
-
     // User Notifications
     public static function accountVerified($user)
     {
