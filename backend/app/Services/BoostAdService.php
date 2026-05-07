@@ -167,6 +167,23 @@ class BoostAdService
             ];
         }
 
+        // Verify ownership: ensure the ad belongs to the payment intent's user
+        $ad = \App\Models\Ad::where('id', $paymentIntent->ad_id)
+            ->where('user_id', $paymentIntent->user_id)
+            ->first();
+
+        if (!$ad) {
+            Log::warning('Boost activation attempted for ad not owned by payment user', [
+                'payment_reference' => $paymentReference,
+                'ad_id' => $paymentIntent->ad_id,
+                'payment_user_id' => $paymentIntent->user_id,
+            ]);
+            return [
+                'success' => false,
+                'error' => 'Ad not found or unauthorized',
+            ];
+        }
+
         $existingBoost = BoostedAd::where('ad_id', $paymentIntent->ad_id)
             ->active()
             ->where('boost_type', $paymentIntent->metadata['boost_type'])

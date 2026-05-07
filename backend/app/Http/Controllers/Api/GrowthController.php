@@ -11,11 +11,24 @@ use App\Services\RecentlyViewedService;
 use App\Services\ShareService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class GrowthController extends Controller
 {
     public function boostAd(Request $request, int $id, BoostAdService $boostService, PaymentService $paymentService)
     {
+        $user = $request->user();
+
+        // Rate limit: max 5 boost attempts per hour per user
+        $key = 'boost-attempts:' . $user->id;
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Too many boost attempts. Please try again in ' . RateLimiter::availableIn($key) . ' seconds.',
+            ], 429);
+        }
+        RateLimiter::hit($key, 3600);
+
         $validated = $request->validate([
             'boost_type' => 'required|in:top,featured,highlight',
             'duration_days' => 'required|integer|in:1,3,7,14,30',

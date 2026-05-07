@@ -9,105 +9,125 @@ export function getApiBaseUrl(): string {
 }
 
 class ApiClient {
-  private client: AxiosInstance;
+    private client: AxiosInstance;
+    private csrfFetched: boolean = false;
 
-  constructor() {
-    this.client = axios.create({
-      baseURL: API_BASE_URL,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      timeout: 30000,
-      withCredentials: true,
-    });
+    constructor() {
+      this.client = axios.create({
+        baseURL: API_BASE_URL,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+        withCredentials: true,
+      });
 
-    this.client.interceptors.request.use((config) => {
-      // Try multiple ways to get the token
-      let token = getAuthToken();
-      
-      if (!token) {
-        // Try direct cookie access
-        token = getCookie('token');
-      }
-      
-      // Last resort: check localStorage directly
-      if (!token && typeof window !== 'undefined') {
-        token = localStorage.getItem('authToken');
-        if (token) {
-          console.log('Token found from localStorage direct');
+      // Fetch CSRF cookie on initialization for Sanctum SPA auth
+      this.fetchCsrfToken();
+
+      // Setup request interceptor
+      this.client.interceptors.request.use((config) => {
+        // Try multiple ways to get the token
+        let token = getAuthToken();
+        
+        if (!token) {
+          // Try direct cookie access
+          token = getCookie('token');
         }
-      }
-      
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log('Setting Authorization header:', token.substring(0, 20) + '...');
-      } else {
-        console.log('No token found for request');
-      }
-      
-      // Only prevent caching for authenticated POST/PUT/PATCH/DELETE requests
-      if (token && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
-        config.headers['Cache-Control'] = 'no-cache';
-      }
-      return config;
-    });
-
-    this.client.interceptors.response.use(
-      (response) => response,
-      async (error: AxiosError) => {
-        const axiosError = error as AxiosError<{ message?: string; success?: boolean; errors?: any }>;
         
-        console.error('[API Error]', {
-          url: axiosError.config?.url,
-          method: axiosError.config?.method,
-          status: axiosError.response?.status,
-          data: axiosError.response?.data,
-          message: axiosError.message,
-          code: axiosError.code,
-        });
-        
-        if (axiosError.response?.status === 401) {
-          const url = axiosError.config?.url || '';
-          
-          const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
-          const isAdminEndpoint = url.includes('/admin/') || url.includes('/secure-control-9ja/');
-          
-          if (!isAuthEndpoint && !isAdminEndpoint) {
-            // Don't delete token immediately - check if it's expired
-            // Removed auto-show login modal on 401 to prevent it from showing on homepage visit
-            // User must explicitly click login button or navigate to protected routes
-          } else if (isAdminEndpoint && !isAuthEndpoint) {
-            deleteCookie('token');
-            
-            if (typeof window !== 'undefined') {
-              const isAlreadyRedirecting = (window as any).__adminAuthRedirecting;
-              
-              if (!isAlreadyRedirecting) {
-                (window as any).__adminAuthRedirecting = true;
-                
-                setTimeout(() => {
-                  window.location.href = '/session-expired?admin=true';
-                }, 500);
-              }
-            }
+        // Last resort: check localStorage directly
+        if (!token && typeof window !== 'undefined') {
+          token = localStorage.getItem('authToken');
+          if (token) {
+            console.log('Token found from localStorage direct');
           }
         }
         
-        if (axiosError.code === 'ECONNABORTED') {
-          console.error('[API] Request timeout');
-          toast.error('Request timed out. Please try again.');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+          console.log('Setting Authorization header:', token.substring(0, 20) + '...');
+        } else {
+          console.log('No token found for request');
         }
         
-        if (axiosError.code === 'ERR_NETWORK' || axiosError.message === 'Network Error') {
-          console.error('[API] Network error - backend may not be running');
-          toast.error('Cannot connect to server. Please ensure the backend is running.');
+        // Only prevent caching for authenticated POST/PUT/PATCH/DELETE requests
+        if (token && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+          config.headers['Cache-Control'] = 'no-cache';
         }
-        
-        return Promise.reject(error);
+        return config;
+      });
+
+      // Setup response interceptor
+      this.client.interceptors.response.use(
+        (response) => response,
+        async (error: AxiosError) => {
+          const axiosError = error as AxiosError<{ message?: string; success?: boolean; errors?: any }>;
+          
+          console.error('[API Error]', {
+            url: axiosError.config?.url,
+            method: axiosError.config?.method,
+            status: axiosError.response?.status,
+            data: axiosError.response?.data,
+            message: axiosError.message,
+            code: axiosError.code,
+          });
+          
+          if (axiosError.response?.status === 401) {
+            const url = axiosError.config?.url || '';
+            
+            const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
+            const isAdminEndpoint = url.includes('/admin/') || url.includes('/secure-control-9ja/');
+            
+            if (!isAuthEndpoint && !isAdminEndpoint) {
+              // Don't delete token immediately - check if it's expired
+              // Removed auto-show login modal on 401 to prevent it from showing on homepage visit
+              // User must explicitly click login button or navigate to protected routes
+            } else if (isAdminEndpoint && !isAuthEndpoint) {
+              deleteCookie('token');
+              
+              if (typeof window !== 'undefined') {
+                const isAlreadyRedirecting = (window as any).__adminAuthRedirecting;
+                  
+                if (!isAlreadyRedirecting) {
+                  (window as any).__adminAuthRedirecting = true;
+                  
+                  setTimeout(() => {
+                    window.location.href = '/session-expired?admin=true';
+                  }, 500);
+                }
+              }
+            }
+          }
+          
+          if (axiosError.code === 'ECONNABORTED') {
+            console.error('[API] Request timeout');
+            toast.error('Request timed out. Please try again.');
+          }
+          
+          if (axiosError.code === 'ERR_NETWORK' || axiosError.message === 'Network Error') {
+            console.error('[API] Network error - backend may not be running');
+            toast.error('Cannot connect to server. Please ensure the backend is running.');
+          }
+          
+          return Promise.reject(error);
+        }
+      );
+    }
+
+    private async fetchCsrfToken(): Promise<void> {
+      if (this.csrfFetched) return;
+      
+      try {
+        await axios.get(`${API_BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
+          withCredentials: true,
+        });
+        this.csrfFetched = true;
+        console.log('[API] CSRF token fetched successfully');
+      } catch (error) {
+        console.warn('[API] Failed to fetch CSRF token:', error);
       }
-    );
-  }
+    }
 
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     return this.client.get<T>(url, config);

@@ -26,11 +26,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.ip' => \App\Http\Middleware\AdminIpRestriction::class,
             'sanitize' => \App\Http\Middleware\SanitizeInput::class,
             'throttle.uploads' => \App\Http\Middleware\ThrottleUploads::class,
+            'sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
         
-        // Apply sanitization middleware to API routes
+        // Apply Sanctum middleware for SPA authentication
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \App\Http\Middleware\SanitizeInput::class,
         ]);
     })

@@ -96,6 +96,9 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
     setStep('processing');
     setLoading(true);
 
+    // Get CSRF token from meta tag if available
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
     try {
       const response = await fetch(`${API_URL}/ads/${adId}/boost`, {
         method: 'POST',
@@ -103,6 +106,7 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
         },
         body: JSON.stringify({
           boost_type: boostType,
