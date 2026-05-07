@@ -33,6 +33,8 @@ use App\Http\Middleware\AdminRateLimiter;
 use App\Http\Middleware\SecureAdminAuth;
 use App\Http\Controllers\Api\CloudinaryController;
 use App\Http\Controllers\Api\AdModerationController;
+use App\Http\Controllers\Api\GrowthController;
+use App\Http\Controllers\Api\AdminAnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 // Public auth routes
@@ -177,6 +179,21 @@ Route::prefix('secure-control-9ja')->middleware([\App\Http\Middleware\SecureAdmi
     Route::post('/social/settings', [SocialSettingsController::class, 'store']);
     Route::post('/social/settings/test', [SocialSettingsController::class, 'test']);
     Route::delete('/social/settings/{platform}', [SocialSettingsController::class, 'destroy']);
+
+    // Payments Management
+    Route::get('/payments', [AdminController::class, 'payments']);
+    Route::get('/payments/summary', [AdminController::class, 'paymentSummary']);
+
+    // Boost Management
+    Route::get('/boosts', [AdminController::class, 'boosts']);
+    Route::get('/boosts/active-ads', [AdminController::class, 'adsWithBoosts']);
+    Route::post('/boosts/{id}/deactivate', [AdminController::class, 'deactivateBoost']);
+    Route::post('/boosts/{id}/extend', [AdminController::class, 'extendBoost']);
+
+    // Analytics
+    Route::get('/analytics/summary', [AdminAnalyticsController::class, 'summary']);
+    Route::get('/analytics/trends', [AdminAnalyticsController::class, 'trends']);
+    Route::get('/analytics/revenue', [AdminAnalyticsController::class, 'revenueBreakdown']);
 });
 
 // =====================================================
@@ -263,6 +280,9 @@ Route::prefix('ads')->group(function () {
     Route::get('/recent', [AdController::class, 'recent']);
     Route::get('/similar', [AdController::class, 'similarAds']);
     Route::get('/{slug}', [AdController::class, 'show'])->where('slug', '^(?=.*[a-z])[a-z0-9\-]+$');
+
+    Route::get('/{id}/share-link', [GrowthController::class, 'getShareLink']);
+    Route::get('/boost-prices', [GrowthController::class, 'getBoostPrices']);
 });
 
 // Public seller reviews endpoints (read-only)
@@ -296,6 +316,16 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/ads/{adId}/images', [AdImageController::class, 'store']);
     Route::put('/ads/{adId}/images/{imageId}', [AdImageController::class, 'update']);
     Route::delete('/ads/{adId}/images/{imageId}', [AdImageController::class, 'destroy']);
+
+    // Growth & Monetization
+    Route::post('/ads/{id}/boost', [GrowthController::class, 'boostAd']);
+    Route::get('/ads/{id}/boost-status', [GrowthController::class, 'getBoostStatus']);
+    Route::post('/ads/{id}/save', [GrowthController::class, 'saveAd']);
+    Route::delete('/ads/{id}/unsave', [GrowthController::class, 'unsaveAd']);
+    Route::get('/ads/{id}/saved-check', [GrowthController::class, 'checkSavedStatus']);
+    Route::get('/user/saved-ads', [GrowthController::class, 'getSavedAds']);
+    Route::get('/user/recently-viewed', [GrowthController::class, 'getRecentlyViewed']);
+    Route::delete('/user/recently-viewed', [GrowthController::class, 'clearRecentlyViewed']);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
@@ -390,6 +420,11 @@ Route::middleware('auth.api')->group(function () {
 
 // Webhook routes (no auth required)
 Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'handlePaystackWebhook']);
+
+// Payment callback (redirect from Paystack)
+Route::get('/payments/callback', function () {
+    return response()->json(['message' => 'Payment processed. Check your dashboard.']);
+})->name('payments.callback');
 
 Route::get('/test', function () {
     return response()->json(['success' => true, 'message' => 'API is working!']);

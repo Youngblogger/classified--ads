@@ -356,11 +356,17 @@ const STEALTH_PREFIX = '/secure-control-9ja';
 export const adminApi = {
   // Dashboard
   getDashboard: () => api.get(`${STEALTH_PREFIX}/dashboard`),
-  getPaymentStats: () => Promise.resolve({ data: {} }),
-  getPayments: (params?: Record<string, any>) => Promise.resolve({ data: { data: [] } }),
-  getFinancialSummary: () => Promise.resolve({ data: { summary: null } }),
-  approvePayment: () => Promise.resolve({ data: { success: true } }),
-  rejectPayment: () => Promise.resolve({ data: { success: true } }),
+  getPaymentStats: () => api.get(`${STEALTH_PREFIX}/payments/stats`),
+  getPayments: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/payments`, { params }),
+  getFinancialSummary: () => api.get(`${STEALTH_PREFIX}/payments/summary`),
+  approvePayment: (id: number) => api.post(`${STEALTH_PREFIX}/payments/${id}/approve`),
+  rejectPayment: (id: number) => api.post(`${STEALTH_PREFIX}/payments/${id}/reject`),
+
+  // Boosts
+  getBoosts: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/boosts`, { params }),
+  getBoostActiveAds: () => api.get(`${STEALTH_PREFIX}/boosts/active-ads`),
+  deactivateBoost: (id: number) => api.post(`${STEALTH_PREFIX}/boosts/${id}/deactivate`),
+  extendBoost: (id: number, days: number) => api.post(`${STEALTH_PREFIX}/boosts/${id}/extend`, { days }),
 
   // Users
   getUsers: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/users`, { params }),
@@ -528,6 +534,27 @@ export const walletApi = {
     formData.append('proof', proof);
     return api.post('/wallet/bank-transfer-proof', formData);
   },
+};
+
+// Growth & Boost API
+export const growthApi = {
+  getBoostPrices: () => api.get('/ads/boost-prices'),
+  boostAd: (adId: number, data: { boost_type: string; duration_days: number }) =>
+    api.post(`/ads/${adId}/boost`, data),
+  getBoostStatus: (adId: number) => api.get(`/ads/${adId}/boost-status`),
+  saveAd: (adId: number) => api.post(`/ads/${adId}/save`),
+  unsaveAd: (adId: number) => api.delete(`/ads/${adId}/unsave`),
+  checkSavedStatus: (adId: number) => api.get(`/ads/${adId}/saved-check`),
+  getSavedAds: (params?: { limit?: number; page?: number }) => api.get('/user/saved-ads', { params }),
+  getShareLink: (adId: number) => api.get(`/ads/${adId}/share-link`),
+  getRecentlyViewed: (params?: { limit?: number }) => api.get('/user/recently-viewed', { params }),
+  clearRecentlyViewed: () => api.delete('/user/recently-viewed'),
+};
+
+// Payment API
+export const paymentApi = {
+  verifyPayment: (reference: string) => api.post('/payments/verify', { reference }),
+  getPaystackPublicKey: () => api.get('/payments/config'),
 };
 
 // Admin Bank Transfers API

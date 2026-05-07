@@ -30,7 +30,8 @@ import {
   AlertCircle,
   Building2,
   Share2,
-  Mail
+  Mail,
+  Zap,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { api, notificationsApi } from '@/lib/api';
@@ -56,6 +57,7 @@ const navigation: NavItem[] = [
   { name: 'Promotions', href: '/admin/promotions', icon: TrendingUp },
   { name: 'Bank Transfers', href: '/admin/bank-transfers', icon: Building2 },
   { name: 'Payments', href: '/admin/payments', icon: CreditCard },
+  { name: 'Boost Management', href: '/admin/boosts', icon: Zap },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Search Analytics', href: '/admin/search-analytics', icon: Search },
   { name: 'Broadcasts', href: '/admin/broadcasts', icon: Send },

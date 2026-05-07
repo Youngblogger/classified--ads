@@ -15,3 +15,6 @@ Schedule::job(new AutoApproveAdsJob())->everyMinute();
 
 // Process scheduled social media posts every minute
 Schedule::job(new ProcessScheduledPostsJob())->everyMinute();
+
+// Expire old boosts every hour
+Schedule::command('boosts:expire')->hourly();

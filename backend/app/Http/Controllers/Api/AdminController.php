@@ -10,6 +10,8 @@ use App\Models\Location;
 use App\Models\Notification;
 use App\Models\Transaction;
 use App\Models\Wallet;
+use App\Models\PaymentIntent;
+use App\Models\BoostedAd;
 use App\Services\NotificationService;
 use App\Services\AdminEmailNotificationService;
 use Carbon\Carbon;
@@ -33,6 +35,9 @@ class AdminController extends Controller
             'total_views' => Ad::sum('views'),
             'new_users_today' => User::whereDate('created_at', today())->count(),
             'new_ads_today' => Ad::whereDate('created_at', today())->count(),
+            'active_boosts' => BoostedAd::active()->count(),
+            'total_revenue' => PaymentIntent::where('status', 'paid')->sum('amount'),
+            'pending_payments' => PaymentIntent::where('status', 'pending')->count(),
         ];
 
         $recentAds = Ad::with(['user', 'category', 'location'])
@@ -1078,5 +1083,178 @@ class AdminController extends Controller
         $notification->update(['is_read' => true]);
         
         return response()->json(['success' => true]);
+    }
+
+    public function payments(Request $request)
+    {
+        $validated = $request->validate([
+            'status' => 'nullable|in:pending,paid,failed,expired',
+            'type' => 'nullable|in:boost,wallet,other',
+            'limit' => 'integer|min:1|max:100',
+            'page' => 'integer|min:1',
+        ]);
+
+        $query = PaymentIntent::with(['user', 'ad']);
+
+        if ($validated['status'] ?? null) {
+            $query->where('status', $validated['status']);
+        }
+
+        if ($validated['type'] ?? null) {
+            $query->where('type', $validated['type']);
+        }
+
+        $limit = $validated['limit'] ?? 20;
+        $page = $validated['page'] ?? 1;
+
+        $payments = $query->orderBy('created_at', 'desc')
+            ->paginate($limit, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $payments->items(),
+            'meta' => [
+                'total' => $payments->total(),
+                'current_page' => $payments->currentPage(),
+                'per_page' => $payments->perPage(),
+                'last_page' => $payments->lastPage(),
+            ],
+        ]);
+    }
+
+    public function paymentSummary()
+    {
+        $totalRevenue = PaymentIntent::where('status', 'paid')->sum('amount');
+        $pendingCount = PaymentIntent::where('status', 'pending')->count();
+        $failedCount = PaymentIntent::where('status', 'failed')->count();
+        $paidCount = PaymentIntent::where('status', 'paid')->count();
+
+        $revenueByType = PaymentIntent::where('status', 'paid')
+            ->selectRaw('type, SUM(amount) as total, COUNT(*) as count')
+            ->groupBy('type')
+            ->get()
+            ->pluck('total', 'type')
+            ->toArray();
+
+        $recentPayments = PaymentIntent::with(['user', 'ad'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'data' => [
+                'total_revenue' => $totalRevenue,
+                'currency' => 'NGN',
+                'payments' => [
+                    'total' => $paidCount + $pendingCount + $failedCount,
+                    'paid' => $paidCount,
+                    'pending' => $pendingCount,
+                    'failed' => $failedCount,
+                ],
+                'revenue_by_type' => $revenueByType,
+                'recent_payments' => $recentPayments,
+            ],
+        ]);
+    }
+
+    public function boosts(Request $request)
+    {
+        $validated = $request->validate([
+            'status' => 'nullable|in:active,expired,cancelled',
+            'boost_type' => 'nullable|in:top,featured,highlight',
+            'limit' => 'integer|min:1|max:100',
+            'page' => 'integer|min:1',
+        ]);
+
+        $query = BoostedAd::with(['ad' => function ($q) {
+            $q->with(['images', 'category', 'location']);
+        }, 'user']);
+
+        if ($validated['status'] ?? null) {
+            $query->where('status', $validated['status']);
+        }
+
+        if ($validated['boost_type'] ?? null) {
+            $query->where('boost_type', $validated['boost_type']);
+        }
+
+        $limit = $validated['limit'] ?? 20;
+        $page = $validated['page'] ?? 1;
+
+        $boosts = $query->orderBy('created_at', 'desc')
+            ->paginate($limit, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $boosts->items(),
+            'meta' => [
+                'total' => $boosts->total(),
+                'current_page' => $boosts->currentPage(),
+                'per_page' => $boosts->perPage(),
+                'last_page' => $boosts->lastPage(),
+            ],
+        ]);
+    }
+
+    public function deactivateBoost($id)
+    {
+        $boost = BoostedAd::findOrFail($id);
+
+        if ($boost->status === 'expired' || $boost->status === 'cancelled') {
+            return response()->json(['error' => 'Boost is already inactive'], 400);
+        }
+
+        $boost->update(['status' => 'cancelled']);
+
+        return response()->json(['message' => 'Boost deactivated']);
+    }
+
+    public function extendBoost(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'days' => 'required|integer|min:1|max:365',
+        ]);
+
+        $boost = BoostedAd::findOrFail($id);
+
+        if ($boost->status === 'cancelled') {
+            return response()->json(['error' => 'Cannot extend cancelled boost'], 400);
+        }
+
+        if ($boost->status === 'expired') {
+            $boost->update([
+                'status' => 'active',
+                'end_time' => now()->addDays($validated['days']),
+            ]);
+        } else {
+            $boost->update([
+                'end_time' => $boost->end_time->copy()->addDays($validated['days']),
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Boost extended',
+            'new_end_time' => $boost->end_time->toISOString(),
+        ]);
+    }
+
+    public function adsWithBoosts(Request $request)
+    {
+        $query = Ad::with(['activeBoost', 'images'])
+            ->whereHas('activeBoost')
+            ->orderBy('created_at', 'desc');
+
+        $limit = $request->input('limit', 20);
+        $page = $request->input('page', 1);
+
+        $ads = $query->paginate($limit, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $ads->items(),
+            'meta' => [
+                'total' => $ads->total(),
+                'current_page' => $ads->currentPage(),
+                'per_page' => $ads->perPage(),
+                'last_page' => $ads->lastPage(),
+            ],
+        ]);
     }
 }

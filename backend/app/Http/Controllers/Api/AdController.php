@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Ad;
 use App\Models\AdImage;
+use App\Models\BoostedAd;
 use App\Services\AdminEmailNotificationService;
+use App\Services\RecentlyViewedService;
 use Illuminate\Http\Request;
 use App\Services\CloudinaryService;
 use App\Services\AdImageCacheService;
@@ -23,7 +25,7 @@ class AdController extends Controller
             $limit = $request->input('limit', 20);
             $page = $request->input('page', 1);
             $offset = ($page - 1) * $limit;
-            
+
             $query = Ad::with(['images', 'category', 'location'])
                 ->where('status', 'active');
 
@@ -46,33 +48,58 @@ class AdController extends Controller
                 });
             }
 
+            try {
+                $boostedAdIds = BoostedAd::active()
+                    ->pluck('ad_id')
+                    ->toArray();
+            } catch (\Exception $e) {
+                $boostedAdIds = [];
+            }
+
+            $query->orderByRaw('is_featured DESC')
+                ->orderBy('created_at', 'desc')
+                ->orderBy('views', 'desc');
+
             $totalCount = (clone $query)->count();
             $lastPage = $limit > 0 ? ceil($totalCount / $limit) : 1;
 
             $allAds = $query
-                ->orderBy('created_at', 'desc')
                 ->offset($offset)
                 ->limit($limit)
-                ->get()
-                ->map(function($ad) {
-                    $data = $ad->toArray();
-                    $data['images'] = $ad->images->toArray();
-                    
-                    // Fetch attributes directly from DB to avoid Eloquent conflict
-                    $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
-                        ->where('id', $ad->id)
-                        ->value('attributes');
-                    $attrs = [];
-                    if ($dbAttrs) {
-                        $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
-                        if (is_array($decoded)) {
-                            $attrs = $decoded;
-                        }
+                ->get();
+
+            if (!empty($boostedAdIds)) {
+                $boostedSet = array_flip($boostedAdIds);
+                $allAds = $allAds->sortByDesc(function ($ad) use ($boostedSet) {
+                    return isset($boostedSet[$ad->id]) ? 1 : 0;
+                })->values();
+            }
+
+            $allAds = $allAds->map(function($ad) {
+                $data = $ad->toArray();
+                $data['images'] = $ad->images->toArray();
+
+                $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
+                    ->where('id', $ad->id)
+                    ->value('attributes');
+                $attrs = [];
+                if ($dbAttrs) {
+                    $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
+                    if (is_array($decoded)) {
+                        $attrs = $decoded;
                     }
-                    $data['attributes'] = $attrs;
-                    
-                    return $data;
-                });
+                }
+                $data['attributes'] = $attrs;
+
+                $boost = $ad->activeBoost;
+                $data['is_boosted'] = $boost !== null;
+                $data['boost_type'] = $boost?->boost_type;
+
+                $freshnessHours = now()->diffInHours($ad->created_at);
+                $data['freshness_score'] = max(0, 100 - ($freshnessHours / 24));
+
+                return $data;
+            });
 
             return response()->json([
                 'data' => $allAds->values(),
@@ -128,6 +155,12 @@ class AdController extends Controller
 
             $ad->increment('views');
 
+            $userId = $request->user()?->id;
+            if ($userId) {
+                $recentlyViewedService = new RecentlyViewedService();
+                $recentlyViewedService->trackView($userId, $ad->id);
+            }
+
             // Fetch attributes column directly via DB to avoid Eloquent conflict with 'attributes' column name
             $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
                 ->where('id', $ad->id)
@@ -147,6 +180,18 @@ class AdController extends Controller
             $response = $ad->toArray();
             $response['images'] = $cachedImages;
             $response['attributes'] = $attributes;
+
+            $boost = $ad->activeBoost;
+            $response['is_boosted'] = $boost !== null;
+            $response['boost_type'] = $boost?->boost_type;
+
+            if ($userId) {
+                $savedAdService = new \App\Services\SavedAdService();
+                $response['is_saved'] = $savedAdService->isSaved($userId, $ad->id);
+            }
+
+            $freshnessHours = now()->diffInHours($ad->created_at);
+            $response['freshness_score'] = max(0, 100 - ($freshnessHours / 24));
 
             return response()->json([
                 'data' => $response,

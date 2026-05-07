@@ -18,7 +18,7 @@ import {
   Area,
   AreaChart
 } from 'recharts';
-import { Calendar, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Calendar, Loader2, ArrowUpDown, ArrowUp, ArrowDown, DollarSign, Zap, Share2, BookmarkPlus, Eye, TrendingUp } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 
 interface AnalyticsData {

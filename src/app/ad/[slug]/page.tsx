@@ -11,9 +11,10 @@ import RelatedAds from '@/components/ads/RelatedAds';
 import LatestReviews from '@/components/reviews/LatestReviews';
 import AdAttributes from '@/components/ads/AdAttributes';
 import ReportAdModal from '@/components/ui/ReportAdModal';
+import BoostAdModal from '@/components/ui/BoostAdModal';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard, ImageIcon } from 'lucide-react';
+import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard, ImageIcon, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatPrice, formatRelativeTime, BACKEND_URL, FALLBACK_IMAGE, getCategoryFallback, getAdImage, getAdImages, getAdImageUrl } from '@/lib/utils';
 import { getAuthToken } from '@/lib/cookies';
@@ -90,7 +91,8 @@ export default function AdDetailPage() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [currentUrl, setCurrentUrl] = useState<string>('');
-  const { isAuthenticated } = useAuthStore();
+  const [showBoostModal, setShowBoostModal] = useState(false);
+  const { isAuthenticated, user } = useAuthStore();
   const { toggleLoginModal } = useUIStore();
   
   const getFallbackForAd = useCallback((adData: any) => {
@@ -633,6 +635,24 @@ export default function AdDetailPage() {
                 />
               ) : null}
 
+              {/* Boost Ad Card - Owner Only */}
+              {user && ad.user && user.id === ad.user.id && (
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-sm p-5 border border-amber-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className="w-5 h-5 text-amber-500" />
+                    <h3 className="font-semibold text-gray-900">Boost this Ad</h3>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-4">Get more views and sell faster by boosting your ad to the top.</p>
+                  <button
+                    onClick={() => setShowBoostModal(true)}
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <Zap className="w-4 h-4" />
+                    <span>Boost Now</span>
+                  </button>
+                </div>
+              )}
+
               {/* Contact Card */}
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Contact Seller</h2>
@@ -844,6 +864,14 @@ export default function AdDetailPage() {
         adId={ad.id}
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
+      />
+
+      {/* Boost Ad Modal */}
+      <BoostAdModal
+        adId={ad.id}
+        adTitle={ad.title}
+        isOpen={showBoostModal}
+        onClose={() => setShowBoostModal(false)}
       />
     </div>
   );
