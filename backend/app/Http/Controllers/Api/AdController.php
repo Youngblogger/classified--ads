@@ -666,10 +666,12 @@ class AdController extends Controller
         }
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, $slug)
     {
         try {
-            $ad = Ad::where('id', $id)->where('user_id', $request->user()->id)->first();
+            $ad = is_numeric($slug)
+                ? Ad::where('id', $slug)->where('user_id', $request->user()->id)->first()
+                : Ad::where('slug', $slug)->where('user_id', $request->user()->id)->first();
 
             if (!$ad) {
                 return response()->json(['error' => 'Ad not found or unauthorized'], 404);
