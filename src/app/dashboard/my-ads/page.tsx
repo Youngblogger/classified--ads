@@ -66,7 +66,6 @@ const RefreshCwIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-
 type StatusFilter = 'all' | 'active' | 'pending' | 'sold' | 'expired';
 
 const statusConfig = {
@@ -89,6 +88,28 @@ const formatDate = (dateString: string): string => {
     day: 'numeric' 
   });
 };
+
+function AdSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+      <div className="aspect-square bg-gray-200 animate-pulse" />
+      <div className="p-4 space-y-3">
+        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+        <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse" />
+        <div className="h-5 bg-gray-200 rounded w-1/3 animate-pulse" />
+        <div className="flex justify-between">
+          <div className="h-3 bg-gray-200 rounded w-16 animate-pulse" />
+          <div className="h-3 bg-gray-200 rounded w-20 animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-8 bg-gray-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function MyAdsPage() {
   const router = useRouter();
@@ -120,30 +141,24 @@ export default function MyAdsPage() {
     adTitle: null
   });
   const [renewing, setRenewing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
     fetchAds();
   }, [statusFilter]);
 
   const fetchAds = async () => {
-    const timeoutId = setTimeout(() => {
-      console.log('MyAds fetch timeout - forcing loading to false');
-      setLoading(false);
-    }, 10000);
-    
     try {
       setLoading(true);
       const params = statusFilter === 'all' ? {} : { status: statusFilter };
       const res = await adsApi.getMyAds(params);
-      clearTimeout(timeoutId);
       setAds(res.data.data || res.data || []);
     } catch (error) {
-      clearTimeout(timeoutId);
       console.error('Failed to fetch ads:', error);
       setAds([]);
     } finally {
-      clearTimeout(timeoutId);
       setLoading(false);
+      setIsInitialLoad(false);
     }
   };
 
@@ -187,8 +202,6 @@ export default function MyAdsPage() {
   const confirmClose = async () => {
     if (!closeModal.adId) return;
     setClosing(true);
-    const previousAds = [...ads];
-    setAds(prev => prev.filter(ad => ad.id !== closeModal.adId));
     setCloseModal({ show: false, adId: null, adTitle: null });
     try {
       const token = getAuthToken();
@@ -203,8 +216,8 @@ export default function MyAdsPage() {
       toast.success('Ad closed successfully');
       fetchAds();
     } catch {
-      setAds(previousAds);
       toast.error('Failed to close ad');
+      fetchAds();
     } finally {
       setClosing(false);
     }
@@ -217,8 +230,6 @@ export default function MyAdsPage() {
   const confirmRenew = async () => {
     if (!renewModal.adId) return;
     setRenewing(true);
-    const previousAds = [...ads];
-    setAds(prev => prev.filter(ad => ad.id !== renewModal.adId));
     setRenewModal({ show: false, adId: null, adTitle: null });
     try {
       const token = getAuthToken();
@@ -233,8 +244,8 @@ export default function MyAdsPage() {
       toast.success('Ad submitted for re-approval');
       fetchAds();
     } catch {
-      setAds(previousAds);
       toast.error('Failed to renew ad');
+      fetchAds();
     } finally {
       setRenewing(false);
     }
@@ -244,6 +255,34 @@ export default function MyAdsPage() {
     if (status === 'all') return ads.length;
     return ads.filter(ad => ad.status === status).length;
   };
+
+  if (isInitialLoad) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-64 bg-gray-100 rounded mt-2 animate-pulse" />
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-card">
+          <div className="flex gap-4">
+            <div className="flex-1 h-10 bg-gray-200 rounded-xl animate-pulse" />
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-20 h-10 bg-gray-200 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <AdSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -292,8 +331,13 @@ export default function MyAdsPage() {
         </div>
       </div>
 
-      {/* Ads Grid */}
-      {filteredAds.length > 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <AdSkeleton key={i} />
+          ))}
+        </div>
+      ) : filteredAds.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredAds.map((ad) => (
             <div
@@ -370,68 +414,87 @@ export default function MyAdsPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="grid grid-cols-2 gap-2">
-                  <Link
-                    href={`/ad/${ad.slug || `ad-${ad.id}`}`}
-                    target="_blank"
-                    className="flex items-center justify-center gap-1 px-2 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                    <span>Preview</span>
-                  </Link>
-                  {(ad.status === 'active' || ad.status === 'pending') && (
-                    <Link
-                      href={`/ad/edit/${ad.id}`}
-                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                    >
-                      <EditIcon className="w-4 h-4" />
-                      <span>Edit</span>
-                    </Link>
-                  )}
-                  {(ad.status === 'active' || ad.status === 'pending') && (
+                {(ad.status === 'active' || ad.status === 'pending') && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/ad/${ad.slug || `ad-${ad.id}`}`}
+                        target="_blank"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-700 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors"
+                      >
+                        <EyeIcon className="w-4 h-4" />
+                        <span>Preview</span>
+                      </Link>
+                      <Link
+                        href={`/ad/edit/${ad.id}`}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors"
+                      >
+                        <EditIcon className="w-4 h-4" />
+                        <span>Edit</span>
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handlePromote(ad.id, ad.title)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-semibold hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
+                      >
+                        <ZapIcon className="w-4 h-4" />
+                        <span>Boost</span>
+                      </button>
+                      <button
+                        onClick={() => handleCloseClick(ad.id, ad.title)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-50 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors border border-gray-200"
+                      >
+                        <BanIcon className="w-4 h-4" />
+                        <span>Close Ad</span>
+                      </button>
+                    </div>
                     <button
-                      onClick={() => handlePromote(ad.id, ad.title)}
-                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
+                      onClick={() => handleDeleteClick(ad.id, ad.slug, ad.title)}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-red-500 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors border border-red-200 bg-red-50"
                     >
-                      <ZapIcon className="w-4 h-4" />
-                      <span>Boost</span>
+                      <TrashIcon className="w-4 h-4" />
+                      <span>Delete</span>
                     </button>
-                  )}
-                  {(ad.status === 'active' || ad.status === 'pending') && (
-                    <button
-                      onClick={() => handleCloseClick(ad.id, ad.title)}
-                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                    >
-                      <BanIcon className="w-4 h-4" />
-                      <span>Close</span>
-                    </button>
-                  )}
-                  {(ad.status === 'sold' || ad.status === 'expired') && (
-                    <button
-                      onClick={() => handleRenewClick(ad.id, ad.title)}
-                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-sm"
-                    >
-                      <RefreshCwIcon className="w-4 h-4" />
-                      <span>Renew</span>
-                    </button>
-                  )}
-                  {(ad.status === 'sold' || ad.status === 'expired') && (
-                    <Link
-                      href={`/ad/edit/${ad.id}`}
-                      className="flex items-center justify-center gap-1 px-2 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                    >
-                      <EditIcon className="w-4 h-4" />
-                      <span>Edit</span>
-                    </Link>
-                  )}
-                  <button
-                    onClick={() => handleDeleteClick(ad.id, ad.slug, ad.title)}
-                    className="flex items-center justify-center gap-1 px-2 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                    <span>Delete</span>
-                  </button>
-                </div>
+                  </div>
+                )}
+                {(ad.status === 'sold' || ad.status === 'expired') && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/ad/${ad.slug || `ad-${ad.id}`}`}
+                        target="_blank"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-700 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors"
+                      >
+                        <EyeIcon className="w-4 h-4" />
+                        <span>Preview</span>
+                      </Link>
+                      <button
+                        onClick={() => handleRenewClick(ad.id, ad.title)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl text-sm font-semibold hover:from-green-600 hover:to-emerald-600 transition-all shadow-sm"
+                      >
+                        <RefreshCwIcon className="w-4 h-4" />
+                        <span>Renew Ad</span>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/ad/edit/${ad.id}`}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors"
+                      >
+                        <EditIcon className="w-4 h-4" />
+                        <span>Edit</span>
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteClick(ad.id, ad.slug, ad.title)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-red-600 bg-red-50 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors border border-red-200"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -429,20 +429,47 @@ class PaymentService
             ];
         }
 
-        if ($ad->status !== 'active') {
-            $this->logPaymentEvent(
-                $paymentIntent->id,
-                $paymentIntent->reference,
-                'boost_activation',
-                'rejected',
-                ['ad_status' => $ad->status],
-                'Cannot boost inactive ad'
-            );
+        if ($action === 'boost_on_publish') {
+            if ($ad->status === 'pending') {
+                $ad->update(['status' => 'active']);
 
-            return [
-                'success' => false,
-                'error' => 'Ad is not active',
-            ];
+                Log::info('Ad activated via boost-on-publish webhook', [
+                    'ad_id' => $ad->id,
+                    'reference' => $paymentIntent->reference,
+                ]);
+            }
+
+            if ($ad->status !== 'active') {
+                $this->logPaymentEvent(
+                    $paymentIntent->id,
+                    $paymentIntent->reference,
+                    'boost_activation',
+                    'rejected',
+                    ['ad_status' => $ad->status],
+                    'Ad could not be activated for boost-on-publish'
+                );
+
+                return [
+                    'success' => false,
+                    'error' => 'Ad could not be activated',
+                ];
+            }
+        } else {
+            if ($ad->status !== 'active') {
+                $this->logPaymentEvent(
+                    $paymentIntent->id,
+                    $paymentIntent->reference,
+                    'boost_activation',
+                    'rejected',
+                    ['ad_status' => $ad->status],
+                    'Cannot boost inactive ad'
+                );
+
+                return [
+                    'success' => false,
+                    'error' => 'Ad is not active',
+                ];
+            }
         }
 
         $existingBoost = BoostedAd::where('ad_id', $paymentIntent->ad_id)

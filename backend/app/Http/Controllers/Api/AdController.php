@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Ad;
 use App\Models\AdImage;
 use App\Models\BoostedAd;
+use App\Models\PaymentIntent;
 use App\Services\AdminEmailNotificationService;
+use App\Services\BoostAdService;
+use App\Services\PaymentService;
 use App\Services\RecentlyViewedService;
 use Illuminate\Http\Request;
 use App\Services\CloudinaryService;
@@ -448,6 +451,127 @@ class AdController extends Controller
         } catch (\Exception $e) {
             return ['should_auto_approve' => false, 'duration_minutes' => 0];
         }
+    }
+
+    public function boostOnPublish(Request $request, BoostAdService $boostService, PaymentService $paymentService)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:5000',
+            'price' => 'required|numeric|min:0',
+            'currency' => 'nullable|string|in:NGN,USD,EUR,GBP',
+            'category_id' => 'required|exists:categories,id',
+            'location_id' => 'nullable',
+            'state' => 'nullable|string|max:100',
+            'lga' => 'nullable|string|max:100',
+            'condition' => 'required|in:new,like_new,good,fair',
+            'phone' => 'required|string|max:20',
+            'whatsapp' => 'nullable|string|max:20',
+            'attributes' => 'nullable|string',
+            'boost_type' => 'required|in:top,featured,highlight',
+            'duration_days' => 'required|integer|in:1,3,7,14,30',
+        ]);
+
+        $locationId = null;
+        if ($validated['location_id']) {
+            if (is_numeric($validated['location_id'])) {
+                $locationId = (int) $validated['location_id'];
+            } else {
+                $loc = \App\Models\Location::where('slug', $validated['location_id'])->first();
+                if ($loc) $locationId = $loc->id;
+                else {
+                    $loc = \App\Models\Location::where('name', $validated['location_id'])->first();
+                    if ($loc) $locationId = $loc->id;
+                }
+            }
+        }
+
+        $autoApproval = $this->checkAutoApproval();
+        $adStatus = $autoApproval['should_auto_approve'] ? 'active' : 'pending';
+
+        $attributes = null;
+        if (!empty($validated['attributes'])) {
+            try {
+                $raw = html_entity_decode($validated['attributes'], ENT_QUOTES, 'UTF-8');
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $attributes = json_encode($decoded);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to decode attributes in boost-on-publish: ' . $e->getMessage());
+            }
+        }
+
+        return DB::transaction(function () use ($validated, $user, $locationId, $adStatus, $attributes, $boostService, $paymentService) {
+            $slug = Str::slug($validated['title']) . '-' . time();
+
+            $ad = Ad::create([
+                'user_id' => $user->id,
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'short_description' => substr($validated['description'], 0, 150),
+                'price' => $validated['price'],
+                'currency' => $validated['currency'] ?? 'NGN',
+                'category_id' => $validated['category_id'],
+                'location_id' => $locationId,
+                'state' => $validated['state'] ?? null,
+                'lga' => $validated['lga'] ?? null,
+                'condition' => $validated['condition'],
+                'phone' => $validated['phone'],
+                'whatsapp' => $validated['whatsapp'] ?? null,
+                'slug' => $slug,
+                'status' => $adStatus,
+            ]);
+
+            if ($attributes !== null) {
+                DB::table('ads')->where('id', $ad->id)->update(['attributes' => $attributes]);
+            }
+
+            $price = $boostService->calculatePrice($validated['boost_type'], $validated['duration_days']);
+
+            $paymentResult = $paymentService->initializePayment([
+                'user_id' => $user->id,
+                'ad_id' => $ad->id,
+                'amount' => $price,
+                'currency' => 'NGN',
+                'type' => 'boost',
+                'email' => $user->email ?? '',
+                'metadata' => [
+                    'action' => 'boost_on_publish',
+                    'boost_type' => $validated['boost_type'],
+                    'duration_days' => $validated['duration_days'],
+                    'ad_status' => $adStatus,
+                ],
+            ]);
+
+            if (!$paymentResult['success']) {
+                return $paymentResult;
+            }
+
+            Log::info('Boost-on-publish initiated', [
+                'ad_id' => $ad->id,
+                'boost_type' => $validated['boost_type'],
+                'duration_days' => $validated['duration_days'],
+                'price' => $price,
+                'reference' => $paymentResult['payment_intent']->reference,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'payment_intent' => $paymentResult['payment_intent']->reference,
+                    'authorization_url' => $paymentResult['authorization_url'] ?? null,
+                    'access_code' => $paymentResult['access_code'] ?? null,
+                    'amount' => $price,
+                    'boost_type' => $validated['boost_type'],
+                    'duration_days' => $validated['duration_days'],
+                    'ad_id' => $ad->id,
+                    'ad_slug' => $ad->slug,
+                ],
+            ]);
+        });
     }
 
     public function update(Request $request, $id)

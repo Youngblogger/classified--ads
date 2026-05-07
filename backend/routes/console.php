@@ -18,3 +18,6 @@ Schedule::job(new ProcessScheduledPostsJob())->everyMinute();
 
 // Expire old boosts every hour
 Schedule::command('boosts:expire')->hourly();
+
+// Clean up draft ads older than 24 hours daily
+Schedule::command('ads:clean-drafts --hours=24')->daily();

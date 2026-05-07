@@ -307,6 +307,7 @@ Route::middleware('auth.api')->group(function () {
 
     // Ads - protected routes (must be before /{slug} wildcard)
     Route::post('/ads', [AdController::class, 'store']);
+    Route::post('/ads/boost-on-publish', [AdController::class, 'boostOnPublish']);
     Route::get('/ads/{id}', [AdController::class, 'getById'])->where('id', '[0-9]+');
     Route::put('/ads/{id}', [AdController::class, 'updateById'])->where('id', '[0-9]+');
     Route::put('/ads/{slug}', [AdController::class, 'update']);
