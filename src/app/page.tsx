@@ -81,7 +81,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
     if (typeof img === 'string') {
       url = img;
     } else if (img && typeof img === 'object') {
-      url = img.full_url || img.full_thumbnail_url || img.url || img.display_url || img.thumbnail_url || img.thumbnail || img.original_url || '';
+      url = img.thumbnail_url || img.listing_url || img.thumbnail || img.full_thumbnail_url || img.display_url || img.url || img.full_url || img.original_url || '';
     }
     if (!url) return FALLBACK_IMAGE;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;

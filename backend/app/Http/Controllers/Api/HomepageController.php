@@ -48,25 +48,20 @@ class HomepageController extends Controller
             'ads.status',
             'ads.created_at',
             'ads.views',
-            'ads.is_seeded',
             'ads.state',
             'ads.lga',
+            'ads.is_featured',
+            'ads.is_verified',
             'categories.name as category_name',
             'categories.slug as category_slug',
             'locations.name as location_name',
-            DB::raw('(SELECT url FROM ad_images WHERE ad_images.ad_id = ads.id AND ad_images.is_primary = 1 LIMIT 1) as image_url'),
+            DB::raw('(SELECT COALESCE(thumbnail_url, url) FROM ad_images WHERE ad_images.ad_id = ads.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) as image_url'),
+            DB::raw('(SELECT COUNT(*) FROM ad_images WHERE ad_images.ad_id = ads.id) as images_count'),
         ])
         ->join('categories', 'ads.category_id', '=', 'categories.id')
         ->leftJoin('locations', 'ads.location_id', '=', 'locations.id')
         ->where('ads.status', 'active')
         ->where('ads.is_featured', true)
-        ->where(function($q) {
-            $q->where('ads.is_seeded', true)
-              ->orWhere(function($sq) {
-                  $sq->where('ads.is_seeded', false)
-                     ->where('ads.processing_status', 'completed');
-              });
-        })
         ->orderBy('ads.created_at', 'desc')
         ->limit(self::FEATURED_LIMIT)
         ->get();
@@ -82,24 +77,19 @@ class HomepageController extends Controller
             'ads.status',
             'ads.created_at',
             'ads.views',
-            'ads.is_seeded',
             'ads.state',
             'ads.lga',
+            'ads.is_featured',
+            'ads.is_verified',
             'categories.name as category_name',
             'categories.slug as category_slug',
             'locations.name as location_name',
-            DB::raw('(SELECT url FROM ad_images WHERE ad_images.ad_id = ads.id AND ad_images.is_primary = 1 LIMIT 1) as image_url'),
+            DB::raw('(SELECT COALESCE(thumbnail_url, url) FROM ad_images WHERE ad_images.ad_id = ads.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) as image_url'),
+            DB::raw('(SELECT COUNT(*) FROM ad_images WHERE ad_images.ad_id = ads.id) as images_count'),
         ])
         ->join('categories', 'ads.category_id', '=', 'categories.id')
         ->leftJoin('locations', 'ads.location_id', '=', 'locations.id')
         ->where('ads.status', 'active')
-        ->where(function($q) {
-            $q->where('ads.is_seeded', true)
-              ->orWhere(function($sq) {
-                  $sq->where('ads.is_seeded', false)
-                     ->where('ads.processing_status', 'completed');
-              });
-        })
         ->orderBy('ads.created_at', 'desc')
         ->limit(self::LATEST_LIMIT)
         ->get();

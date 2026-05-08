@@ -56,16 +56,24 @@ class CloudinaryService
             'height' => 300,
             'crop' => 'fill',
             'gravity' => 'auto',
-            'quality' => 80,
-            'format' => 'webp',
+            'quality' => 'auto',
+            'fetch_format' => 'auto',
         ],
         'medium' => [
             'width' => 800,
             'height' => 600,
             'crop' => 'fill',
             'gravity' => 'auto',
-            'quality' => 80,
-            'format' => 'webp',
+            'quality' => 'auto',
+            'fetch_format' => 'auto',
+        ],
+        'listing' => [
+            'width' => 400,
+            'height' => 300,
+            'crop' => 'fill',
+            'gravity' => 'auto',
+            'quality' => 'auto',
+            'fetch_format' => 'auto',
         ],
     ];
 
@@ -287,7 +295,18 @@ class CloudinaryService
             'height' => $height,
             'crop' => 'fill',
             'gravity' => 'auto',
-            'quality' => 80,
+            'quality' => 'auto',
+        ]);
+    }
+
+    public function getListingUrl(string $publicId): string
+    {
+        return $this->getOptimizedUrl($publicId, [
+            'width' => 400,
+            'height' => 300,
+            'crop' => 'fill',
+            'gravity' => 'auto',
+            'quality' => 'auto',
         ]);
     }
 
@@ -499,7 +518,11 @@ class CloudinaryService
         foreach (self::EAGER_TRANSFORMATIONS as $name => $params) {
             $parts = [];
             foreach ($params as $key => $value) {
-                $parts[] = "{$key}_{$value}";
+                if ($key === 'fetch_format') {
+                    $parts[] = "f_{$value}";
+                } else {
+                    $parts[] = "{$key}_{$value}";
+                }
             }
             $transformations[] = implode(',', $parts);
         }
@@ -554,6 +577,7 @@ class CloudinaryService
             'format' => $result->getFormat(),
             'bytes' => $result->getBytes(),
             'thumbnail_url' => $this->getThumbnailUrl($publicId),
+            'listing_url' => $this->getListingUrl($publicId),
             'optimized_url' => $this->getOptimizedUrl($publicId),
             'blur_url' => $this->getBlurPlaceholderUrl($publicId),
             'responsive' => $this->buildImageUrl($publicId),

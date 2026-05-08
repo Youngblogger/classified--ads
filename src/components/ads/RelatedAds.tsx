@@ -36,10 +36,12 @@ interface Ad {
 interface RelatedAdsProps {
   currentAdId: number;
   categoryId?: number;
+  subcategoryId?: number;
+  locationId?: number;
   initialAds?: Ad[];
 }
 
-export default function RelatedAds({ currentAdId, categoryId, initialAds }: RelatedAdsProps) {
+export default function RelatedAds({ currentAdId, categoryId, subcategoryId, locationId, initialAds }: RelatedAdsProps) {
   const [ads, setAds] = useState<Ad[]>(initialAds || []);
   const [loading, setLoading] = useState(!initialAds);
   const [loadingMore, setLoadingMore] = useState(false);

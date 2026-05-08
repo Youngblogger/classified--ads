@@ -50,7 +50,7 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
   const [fetchingPrices, setFetchingPrices] = useState(false);
   const [step, setStep] = useState<'select' | 'processing' | 'success'>('select');
   const [prices, setPrices] = useState<Record<string, number>>({});
-  const [boostStatus, setBoostStatus] = useState<BoostStatus>('checking');
+  const [boostStatus, setBoostStatus] = useState<BoostStatus>('none');
   const [renewalInfo, setRenewalInfo] = useState<RenewalInfo | null>(null);
   const [isRenewal, setIsRenewal] = useState(false);
 
@@ -60,11 +60,13 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
       setBoostType('top');
       setDuration(7);
       setPrice(null);
-      setBoostStatus('checking');
+      setBoostStatus('none');
       setRenewalInfo(null);
       setIsRenewal(false);
-      fetchPrices();
-      fetchBoostStatus();
+      setPrices({ top: 5, featured: 10, highlight: 3 });
+      setPrice(5 * 7);
+
+      Promise.all([fetchPrices(), fetchBoostStatus()]);
     }
   }, [isOpen]);
 
@@ -76,28 +78,20 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
 
   const fetchPrices = async () => {
     try {
-      setFetchingPrices(true);
       const response = await fetch(`${API_URL}/ads/boost-prices`);
       const data = await response.json();
       if (data.data?.prices) {
         setPrices(data.data.prices);
-        setPrice(data.data.prices.top * 7);
       }
     } catch {
-      setPrices({ top: 5, featured: 10, highlight: 3 });
-      setPrice(5 * 7);
-    } finally {
-      setFetchingPrices(false);
+      // Default prices already set
     }
   };
 
   const fetchBoostStatus = async () => {
     try {
       const token = getAuthToken();
-      if (!token) {
-        setBoostStatus('none');
-        return;
-      }
+      if (!token) return;
       const response = await fetch(`${API_URL}/ads/${adId}/boost-status`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -112,14 +106,10 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
           setBoostStatus('expired');
           setBoostType(statusData.expired_boost.boost_type);
           setRenewalInfo(statusData.renewal_info);
-        } else {
-          setBoostStatus('none');
         }
-      } else {
-        setBoostStatus('none');
       }
     } catch {
-      setBoostStatus('none');
+      // Non-critical
     }
   };
 
@@ -227,13 +217,7 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
                 Boosting: <span className="font-semibold text-gray-900">{adTitle}</span>
               </p>
 
-              {boostStatus === 'checking' ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-sky-600" />
-                </div>
-              ) : (
-                <>
-                  {/* Current Boost Status Banner */}
+              {/* Current Boost Status Banner */}
                   {boostStatus === 'active' && (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5">
                       <div className="flex items-start gap-3">
@@ -366,8 +350,6 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
                       )}
                     </>
                   )}
-                </>
-              )}
             </div>
 
             {/* Footer */}

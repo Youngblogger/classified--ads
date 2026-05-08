@@ -287,7 +287,7 @@ export function getAdImageUrl(img: any): string {
   if (typeof img === 'string') {
     url = img;
   } else if (typeof img === 'object') {
-    url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.src || img.original_url || img.image || img.path || img.file || '';
+    url = img.thumbnail_url || img.listing_url || img.thumbnail || img.full_thumbnail_url || img.display_url || img.url || img.full_url || img.src || img.original_url || img.image || img.path || img.file || '';
   }
   
   if (!url || url === 'null' || url === 'undefined') return '';

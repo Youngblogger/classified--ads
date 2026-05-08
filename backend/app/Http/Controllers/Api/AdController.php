@@ -194,7 +194,7 @@ class AdController extends Controller
     public function show(Request $request, $slug)
     {
         try {
-            $ad = Ad::with(['category', 'location', 'user'])
+            $ad = Ad::with(['images', 'category', 'location', 'user'])
                 ->where('slug', $slug)
                 ->where('status', 'active')
                 ->first();
@@ -1033,36 +1033,129 @@ class AdController extends Controller
     {
         try {
             $adId = $request->input('ad_id');
-            $limit = $request->input('limit', 8);
-            $page = $request->input('page', 1);
+            $limit = min((int) $request->input('limit', 8), 20);
+            $page = (int) $request->input('page', 1);
             $offset = ($page - 1) * $limit;
 
             if (!$adId) {
                 return response()->json(['error' => 'Ad ID is required'], 400);
             }
 
-            $currentAd = Ad::find($adId);
+            $currentAd = Ad::with(['category', 'subcategory', 'location'])->find($adId);
             if (!$currentAd) {
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
-            $query = Ad::with(['images', 'category', 'location'])
+            $baseQuery = Ad::with(['images', 'category', 'user'])
                 ->where('status', 'active')
                 ->where('id', '!=', $adId);
 
-            // Match by category if available
-            if ($currentAd->category_id) {
-                $query->where('category_id', $currentAd->category_id);
+            // Strategy 1: Same subcategory
+            if ($currentAd->subcategory_id) {
+                $subcategoryMatch = (clone $baseQuery)
+                    ->where('subcategory_id', $currentAd->subcategory_id)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($limit)
+                    ->get();
+
+                if ($subcategoryMatch->count() >= $limit) {
+                    return response()->json(['data' => $subcategoryMatch->values()]);
+                }
+                $relatedIds = $subcategoryMatch->pluck('id')->toArray();
+                $remaining = $limit - $subcategoryMatch->count();
+
+                // Strategy 2: Same category (excluding already found)
+                $categoryMatch = (clone $baseQuery)
+                    ->whereNotIn('id', $relatedIds)
+                    ->where('category_id', $currentAd->category_id)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($remaining)
+                    ->get();
+
+                $merged = $subcategoryMatch->merge($categoryMatch);
+                if ($merged->count() >= $limit) {
+                    return response()->json(['data' => $merged->values()]);
+                }
+                $relatedIds = $merged->pluck('id')->toArray();
+                $remaining = $limit - $merged->count();
+
+                // Strategy 3: Same location
+                $locationMatch = (clone $baseQuery)
+                    ->whereNotIn('id', $relatedIds)
+                    ->where('location_id', $currentAd->location_id)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($remaining)
+                    ->get();
+
+                $merged = $merged->merge($locationMatch);
+                if ($merged->count() >= $limit) {
+                    return response()->json(['data' => $merged->values()]);
+                }
+                $relatedIds = $merged->pluck('id')->toArray();
+                $remaining = $limit - $merged->count();
+
+                // Strategy 4: Fallback latest active ads
+                if ($remaining > 0) {
+                    $fallback = (clone $baseQuery)
+                        ->whereNotIn('id', $relatedIds)
+                        ->orderBy('created_at', 'desc')
+                        ->limit($remaining)
+                        ->get();
+                    $merged = $merged->merge($fallback);
+                }
+
+                return response()->json(['data' => $merged->values()]);
             }
 
-            $similarAds = $query
+            // Strategy 2: Same category (no subcategory available)
+            if ($currentAd->category_id) {
+                $categoryMatch = (clone $baseQuery)
+                    ->where('category_id', $currentAd->category_id)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($limit)
+                    ->get();
+
+                if ($categoryMatch->count() >= $limit) {
+                    return response()->json(['data' => $categoryMatch->values()]);
+                }
+                $relatedIds = $categoryMatch->pluck('id')->toArray();
+                $remaining = $limit - $categoryMatch->count();
+
+                // Same location
+                $locationMatch = (clone $baseQuery)
+                    ->whereNotIn('id', $relatedIds)
+                    ->where('location_id', $currentAd->location_id)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($remaining)
+                    ->get();
+
+                $merged = $categoryMatch->merge($locationMatch);
+                if ($merged->count() >= $limit) {
+                    return response()->json(['data' => $merged->values()]);
+                }
+                $relatedIds = $merged->pluck('id')->toArray();
+                $remaining = $limit - $merged->count();
+
+                if ($remaining > 0) {
+                    $fallback = (clone $baseQuery)
+                        ->whereNotIn('id', $relatedIds)
+                        ->orderBy('created_at', 'desc')
+                        ->limit($remaining)
+                        ->get();
+                    $merged = $merged->merge($fallback);
+                }
+
+                return response()->json(['data' => $merged->values()]);
+            }
+
+            // Fallback: latest active ads
+            $latestAds = $baseQuery
                 ->orderBy('created_at', 'desc')
-                ->offset($offset)
                 ->limit($limit)
                 ->get();
 
             return response()->json([
-                'data' => $similarAds->values(),
+                'data' => $latestAds->values(),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch similar ads: ' . $e->getMessage());

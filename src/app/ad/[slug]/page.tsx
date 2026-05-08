@@ -721,7 +721,12 @@ export default function AdDetailPage() {
 
           {/* Related Ads - Full Width */}
           <div className="-mx-4 md:mx-0">
-            <RelatedAds currentAdId={ad.id} categoryId={ad.category?.id || ad.category} />
+            <RelatedAds
+              currentAdId={ad.id}
+              categoryId={ad.category?.id}
+              subcategoryId={ad.subcategory_id || ad.subcategory?.id}
+              locationId={ad.location_id || ad.location?.id}
+            />
           </div>
         </div>
       </main>
