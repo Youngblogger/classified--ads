@@ -89,6 +89,7 @@ export default function AdDetailPage() {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [showBoostModal, setShowBoostModal] = useState(false);
+  const [boostButtonLoading, setBoostButtonLoading] = useState(false);
   const { isAuthenticated, user } = useAuthStore();
   const { toggleLoginModal } = useUIStore();
   
@@ -633,11 +634,18 @@ export default function AdDetailPage() {
                   </div>
                   <p className="text-xs text-gray-600 mb-4">Get more views and sell faster by boosting your ad to the top.</p>
                   <button
-                    onClick={() => setShowBoostModal(true)}
-                    className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
+                    onClick={() => {
+                      setBoostButtonLoading(true);
+                      setTimeout(() => {
+                        setShowBoostModal(true);
+                        setBoostButtonLoading(false);
+                      }, 400);
+                    }}
+                    disabled={boostButtonLoading}
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-80 text-white rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
                   >
-                    <Zap className="w-4 h-4" />
-                    <span>Boost Now</span>
+                    <Zap className={`w-4 h-4 ${boostButtonLoading ? 'animate-spin' : ''}`} />
+                    <span>{boostButtonLoading ? 'Opening...' : 'Boost Now'}</span>
                   </button>
                 </div>
               )}
