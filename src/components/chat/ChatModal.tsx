@@ -207,7 +207,6 @@ export default function ChatModal({
       
       setConversationLoading(true);
       try {
-        console.log('Initializing conversation with seller:', sellerId, 'ad:', adId);
         
         // Use POST /messages endpoint which creates conversation (without auto-message)
         const response = await messagesApi.sendMessageNew(
@@ -215,7 +214,6 @@ export default function ChatModal({
           adId,
           ''
         );
-        console.log('Conversation initialized:', response.data);
         setConversationId(response.data.conversation_id);
       } catch (error: any) {
         console.error('Error creating conversation:', error);
@@ -430,8 +428,6 @@ export default function ChatModal({
         setConversationId(response.data.conversation_id);
       }
 
-      // Debug log
-      console.log('Voice message response:', response.data);
 
       // Update optimistic message - ensure voice type and audio_url are preserved
       // Remove optimistic message and check for duplicates from socket
@@ -588,8 +584,7 @@ export default function ChatModal({
         newMessage.trim()
       );
 
-      console.log('Message sent:', response.data);
-      
+
       // Update conversation ID if this was a new conversation
       if (!conversationId && response.data.conversation_id) {
         setConversationId(response.data.conversation_id);
@@ -736,7 +731,6 @@ export default function ChatModal({
           ) : (
             messages.map((msg) => {
               const isMe = Number(msg.sender_id) === Number(currentUserId);
-              console.log('Debug - msg.sender_id:', msg.sender_id, 'currentUserId:', currentUserId, 'isMe:', isMe);
               const senderAvatar = getImageUrl(msg.sender?.full_avatar_url || msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar);
 
               // Determine message type based on message_type field or content
@@ -818,7 +812,6 @@ export default function ChatModal({
                           className="rounded-lg w-[200px] object-cover mb-2 cursor-pointer hover:opacity-90 transition-opacity" 
                           onClick={() => msg.attachment_url && setPreviewImage(msg.attachment_url)}
                           onError={(e) => {
-                            console.log('Image load error:', msg.attachment_url);
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />

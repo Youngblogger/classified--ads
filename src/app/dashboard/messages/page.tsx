@@ -179,7 +179,6 @@ export default function MessagesPage() {
 
   // Handle message read receipt
   const handleMessageRead = useCallback((data: { messageId: number; conversationId: number }) => {
-    console.log('Message read:', data);
     setMessages((prev) => 
       prev.map((msg) => 
         msg.id === data.messageId 
@@ -226,7 +225,6 @@ export default function MessagesPage() {
             const adId = selectedConversation.ad_id || ad?.id;
             const adRes = await adsApi.getById(adId);
             const adData = adRes.data;
-            console.log('Fetched ad details:', adData);
             
             // Get image from fetched ad
             const fetchedAd = adData as any;
@@ -286,7 +284,6 @@ export default function MessagesPage() {
       setLoading(true);
       const res = await messagesApi.getConversations();
       const data = res.data?.data || res.data || [];
-      console.log('Conversations API response:', JSON.stringify(data, null, 2));
       setConversations(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
@@ -540,7 +537,6 @@ export default function MessagesPage() {
   };
 
   const playAudio = (msgId: number, url: string) => {
-    console.log('Playing audio:', msgId, url);
     
     // Stop any currently playing audio
     if (playingAudioId !== null && audioElementsRef.current[playingAudioId]) {
@@ -563,7 +559,6 @@ export default function MessagesPage() {
     audio.playbackRate = speed;
 
     audio.onloadedmetadata = () => {
-      console.log('Audio metadata loaded:', audio.duration);
       setPlaybackDuration(prev => ({ ...prev, [msgId]: audio.duration || 0 }));
     };
 
@@ -930,9 +925,6 @@ export default function MessagesPage() {
 
           {/* Ad Preview */}
           {(() => {
-            // Debug: Log what's available
-            console.log('Conversation ad:', selectedConversation.ad);
-            console.log('Ad details:', adDetails);
             
             // Use adDetails if available, otherwise use conversation ad
             const ad = adDetails || selectedConversation.ad;
@@ -949,7 +941,6 @@ export default function MessagesPage() {
             
             // Check if imageUrl is actually a user avatar (contains 'avatars')
             if (imageUrl && imageUrl.includes('avatars')) {
-              console.log('WARNING: Image URL is a user avatar, not ad image!', imageUrl);
               imageUrl = undefined; // Reset to try other sources
             }
             
@@ -1013,7 +1004,6 @@ export default function MessagesPage() {
             ) : (
               messages.map((msg) => {
                 const isMe = Number(msg.sender_id) === Number(currentUserId);
-                console.log('Debug - msg.sender_id:', msg.sender_id, 'currentUserId:', currentUserId, 'isMe:', isMe);
                 const senderAvatar = msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar;
                 const isRead = msg.is_read || msg.read_at;
                 
@@ -1159,7 +1149,6 @@ export default function MessagesPage() {
                               className="rounded-lg max-w-[150px] sm:max-w-[200px] max-h-[150px] sm:max-h-[200px] object-cover cursor-pointer hover:opacity-90 transition-opacity" 
                               onClick={() => msg.attachment_url && setPreviewImage(msg.attachment_url)}
                               onError={(e) => {
-                                console.log('Image load error:', msg.attachment_url);
                                 (e.target as HTMLImageElement).style.display = 'none';
                               }} 
                             />

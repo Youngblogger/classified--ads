@@ -220,7 +220,6 @@ export default function Header() {
   // Sync with global store on mount and when it changes
   useEffect(() => {
     if (selectedLocation) {
-      console.log('Selected location updated:', selectedLocation);
       // Display as "State, LGA" format
       const stateName = selectedLocation.name || '';
       const lgaName = selectedLocation.lga || '';
@@ -495,7 +494,6 @@ export default function Header() {
     try {
       await api.post('/auth/logout');
     } catch (error) {
-      console.log('Backend logout failed');
     }
     
     localStorage.removeItem('auth-storage');
@@ -526,7 +524,6 @@ export default function Header() {
   };
 
   const handleNewNotification = useCallback((notification: any) => {
-    console.log('New notification received:', notification);
     setRecentNotifications(prev => [notification, ...prev].slice(0, 10));
     setUnreadCount(prev => prev + 1);
     

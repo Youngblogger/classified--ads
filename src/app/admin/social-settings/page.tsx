@@ -316,7 +316,7 @@ export default function SocialSettingsPage() {
         <h3 className="font-semibold text-gray-900 mb-4">How to Get Credentials</h3>
         <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
           <li>Go to <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Facebook Developers</a> and create an app</li>
-          <li>Add "Facebook Login" and "Instagram Graph API" products to your app</li>
+          <li>Add &quot;Facebook Login&quot; and &quot;Instagram Graph API&quot; products to your app</li>
           <li>Get your App ID and App Secret from app settings</li>
           <li>Generate a long-lived access token using <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Graph API Explorer</a></li>
           <li>Get your Facebook Page ID from your page settings</li>

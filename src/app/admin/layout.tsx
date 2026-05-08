@@ -590,7 +590,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       <div className="px-4 py-8 text-center text-gray-500">
                         <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                         <p className="text-sm">No notifications yet</p>
-                        <p className="text-xs text-gray-400 mt-1">You'll receive alerts for new ads, reports, and more</p>
+                        <p className="text-xs text-gray-400 mt-1">You&apos;ll receive alerts for new ads, reports, and more</p>
                       </div>
                     ) : (
                       notifications.map((notification) => (

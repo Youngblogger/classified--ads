@@ -27,7 +27,6 @@ export const useAuthStore = create<AuthStore>()(
       setHasHydrated: (state) => set({ hasHydrated: state }),
       
       login: (user, token) => {
-        console.log('Login called with user:', user, 'token:', token);
         setCookie('token', token, 7);
         
         if (typeof window !== 'undefined') {
@@ -47,7 +46,6 @@ export const useAuthStore = create<AuthStore>()(
         }
         
         set({ user, token, isAuthenticated: true, isLoading: false, hasHydrated: true });
-        console.log('Auth state after login:', get());
       },
       
       logout: () => {

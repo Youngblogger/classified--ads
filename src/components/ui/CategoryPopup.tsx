@@ -268,7 +268,7 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
           </div>
           {searchQuery && (
             <p className="text-xs text-gray-500 mt-2">
-              {filteredCategories.length} results for "{searchQuery}"
+              {filteredCategories.length} results for &quot;{searchQuery}&quot;
             </p>
           )}
         </div>
@@ -343,7 +343,7 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
                     </Link>
                   ))}
                   {searchQuery.trim() !== '' && filteredSubcategories.length === 0 && (
-                    <p className="col-span-2 text-center text-gray-500 py-4">No subcategories found for "{searchQuery}"</p>
+                    <p className="col-span-2 text-center text-gray-500 py-4">No subcategories found for &quot;{searchQuery}&quot;</p>
                   )}
                 </div>
 

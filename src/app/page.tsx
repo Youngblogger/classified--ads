@@ -290,7 +290,7 @@ export default function HomePage() {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       
       const res = await fetch(`${API_URL}/ads?limit=${ITEMS_PER_PAGE}&page=${pageNum}&_t=${Date.now()}`, {
         cache: 'no-store',
@@ -331,14 +331,6 @@ export default function HomePage() {
       }
       
       // Normalize ads to have images array
-      console.log('Fetched ads, count:', newAds.length, 'hasMore:', hasMorePages, 'page:', pageNum);
-      if (newAds.length > 0) {
-        console.log('First ad structure:', JSON.stringify({
-          id: newAds[0].id,
-          title: newAds[0].title,
-          images: newAds[0].images,
-        }, null, 2));
-      }
       newAds = newAds.map((ad: any) => {
         if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
           const mainImg = ad.main_image || ad.slider_images[0];
@@ -362,9 +354,6 @@ export default function HomePage() {
       setHasMore(hasMorePages);
       setAdsError(false);
     } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.log('Request was aborted');
-      }
       setAdsError(true);
       setHasMore(false);
     } finally {
@@ -379,7 +368,6 @@ export default function HomePage() {
     
     const timeout = setTimeout(() => {
       if (loading && recentAds.length === 0) {
-        console.log('Loading timeout - forcing loading to false');
         setLoading(false);
       }
     }, 15000);

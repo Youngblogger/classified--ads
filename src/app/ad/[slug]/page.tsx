@@ -69,9 +69,6 @@ export default function AdDetailPage() {
   const slug = params?.slug as string | undefined;
   
   useEffect(() => {
-    console.log('[AdDetailPage] Current URL:', window.location.href);
-    console.log('[AdDetailPage] Slug from params:', slug);
-    console.log('[AdDetailPage] All params:', params);
   }, [slug]);
   
   const [ad, setAd] = useState<any>(null);
@@ -131,7 +128,6 @@ export default function AdDetailPage() {
 
   useEffect(() => {
     if (!slug || slug === '[slug]' || slug === 'undefined' || slug === 'ad-undefined' || slug === 'null' || slug === 'ad-null') {
-      console.log('[AdDetailPage] Invalid slug:', slug);
       setLoading(false);
       setError('Invalid ad URL');
       return;
@@ -145,7 +141,6 @@ export default function AdDetailPage() {
       setLoading(true);
       setError(null);
 
-      console.log('[AdDetailPage] Fetching ad with slug:', slug);
 
       try {
         const response = await fetch(`${API_URL}/ads/${slug}`, {
@@ -155,7 +150,6 @@ export default function AdDetailPage() {
 
         clearTimeout(timeoutId);
 
-        console.log('[AdDetailPage] API response status:', response.status);
 
         if (!response.ok) {
           throw new Error('Ad not found');
@@ -164,7 +158,6 @@ export default function AdDetailPage() {
         const data = await response.json();
         if (!isMounted) return;
 
-        console.log('[AdDetailPage] API response data:', data);
 
         if (data && data.data) {
           setAd(data.data);
@@ -360,12 +353,9 @@ export default function AdDetailPage() {
   const getSliderImages = () => {
     // Use the unified getAdImages function from utils
     const images = getAdImages(ad);
-    console.log('[AdDetail] Raw ad.images:', ad.images);
-    console.log('[AdDetail] getAdImages result:', images);
     
     // If still empty, use fallback
     if (images.length === 0) {
-      console.log('[AdDetail] No images found, using fallback');
       return [getFallbackForAd(ad)];
     }
     
@@ -598,7 +588,6 @@ export default function AdDetailPage() {
                 {/* Specifications Section */}
                 {(() => {
                   const specs = ad.attributes || ad.specifications;
-                  console.log('[AdDetail] Attributes:', specs);
                   if (!specs || Object.keys(specs).length === 0) {
                     return null;
                   }

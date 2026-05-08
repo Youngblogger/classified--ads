@@ -32,7 +32,9 @@ class SearchService
 
         Log::info('SearchService::search - Params: ', $params);
 
-        $ads = $this->buildQuery($query, $categoryId, $minPrice, $maxPrice, $location)->get();
+        $ads = $this->buildQuery($query, $categoryId, $minPrice, $maxPrice, $location)
+            ->limit($limit * 3)
+            ->get();
 
         Log::info('SearchService::search - Found ads: ' . count($ads));
 
@@ -63,17 +65,7 @@ class SearchService
 
     private function formatAdForResponse($ad): array
     {
-        // Fetch attributes directly from DB to avoid Eloquent conflict
-        $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
-            ->where('id', $ad->id)
-            ->value('attributes');
-        $attributes = [];
-        if ($dbAttrs) {
-            $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
-            if (is_array($decoded)) {
-                $attributes = $decoded;
-            }
-        }
+        $attributes = $ad->attributes ?? [];
         
         return [
             'id' => $ad->id,

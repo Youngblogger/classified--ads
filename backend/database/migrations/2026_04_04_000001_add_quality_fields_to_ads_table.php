@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ads', function (Blueprint $table) {
-            $table->unsignedTinyInteger('quality_score')->default(100)->after('is_seeded');
+            $table->unsignedTinyInteger('quality_score')->default(100)->after('views');
             $table->boolean('is_flagged')->default(false)->after('quality_score');
             $table->json('quality_flags')->nullable()->after('is_flagged');
             $table->timestamp('last_quality_check')->nullable()->after('quality_flags');

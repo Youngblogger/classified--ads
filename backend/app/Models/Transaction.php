@@ -20,6 +20,13 @@ class Transaction extends Model
         'reference',
         'description',
         'metadata',
+        'status',
+        'payment_method',
+        'processed_at',
+        'proof_image_url',
+        'is_suspicious',
+        'admin_note',
+        'processed_by',
     ];
 
     protected $casts = [

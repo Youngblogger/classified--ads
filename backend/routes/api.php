@@ -230,8 +230,8 @@ Route::prefix('categories')->group(function () {
     Route::get('/{category}/fields', [CategoryFieldController::class, 'forCategory']);
 });
 
-// Category fields management
-Route::prefix('category-fields')->group(function () {
+// Category fields management (protected - admin only)
+Route::prefix('category-fields')->middleware('auth.api')->group(function () {
     Route::get('/', [CategoryFieldController::class, 'index']);
     Route::post('/', [CategoryFieldController::class, 'store']);
     Route::put('/{field}', [CategoryFieldController::class, 'update']);
@@ -244,12 +244,14 @@ Route::prefix('locations')->group(function () {
     Route::get('/{slug}', [LocationController::class, 'show']);
 });
 
-// Icons
+// Icons (read-only public, write operations protected)
 Route::prefix('icons')->group(function () {
     Route::get('/', [IconController::class, 'getAll']);
     Route::get('/search', [IconController::class, 'search']);
     Route::get('/category/{category}', [IconController::class, 'getByCategory']);
     Route::get('/custom', [IconController::class, 'listCustom']);
+});
+Route::prefix('icons')->middleware('auth.api')->group(function () {
     Route::post('/upload', [IconController::class, 'uploadCustom']);
     Route::delete('/custom/{id}', [IconController::class, 'deleteCustom']);
 });
@@ -272,7 +274,7 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/cloudinary/upload-callback', [CloudinaryController::class, 'uploadCallback']);
     Route::post('/cloudinary/validate-image', [CloudinaryController::class, 'validateImage']);
 });
-Route::get('/homepage/clear-cache', [App\Http\Controllers\Api\HomepageController::class, 'clearCache']);
+Route::get('/homepage/clear-cache', [App\Http\Controllers\Api\HomepageController::class, 'clearCache'])->middleware('auth.api');
 
 Route::prefix('ads')->group(function () {
     Route::get('/', [AdController::class, 'index']);

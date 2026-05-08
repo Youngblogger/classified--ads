@@ -98,6 +98,9 @@ function AdsPageContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
+  // Error state
+  const [adsError, setAdsError] = useState<string | null>(null);
+  
   // Infinite scroll state
   const [allAds, setAllAds] = useState<Ad[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -153,6 +156,7 @@ function AdsPageContent() {
   // Fetch ads for current page
   const fetchAds = async (pageNum: number, reset: boolean = false) => {
     try {
+      setAdsError(null);
       if (pageNum === 1) {
         setIsInitialLoad(true);
       } else {
@@ -160,13 +164,15 @@ function AdsPageContent() {
       }
       
       const queryParams = buildQueryParams(pageNum);
-      console.log('[AdsPage] Fetching search with params:', queryParams);
       
       const response = await fetch(`${API_URL}/search?${queryParams}`);
-      const data = await response.json();
       
-      console.log('[AdsPage] Search API response:', data);
-      console.log('[AdsPage] data.data:', data.data);
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.message || `Server error: ${response.status}`);
+      }
+      
+      const data = await response.json();
       
       if (reset || pageNum === 1) {
         setAllAds(data.data || []);
@@ -175,8 +181,10 @@ function AdsPageContent() {
       }
       
       setTotalPages(data.meta?.last_page || 1);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching ads:', error);
+      setAdsError(error.message || 'Failed to load ads');
+      if (pageNum === 1) setAllAds([]);
     } finally {
       setIsInitialLoad(false);
       setIsLoadingMore(false);
@@ -186,7 +194,8 @@ function AdsPageContent() {
   // Initial load and when filters change
   useEffect(() => {
     setCurrentPage(1);
-    fetchAds(1, true);
+    const timer = setTimeout(() => fetchAds(1, true), 400);
+    return () => clearTimeout(timer);
   }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMinRaw, priceMaxRaw, condition, sortBy]);
 
   // Infinite scroll observer
@@ -567,6 +576,21 @@ function AdsPageContent() {
                   ))}
                 </div>
               )
+            ) : adsError ? (
+              <div className="bg-white rounded-xl p-12 text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Unable to load ads</h3>
+                <p className="text-gray-500 mb-2">{adsError}</p>
+                <p className="text-gray-400 mb-6 text-sm">The server may be down. Please try again later.</p>
+                <button
+                  onClick={() => fetchAds(1, true)}
+                  className="px-6 py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700"
+                >
+                  Try Again
+                </button>
+              </div>
             ) : allAds.length > 0 ? (
               viewMode === 'grid' ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">

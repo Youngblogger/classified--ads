@@ -44,7 +44,6 @@ export default function LocationModal() {
     }
     // Reset state when modal opens
     if (isLocationModalOpen) {
-      console.log('Modal opened, resetting state');
       setShowLGAView(false);
       setSearchQuery('');
       setSelectedLGA(null);
@@ -61,7 +60,6 @@ export default function LocationModal() {
       });
       if (!response.ok) throw new Error('Failed to fetch locations');
       const data = await response.json();
-      console.log('Locations API response:', data);
       setLocations(data.data || []);
     } catch (err: any) {
       console.error('Error fetching locations:', err);
@@ -91,7 +89,6 @@ export default function LocationModal() {
   }, [selectedState, searchQuery]);
 
   const handleStateClick = useCallback((state: LocationData) => {
-    console.log('Selected state:', state.name, 'Children:', state.children?.length);
     setSelectedState(state);
     setSelectedLGA(null);
     setSearchQuery('');
@@ -105,19 +102,16 @@ export default function LocationModal() {
       });
       handleClose();
     } else {
-      console.log('Opening LGA view for state:', state.name);
       setShowLGAView(true);
     }
   }, [setSelectedLocation]);
 
   const handleLGASelect = useCallback((lga: LocationData) => {
-    console.log('LGA clicked:', lga.name);
     setSelectedLGA(lga);
     setSearchQuery('');
     
     // Immediately save the location when LGA is selected
     if (selectedState) {
-      console.log('Saving location with LGA:', selectedState.name, lga.name);
       setSelectedLocation({
         id: lga.id,
         name: selectedState.name,
@@ -128,7 +122,6 @@ export default function LocationModal() {
       // Close the modal
       handleClose();
     } else {
-      console.log('No state selected, cannot save LGA');
     }
   }, [selectedState, setSelectedLocation]);
 
@@ -252,7 +245,7 @@ export default function LocationModal() {
                   </div>
                 ) : filteredLocations.length === 0 ? (
                   <div className="text-center py-8 text-gray-500 text-sm">
-                    No locations found matching "{searchQuery}"
+                    No locations found matching &quot;{searchQuery}&quot;
                   </div>
                 ) : (
                   <div className="space-y-1.5">
@@ -411,7 +404,7 @@ export default function LocationModal() {
                   </div>
                 ) : filteredLGAs.length === 0 ? (
                   <div className="text-center py-8 text-gray-500 text-sm">
-                    No areas found matching "{searchQuery}"
+                    No areas found matching &quot;{searchQuery}&quot;
                   </div>
                 ) : (
                   <div className="space-y-1.5">

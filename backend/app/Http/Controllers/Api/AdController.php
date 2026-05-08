@@ -29,7 +29,7 @@ class AdController extends Controller
             $page = $request->input('page', 1);
             $offset = ($page - 1) * $limit;
 
-            $query = Ad::with(['images', 'category', 'location'])
+            $query = Ad::with(['images', 'category', 'location', 'activeBoost'])
                 ->where('status', 'active');
 
             if ($request->category) {
@@ -92,17 +92,7 @@ class AdController extends Controller
                 $data = $ad->toArray();
                 $data['images'] = $ad->images->toArray();
 
-                $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
-                    ->where('id', $ad->id)
-                    ->value('attributes');
-                $attrs = [];
-                if ($dbAttrs) {
-                    $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
-                    if (is_array($decoded)) {
-                        $attrs = $decoded;
-                    }
-                }
-                $data['attributes'] = $attrs;
+                $data['attributes'] = $ad->attributes ?? [];
 
                 $boost = $ad->activeBoost;
                 $data['is_boosted'] = $boost !== null;
@@ -138,21 +128,63 @@ class AdController extends Controller
         }
     }
 
+    public function recent(Request $request)
+    {
+        try {
+            $limit = $request->input('limit', 20);
+            $page = $request->input('page', 1);
+            $offset = ($page - 1) * $limit;
+
+            $ads = Ad::with(['images', 'category', 'location', 'activeBoost'])
+                ->where('status', 'active')
+                ->orderBy('created_at', 'desc')
+                ->offset($offset)
+                ->limit($limit)
+                ->get()
+                ->map(function ($ad) {
+                    $data = $ad->toArray();
+                    $data['images'] = $ad->images->toArray();
+                    $data['attributes'] = $ad->attributes ?? [];
+                    $boost = $ad->activeBoost;
+                    $data['is_boosted'] = $boost !== null;
+                    $data['boost_type'] = $boost?->boost_type;
+                    $data['boost_end_time'] = $boost?->end_time;
+                    return $data;
+                });
+
+            return response()->json(['data' => $ads->values()]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch recent ads: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load recent ads'], 500);
+        }
+    }
+
     public function featured(Request $request)
     {
         try {
-            $limit = $request->limit ?? 8;
-            
-            $featuredAds = Ad::with(['images', 'category', 'location'])
+            $limit = $request->input('limit', 20);
+            $page = $request->input('page', 1);
+            $offset = ($page - 1) * $limit;
+
+            $ads = Ad::with(['images', 'category', 'location', 'activeBoost'])
                 ->where('status', 'active')
                 ->where('is_featured', true)
                 ->orderBy('created_at', 'desc')
+                ->offset($offset)
                 ->limit($limit)
-                ->get();
+                ->get()
+                ->map(function ($ad) {
+                    $data = $ad->toArray();
+                    $data['images'] = $ad->images->toArray();
+                    $data['attributes'] = $ad->attributes ?? [];
+                    $boost = $ad->activeBoost;
+                    $data['is_boosted'] = $boost !== null;
+                    $data['boost_type'] = $boost?->boost_type;
+                    $data['boost_end_time'] = $boost?->end_time;
+                    return $data;
+                });
 
-            return response()->json([
-                'data' => $featuredAds->values(),
-            ]);
+            return response()->json(['data' => $ads->values()]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch featured ads: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load featured ads'], 500);
@@ -182,21 +214,7 @@ class AdController extends Controller
                 $recentlyViewedService->trackView($userId, $ad->id);
             }
 
-            // Fetch attributes column directly via DB to avoid Eloquent conflict with 'attributes' column name
-            $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
-                ->where('id', $ad->id)
-                ->value('attributes');
-            
-            Log::info('Ad show - Raw attributes from DB:', ['slug' => $slug, 'raw' => $dbAttrs]);
-            
-            $attributes = [];
-            if ($dbAttrs) {
-                $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
-                if (is_array($decoded)) {
-                    $attributes = $decoded;
-                }
-            }
-            Log::info('Ad show - Parsed attributes:', ['parsed' => $attributes]);
+            $attributes = $ad->attributes ?? [];
 
             $response = $ad->toArray();
             $response['images'] = $cachedImages;
@@ -958,7 +976,7 @@ class AdController extends Controller
             $page = $request->input('page', 1);
             $offset = ($page - 1) * $limit;
 
-            $query = Ad::with(['images', 'category', 'location'])
+            $query = Ad::with(['images', 'category', 'location', 'activeBoost'])
                 ->where('user_id', $user->id);
 
             if ($request->input('status')) {
@@ -979,17 +997,7 @@ class AdController extends Controller
                 $data = $ad->toArray();
                 $data['images'] = $ad->images->toArray();
 
-                $dbAttrs = \Illuminate\Support\Facades\DB::table('ads')
-                    ->where('id', $ad->id)
-                    ->value('attributes');
-                $attrs = [];
-                if ($dbAttrs) {
-                    $decoded = json_decode(html_entity_decode($dbAttrs, ENT_QUOTES, 'UTF-8'), true);
-                    if (is_array($decoded)) {
-                        $attrs = $decoded;
-                    }
-                }
-                $data['attributes'] = $attrs;
+                $data['attributes'] = $ad->attributes ?? [];
 
                 $boost = $ad->activeBoost;
                 $data['is_boosted'] = $boost !== null;

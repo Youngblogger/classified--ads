@@ -223,13 +223,11 @@ export default function ProfileSettingsPage() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log('File selected:', file);
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
         setMessage({ type: 'error', text: 'File size must be less than 2MB' });
         return;
       }
-      console.log('Setting avatarFile:', file.name, file.size);
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -249,7 +247,6 @@ export default function ProfileSettingsPage() {
     
     // Prevent multiple submissions
     if (isSaving) {
-      console.log('Already saving, ignoring duplicate submission');
       return;
     }
     
@@ -261,8 +258,6 @@ export default function ProfileSettingsPage() {
       if (avatarFile) {
         const avatarFormData = new FormData();
         avatarFormData.append('avatar', avatarFile);
-        console.log('Uploading avatar to dedicated endpoint...');
-        console.log('Using token:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
         
         const avatarResponse = await fetch(`${API_URL}/api/auth/profile/avatar`, {
           method: 'POST',
@@ -273,9 +268,7 @@ export default function ProfileSettingsPage() {
           body: avatarFormData,
         });
         
-        console.log('Avatar response status:', avatarResponse.status);
         const avatarData = await avatarResponse.json();
-        console.log('Avatar upload response:', avatarData);
         
         if (!avatarResponse.ok) {
           throw new Error(avatarData.message || 'Failed to upload avatar');
@@ -341,7 +334,6 @@ export default function ProfileSettingsPage() {
         formDataToSend.append('location_id', formData.location_id.toString());
       }
 
-      console.log('Sending request to /auth/profile...');
 
       const response = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'POST',

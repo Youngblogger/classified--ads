@@ -14,7 +14,8 @@ return new class extends Migration
     {
         Schema::create('credit_balances', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade')->unique();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->unique('user_id');
             $table->integer('balance')->default(0);
             $table->integer('total_earned')->default(0);
             $table->integer('total_spent')->default(0);

@@ -60,10 +60,11 @@ class CategoryFieldController extends Controller
         }
     }
 
-    public function store(Request $request, Category $category)
+    public function store(Request $request)
     {
         try {
             $validated = $request->validate([
+                'category_id' => 'required|exists:categories,id',
                 'name' => 'required|string|max:255|regex:/^[a-z_]+$/',
                 'label' => 'required|string|max:255',
                 'type' => 'required|in:text,number,select,multi_select,boolean',
@@ -74,7 +75,7 @@ class CategoryFieldController extends Controller
             ]);
 
             $field = CategoryField::create([
-                'category_id' => $category->id,
+                'category_id' => $validated['category_id'],
                 'name' => $validated['name'],
                 'label' => $validated['label'],
                 'type' => $validated['type'],

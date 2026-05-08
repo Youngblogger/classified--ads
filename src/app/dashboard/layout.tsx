@@ -183,7 +183,6 @@ export default function DashboardLayout({
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed.state && parsed.state.user && parsed.state.token) {
-            console.log('Restored auth from zustand persist:', parsed.state.user);
             // Ensure full_avatar_url is constructed
             const userWithAvatar = {
               ...parsed.state.user,
@@ -197,14 +196,12 @@ export default function DashboardLayout({
           }
         }
       } catch (e) {
-        console.log('Zustand persist not found, checking manual storage');
       }
       
       // Fallback to manual localStorage
       if (!authUser) {
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('authToken');
-        console.log('Manual storage check - user:', storedUser ? 'found' : 'not found', 'token:', storedToken ? 'found' : 'not found');
         if (storedUser && storedToken) {
           try {
             const userData = JSON.parse(storedUser);
@@ -248,7 +245,6 @@ export default function DashboardLayout({
         credentials: 'include',
       });
     } catch (error) {
-      console.log('Backend logout failed, proceeding with local logout');
     }
     
     // Clear local storage
