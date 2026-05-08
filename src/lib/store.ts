@@ -27,37 +27,23 @@ export const useAuthStore = create<AuthStore>()(
       setHasHydrated: (state) => set({ hasHydrated: state }),
       
       login: (user, token) => {
-        setCookie('token', token, 7);
-        
-        if (typeof window !== 'undefined') {
-          const persistData = {
-            state: {
-              user,
-              token,
-              isAuthenticated: true,
-              isLoading: false,
-              hasHydrated: true
-            },
-            version: 0
-          };
-          localStorage.setItem('auth-storage', JSON.stringify(persistData));
-          localStorage.setItem('authToken', token);
-          localStorage.setItem('user', JSON.stringify(user));
-        }
+        // Set cookie with 24h max-age (matches token expiration), secure flags
+        setCookie('token', token, 1);
         
         set({ user, token, isAuthenticated: true, isLoading: false, hasHydrated: true });
       },
       
       logout: () => {
         if (typeof window !== 'undefined') {
-          document.cookie.split(';').forEach((cookie) => {
-            const name = cookie.trim().split('=')[0];
+          // Only clear auth-specific cookies, not all cookies
+          ['token', 'admin_token'].forEach((name) => {
             document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
           });
           
           localStorage.removeItem('auth-storage');
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_user');
+          localStorage.removeItem('admin-auth-storage');
           sessionStorage.clear();
           
           sessionStorage.setItem('just_logged_out', 'true');
@@ -67,23 +53,6 @@ export const useAuthStore = create<AuthStore>()(
       },
       
       setUser: (user) => {
-        if (typeof window !== 'undefined' && user) {
-          const currentToken = get().token;
-          if (currentToken) {
-            localStorage.setItem('user', JSON.stringify(user));
-            const persistData = {
-              state: {
-                user,
-                token: currentToken,
-                isAuthenticated: true,
-                isLoading: false,
-                hasHydrated: true
-              },
-              version: 0
-            };
-            localStorage.setItem('auth-storage', JSON.stringify(persistData));
-          }
-        }
         set({ user });
       },
       

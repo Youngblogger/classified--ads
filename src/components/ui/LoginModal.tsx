@@ -80,14 +80,10 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [usedEmails, setUsedEmails] = useState<string[]>([]);
   const [rememberMe, setRememberMe] = useState(false);
-  const [savedPasswords, setSavedPasswords] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const savedEmails = localStorage.getItem('used-emails');
     if (savedEmails) setUsedEmails(JSON.parse(savedEmails));
-    
-    const savedPasswordsData = localStorage.getItem('saved-passwords');
-    if (savedPasswordsData) setSavedPasswords(JSON.parse(savedPasswordsData));
     
     const savedRememberEmail = localStorage.getItem('remember-email');
     if (savedRememberEmail) {
@@ -206,24 +202,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
 
       const userName = data.user?.name || 'there';
       
-      // Store auth data in localStorage for persistence
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Also store in zustand persist format for compatibility
-      localStorage.setItem('auth-storage', JSON.stringify({
-        state: {
-          token: data.token,
-          user: data.user,
-          isAuthenticated: true
-        },
-        version: 0
-      }));
-      
-      // Also set cookie (API looks for this)
-      document.cookie = `token=${data.token};path=/;max-age=${7*24*60*60}`;
-      
-      // Use login function which handles zustand persist
+      // Use login function (handles cookie + Zustand persist)
       login(data.user, data.token);
       
       toast.success(`Welcome back, ${userName}!`);
@@ -315,29 +294,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
 
       const userName = data.user?.name || 'there';
       
-      // Store auth data in localStorage for persistence
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Also store in zustand persist format for compatibility
-      localStorage.setItem('auth-storage', JSON.stringify({
-        state: {
-          token: data.token,
-          user: data.user,
-          isAuthenticated: true
-        },
-        version: 0
-      }));
-      
-      // Also set cookie (API looks for this) - 24 hours to match token expiration
-      const cookieMaxAge = 24 * 60 * 60; // 24 hours in seconds
-      document.cookie = `token=${data.token};path=/;max-age=${cookieMaxAge};SameSite=Lax`;
-      
-      // Store token expiration time (24 hours from now)
-      const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      localStorage.setItem('token_expires_at', tokenExpiresAt);
-      
-      // Use login function which handles zustand persist
+      // Use login function (handles cookie + Zustand persist — single source of truth)
       login(data.user, data.token);
       
       if (typeof window !== 'undefined' && email) {
@@ -349,14 +306,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
         
         if (rememberMe) {
           localStorage.setItem('remember-email', email);
-          const savedPasswords = JSON.parse(localStorage.getItem('saved-passwords') || '{}');
-          savedPasswords[email] = password;
-          localStorage.setItem('saved-passwords', JSON.stringify(savedPasswords));
         } else {
-          // Clear saved credentials if remember me is not checked
-          const savedPasswords = JSON.parse(localStorage.getItem('saved-passwords') || '{}');
-          delete savedPasswords[email];
-          localStorage.setItem('saved-passwords', JSON.stringify(savedPasswords));
           localStorage.removeItem('remember-email');
         }
       }
@@ -489,10 +439,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
 
       const data = await res.json();
       if (res.ok && data.token) {
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('auth-storage', JSON.stringify({ state: { token: data.token, user: data.user, isAuthenticated: true }, version: 0 }));
-        document.cookie = `token=${data.token};path=/;max-age=${24 * 60 * 60};SameSite=Lax`;
         login(data.user, data.token);
         toast.success(`Welcome, ${data.user?.name || 'User'}!`);
         closeAllModals();
@@ -598,17 +544,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
         throw new Error(data.message || 'Google login failed');
       }
 
-localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('auth-storage', JSON.stringify({
-          state: { token: data.token, user: data.user, isAuthenticated: true },
-          version: 0
-        }));
-        window.scrollTo(0, 0);
-
-      const cookieMaxAge = 24 * 60 * 60;
-      document.cookie = `token=${data.token};path=/;max-age=${cookieMaxAge};SameSite=Lax`;
-
       login(data.user, data.token);
       toast.success(`Welcome, ${data.user?.name || 'User'}!`);
       closeAllModals();
@@ -700,13 +635,7 @@ localStorage.setItem('authToken', data.token);
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        // Auto-fill password if email has saved credentials
-                        if (savedPasswords[e.target.value]) {
-                          setPassword(savedPasswords[e.target.value]);
-                        }
-                      }}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
                       className="w-full pl-14 pr-5 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
                       style={{ height: '60px' }}

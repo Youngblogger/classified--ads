@@ -11,10 +11,13 @@ use Carbon\Carbon;
 
 class SecureAdminAuth
 {
-    protected $sessionTimeout = 30; // minutes
+    protected $sessionTimeout; // minutes
 
     public function handle(Request $request, Closure $next): Response
     {
+        // Use config value, fall back to 15 (matching token expiry)
+        $this->sessionTimeout = (int) config('admin.session_timeout', 15);
+
         $token = $request->bearerToken();
         
         if (!$token) {

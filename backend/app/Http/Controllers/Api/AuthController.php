@@ -55,11 +55,12 @@ class AuthController extends Controller
             // Log error but don't fail the request
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('auth_token', ['*'], now()->addHours(24))->plainTextToken;
 
         return response()->json([
             'user' => $user,
             'token' => $token,
+            'token_expires_at' => now()->addHours(24)->toIso8601String(),
         ], 201);
     }
 

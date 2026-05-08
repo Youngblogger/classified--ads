@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
+use Carbon\Carbon;
 
 class ApiTokenAuth
 {
@@ -29,6 +30,15 @@ class ApiTokenAuth
             ], 401);
         }
         
+        // Check token expiration
+        if ($accessToken->expires_at && Carbon::parse($accessToken->expires_at)->isPast()) {
+            $accessToken->delete();
+            return response()->json([
+                'success' => false,
+                'message' => 'Token has expired. Please login again.',
+            ], 401);
+        }
+        
         $user = $accessToken->tokenable;
         
         if (!$user) {
@@ -44,6 +54,10 @@ class ApiTokenAuth
                 'message' => 'Your account has been suspended or banned.',
             ], 403);
         }
+        
+        // Update last used timestamp to track activity
+        $accessToken->last_used_at = Carbon::now();
+        $accessToken->save();
         
         $request->setUserResolver(function () use ($user) {
             return $user;

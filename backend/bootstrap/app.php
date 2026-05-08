@@ -58,11 +58,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Throwable $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 $message = config('app.debug') ? $e->getMessage() : 'An error occurred.';
-                return new \Illuminate\Http\JsonResponse([
+                $response = [
                     'success' => false,
                     'message' => $message,
-                    'error' => get_class($e),
-                ], 500);
+                ];
+                if (config('app.debug')) {
+                    $response['error'] = get_class($e);
+                }
+                return new \Illuminate\Http\JsonResponse($response, 500);
             }
         });
     })->create();
