@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ad;
+use App\Models\BoostedAd;
 use App\Services\BoostAdService;
 use App\Services\PaymentService;
 use App\Services\SavedAdService;
@@ -162,6 +163,120 @@ class GrowthController extends Controller
             'can_renew' => true,
             'data' => $result,
         ]);
+    }
+
+    public function myBoosts(Request $request)
+    {
+        $user = $request->user();
+
+        $boosts = BoostedAd::with(['ad.images', 'ad.category', 'ad.location'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($boost) {
+                $ad = $boost->ad;
+                if (!$ad) return null;
+
+                $views = $ad->views ?? 0;
+                $clicks = $ad->clicks_count ?? 0;
+                $whatsappClicks = $ad->whatsapp_clicks ?? 0;
+                $saves = $ad->favorites()->count();
+                $ctr = $views > 0 ? round(($clicks + $whatsappClicks) / $views * 100, 2) : 0;
+
+                $remainingSeconds = $boost->status === 'active' && $boost->end_time
+                    ? max(0, now()->diffInSeconds($boost->end_time, false))
+                    : 0;
+
+                $remainingDays = $boost->status === 'active' && $boost->end_time
+                    ? max(0, (int) now()->diffInDays($boost->end_time, false))
+                    : 0;
+
+                return [
+                    'boost_id' => $boost->id,
+                    'boost_type' => $boost->boost_type,
+                    'boost_status' => $boost->status,
+                    'boost_start_time' => $boost->start_time?->toISOString(),
+                    'boost_end_time' => $boost->end_time?->toISOString(),
+                    'boost_remaining_seconds' => $remainingSeconds,
+                    'boost_remaining_days' => $remainingDays,
+                    'payment_reference' => $boost->payment_reference,
+                    'created_at' => $boost->created_at?->toISOString(),
+                    'ad' => $ad ? [
+                        'id' => $ad->id,
+                        'title' => $ad->title,
+                        'slug' => $ad->slug,
+                        'price' => $ad->price,
+                        'status' => $ad->status,
+                        'state' => $ad->state,
+                        'lga' => $ad->lga,
+                        'images' => $ad->images->toArray(),
+                        'category' => $ad->category ? ['id' => $ad->category->id, 'name' => $ad->category->name] : null,
+                    ] : null,
+                    'views_count' => $views,
+                    'clicks_count' => $clicks,
+                    'whatsapp_clicks' => $whatsappClicks,
+                    'saves_count' => $saves,
+                    'ctr' => $ctr,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        $active = $boosts->where('boost_status', 'active')->values();
+        $expired = $boosts->where('boost_status', 'expired')->values();
+
+        $topAd = null;
+        $worstAd = null;
+        if ($active->isNotEmpty()) {
+            $topAd = $active->sortByDesc('ctr')->first();
+            $worstAd = $active->sortBy('ctr')->first();
+        } elseif ($boosts->isNotEmpty()) {
+            $topAd = $boosts->sortByDesc('ctr')->first();
+            $worstAd = $boosts->sortBy('ctr')->first();
+        }
+
+        return response()->json([
+            'data' => [
+                'boosts' => $boosts,
+                'active_boosts' => $active,
+                'expired_boosts' => $expired,
+                'analytics' => [
+                    'total_boosts' => $boosts->count(),
+                    'active_count' => $active->count(),
+                    'expired_count' => $expired->count(),
+                    'top_performing_ad' => $topAd,
+                    'worst_performing_ad' => $worstAd,
+                    'total_views' => $boosts->sum('views_count'),
+                    'total_clicks' => $boosts->sum('clicks_count') + $boosts->sum('whatsapp_clicks'),
+                    'total_saves' => $boosts->sum('saves_count'),
+                    'average_ctr' => $boosts->sum('views_count') > 0
+                        ? round(($boosts->sum('clicks_count') + $boosts->sum('whatsapp_clicks')) / $boosts->sum('views_count') * 100, 2)
+                        : 0,
+                ],
+                'prices' => app(BoostAdService::class)->getBoostPrices(),
+                'durations' => app(BoostAdService::class)->getAvailableDurations(),
+            ],
+        ]);
+    }
+
+    public function trackClick(Request $request, int $id)
+    {
+        $ad = Ad::find($id);
+        if (!$ad) {
+            return response()->json(['error' => 'Ad not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|in:phone,whatsapp',
+        ]);
+
+        if ($validated['type'] === 'whatsapp') {
+            $ad->increment('whatsapp_clicks');
+        } else {
+            $ad->increment('clicks_count');
+        }
+
+        return response()->json(['success' => true]);
     }
 
     public function getShareLink(int $id, ShareService $shareService)

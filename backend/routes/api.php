@@ -279,10 +279,10 @@ Route::prefix('ads')->group(function () {
     Route::get('/featured', [AdController::class, 'featured']);
     Route::get('/recent', [AdController::class, 'recent']);
     Route::get('/similar', [AdController::class, 'similarAds']);
-    Route::get('/{slug}', [AdController::class, 'show'])->where('slug', '^(?=.*[a-z])[a-z0-9\-]+$');
-
-    Route::get('/{id}/share-link', [GrowthController::class, 'getShareLink']);
     Route::get('/boost-prices', [GrowthController::class, 'getBoostPrices']);
+    Route::post('/{id}/track-click', [GrowthController::class, 'trackClick']);
+    Route::get('/{id}/share-link', [GrowthController::class, 'getShareLink']);
+    Route::get('/{slug}', [AdController::class, 'show'])->where('slug', '^(?=.*[a-z])[a-z0-9\-]+$');
 });
 
 // Public seller reviews endpoints (read-only)
@@ -321,6 +321,7 @@ Route::middleware('auth.api')->group(function () {
     Route::delete('/ads/{adId}/images/{imageId}', [AdImageController::class, 'destroy']);
 
     // Growth & Monetization
+    Route::get('/my-boosts', [GrowthController::class, 'myBoosts']);
     Route::post('/ads/{id}/boost', [GrowthController::class, 'boostAd']);
     Route::get('/ads/{id}/boost-status', [GrowthController::class, 'getBoostStatus']);
     Route::post('/ads/{id}/boost-renew', [GrowthController::class, 'renewBoost']);

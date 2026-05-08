@@ -138,7 +138,7 @@ const navigation: NavItem[] = [
   { name: 'Favorite Ads', href: '/dashboard/favorites', icon: HeartIcon },
   { name: 'Messages', href: '/dashboard/messages', icon: MessageIcon },
   { name: 'Wallet', href: '/dashboard/wallet', icon: WalletIcon },
-  { name: 'Promotions', href: '/dashboard/promotions', icon: PromoIcon },
+  { name: 'Boost Manager', href: '/dashboard/promotions', icon: PromoIcon },
   { name: 'Referrals & Credits', href: '/dashboard/referrals', icon: GiftIcon },
   { name: 'Notifications', href: '/dashboard/notifications', icon: BellIcon },
   { name: 'Reviews', href: '/dashboard/reviews', icon: StarIcon },

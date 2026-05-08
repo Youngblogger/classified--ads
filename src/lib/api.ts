@@ -566,6 +566,7 @@ export const walletApi = {
 // Growth & Boost API
 export const growthApi = {
   getBoostPrices: () => api.get('/ads/boost-prices'),
+  myBoosts: () => api.get('/my-boosts'),
   boostAd: (adId: number, data: { boost_type: string; duration_days: number }) =>
     api.post(`/ads/${adId}/boost`, data),
   getBoostStatus: (adId: number) => api.get(`/ads/${adId}/boost-status`),

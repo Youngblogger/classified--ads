@@ -12,7 +12,7 @@ class Ad extends Model
     protected $fillable = [
         'user_id', 'category_id', 'subcategory_id', 'location_id', 'title', 'slug', 'description',
         'short_description', 'attributes', 'currency', 'condition', 'status', 'is_featured', 'is_verified',
-        'views', 'share_count', 'phone', 'whatsapp', 'expires_at', 'lga', 'state',
+        'views', 'clicks_count', 'whatsapp_clicks', 'share_count', 'phone', 'whatsapp', 'expires_at', 'lga', 'state',
         'tags', 'ai_summary', 'image_validation', 'verification_status', 'processing_status',
         'ai_category_id', 'ai_confidence', 'is_auto_categorized', 'rejection_reason', 'processed_at', 'price',
         'edited_by_admin'
