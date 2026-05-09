@@ -1020,7 +1020,7 @@ export default function MessagesPage() {
                     {!isMe && (
                       <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
                         {senderAvatar ? (
-                          <img src={getAvatarUrl(senderAvatar)} alt="" className="w-full h-full object-cover" />
+                          <Image src={getAvatarUrl(senderAvatar)} alt="" width={32} height={32} className="object-cover w-full h-full" unoptimized />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-gray-500 font-medium">
                             {msg.sender?.name?.[0]?.toUpperCase() || 'U'}
@@ -1142,11 +1142,13 @@ export default function MessagesPage() {
                       >
                         {/* Image - show if message_type is image OR if attachment URL looks like an image */}
                         {(msg.message_type === 'image' || (msg.attachment_url && !msg.attachment_url.match(/\.(mp3|webm|wav|m4a|pdf|doc|docx|xls|xlsx)$/i))) && msg.attachment_url && (
-                          <div className="mb-1 sm:mb-2">
-                            <img 
+                          <div className="relative w-[150px] sm:w-[200px] h-[150px] sm:h-[200px] mb-1 sm:mb-2">
+                            <Image 
                               src={msg.attachment_url} 
                               alt="attachment" 
-                              className="rounded-lg max-w-[150px] sm:max-w-[200px] max-h-[150px] sm:max-h-[200px] object-cover cursor-pointer hover:opacity-90 transition-opacity" 
+                              fill
+                              sizes="(max-width: 640px) 150px, 200px"
+                              className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                               onClick={() => msg.attachment_url && setPreviewImage(msg.attachment_url)}
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
@@ -1184,7 +1186,7 @@ export default function MessagesPage() {
                     {isMe && (
                       <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary-100 flex-shrink-0 overflow-hidden">
                         {user?.avatar_url || user?.google_avatar ? (
-                          <img src={getStorageUrl(user.avatar_url || user.google_avatar) || ''} alt="" className="w-full h-full object-cover" />
+                          <Image src={getStorageUrl(user.avatar_url || user.google_avatar) || ''} alt="" width={32} height={32} className="object-cover w-full h-full" unoptimized />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-primary-600 font-medium">
                             {user?.name?.[0]?.toUpperCase() || 'U'}
@@ -1467,12 +1469,16 @@ export default function MessagesPage() {
           >
             <X className="w-6 h-6" />
           </button>
-          <img
-            src={previewImage}
-            alt="Fullscreen preview"
-            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div className="relative w-[90vw] h-[90vh]">
+            <Image
+              src={previewImage}
+              alt="Fullscreen preview"
+              fill
+              sizes="90vw"
+              className="object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
     </div>

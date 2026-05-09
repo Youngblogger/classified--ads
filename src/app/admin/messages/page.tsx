@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import {
   Search,
   MessageSquare,
@@ -317,10 +318,13 @@ export default function MessagesPage() {
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center flex-shrink-0">
                       {conv.participants?.[0]?.avatar ? (
-                        <img 
-                          src={getAvatarUrl(conv.participants[0].avatar)} 
+                        <Image 
+                          src={getAvatarUrl(conv.participants[0].avatar) || ''} 
                           alt={conv.participants[0].name}
-                          className="w-12 h-12 rounded-full object-cover"
+                          width={48}
+                          height={48}
+                          className="rounded-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                       ) : (
                         <span className="text-white font-medium">
@@ -431,10 +435,12 @@ export default function MessagesPage() {
                           : 'bg-gray-100 text-gray-900'
                       }`}>
                         {msg.message_type === 'image' && msg.attachment_url && (
-                          <img 
+                          <Image 
                             src={msg.attachment_url} 
                             alt="attachment" 
-                            className="rounded-lg max-w-full mb-2 cursor-pointer hover:opacity-90 transition-opacity" 
+                            width={400}
+                            height={300}
+                            className="rounded-lg max-w-full mb-2 cursor-pointer hover:opacity-90 transition-opacity w-full h-auto"
                             onClick={() => { if (msg.attachment_url) setPreviewImage(msg.attachment_url); }}
                           />
                         )}
@@ -484,12 +490,16 @@ export default function MessagesPage() {
           >
             <X className="w-6 h-6" />
           </button>
-          <img
-            src={previewImage}
-            alt="Fullscreen preview"
-            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div className="relative" style={{ maxHeight: '90vh', maxWidth: '90vw', width: '100%', height: '90vh' }}>
+            <Image
+              src={previewImage}
+              alt="Fullscreen preview"
+              fill
+              sizes="90vw"
+              className="object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
     </div>

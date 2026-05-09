@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Star, Search, Loader2 } from 'lucide-react';
 import { reviewsApi, adsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -166,7 +167,7 @@ export default function ReviewsPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center">
                     {review.reviewer_avatar ? (
-                      <img src={review.reviewer_avatar} alt={review.reviewer_name} className="w-full h-full rounded-full object-cover" />
+                      <Image src={review.reviewer_avatar} alt={review.reviewer_name} width={48} height={48} className="rounded-full object-cover" unoptimized />
                     ) : (
                       <span className="text-white font-semibold">
                         {(review.reviewer_name || 'U').charAt(0).toUpperCase()}

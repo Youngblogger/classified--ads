@@ -397,13 +397,12 @@ export default function AdDetailPage() {
                   onTouchEnd={onTouchEnd}
                 >
                   {imagesUrls.length > 0 ? (
-                    <img 
+                    <Image 
                       src={currentImageUrl} 
                       alt={ad.title} 
-                      className="w-full h-full object-cover" 
-                      style={{ imageRendering: 'auto' }} 
-                      loading="lazy"
-                      decoding="async"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 60vw"
+                      className="object-cover"
                       onError={() => setCurrentImageError(true)}
                     />
                   ) : (
@@ -470,15 +469,14 @@ export default function AdDetailPage() {
                           setCurrentImageIndex(idx);
                           setCurrentImageError(false);
                         }}
-                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${currentImageIndex === idx ? 'border-primary-500' : 'border-transparent'}`}
+                        className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${currentImageIndex === idx ? 'border-primary-500' : 'border-transparent'}`}
                       >
-                        <img 
+                        <Image 
                           src={thumbnailErrors[idx] ? getFallbackForAd(ad) : imgUrl} 
                           alt="" 
-                          className="w-full h-full object-cover" 
-                          style={{ imageRendering: 'auto' }} 
-                          loading="lazy"
-                          decoding="async"
+                          fill
+                          sizes="80px"
+                          className="object-cover"
                           onError={() => setThumbnailErrors(prev => ({ ...prev, [idx]: true }))}
                         />
                       </button>

@@ -9,6 +9,7 @@ import LoadMoreButton from '@/components/ui/LoadMoreButton';
 
 import { formatPrice, formatRelativeTime, FALLBACK_IMAGE } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import BoostedAdsCarousel from '@/components/ui/BoostedAdsCarousel';
@@ -46,27 +47,23 @@ function getImageUrl(img: any): string {
 
 function LazyImage({ src, alt, className, style, onError }: { src: string; alt: string; className?: string; style?: React.CSSProperties; onError?: () => void }) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
-
-  const handleError = () => {
-    setHasError(true);
-    onError?.();
-  };
 
   return (
     <div className="relative w-full h-full">
-      {!isLoaded && !hasError && (
+      {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
           <div className="w-full h-full animate-pulse" />
         </div>
       )}
-      <img
+      <Image
         src={src}
         alt={alt}
-        className={`${className} w-full h-full object-cover ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        fill
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+        className={`${className} object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         style={style}
         onLoad={() => setIsLoaded(true)}
-        onError={handleError}
+        onError={onError}
       />
     </div>
   );
@@ -196,10 +193,12 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <img
+          <Image
             src={FALLBACK_IMAGE}
             alt="No image"
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover"
           />
         )}
         

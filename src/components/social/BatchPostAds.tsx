@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { Loader2, Send, Calendar, Facebook, Instagram, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -223,15 +224,17 @@ export default function BatchPostAds({ ads, onSuccess }: BatchPostAdsProps) {
                   onChange={() => toggleAd(ad.id)}
                   className="rounded text-primary-600"
                 />
-                <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0 relative">
                   {(() => {
                     const firstImg = ad.images?.[0];
                     const imgUrl = typeof firstImg === 'string' ? firstImg : firstImg?.url;
                     return imgUrl && (
-                      <img 
+                      <Image 
                         src={imgUrl} 
                         alt={ad.title}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="40px"
+                        className="object-cover"
                       />
                     );
                   })()}

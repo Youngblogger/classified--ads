@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   Upload, X, Image as ImageIcon, Check, ChevronRight, ChevronLeft,
@@ -501,7 +502,7 @@ export default function PostAdWizard() {
                         draggedIndex === index ? 'border-primary-500 opacity-50' : 'border-gray-200'
                       }`}
                     >
-                      <img src={img.preview} alt="" className="w-full h-full object-cover" />
+                      <Image src={img.preview} alt="" fill sizes="150px" className="object-cover" />
                       <div className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
                         <GripVertical className="w-3 h-3" />
                       </div>

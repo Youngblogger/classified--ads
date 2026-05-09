@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import {
   Search,
   X,
@@ -765,10 +766,12 @@ function ReplaceImagesModal({
                     onDragOver={handleDragOver}
                     className={`relative group cursor-move ${draggedIndex === index ? 'opacity-50' : ''}`}
                   >
-                    <img
+                    <Image
                       src={getImageUrl(img)}
                       alt=""
-                      className="w-full h-20 object-cover rounded-lg"
+                      fill
+                      sizes="80px"
+                      className="object-cover rounded-lg"
                     />
                     {img.is_primary && (
                       <span className="absolute top-1 left-1 bg-sky-600 text-white text-xs px-1.5 py-0.5 rounded">Primary</span>
@@ -806,7 +809,7 @@ function ReplaceImagesModal({
               <div className="grid grid-cols-4 gap-3">
                 {previews.map((src, i) => (
                   <div key={i} className="relative">
-                    <img src={src} alt="" className="w-full h-20 object-cover rounded-lg" />
+                    <Image src={src} alt="" fill sizes="80px" className="object-cover rounded-lg" />
                   </div>
                 ))}
               </div>
@@ -1343,9 +1346,9 @@ export default function AdsModerationPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                        <div className="w-14 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 relative">
                           {getImageUrl(ad) ? (
-                            <img src={getImageUrl(ad)} alt="" className="w-full h-full object-cover" />
+                            <Image src={getImageUrl(ad)} alt="" fill sizes="56px" className="object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <ImageIcon className="w-6 h-6 text-gray-300" />

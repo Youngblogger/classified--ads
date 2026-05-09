@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, ChevronLeft, GripVertical, Loader2, Phone, MessageCircle, MapPinned, ArrowLeft, ChevronDown, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { adsApi } from '@/lib/api';
@@ -938,10 +939,12 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       draggedIndex === index ? 'border-primary-500 opacity-50' : 'border-gray-200'
                     }`}
                   >
-                    <img 
+                    <Image 
                       src={img.preview} 
                       alt="" 
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="150px"
+                      className="object-cover"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3ENo Preview%3C/text%3E%3C/svg%3E';
                       }}
@@ -1352,8 +1355,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           <div className="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row items-start gap-4">
               {images[0] && (
-                <div className="w-full sm:w-24 h-48 sm:h-24 rounded-lg overflow-hidden flex-shrink-0">
-                  <img src={images[0].preview} alt="" className="w-full h-full object-cover" />
+                <div className="w-full sm:w-24 h-48 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 relative">
+                  <Image src={images[0].preview} alt="" fill sizes="96px" className="object-cover" />
                 </div>
               )}
               <div className="flex-1 min-w-0">

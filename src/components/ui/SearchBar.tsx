@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import useSWR from 'swr';
 import { 
   Search, MapPin, X, ChevronDown, Loader2, 
@@ -441,9 +442,11 @@ export default function SearchBar({
                   className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
                 >
                   {ad.thumbnail ? (
-                    <img src={ad.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                      <Image src={ad.thumbnail} alt="" fill sizes="40px" className="object-cover" />
+                    </div>
                   ) : (
-                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
                       <Search className="w-4 h-4 text-gray-400" />
                     </div>
                   )}

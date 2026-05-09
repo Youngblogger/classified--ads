@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Mic, Square, Play, Pause, Trash2, ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 import { useAuthStore } from '@/lib/store';
 import { useSocket } from '@/hooks/useSocket';
 import { messagesApi } from '@/lib/api';
@@ -697,11 +698,11 @@ export default function ChatModal({
           <button onClick={onClose} className="p-1.5 sm:p-1 hover:bg-[#d1d7db] rounded-full transition-colors">
             <X className="w-5 h-5 sm:w-6 sm:h-6 text-[#54656f]" />
           </button>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#dcf8c6] overflow-hidden flex items-center justify-center flex-shrink-0">
+          <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#dcf8c6] overflow-hidden flex-shrink-0">
             {processedSellerAvatar ? (
-              <img src={processedSellerAvatar} alt={sellerName} className="w-full h-full object-cover" />
+              <Image src={processedSellerAvatar} alt={sellerName} fill sizes="40px" className="object-cover" />
             ) : (
-              <span className="text-[#54656f] font-medium text-sm sm:text-base">{sellerName[0]?.toUpperCase()}</span>
+              <span className="absolute inset-0 flex items-center justify-center text-[#54656f] font-medium text-sm sm:text-base">{sellerName[0]?.toUpperCase()}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -743,11 +744,11 @@ export default function ChatModal({
               return (
                 <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
                   {!isMe && (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                    <div className="relative w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
                       {senderAvatar ? (
-                        <img src={senderAvatar} alt="" className="w-full h-full object-cover" />
+                        <Image src={senderAvatar} alt="" fill sizes="32px" className="object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-medium">
+                        <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-500 font-medium">
                           {msg.sender?.name?.[0]?.toUpperCase() || 'U'}
                         </div>
                       )}
@@ -806,10 +807,12 @@ export default function ChatModal({
                     <div className={`max-w-[75%] px-3 py-2 rounded-2xl ${isMe ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm' : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200'}`}>
                       {/* Image - show if message_type is image OR if attachment URL looks like an image */}
                       {(msg.message_type === 'image' || (msg.attachment_url && !msg.attachment_url.match(/\.(mp3|webm|wav|m4a|pdf|doc|docx|xls|xlsx)$/i))) && msg.attachment_url && (
-                        <img 
+                        <Image 
                           src={msg.attachment_url} 
                           alt="" 
-                          className="rounded-lg w-[200px] object-cover mb-2 cursor-pointer hover:opacity-90 transition-opacity" 
+                          width={200}
+                          height={200}
+                          className="rounded-lg object-cover mb-2 cursor-pointer hover:opacity-90 transition-opacity w-[200px] h-auto" 
                           onClick={() => msg.attachment_url && setPreviewImage(msg.attachment_url)}
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
@@ -830,11 +833,11 @@ export default function ChatModal({
                   )}
 
                   {isMe && (
-                    <div className="w-8 h-8 rounded-full bg-[#dcf8c6] flex-shrink-0 overflow-hidden">
+                    <div className="relative w-8 h-8 rounded-full bg-[#dcf8c6] flex-shrink-0 overflow-hidden">
                       {user?.full_avatar_url || user?.avatar_url || user?.google_avatar ? (
-                        <img src={getImageUrl(user.full_avatar_url || user.avatar_url || user.google_avatar || '') || ''} alt="" className="w-full h-full object-cover" />
+                        <Image src={getImageUrl(user.full_avatar_url || user.avatar_url || user.google_avatar || '') || ''} alt="" fill sizes="32px" className="object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-[#00a884] font-medium">
+                        <div className="absolute inset-0 flex items-center justify-center text-xs text-[#00a884] font-medium">
                           {user?.name?.[0]?.toUpperCase() || 'U'}
                         </div>
                       )}
@@ -848,11 +851,11 @@ export default function ChatModal({
           {/* Typing indicator */}
           {isTyping && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+              <div className="relative w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
                 {processedSellerAvatar ? (
-                  <img src={processedSellerAvatar} alt="" className="w-full h-full object-cover" />
+                  <Image src={processedSellerAvatar} alt="" fill sizes="32px" className="object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-medium">
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-500 font-medium">
                     {sellerName[0]?.toUpperCase() || 'U'}
                   </div>
                 )}
@@ -1017,9 +1020,11 @@ export default function ChatModal({
           </button>
           
           <div className="max-w-6xl max-h-[90vh] w-full h-full flex items-center justify-center">
-            <img 
+            <Image 
               src={previewImage} 
               alt="Preview" 
+              width={800}
+              height={600}
               className="max-w-full max-h-full object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />

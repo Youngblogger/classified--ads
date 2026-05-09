@@ -6,6 +6,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Image as ImageIcon, Book
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses, BoostType, sortAdsByBoostPriority } from '@/lib/boost-config';
 import { formatPrice, FALLBACK_IMAGE } from '@/lib/utils';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -135,12 +136,12 @@ function AdCard({ ad }: { ad: BoostedAd }) {
   return (
     <div onClick={handleAdClick} className={`group min-w-[220px] sm:min-w-[260px] md:min-w-[280px] max-w-[280px] bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer flex-shrink-0 ${boostCardClasses}`}>
       <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
-        <img
+        <Image
           src={imgError ? FALLBACK_IMAGE : imageUrl}
           alt={ad.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          loading="lazy"
-          decoding="async"
+          fill
+          sizes="(max-width: 640px) 220px, (max-width: 768px) 260px, 280px"
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
           onError={() => setImgError(true)}
         />
         {getConditionBadge()}

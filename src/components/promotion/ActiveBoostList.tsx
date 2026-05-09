@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Eye, MousePointerClick, MessageCircle, Heart, Clock, Zap, ChevronRight, RotateCcw, Timer } from 'lucide-react';
 import { getBoostConfig } from '@/lib/boost-config';
 import { getAdImageUrl } from '@/lib/utils';
+import Image from 'next/image';
 import BoostPlansModal from '@/components/ui/BoostPlansModal';
 
 interface AdImage {
@@ -81,10 +82,12 @@ export default function ActiveBoostList({ items, onRenew }: ActiveBoostListProps
               <div className="flex flex-col sm:flex-row">
                 <div className="sm:w-48 h-40 sm:h-auto relative bg-gray-100 flex-shrink-0">
                   {imageUrl ? (
-                    <img
+                    <Image
                       src={imageUrl}
                       alt={item.ad.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 100vw, 192px"
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">

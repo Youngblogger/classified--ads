@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, ImageIcon } from 'lucide-react';
 import { favoritesApi } from '@/lib/api';
 import { formatPrice, getAdImageUrl } from '@/lib/utils';
@@ -172,10 +173,12 @@ export default function FavoritesPage() {
                   const imageUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
                   
                   return imageUrl ? (
-                    <img
+                    <Image
                       src={imageUrl}
                       alt={item.ad.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">

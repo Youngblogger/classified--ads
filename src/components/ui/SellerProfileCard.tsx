@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { CheckCircle, UserPlus, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
@@ -162,6 +163,7 @@ export default function SellerProfileCard({
   const [followersCount, setFollowersCount] = useState(seller.followers_count || 0);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [imgError, setImgError] = useState(false);
   
     const sellerAny = seller as any;
   const isOwnProfile = user?.id === seller.id;
@@ -323,22 +325,20 @@ export default function SellerProfileCard({
     >
       <div className="flex items-start gap-2 sm:gap-3">
         {/* Profile Image */}
-        <div className="relative flex-shrink-0">
-          {profileImage ? (
-            <img
+        <div className="relative flex-shrink-0" style={{ width: currentSizes.image, height: currentSizes.image }}>
+          {profileImage && !imgError ? (
+            <Image
               src={profileImage}
               alt={seller.name}
+              fill
+              sizes="56px"
               className="rounded-full object-cover border-2 border-gray-100"
-              style={{ width: currentSizes.image, height: currentSizes.image }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
+              onError={() => setImgError(true)}
             />
           ) : null}
-          <div className={profileImage ? 'hidden' : ''}>
+          {(!profileImage || imgError) && (
             <SellerInitials name={seller.name || 'U'} size={currentSizes.image} />
-          </div>
+          )}
         </div>
         
         {/* Right side - Name and Follow button */}

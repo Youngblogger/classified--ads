@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import {
   Upload, X, Check, ChevronRight, Loader2, ArrowLeft,
   GripVertical, Phone
@@ -314,7 +315,7 @@ export default function EditAdPage() {
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-3">
                 {existingImages.map((img, index) => (
                   <div key={img.id} className={`relative aspect-square rounded-lg overflow-hidden border-2 ${img.is_primary ? 'border-primary-500' : 'border-gray-200'}`}>
-                    <img src={getAdImageUrl(img)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E'; }} />
+                    <Image src={getAdImageUrl(img)} alt="" fill className="object-cover" sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw" onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E'; }} />
                     {img.is_primary && (
                       <div className="absolute bottom-1 left-1 bg-primary-600 text-white text-[10px] px-1.5 py-0.5 rounded">Cover</div>
                     )}
@@ -339,7 +340,7 @@ export default function EditAdPage() {
                     onDragEnd={() => setDraggedIndex(null)}
                     className={`relative aspect-square rounded-lg overflow-hidden border-2 ${draggedIndex === index ? 'border-primary-500 opacity-50' : 'border-gray-200'}`}
                   >
-                    <img src={img.preview} alt="" className="w-full h-full object-cover" />
+                    <Image src={img.preview} alt="" fill className="object-cover" sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw" />
                     <button onClick={() => setPrimaryImage('new', index)} className="absolute top-1 left-1 w-5 h-5 bg-black/50 text-white rounded-full flex items-center justify-center text-[10px]">
                       <GripVertical className="w-3 h-3" />
                     </button>

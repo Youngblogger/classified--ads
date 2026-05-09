@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import { nigeriaLocations, getLocationBySlug } from '@/lib/nigeriaLocations';
+import Image from 'next/image';
 import { AlertCircle } from 'lucide-react';
 
 const API_URL = 'http://127.0.0.1:8000';
@@ -429,9 +430,9 @@ export default function ProfileSettingsPage() {
           
           <div className="flex items-center gap-6">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
+              <div className="relative w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
                 {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                  <Image src={avatarPreview} alt="Avatar" fill className="object-cover" sizes="96px" />
                 ) : (
                   <span className="text-primary-700 text-3xl font-bold">
                     {formData.name ? getInitials(formData.name) : 'U'}

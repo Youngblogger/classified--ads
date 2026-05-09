@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
 import { adsApi, notificationsApi, messagesApi } from '@/lib/api';
+import Image from 'next/image';
 import { Heart, MessageCircle, Eye, CheckCircle, Clock, Plus, FileText, TrendingUp, Star, Sparkles, ChevronRight } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
@@ -169,13 +170,16 @@ export default function DashboardPage() {
         </div>
         <div className="relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+            <div className="relative w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
               {user?.avatar_url || user?.google_avatar ? (
-                <img 
-                  src={user?.full_avatar_url || user?.avatar_url || user?.google_avatar} 
+                <Image 
+                  src={user?.full_avatar_url || user?.avatar_url || user?.google_avatar || ''} 
                   alt={user?.name || 'User'} 
-                  className="w-full h-full rounded-2xl object-cover"
+                  fill
+                  className="rounded-2xl object-cover"
                   referrerPolicy="no-referrer"
+                  sizes="64px"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               ) : (
                 <span className="text-2xl font-bold text-white">

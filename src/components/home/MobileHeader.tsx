@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, MoreHorizontal } from 'lucide-react';
+import Image from 'next/image';
 import { useGlobalStore, useAuthStore, useUIStore } from '@/lib/store';
 import CategoryModal from '@/components/ui/CategoryModal';
 
@@ -115,10 +116,13 @@ export default function MobileHeader() {
           href="/" 
           className="flex-shrink-0 flex items-center gap-1"
         >
-          <img 
+          <Image 
             src="/icons/iList-white.png" 
             alt="iList" 
+            width={96}
+            height={32}
             className="h-8 w-auto"
+            priority
           />
         </Link>
 

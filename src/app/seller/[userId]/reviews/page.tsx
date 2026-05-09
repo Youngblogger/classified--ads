@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowLeft, Star, Loader2, Home } from 'lucide-react';
 import { sellerReviewsApi } from '@/lib/api';
 import Header from '@/components/home/Header';
@@ -143,6 +144,7 @@ export default function SellerReviewsPage() {
   const [hasMore, setHasMore] = useState(true);
   const [totalReviews, setTotalReviews] = useState(0);
   const [distribution, setDistribution] = useState<RatingDistribution>({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
+  const [avatarError, setAvatarError] = useState(false);
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -264,7 +266,7 @@ export default function SellerReviewsPage() {
           {/* Seller Header */}
           <div className="bg-white rounded-2xl p-6 mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 relative">
                 {seller && seller.name ? (
                   (() => {
                     // Try all avatar sources in order of priority
@@ -274,18 +276,15 @@ export default function SellerReviewsPage() {
                       seller.facebook_avatar ||
                       (seller.avatar ? `/storage/${seller.avatar}` : null);
                     
-                    if (avatarSrc) {
+                    if (avatarSrc && !avatarError) {
                       return (
-                        <img 
+                        <Image 
                           src={avatarSrc} 
                           alt={seller.name || 'Seller'} 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Fallback to initial if image fails
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            target.parentElement!.innerHTML = `<span class="text-primary-600 font-bold text-2xl">${seller.name?.charAt(0)?.toUpperCase() || 'S'}</span>`;
-                          }}
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                          onError={() => setAvatarError(true)}
                         />
                       );
                     }

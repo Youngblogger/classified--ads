@@ -18,6 +18,7 @@ import {
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
 import { cn, BACKEND_URL } from '@/lib/utils';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useSocket } from '@/hooks/useSocket';
 
@@ -719,10 +720,13 @@ export default function Header() {
           <div className="flex items-center justify-between h-16 gap-4">
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
-              <img 
+              <Image 
                 src="/icons/iList-white.png" 
                 alt="iList" 
+                width={120}
+                height={40}
                 className="h-10 w-auto"
+                priority
               />
             </Link>
 
@@ -812,7 +816,9 @@ export default function Header() {
                                   className="w-full flex items-center gap-3 px-3 py-3 hover:bg-primary-50 rounded-xl transition-colors text-left"
                                 >
                                   {ad.thumbnail ? (
-                                    <img src={ad.thumbnail} alt="" className="w-12 h-12 rounded-xl object-cover shadow-sm" />
+                                    <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
+                                      <Image src={ad.thumbnail} alt="" fill sizes="48px" className="object-cover" />
+                                    </div>
                                   ) : (
                                     <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
                                       <Package className="w-6 h-6 text-slate-400" />
@@ -1144,15 +1150,16 @@ export default function Header() {
                           {(() => {
                             const avatarUrl = getFullAvatarUrl(user);
                             return avatarUrl ? (
-                              <img 
+                              <Image 
                                 src={avatarUrl} 
                                 alt={user?.name || 'User'} 
-                                className="w-full h-full object-cover"
+                                fill
+                                sizes="36px"
+                                className="object-cover"
                                 referrerPolicy="no-referrer"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.style.display = 'none';
-                                  target.nextElementSibling?.classList.remove('hidden');
                                 }}
                               />
                             ) : (

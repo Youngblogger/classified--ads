@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { api, adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { 
@@ -446,11 +447,13 @@ export default function BankTransfersPage() {
                 {selectedTransfer.proof_image_url && (
                   <div>
                     <label className="text-sm text-gray-500">Payment Proof</label>
-                    <div className="mt-2">
-                      <img 
+                    <div className="mt-2 relative w-full" style={{ minHeight: '200px' }}>
+                      <Image 
                         src={`/storage/${selectedTransfer.proof_image_url}`} 
                         alt="Payment proof"
-                        className="max-w-full h-auto rounded-lg border border-gray-200"
+                        fill
+                        sizes="(max-width: 672px) 100vw, 600px"
+                        className="rounded-lg border border-gray-200 object-contain"
                       />
                     </div>
                   </div>

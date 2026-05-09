@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { Loader2, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Facebook, Instagram, ExternalLink, Calendar, Send, Plus, Trash2, Play, Pause, Share2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -715,12 +716,12 @@ export default function SocialPostsPage() {
                         onChange={() => toggleAdSelection(ad.id)}
                         className="rounded text-sky-600"
                       />
-                      <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                      <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0 relative">
                         {(() => {
                           const firstImg = ad.images?.[0];
                           const imgUrl = typeof firstImg === 'string' ? firstImg : firstImg?.url;
                           return imgUrl ? (
-                            <img src={imgUrl} alt={ad.title} className="w-full h-full object-cover" />
+                            <Image src={imgUrl} alt={ad.title} fill sizes="48px" className="object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No img</div>
                           );
