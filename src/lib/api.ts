@@ -57,14 +57,41 @@ class ApiClient {
         async (error: AxiosError) => {
           const axiosError = error as AxiosError<{ message?: string; success?: boolean; errors?: any }>;
           
-          console.error('[API Error]', {
-            url: axiosError.config?.url,
-            method: axiosError.config?.method,
-            status: axiosError.response?.status,
-            data: axiosError.response?.data,
-            message: axiosError.message,
-            code: axiosError.code,
-          });
+          // Rate limiting - show toast on 429
+          if (axiosError.response?.status === 429) {
+            const data = axiosError.response?.data as any;
+            const msg = data?.message || 'Too many requests. Please slow down.';
+            toast.error(msg);
+            return Promise.reject(error);
+          }
+          
+          // Retry logic for 5xx errors (server errors)
+          const config = axiosError.config as any;
+          if (
+            axiosError.response?.status &&
+            axiosError.response.status >= 500 &&
+            axiosError.response.status < 600 &&
+            config &&
+            !config._retryCount
+          ) {
+            config._retryCount = (config._retryCount || 0) + 1;
+            const maxRetries = 2;
+            if (config._retryCount <= maxRetries) {
+              const delay = config._retryCount * 1000;
+              await new Promise(resolve => setTimeout(resolve, delay));
+              return this.client(config);
+            }
+          }
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[API Error]', {
+              url: axiosError.config?.url,
+              method: axiosError.config?.method,
+              status: axiosError.response?.status,
+              data: axiosError.response?.data,
+              message: axiosError.message,
+            });
+          }
           
           if (axiosError.response?.status === 401) {
             const url = axiosError.config?.url || '';
@@ -73,9 +100,7 @@ class ApiClient {
             const isAdminEndpoint = url.includes('/admin/') || url.includes('/secure-control-9ja/');
             
             if (!isAuthEndpoint && !isAdminEndpoint) {
-              // Don't delete token immediately - check if it's expired
-              // Removed auto-show login modal on 401 to prevent it from showing on homepage visit
-              // User must explicitly click login button or navigate to protected routes
+              // Don't delete token immediately
             } else if (isAdminEndpoint && !isAuthEndpoint) {
               deleteCookie('token');
               
@@ -94,12 +119,16 @@ class ApiClient {
           }
           
           if (axiosError.code === 'ECONNABORTED') {
-            console.error('[API] Request timeout');
+            if (process.env.NODE_ENV === 'development') {
+              console.error('[API] Request timeout');
+            }
             toast.error('Request timed out. Please try again.');
           }
           
           if (axiosError.code === 'ERR_NETWORK' || axiosError.message === 'Network Error') {
-            console.error('[API] Network error - backend may not be running');
+            if (process.env.NODE_ENV === 'development') {
+              console.error('[API] Network error - backend may not be running');
+            }
             toast.error('Cannot connect to server. Please ensure the backend is running.');
           }
           

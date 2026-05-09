@@ -293,6 +293,7 @@ Route::get('/homepage/clear-cache', [App\Http\Controllers\Api\HomepageController
 
 Route::prefix('ads')->middleware(['throttle:public-api', 'cache-response:300'])->group(function () {
     Route::get('/', [AdController::class, 'index']);
+    Route::get('/ranking', [App\Http\Controllers\Api\RankingController::class, 'feed'])->middleware('cache-response:300');
     Route::get('/featured', [AdController::class, 'featured']);
     Route::get('/recent', [AdController::class, 'recent']);
     Route::get('/similar', [AdController::class, 'similarAds']);
@@ -324,8 +325,8 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/reports', [ReportController::class, 'store']);
 
     // Ads - protected routes (must be before /{slug} wildcard)
-    Route::post('/ads', [AdController::class, 'store']);
-    Route::post('/ads/boost-on-publish', [AdController::class, 'boostOnPublish']);
+    Route::post('/ads', [AdController::class, 'store'])->middleware('throttle:post-ad');
+    Route::post('/ads/boost-on-publish', [AdController::class, 'boostOnPublish'])->middleware('throttle:post-ad');
     Route::get('/ads/{id}', [AdController::class, 'showById'])->where('id', '[0-9]+');
     Route::match(['post', 'put'], '/ads/{id}', [AdController::class, 'updateById'])->where('id', '[0-9]+');
     Route::put('/ads/{slug}', [AdController::class, 'update']);
@@ -340,9 +341,9 @@ Route::middleware('auth.api')->group(function () {
 
     // Growth & Monetization
     Route::get('/my-boosts', [GrowthController::class, 'myBoosts']);
-    Route::post('/ads/{id}/boost', [GrowthController::class, 'boostAd']);
+    Route::post('/ads/{id}/boost', [GrowthController::class, 'boostAd'])->middleware('throttle:boost');
     Route::get('/ads/{id}/boost-status', [GrowthController::class, 'getBoostStatus']);
-    Route::post('/ads/{id}/boost-renew', [GrowthController::class, 'renewBoost']);
+    Route::post('/ads/{id}/boost-renew', [GrowthController::class, 'renewBoost'])->middleware('throttle:boost');
     Route::get('/ads/{id}/boost-renewal-check', [GrowthController::class, 'checkRenewal']);
     Route::post('/ads/{id}/save', [GrowthController::class, 'saveAd']);
     Route::delete('/ads/{id}/unsave', [GrowthController::class, 'unsaveAd']);

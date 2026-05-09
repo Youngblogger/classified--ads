@@ -28,12 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle.uploads' => \App\Http\Middleware\ThrottleUploads::class,
             'sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'cache-response' => \App\Http\Middleware\CacheResponse::class,
+            'log.request' => \App\Http\Middleware\LogRequest::class,
+            'throttle.api' => \App\Http\Middleware\ThrottleApi::class,
         ]);
 
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \App\Http\Middleware\SanitizeInput::class,
+            \App\Http\Middleware\LogRequest::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

@@ -82,5 +82,48 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('homepage', function (Request $request) {
             return Limit::perMinute(60)->by($request->ip() ?? 'guest');
         });
+
+        // Rate limit for ad posting (strict)
+        RateLimiter::for('post-ad', function (Request $request) {
+            return Limit::perMinute(3)->by($request->user()?->id ?? $request->ip())->response(function () {
+                return response()->json(['message' => 'You are posting too frequently. Please wait before posting another ad.'], 429);
+            });
+        });
+
+        // Rate limit for boost operations
+        RateLimiter::for('boost', function (Request $request) {
+            return Limit::perHour(5)->by($request->user()?->id ?? $request->ip())->response(function () {
+                return response()->json(['message' => 'Too many boost operations. Please try again later.'], 429);
+            });
+        });
+
+        // Rate limit for image uploads
+        RateLimiter::for('uploads', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip())->response(function () {
+                return response()->json(['message' => 'Too many uploads. Please slow down.'], 429);
+            });
+        });
+
+        // Rate limit for payment/verification
+        RateLimiter::for('payment', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip())->response(function () {
+                return response()->json(['message' => 'Too many payment requests.'], 429);
+            });
+        });
+
+        // Strict rate limit for admin endpoints
+        RateLimiter::for('admin-api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip())->response(function () {
+                return response()->json(['message' => 'Admin rate limit exceeded.'], 429);
+            });
+        });
+
+        // Global API rate limit
+        RateLimiter::for('global-api', function (Request $request) {
+            if ($request->user()) {
+                return Limit::perMinute(300)->by($request->user()->id);
+            }
+            return Limit::perMinute(100)->by($request->ip());
+        });
     }
 }
