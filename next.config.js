@@ -20,6 +20,14 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
   poweredByHeader: false,
+  compress: true,
+  httpAgentOptions: {
+    keepAlive: true,
+  },
+  onDemandEntries: {
+    maxInactiveAge: 60 * 60 * 1000,
+    pagesBufferLength: 5,
+  },
   async headers() {
     return [
       {
@@ -41,6 +49,28 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+        ],
+      },
+      {
+        source: '/api/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/static/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
     ];
@@ -66,6 +96,7 @@ const nextConfig = {
     localPatterns: [
       { pathname: '**/json_dataset/images/**' },
       { pathname: '**/images/**' },
+      { pathname: '/icons/**' },
     ],
   },
 };

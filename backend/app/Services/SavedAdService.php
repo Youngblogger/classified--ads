@@ -39,7 +39,9 @@ class SavedAdService
             'ad_id' => $adId,
         ]);
 
-        event(new AdSaved($userId, $adId));
+        if ($ad) {
+            event(new AdSaved($ad));
+        }
 
         Log::info('Ad saved by user', [
             'user_id' => $userId,

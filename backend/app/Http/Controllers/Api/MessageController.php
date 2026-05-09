@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\MessageResource;
+use App\Http\Resources\Api\ConversationResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Ad;
 use App\Services\NotificationService;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -16,101 +19,45 @@ class MessageController extends Controller
     public function conversations(Request $request)
     {
         $user = $request->user();
-        
-        $conversations = Conversation::with(['sender', 'receiver', 'ad.images', 'latestMessage'])
-            ->where(function($q) use ($user) {
-                $q->where('sender_id', $user->id)
-                  ->orWhere('receiver_id', $user->id);
-            })
+        $perPage = min((int) $request->input('per_page', 20), 50);
+
+        $conversations = Conversation::with([
+                'sender',
+                'receiver',
+                'ad' => fn($q) => $q->select('id', 'title', 'slug', 'price'),
+                'ad.images' => fn($q) => $q->select('id', 'ad_id', 'thumbnail_url')->where('is_primary', true)->limit(1),
+                'latestMessage',
+            ])
+            ->where(fn($q) => $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id))
             ->orderBy('last_message_at', 'desc')
-            ->paginate(20);
+            ->paginate($perPage);
 
-        // Add participant attribute to each conversation
-        foreach ($conversations as $conversation) {
-            if ($conversation->sender_id === $user->id) {
-                $conversation->participant = $conversation->receiver;
-            } else {
-                $conversation->participant = $conversation->sender;
-            }
-        }
-
-        return response()->json($conversations);
-    }
-
-    public function getOrCreateConversation(Request $request)
-    {
-        logger('getOrCreateConversation called', [
-            'user_id' => $request->user()?->id,
-            'receiver_id' => $request->query('receiver_id'),
-            'ad_id' => $request->query('ad_id'),
-            'all_query' => $request->query(),
-        ]);
-
-        try {
-            $validated = $request->validate([
-                'receiver_id' => 'required|integer',
-                'ad_id' => 'nullable|integer',
-            ]);
-        } catch (ValidationException $e) {
-            logger('Validation failed', $e->errors());
-            return response()->json([
-                'error' => 'Validation failed',
-                'details' => $e->errors(),
-            ], 422);
-        }
-
-        $user = $request->user();
-
-        // Don't allow messaging yourself
-        if ($user->id == $validated['receiver_id']) {
-            return response()->json(['error' => 'Cannot message yourself'], 400);
-        }
-
-        $query = Conversation::where(function($q) use ($user, $validated) {
-            $q->where('sender_id', $user->id)
-              ->where('receiver_id', $validated['receiver_id']);
-            if (isset($validated['ad_id'])) {
-                $q->where('ad_id', $validated['ad_id']);
-            }
-        })
-        ->orWhere(function($q) use ($user, $validated) {
-            $q->where('receiver_id', $user->id)
-              ->where('sender_id', $validated['receiver_id']);
-            if (isset($validated['ad_id'])) {
-                $q->where('ad_id', $validated['ad_id']);
-            }
+        // Add unread count per conversation
+        $conversations->getCollection()->each(function ($conversation) use ($user) {
+            $conversation->unread_count = Message::where('conversation_id', $conversation->id)
+                ->where('sender_id', '!=', $user->id)
+                ->whereNull('read_at')
+                ->count();
         });
 
-        $conversation = $query->first();
-
-        if (!$conversation) {
-            $conversation = Conversation::create([
-                'sender_id' => $user->id,
-                'receiver_id' => $validated['receiver_id'],
-                'ad_id' => $validated['ad_id'] ?? null,
-                'last_message_at' => now(),
-            ]);
-        }
-
-        return response()->json($conversation);
+        return ConversationResource::collection($conversations);
     }
 
     public function messages(Request $request, $conversationId)
     {
         $user = $request->user();
-        
-        $conversation = Conversation::where(function($q) use ($user) {
-                $q->where('sender_id', $user->id)
-                  ->orWhere('receiver_id', $user->id);
-            })
+        $perPage = min((int) $request->input('per_page', 50), 100);
+        $page = max((int) $request->input('page', 1), 1);
+
+        $conversation = Conversation::where(fn($q) => $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id))
             ->findOrFail($conversationId);
 
-        $messages = Message::with('sender')
+        $messages = Message::with('sender:id,name,avatar_url,google_avatar,full_avatar_url')
             ->where('conversation_id', $conversationId)
-            ->orderBy('created_at', 'asc')
-            ->get();
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
 
-        return response()->json($messages);
+        return MessageResource::collection($messages);
     }
 
     public function sendMessage(Request $request, $conversationId)
@@ -122,118 +69,31 @@ class MessageController extends Controller
         ]);
 
         $user = $request->user();
-        
-        $conversation = Conversation::where(function($q) use ($user) {
-                $q->where('sender_id', $user->id)
-                  ->orWhere('receiver_id', $user->id);
-            })
+
+        $conversation = Conversation::where(fn($q) => $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id))
             ->findOrFail($conversationId);
 
         $messageData = [
             'conversation_id' => $conversationId,
             'sender_id' => $user->id,
-            'content' => $validated['content'],
+            'content' => $validated['content'] ?? '',
         ];
 
-        // Handle file attachments (voice, image, etc.)
         if ($request->hasFile('attachment')) {
-            $file = $request->file('attachment');
-            $messageType = $request->input('message_type', 'file');
-            
-            // Validate audio files
-            if ($messageType === 'voice') {
-                $allowedExtensions = ['webm', 'mp4', 'mpeg', 'wav', 'ogg', 'm4a', 'aac', '3gp', ''];
-                $extension = strtolower($file->getClientOriginalExtension());
-                
-                // Check MIME type as primary validation
-                $mimeType = $file->getMimeType();
-                $allowedMimes = [
-                    'audio/webm', 'audio/webm;codecs=opus',
-                    'audio/mp4', 'audio/mpeg', 'audio/x-mpeg',
-                    'audio/wav', 'audio/x-wav',
-                    'audio/ogg', 'audio/ogg;codecs=opus',
-                    'audio/m4a', 'audio/x-m4a',
-                    'audio/aac', 'audio/x-aac',
-                    'audio/3gpp', 'audio/3gpp2'
-                ];
-                
-                // Allow if extension is in list OR MIME type is in list
-                $extensionValid = in_array($extension, $allowedExtensions);
-                $mimeValid = in_array($mimeType, $allowedMimes);
-                
-                // Also check if MIME type starts with audio/
-                $mimeIsAudio = str_starts_with($mimeType, 'audio/');
-                
-                if (!$extensionValid && !$mimeValid && !$mimeIsAudio) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Invalid audio file type. Allowed: webm, mp4, m4a, wav, ogg, aac'
-                    ], 422);
-                }
-                
-                // Validate file size (max 5MB)
-                if ($file->getSize() > 5 * 1024 * 1024) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Audio file too large. Maximum size is 5MB'
-                    ], 422);
-                }
+            $result = $this->handleAttachment($request);
+            if (isset($result['error'])) {
+                return $result['error'];
             }
-            
-            $folder = match($messageType) {
-                'voice' => 'voice',
-                'image' => 'images',
-                default => 'files',
-            };
-            
-            $path = $file->store("messages/{$folder}", 'public');
-            $attachmentUrl = asset('storage/' . $path);
-            $messageData['attachment_url'] = $attachmentUrl;
-            $messageData['content'] = $validated['content'];
-        }
-
-        // Add duration if provided
-        if (isset($validated['duration'])) {
-            $messageData['duration'] = $validated['duration'];
+            $messageData = array_merge($messageData, $result);
         }
 
         $message = Message::create($messageData);
-
         $conversation->update(['last_message_at' => now()]);
-
         $message->load('sender');
 
-        return response()->json([
-            'id' => $message->id,
-            'conversation_id' => $message->conversation_id,
-            'sender_id' => $message->sender_id,
-            'content' => $message->content,
-            'message_type' => $message->message_type ?? 'text',
-            'attachment_url' => $message->attachment_url ?? null,
-            'audio_url' => $message->message_type === 'voice' ? ($message->attachment_url ?? null) : null,
-            'duration' => $message->duration ?? null,
-            'is_read' => false,
-            'read_at' => null,
-            'created_at' => $message->created_at,
-            'sender' => $message->sender,
-        ], 201);
-    }
+        CacheService::clearUnreadCount($conversation->receiver_id);
 
-    public function deleteMessage(Request $request, $messageId)
-    {
-        $user = $request->user();
-        
-        $message = Message::where('id', $messageId)
-            ->where('sender_id', $user->id)
-            ->first();
-        
-        if (!$message) {
-            return response()->json(['error' => 'Message not found or you do not have permission to delete it'], 404);
-        }
-        
-        $message->delete();
-        
-        return response()->json(['message' => 'Message deleted successfully']);
+        return response()->json(new MessageResource($message), 201);
     }
 
     public function store(Request $request)
@@ -246,166 +106,57 @@ class MessageController extends Controller
                 'message_type' => 'sometimes|string|in:text,image,file,voice',
                 'duration' => 'nullable|integer',
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Message store validation failed: ' . json_encode($e->errors()));
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
+        } catch (ValidationException $e) {
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $e->errors()], 422);
         }
 
         $user = $request->user();
-
-        // Don't allow messaging yourself
         if ($user->id == $validated['receiver_id']) {
             return response()->json(['error' => 'Cannot message yourself'], 400);
         }
 
-        // Find or create conversation
-        $conversation = Conversation::where(function($q) use ($user, $validated) {
-            $q->where('sender_id', $user->id)
-              ->where('receiver_id', $validated['receiver_id']);
-            if (isset($validated['ad_id'])) {
-                $q->where('ad_id', $validated['ad_id']);
-            }
-        })
-        ->orWhere(function($q) use ($user, $validated) {
-            $q->where('receiver_id', $user->id)
-              ->where('sender_id', $validated['receiver_id']);
-            if (isset($validated['ad_id'])) {
-                $q->where('ad_id', $validated['ad_id']);
-            }
-        })
-        ->first();
-
-        if (!$conversation) {
-            $conversation = Conversation::create([
-                'sender_id' => $user->id,
-                'receiver_id' => $validated['receiver_id'],
-                'ad_id' => $validated['ad_id'] ?? null,
-                'last_message_at' => now(),
-            ]);
-        }
+        $conversation = $this->findOrCreateConversation($user->id, $validated['receiver_id'], $validated['ad_id'] ?? null);
 
         $messageData = [
             'conversation_id' => $conversation->id,
             'sender_id' => $user->id,
-            'content' => $validated['message'],
+            'content' => $validated['message'] ?? '',
             'message_type' => $validated['message_type'] ?? 'text',
         ];
 
-        // Handle file attachments
-        \Log::info('Store request: hasFile=' . ($request->hasFile('attachment') ? 'true' : 'false') . ', messageType=' . ($validated['message_type'] ?? 'text') . ', allKeys=' . json_encode($request->keys()) . ', files=' . json_encode($request->file()));
-        
         if ($request->hasFile('attachment')) {
-            \Log::info('Attachment received: ' . json_encode([
-                'hasFile' => $request->hasFile('attachment'),
-                'fileName' => $request->file('attachment')->getClientOriginalName(),
-                'fileSize' => $request->file('attachment')->getSize(),
-                'messageType' => $validated['message_type'] ?? 'text',
-            ]));
-            $file = $request->file('attachment');
-            $messageType = $validated['message_type'] ?? 'file';
-            
-            // Validate audio files
-            if ($messageType === 'voice') {
-                $allowedExtensions = ['webm', 'mp4', 'mpeg', 'wav', 'ogg', 'm4a', 'aac', '3gp', ''];
-                $extension = strtolower($file->getClientOriginalExtension());
-                
-                // Check MIME type as primary validation
-                $mimeType = $file->getMimeType();
-                $allowedMimes = [
-                    'audio/webm', 'audio/webm;codecs=opus',
-                    'audio/mp4', 'audio/mpeg', 'audio/x-mpeg',
-                    'audio/wav', 'audio/x-wav',
-                    'audio/ogg', 'audio/ogg;codecs=opus',
-                    'audio/m4a', 'audio/x-m4a',
-                    'audio/aac', 'audio/x-aac',
-                    'audio/3gpp', 'audio/3gpp2'
-                ];
-                
-                // Allow if extension is in list OR MIME type is in list
-                $extensionValid = in_array($extension, $allowedExtensions);
-                $mimeValid = in_array($mimeType, $allowedMimes);
-                
-                // Also check if MIME type starts with audio/
-                $mimeIsAudio = str_starts_with($mimeType, 'audio/');
-                
-                if (!$extensionValid && !$mimeValid && !$mimeIsAudio) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Invalid audio file type. Allowed: webm, mp4, m4a, wav, ogg, aac'
-                    ], 422);
-                }
-                
-                // Validate file size (max 5MB)
-                if ($file->getSize() > 5 * 1024 * 1024) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Audio file too large. Maximum size is 5MB'
-                    ], 422);
-                }
+            $result = $this->handleAttachment($request);
+            if (isset($result['error'])) {
+                return $result['error'];
             }
-            
-            // Determine folder based on message type
-            $folder = match($messageType) {
-                'voice' => 'voice',
-                'image' => 'images',
-                default => 'files',
-            };
-            
-            $path = $file->store("messages/{$folder}", 'public');
-            $attachmentUrl = asset('storage/' . $path);
-            $messageData['attachment_url'] = $attachmentUrl;
-            
-            // Add duration if provided (for voice messages)
-            if ($request->has('duration')) {
-                $messageData['duration'] = $request->input('duration');
-            }
+            $messageData = array_merge($messageData, $result);
         }
 
-        // Don't create a message if content is empty and there's no attachment
         $hasContent = !empty(trim($validated['message'] ?? '')) || $request->hasFile('attachment');
-        
         if (!$hasContent) {
-            // Just return the conversation without creating a message
             return response()->json([
                 'conversation_id' => $conversation->id,
                 'id' => null,
                 'sender_id' => $user->id,
                 'content' => '',
                 'message_type' => 'text',
-                'attachment_url' => null,
-                'duration' => null,
                 'is_read' => false,
-                'read_at' => null,
-                'created_at' => $conversation->last_message_at,
-                'sender' => $user,
+                'created_at' => $conversation->last_message_at?->toIso8601String(),
             ], 201);
         }
 
         $message = Message::create($messageData);
-
         $conversation->update(['last_message_at' => now()]);
-        
+
         if ($conversation->ad) {
-            NotificationService::newMessageOnAd($conversation->ad, $user, $validated['message']);
+            NotificationService::newMessageOnAd($conversation->ad, $user, $validated['message'] ?? '');
         }
 
-        return response()->json([
-            'id' => $message->id,
-            'conversation_id' => $conversation->id,
-            'sender_id' => $message->sender_id,
-            'content' => $message->content,
-            'message_type' => $validated['message_type'] ?? 'text',
-            'attachment_url' => $message->attachment_url ?? null,
-            'duration' => $message->duration ?? null,
-            'is_read' => false,
-            'read_at' => null,
-            'created_at' => $message->created_at,
-            'sender' => $message->sender,
-        ], 201);
+        CacheService::clearUnreadCount($conversation->receiver_id);
+
+        $message->load('sender');
+
+        return response()->json(new MessageResource($message), 201);
     }
 
     public function startConversation(Request $request)
@@ -417,31 +168,7 @@ class MessageController extends Controller
         ]);
 
         $user = $request->user();
-
-        $conversation = Conversation::where(function($q) use ($user, $validated) {
-                $q->where('sender_id', $user->id)
-                  ->where('receiver_id', $validated['receiver_id']);
-                if (isset($validated['ad_id'])) {
-                    $q->where('ad_id', $validated['ad_id']);
-                }
-            })
-            ->orWhere(function($q) use ($user, $validated) {
-                $q->where('receiver_id', $user->id)
-                  ->where('sender_id', $validated['receiver_id']);
-                if (isset($validated['ad_id'])) {
-                    $q->where('ad_id', $validated['ad_id']);
-                }
-            })
-            ->first();
-
-        if (!$conversation) {
-            $conversation = Conversation::create([
-                'sender_id' => $user->id,
-                'receiver_id' => $validated['receiver_id'],
-                'ad_id' => $validated['ad_id'] ?? null,
-                'last_message_at' => now(),
-            ]);
-        }
+        $conversation = $this->findOrCreateConversation($user->id, $validated['receiver_id'], $validated['ad_id'] ?? null);
 
         $message = Message::create([
             'conversation_id' => $conversation->id,
@@ -451,18 +178,103 @@ class MessageController extends Controller
 
         $conversation->update(['last_message_at' => now()]);
 
-        return response()->json(['conversation' => $conversation, 'message' => $message], 201);
+        return response()->json(['conversation' => $conversation, 'message' => new MessageResource($message)], 201);
     }
 
     public function markAsRead(Request $request, $conversationId)
     {
         $user = $request->user();
-        
-        Message::where('conversation_id', $conversationId)
+
+        $count = Message::where('conversation_id', $conversationId)
             ->where('sender_id', '!=', $user->id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        return response()->json(['message' => 'Marked as read']);
+        CacheService::clearUnreadCount($user->id);
+
+        return response()->json(['message' => 'Marked as read', 'count' => $count]);
+    }
+
+    public function getOrCreateConversation(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'receiver_id' => 'required|integer',
+                'ad_id' => 'nullable|integer',
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json(['error' => 'Validation failed', 'details' => $e->errors()], 422);
+        }
+
+        $user = $request->user();
+        if ($user->id == $validated['receiver_id']) {
+            return response()->json(['error' => 'Cannot message yourself'], 400);
+        }
+
+        $conversation = $this->findOrCreateConversation($user->id, $validated['receiver_id'], $validated['ad_id'] ?? null);
+
+        return response()->json($conversation);
+    }
+
+    public function deleteMessage(Request $request, $messageId)
+    {
+        $user = $request->user();
+        $message = Message::where('id', $messageId)->where('sender_id', $user->id)->first();
+
+        if (!$message) {
+            return response()->json(['error' => 'Message not found'], 404);
+        }
+
+        $message->delete();
+        return response()->json(['message' => 'Message deleted successfully']);
+    }
+
+    private function findOrCreateConversation(int $userId, int $receiverId, ?int $adId): Conversation
+    {
+        $query = Conversation::where(fn($q) => $q->where('sender_id', $userId)->where('receiver_id', $receiverId))
+            ->orWhere(fn($q) => $q->where('receiver_id', $userId)->where('sender_id', $receiverId));
+
+        if ($adId) {
+            $query->where('ad_id', $adId);
+        }
+
+        return $query->first() ?? Conversation::create([
+            'sender_id' => $userId,
+            'receiver_id' => $receiverId,
+            'ad_id' => $adId,
+            'last_message_at' => now(),
+        ]);
+    }
+
+    private function handleAttachment(Request $request): array
+    {
+        $file = $request->file('attachment');
+        $messageType = $request->input('message_type', 'file');
+
+        if ($messageType === 'voice') {
+            $allowedExtensions = ['webm', 'mp4', 'mpeg', 'wav', 'ogg', 'm4a', 'aac', '3gp', ''];
+            $extension = strtolower($file->getClientOriginalExtension());
+            $mimeType = $file->getMimeType();
+            $mimeIsAudio = str_starts_with($mimeType, 'audio/');
+
+            if (!in_array($extension, $allowedExtensions) && !$mimeIsAudio) {
+                return ['error' => response()->json(['success' => false, 'message' => 'Invalid audio file type'], 422)];
+            }
+            if ($file->getSize() > 5 * 1024 * 1024) {
+                return ['error' => response()->json(['success' => false, 'message' => 'Audio file too large'], 422)];
+            }
+        }
+
+        $folder = match($messageType) {
+            'voice' => 'voice',
+            'image' => 'images',
+            default => 'files',
+        };
+
+        $path = $file->store("messages/{$folder}", 'public');
+        return [
+            'attachment_url' => asset('storage/' . $path),
+            'content' => $request->input('content', ''),
+        ];
     }
 }

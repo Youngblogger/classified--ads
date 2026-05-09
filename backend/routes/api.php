@@ -37,6 +37,9 @@ use App\Http\Controllers\Api\GrowthController;
 use App\Http\Controllers\Api\AdminAnalyticsController;
 use App\Http\Controllers\Api\AdminBoostController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 // Public auth routes
 Route::prefix('auth')->group(function () {
@@ -232,7 +235,7 @@ Route::prefix('auth')->middleware('auth.api')->group(function () {
     Route::post('/delete-account', [AuthController::class, 'deleteAccount']);
 });
 
-Route::prefix('categories')->group(function () {
+Route::prefix('categories')->middleware('cache-response:3600')->group(function () {
     Route::get('/', [CategoryController::class, 'index']);
     Route::get('/all', [CategoryController::class, 'getAllCategories']);
     Route::get('/{slug}', [CategoryController::class, 'show']);
@@ -250,7 +253,7 @@ Route::prefix('category-fields')->middleware('auth.api')->group(function () {
     Route::post('/reorder', [CategoryFieldController::class, 'reorder']);
 });
 
-Route::prefix('locations')->group(function () {
+Route::prefix('locations')->middleware('cache-response:3600')->group(function () {
     Route::get('/', [LocationController::class, 'index']);
     Route::get('/{slug}', [LocationController::class, 'show']);
 });
@@ -268,11 +271,11 @@ Route::prefix('icons')->middleware('auth.api')->group(function () {
 });
 
 // Search routes
-Route::get('/search', [SearchController::class, 'search']);
-Route::get('/search/advanced', [SearchController::class, 'advancedSearch']);
-Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
-Route::get('/search/trending', [SearchController::class, 'trending']);
-Route::get('/search/recent', [SearchController::class, 'recentSearches']);
+Route::get('/search', [SearchController::class, 'search'])->middleware('throttle:search');
+Route::get('/search/advanced', [SearchController::class, 'advancedSearch'])->middleware('throttle:search');
+Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->middleware('throttle:search');
+Route::get('/search/trending', [SearchController::class, 'trending'])->middleware('throttle:search');
+Route::get('/search/recent', [SearchController::class, 'recentSearches'])->middleware('throttle:search');
 
 // Public banners
 Route::get('/banners/active', [BannerController::class, 'active']);
@@ -285,9 +288,10 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/cloudinary/upload-callback', [CloudinaryController::class, 'uploadCallback']);
     Route::post('/cloudinary/validate-image', [CloudinaryController::class, 'validateImage']);
 });
+Route::get('/homepage', [App\Http\Controllers\Api\HomepageController::class, 'index'])->middleware(['throttle:homepage', 'cache-response:600']);
 Route::get('/homepage/clear-cache', [App\Http\Controllers\Api\HomepageController::class, 'clearCache'])->middleware('auth.api');
 
-Route::prefix('ads')->group(function () {
+Route::prefix('ads')->middleware(['throttle:public-api', 'cache-response:300'])->group(function () {
     Route::get('/', [AdController::class, 'index']);
     Route::get('/featured', [AdController::class, 'featured']);
     Route::get('/recent', [AdController::class, 'recent']);
@@ -366,9 +370,9 @@ Route::middleware('auth.api')->group(function () {
     Route::get('/messages/conversations', [MessageController::class, 'conversations']);
     Route::get('/messages/conversation/get-or-create', [MessageController::class, 'getOrCreateConversation']);
     Route::get('/messages/{conversationId}', [MessageController::class, 'messages']);
-    Route::post('/messages', [MessageController::class, 'store']);
-    Route::post('/messages/{conversationId}', [MessageController::class, 'sendMessage']);
-    Route::post('/messages/start', [MessageController::class, 'startConversation']);
+    Route::post('/messages', [MessageController::class, 'store'])->middleware('throttle:messages');
+    Route::post('/messages/{conversationId}', [MessageController::class, 'sendMessage'])->middleware('throttle:messages');
+    Route::post('/messages/start', [MessageController::class, 'startConversation'])->middleware('throttle:messages');
     Route::post('/messages/{conversationId}/read', [MessageController::class, 'markAsRead']);
     Route::delete('/messages/message/{messageId}', [MessageController::class, 'deleteMessage']);
 

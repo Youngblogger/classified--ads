@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Image as ImageIcon, Eye, Shield, Zap, Users, Star, Search, Plus, Heart, Bookmark } from 'lucide-react';
+import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus, Bookmark } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
+import { AdCardSkeleton } from '@/components/ui/Skeleton';
 
-import { formatPrice, formatRelativeTime, FALLBACK_IMAGE } from '@/lib/utils';
+import { formatPrice, FALLBACK_IMAGE } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
+import { useInfiniteAds } from '@/hooks/useAds';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import PremiumBadge from '@/components/ui/PremiumBadge';
@@ -173,7 +175,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
     e.preventDefault();
     e.stopPropagation();
     const targetSlug = (ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`;
-    window.location.href = `http://localhost:3000/ad/${targetSlug}`;
+    window.location.href = `/ad/${targetSlug}`;
   };
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -261,126 +263,18 @@ const FEATURED_CATEGORIES = [
 ];
 
 export default function HomePage() {
-  const { isAuthenticated, user, hasHydrated } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
-  const [recentAds, setRecentAds] = useState<any[]>([]);
-  const [allAds, setAllAds] = useState<any[]>([]);
-  const [latestAds, setLatestAds] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [adsError, setAdsError] = useState<null | boolean>(null);
-  const [isFetching, setIsFetching] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Seeded ads will be merged with API ads in fetchAds
-  }, []);
-  
+  const { isAuthenticated, user } = useAuthStore();
   const ITEMS_PER_PAGE = 12;
 
-  const fetchAds = useCallback(async (pageNum: number = 1) => {
-    setIsFetching(true);
-    
-    if (pageNum === 1) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
-    
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      
-      const res = await fetch(`${API_URL}/ads?limit=${ITEMS_PER_PAGE}&page=${pageNum}&_t=${Date.now()}`, {
-        cache: 'no-store',
-        signal: controller.signal,
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'Accept': 'application/json',
-        },
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
-      }
-      
-      const json = await res.json();
-      
-      let newAds: any[] = [];
-      let hasMorePages = false;
-      
-      if (json?.data && Array.isArray(json.data)) {
-        newAds = json.data;
-        if (json.meta) {
-          const currentPage = parseInt(json.meta.current_page) || 1;
-          const lastPage = json.meta.last_page || Math.ceil((json.meta.total || 0) / (parseInt(json.meta.per_page) || ITEMS_PER_PAGE));
-          hasMorePages = currentPage < lastPage;
-        } else {
-          hasMorePages = newAds.length >= ITEMS_PER_PAGE;
-        }
-      } else if (Array.isArray(json)) {
-        newAds = json;
-        hasMorePages = false;
-      } else {
-        hasMorePages = false;
-      }
-      
-      // Normalize ads to have images array
-      newAds = newAds.map((ad: any) => {
-        if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
-          const mainImg = ad.main_image || ad.slider_images[0];
-          return {
-            ...ad,
-            images: [mainImg, ...ad.slider_images.filter((_: any, i: number) => i > 0)]
-          };
-        }
-        return ad;
-      });
-      
-      // Use functional update to avoid dependency on recentAds
-      setRecentAds((prevAds) => {
-        const mergedAds = pageNum === 1 ? newAds : [...prevAds, ...newAds];
-        // Remove duplicates by ID
-        const uniqueAds = mergedAds.filter((ad: any, index: number, self: any[]) => 
-          self.findIndex((a: any) => a.id === ad.id) === index
-        );
-        return uniqueAds;
-      });
-      setHasMore(hasMorePages);
-      setAdsError(false);
-    } catch (error: any) {
-      setAdsError(true);
-      setHasMore(false);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-      setIsFetching(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAds(1);
-    
-    const timeout = setTimeout(() => {
-      if (loading && recentAds.length === 0) {
-        setLoading(false);
-      }
-    }, 15000);
-    
-    return () => clearTimeout(timeout);
-  }, []);
-
-  const handleLoadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchAds(nextPage);
-  };
+  const {
+    ads: recentAds,
+    total,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    isError: adsError,
+    loadMore,
+  } = useInfiniteAds({}, ITEMS_PER_PAGE);
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#f5f6f7' }} suppressHydrationWarning>
@@ -514,37 +408,26 @@ export default function HomePage() {
               </Link>
             </div>
             
-            {!mounted ? (
+            {isLoading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-lg overflow-hidden animate-pulse shadow-md border border-gray-200">
-                    <div className="aspect-[3/2] bg-gray-200" />
-                    <div className="p-2 sm:p-5 space-y-2 sm:space-y-3">
-                      <div className="h-4 sm:h-5 bg-gray-200 rounded w-full" />
-                      <div className="h-4 sm:h-5 bg-gray-200 rounded w-3/4" />
-                      <div className="h-5 sm:h-6 bg-gray-200 rounded w-1/2" />
-                    </div>
-                  </div>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <AdCardSkeleton key={i} />
                 ))}
               </div>
-            ) : loading ? (
-              <div className="text-center py-4">Loading...</div>
             ) : adsError ? (
-              <>
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl">⚠️</span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
-                  <p className="text-gray-500 mb-4">Showing sample ads instead.</p>
-                  <button 
-                    onClick={() => fetchAds(1)} 
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
-                  >
-                    <span>Try Again</span>
-                  </button>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">⚠️</span>
                 </div>
-              </>
+                <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
+                <p className="text-gray-500 mb-4">Please try again later.</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
+                >
+                  <span>Try Again</span>
+                </button>
+              </div>
             ) : recentAds.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
@@ -554,10 +437,17 @@ export default function HomePage() {
                 </div>
                 {hasMore && (
                   <LoadMoreButton 
-                    loading={loadingMore} 
+                    loading={isLoadingMore} 
                     hasMore={hasMore} 
-                    onLoadMore={handleLoadMore} 
+                    onLoadMore={loadMore} 
                   />
+                )}
+                {isLoadingMore && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 mt-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <AdCardSkeleton key={i} />
+                    ))}
+                  </div>
                 )}
               </>
             ) : (

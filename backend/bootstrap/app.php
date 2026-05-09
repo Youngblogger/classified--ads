@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'sanitize' => \App\Http\Middleware\SanitizeInput::class,
             'throttle.uploads' => \App\Http\Middleware\ThrottleUploads::class,
             'sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            'cache-response' => \App\Http\Middleware\CacheResponse::class,
         ]);
 
         $middleware->api(prepend: [

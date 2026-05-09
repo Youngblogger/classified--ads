@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\AdListResource;
+use App\Http\Resources\Api\AdDetailResource;
 use App\Models\Ad;
 use App\Models\AdImage;
 use App\Models\BoostedAd;
@@ -11,10 +13,14 @@ use App\Services\AdminEmailNotificationService;
 use App\Services\BoostAdService;
 use App\Services\PaymentService;
 use App\Services\RecentlyViewedService;
-use Illuminate\Http\Request;
+use App\Services\CacheService;
+use App\Services\BoostTierService;
+use App\Services\SavedAdService;
 use App\Services\CloudinaryService;
 use App\Services\AdImageCacheService;
 use App\Jobs\Cloudinary\DeleteCloudinaryFileJob;
+use App\Events\AdSaved;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -25,114 +31,59 @@ class AdController extends Controller
     public function index(Request $request)
     {
         try {
-            $limit = $request->input('limit', 20);
-            $page = $request->input('page', 1);
-            $offset = ($page - 1) * $limit;
+            $limit = min((int) $request->input('limit', 20), 50);
+            $page = max((int) $request->input('page', 1), 1);
 
-            $query = Ad::with(['images', 'category', 'location', 'activeBoost'])
-                ->where('status', 'active');
+            $query = Ad::forListing();
 
             if ($request->category) {
-                $query->whereHas('category', function($q) use ($request) {
-                    $q->where('slug', $request->category);
-                });
+                $query->byCategory($request->category);
             }
-
             if ($request->location) {
-                $query->whereHas('location', function($q) use ($request) {
-                    $q->where('slug', $request->location);
-                });
+                $query->byLocation($request->location);
             }
-
             if ($request->search) {
-                $query->where(function($q) use ($request) {
-                    $q->where('title', 'like', '%' . $request->search . '%')
-                      ->orWhere('description', 'like', '%' . $request->search . '%');
-                });
+                $query->search($request->search);
             }
-
-            $query->orderBy('created_at', 'desc');
 
             $totalCount = (clone $query)->count();
-            $lastPage = $limit > 0 ? ceil($totalCount / $limit) : 1;
+            $lastPage = (int) ceil($totalCount / $limit);
 
-            $allAds = $query
-                ->offset($offset)
-                ->limit($limit)
-                ->get();
+            $allAds = $query->paginate($limit, ['*'], 'page', $page);
 
+            $tierService = app(BoostTierService::class);
             try {
-                $tierService = app(\App\Services\BoostTierService::class);
                 $sortCallback = $tierService->getPrioritySortCallback();
-                $allAds = $allAds->sortByDesc($sortCallback)->values();
+                $sorted = $allAds->getCollection()->sortByDesc($sortCallback)->values();
+                $allAds->setCollection($sorted);
             } catch (\Exception $e) {
                 Log::warning('Boost priority sort failed', ['error' => $e->getMessage()]);
             }
 
-            $allAds = $allAds->map(function($ad) {
-                $data = $ad->toArray();
-                $data['images'] = $ad->images->toArray();
-
-                $data['attributes'] = $ad->attributes ?? [];
-
-                $boost = $ad->activeBoost;
-                $data['is_boosted'] = $boost !== null;
-                $data['boost_type'] = $boost?->boost_type;
-                $data['boost_end_time'] = $boost?->end_time;
-                $data['plan_id'] = $boost?->plan_id;
-                $data['plan_name'] = $boost?->plan?->name ?? null;
-                $data['badge_label'] = $boost?->badge_label ?? null;
-                $data['boost_priority_score'] = $boost?->priority_score ?? 0;
-
-                $freshnessHours = now()->diffInHours($ad->created_at);
-                $data['freshness_score'] = max(0, 100 - ($freshnessHours / 24));
-
-                return $data;
-            });
-
-            return response()->json([
-                'data' => $allAds->values(),
-                'meta' => [
-                    'total' => $totalCount,
-                    'current_page' => $page,
-                    'per_page' => $limit,
-                    'last_page' => $lastPage,
-                ]
-            ]);
+            return AdListResource::collection($allAds)
+                ->response()
+                ->setStatusCode(200)
+                ->header('Cache-Control', 'public, max-age=120, s-maxage=120');
         } catch (\Exception $e) {
             Log::error('Failed to fetch ads: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-            return response()->json(['error' => 'Failed to load ads', 'message' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to load ads'], 500);
         }
     }
 
     public function recent(Request $request)
     {
         try {
-            $limit = $request->input('limit', 20);
-            $page = $request->input('page', 1);
-            $offset = ($page - 1) * $limit;
+            $limit = min((int) $request->input('limit', 20), 50);
 
-            $ads = Ad::with(['images', 'category', 'location', 'activeBoost'])
-                ->where('status', 'active')
-                ->orderBy('created_at', 'desc')
-                ->offset($offset)
+            $ads = Ad::forListing()
                 ->limit($limit)
-                ->get()
-                ->map(function ($ad) {
-                    $data = $ad->toArray();
-                    $data['images'] = $ad->images->toArray();
-                    $data['attributes'] = $ad->attributes ?? [];
-                    $boost = $ad->activeBoost;
-                    $data['is_boosted'] = $boost !== null;
-                    $data['boost_type'] = $boost?->boost_type;
-                    $data['boost_end_time'] = $boost?->end_time;
-                    return $data;
-                });
+                ->get();
 
-            return response()->json(['data' => $ads->values()]);
+            return AdListResource::collection($ads)
+                ->response()
+                ->header('Cache-Control', 'public, max-age=60, s-maxage=60');
         } catch (\Exception $e) {
-            Log::error('Failed to fetch recent ads: ' . $e->getMessage());
+            Log::error('Failed to fetch recent ads', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to load recent ads'], 500);
         }
     }
@@ -140,31 +91,18 @@ class AdController extends Controller
     public function featured(Request $request)
     {
         try {
-            $limit = $request->input('limit', 20);
-            $page = $request->input('page', 1);
-            $offset = ($page - 1) * $limit;
+            $limit = min((int) $request->input('limit', 20), 50);
 
-            $ads = Ad::with(['images', 'category', 'location', 'activeBoost'])
-                ->where('status', 'active')
-                ->where('is_featured', true)
-                ->orderBy('created_at', 'desc')
-                ->offset($offset)
+            $ads = Ad::forListing()
+                ->featured()
                 ->limit($limit)
-                ->get()
-                ->map(function ($ad) {
-                    $data = $ad->toArray();
-                    $data['images'] = $ad->images->toArray();
-                    $data['attributes'] = $ad->attributes ?? [];
-                    $boost = $ad->activeBoost;
-                    $data['is_boosted'] = $boost !== null;
-                    $data['boost_type'] = $boost?->boost_type;
-                    $data['boost_end_time'] = $boost?->end_time;
-                    return $data;
-                });
+                ->get();
 
-            return response()->json(['data' => $ads->values()]);
+            return AdListResource::collection($ads)
+                ->response()
+                ->header('Cache-Control', 'public, max-age=120, s-maxage=120');
         } catch (\Exception $e) {
-            Log::error('Failed to fetch featured ads: ' . $e->getMessage());
+            Log::error('Failed to fetch featured ads', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to load featured ads'], 500);
         }
     }
@@ -172,80 +110,63 @@ class AdController extends Controller
     public function show(Request $request, $slug)
     {
         try {
-            $ad = Ad::with(['images', 'category', 'location', 'user'])
+            $cacheKey = 'ad_detail_slug_' . $slug;
+            $cached = CacheService::get($cacheKey);
+            if ($cached) {
+                return response()->json(['data' => $cached])
+                    ->header('Cache-Control', 'private, max-age=300');
+            }
+
+            $ad = Ad::with([
+                'images' => fn($q) => $q->orderBy('sort_order')->orderBy('is_primary', 'desc'),
+                'category',
+                'location',
+                'user',
+                'activeBoost.plan',
+            ])
                 ->where('slug', $slug)
-                ->where('status', 'active')
+                ->active()
                 ->first();
 
             if (!$ad) {
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
-            $cacheService = new AdImageCacheService();
-            $cachedImages = $cacheService->getCachedUrls($ad->id);
-
             $ad->increment('views');
 
             $userId = $request->user()?->id;
             if ($userId) {
-                $recentlyViewedService = new RecentlyViewedService();
-                $recentlyViewedService->trackView($userId, $ad->id);
+                app(RecentlyViewedService::class)->trackView($userId, $ad->id);
             }
 
-            $attributes = $ad->attributes ?? [];
+            $response = new AdDetailResource($ad);
 
-            $response = $ad->toArray();
-            $response['images'] = $cachedImages;
-            $response['attributes'] = $attributes;
+            $responseData = $response->toArray($request);
+            CacheService::put($cacheKey, $responseData, 600);
 
-            $boost = $ad->activeBoost;
-            $response['is_boosted'] = $boost !== null;
-            $response['boost_type'] = $boost?->boost_type;
-            $response['boost_end_time'] = $boost?->end_time;
-
-            $boostPriorities = [
-                'top' => 3000,
-                'featured' => 2000,
-                'highlight' => 1000,
-            ];
-            $response['boost_priority_score'] = $boost ? ($boostPriorities[$boost->boost_type] ?? 0) : 0;
-
-            if ($userId) {
-                $savedAdService = new \App\Services\SavedAdService();
-                $response['is_saved'] = $savedAdService->isSaved($userId, $ad->id);
-            }
-
-            $freshnessHours = now()->diffInHours($ad->created_at);
-            $response['freshness_score'] = max(0, 100 - ($freshnessHours / 24));
-
-            return response()->json([
-                'data' => $response,
-            ]);
+            return response()->json(['data' => $responseData])
+                ->header('Cache-Control', 'private, max-age=300');
         } catch (\Exception $e) {
             Log::error('Failed to fetch ad: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-            return response()->json(['error' => 'Failed to load ad', 'message' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to load ad'], 500);
         }
     }
 
     public function showById(Request $request, $id)
     {
         try {
-            $ad = Ad::with(['category', 'location', 'user'])->find($id);
+            $ad = Ad::with(['images', 'category', 'location', 'user'])
+                ->find($id);
 
             if (!$ad) {
                 return response()->json(['error' => 'Ad not found'], 404);
             }
 
-            $cacheService = new AdImageCacheService();
-            $response = $ad->toArray();
-            $response['images'] = $cacheService->getCachedUrls($ad->id);
-
             return response()->json([
-                'data' => $response,
+                'data' => new AdDetailResource($ad),
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch ad: ' . $e->getMessage());
+            Log::error('Failed to fetch ad by ID: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load ad'], 500);
         }
     }
@@ -253,9 +174,6 @@ class AdController extends Controller
     public function store(Request $request)
     {
         try {
-            Log::info('=== Ad Store Request ===');
-            Log::info('Request attributes:', ['raw' => $request->input('attributes')]);
-            
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string|max:5000',
@@ -271,51 +189,12 @@ class AdController extends Controller
                 'attributes' => 'nullable|string',
             ]);
 
-            Log::info('Validated attributes:', ['raw' => $validated['attributes']]);
-
-            // Check auto-approval settings
             $autoApproval = $this->checkAutoApproval();
-            
             $user = $request->user();
-            
-            // Resolve location_id: could be numeric ID or slug
-            $locationId = null;
-            if ($validated['location_id']) {
-                if (is_numeric($validated['location_id'])) {
-                    $locationId = (int) $validated['location_id'];
-                } else {
-                    // Try to find by slug
-                    $loc = \App\Models\Location::where('slug', $validated['location_id'])->first();
-                    if ($loc) {
-                        $locationId = $loc->id;
-                    } else {
-                        // Try to find by name
-                        $loc = \App\Models\Location::where('name', $validated['location_id'])->first();
-                        if ($loc) {
-                            $locationId = $loc->id;
-                        }
-                    }
-                }
-            }
-            
-            $attributes = null;
-            if (!empty($validated['attributes'])) {
-                try {
-                    // HTML entity decode first (FormData may encode quotes as &quot;)
-                    $raw = html_entity_decode($validated['attributes'], ENT_QUOTES, 'UTF-8');
-                    $decoded = json_decode($raw, true);
-                    Log::info('Ad store - Decoded attributes:', ['raw' => $raw, 'decoded' => $decoded]);
-                    if (is_array($decoded)) {
-                        $attributes = json_encode($decoded);
-                        Log::info('Ad store - Attributes to save:', ['json' => $attributes]);
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('Failed to decode attributes: ' . $e->getMessage());
-                }
-            }
-            
-            Log::info('Attributes before save:', ['attributes' => $attributes]);
-            
+
+            $locationId = $this->resolveLocationId($validated['location_id'] ?? null);
+            $attributes = $this->resolveAttributes($validated['attributes'] ?? null);
+
             $ad = Ad::create([
                 'user_id' => $user->id,
                 'title' => $validated['title'],
@@ -333,264 +212,152 @@ class AdController extends Controller
                 'slug' => Str::slug($validated['title']) . '-' . time(),
                 'status' => $autoApproval['should_auto_approve'] ? 'active' : 'pending',
             ]);
-            
-            // Set attributes column directly via DB to avoid Eloquent conflict
+
             if ($attributes !== null) {
-                \Illuminate\Support\Facades\DB::table('ads')
-                    ->where('id', $ad->id)
-                    ->update(['attributes' => $attributes]);
-                Log::info('Attributes saved via direct DB update');
+                DB::table('ads')->where('id', $ad->id)->update(['attributes' => $attributes]);
             }
-            
-            Log::info('Ad created:', ['id' => $ad->id]);
 
             if ($request->hasFile('images')) {
-                $cloudinary = new CloudinaryService();
-                $images = $request->file('images');
-                $uploadErrors = [];
-
-                foreach ($images as $index => $image) {
-                    $validation = $cloudinary->validateImageFile($image->getPathname());
-                    if (!$validation['valid']) {
-                        $uploadErrors[] = $validation['error'];
-                        continue;
-                    }
-
-                    $uploadResult = $cloudinary->uploadImage($image->getPathname(), [
-                        'folder' => 'ads',
-                        'user_id' => $user->id,
-                        'tags' => ['ad', 'ad_' . $ad->id],
-                    ]);
-
-                    if (!$uploadResult['success']) {
-                        Log::error('Cloudinary upload failed for ad image', [
-                            'ad_id' => $ad->id,
-                            'error' => $uploadResult['error'] ?? 'Unknown',
-                        ]);
-                        $uploadErrors[] = $uploadResult['error'] ?? 'Upload failed';
-                        continue;
-                    }
-
-                    AdImage::create([
-                        'ad_id' => $ad->id,
-                        'url' => $uploadResult['secure_url'],
-                        'original_url' => $uploadResult['secure_url'],
-                        'thumbnail_url' => $uploadResult['thumbnail_url'],
-                        'medium_url' => $uploadResult['optimized_url'] ?? null,
-                        'public_id' => $uploadResult['public_id'],
-                        'width' => $uploadResult['width'] ?? null,
-                        'height' => $uploadResult['height'] ?? null,
-                        'file_size' => $uploadResult['bytes'] ?? null,
-                        'is_primary' => $index === 0,
-                        'sort_order' => $index,
-                    ]);
-                }
-
-                $cacheService = new AdImageCacheService();
-                $cacheService->invalidateAdCache($ad->id);
-
-                if (!empty($uploadErrors)) {
-                    Log::warning('Some ad images failed to upload', [
-                        'ad_id' => $ad->id,
-                        'errors' => $uploadErrors,
-                    ]);
-                }
+                $this->uploadAdImages($request, $ad, $user);
             }
 
             $ad->load(['images', 'category', 'location', 'user']);
+            event(new AdSaved($ad));
 
-            // Dispatch notification to followers (queued job - non-blocking)
             if ($autoApproval['should_auto_approve']) {
                 try {
                     \App\Jobs\NotifyFollowersOfNewAdJob::dispatch($ad->id, $user->id);
                 } catch (\Exception $e) {
-                    Log::warning('Failed to dispatch follower notification job: ' . $e->getMessage());
-                }
-            }
-
-            // Send notifications to admin ONLY if ad needs manual approval
-            if (!$autoApproval['should_auto_approve']) {
-                try {
-                    // Save notification for admin bell - only for pending ads
-                    \App\Models\AdminNotification::create([
-                        'type' => 'new_ad_pending',
-                        'title' => 'New Ad Pending Approval',
-                        'message' => "New ad '{$ad->title}' by {$ad->user->name} needs your review",
-                        'reference_type' => 'ad',
-                        'reference_id' => $ad->id,
-                        'is_read' => false,
-                    ]);
-                    
-                    // Send email notification to admin
-                    AdminEmailNotificationService::adApprovalRequired($ad);
-                } catch (\Exception $e) {
-                    Log::warning('Failed to send admin notification: ' . $e->getMessage());
+                    Log::warning('Failed to dispatch follower notification: ' . $e->getMessage());
                 }
             }
 
             return response()->json([
-                'message' => $autoApproval['should_auto_approve'] ? 'Ad created successfully and is now live!' : 'Ad created successfully and is pending approval.',
-                'data' => $ad,
+                'message' => $autoApproval['should_auto_approve']
+                    ? 'Ad created successfully and is now live!'
+                    : 'Ad created successfully and is pending approval.',
+                'data' => new AdDetailResource($ad),
                 'auto_approved' => $autoApproval['should_auto_approve'],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['error' => 'Validation failed', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             Log::error('Failed to create ad: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to create ad', 'message' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to create ad'], 500);
         }
     }
 
-    protected function checkAutoApproval(): array
+    public function similarAds(Request $request)
     {
         try {
-            $settings = DB::table('settings')->pluck('value', 'key')->toArray();
-            $enabled = filter_var($settings['auto_approval_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            
-            if (!$enabled) {
-                return ['should_auto_approve' => false, 'duration_minutes' => 0];
+            $adId = (int) $request->input('ad_id');
+            $limit = min((int) $request->input('limit', 8), 20);
+
+            if (!$adId) {
+                return response()->json(['error' => 'Ad ID is required'], 400);
             }
-            
-            $durationMinutes = (int) ($settings['approval_duration_minutes'] ?? 0);
-            
-            // If duration is 0, auto-approve immediately
-            if ($durationMinutes === 0) {
-                return ['should_auto_approve' => true, 'duration_minutes' => $durationMinutes];
+
+            $currentAd = Ad::select('id', 'category_id', 'subcategory_id', 'location_id')->find($adId);
+            if (!$currentAd) {
+                return response()->json(['error' => 'Ad not found'], 404);
             }
-            
-            // For non-zero duration, ad goes to pending
-            return ['should_auto_approve' => false, 'duration_minutes' => $durationMinutes];
+
+            $baseQuery = Ad::with(['images', 'category', 'location'])
+                ->active()
+                ->where('id', '!=', $adId);
+
+            $merged = collect();
+            $relatedIds = [];
+
+            if ($currentAd->subcategory_id) {
+                $subcategoryMatch = (clone $baseQuery)
+                    ->where('subcategory_id', $currentAd->subcategory_id)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($limit)
+                    ->get();
+                $merged = $subcategoryMatch;
+                $relatedIds = $merged->pluck('id')->toArray();
+
+                if ($merged->count() < $limit) {
+                    $remaining = $limit - $merged->count();
+                    $categoryMatch = (clone $baseQuery)
+                        ->whereNotIn('id', $relatedIds)
+                        ->where('category_id', $currentAd->category_id)
+                        ->orderBy('created_at', 'desc')
+                        ->limit($remaining)
+                        ->get();
+                    $merged = $merged->merge($categoryMatch);
+                    $relatedIds = $merged->pluck('id')->toArray();
+                }
+            } elseif ($currentAd->category_id) {
+                $categoryMatch = (clone $baseQuery)
+                    ->where('category_id', $currentAd->category_id)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($limit)
+                    ->get();
+                $merged = $categoryMatch;
+                $relatedIds = $merged->pluck('id')->toArray();
+            }
+
+            if ($merged->count() < $limit) {
+                $remaining = $limit - $merged->count();
+                $locationMatch = (clone $baseQuery)
+                    ->whereNotIn('id', $relatedIds)
+                    ->where('location_id', $currentAd->location_id)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($remaining)
+                    ->get();
+                $merged = $merged->merge($locationMatch);
+                $relatedIds = $merged->pluck('id')->toArray();
+            }
+
+            if ($merged->count() < $limit) {
+                $remaining = $limit - $merged->count();
+                $fallback = (clone $baseQuery)
+                    ->whereNotIn('id', $relatedIds)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($remaining)
+                    ->get();
+                $merged = $merged->merge($fallback);
+            }
+
+            return response()->json([
+                'data' => AdListResource::collection($merged->values()),
+            ])->header('Cache-Control', 'public, max-age=300, s-maxage=300');
         } catch (\Exception $e) {
-            return ['should_auto_approve' => false, 'duration_minutes' => 0];
+            Log::error('Failed to fetch similar ads: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load similar ads'], 500);
         }
     }
 
-    public function boostOnPublish(Request $request, BoostAdService $boostService, PaymentService $paymentService)
+    public function myAds(Request $request)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
+            $limit = min((int) $request->input('limit', 20), 50);
+            $page = max((int) $request->input('page', 1), 1);
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string|max:5000',
-            'price' => 'required|numeric|min:0',
-            'currency' => 'nullable|string|in:NGN,USD,EUR,GBP',
-            'category_id' => 'required|exists:categories,id',
-            'location_id' => 'nullable',
-            'state' => 'nullable|string|max:100',
-            'lga' => 'nullable|string|max:100',
-            'condition' => 'required|in:new,like_new,good,fair',
-            'phone' => 'required|string|max:20',
-            'whatsapp' => 'nullable|string|max:20',
-            'attributes' => 'nullable|string',
-            'boost_type' => 'required|in:top,featured,highlight',
-            'duration_days' => 'required|integer|in:1,3,7,14,30',
-        ]);
+            $query = Ad::with(['images', 'category', 'location', 'activeBoost.plan'])
+                ->where('user_id', $user->id)
+                ->orderBy('created_at', 'desc');
 
-        $locationId = null;
-        if ($validated['location_id']) {
-            if (is_numeric($validated['location_id'])) {
-                $locationId = (int) $validated['location_id'];
-            } else {
-                $loc = \App\Models\Location::where('slug', $validated['location_id'])->first();
-                if ($loc) $locationId = $loc->id;
-                else {
-                    $loc = \App\Models\Location::where('name', $validated['location_id'])->first();
-                    if ($loc) $locationId = $loc->id;
-                }
+            if ($request->input('status')) {
+                $query->where('status', $request->input('status'));
             }
+
+            $ads = $query->paginate($limit, ['*'], 'page', $page);
+
+            return AdListResource::collection($ads);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch my ads: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load ads'], 500);
         }
-
-        $autoApproval = $this->checkAutoApproval();
-        $adStatus = $autoApproval['should_auto_approve'] ? 'active' : 'pending';
-
-        $attributes = null;
-        if (!empty($validated['attributes'])) {
-            try {
-                $raw = html_entity_decode($validated['attributes'], ENT_QUOTES, 'UTF-8');
-                $decoded = json_decode($raw, true);
-                if (is_array($decoded)) {
-                    $attributes = json_encode($decoded);
-                }
-            } catch (\Exception $e) {
-                Log::warning('Failed to decode attributes in boost-on-publish: ' . $e->getMessage());
-            }
-        }
-
-        return DB::transaction(function () use ($validated, $user, $locationId, $adStatus, $attributes, $boostService, $paymentService) {
-            $slug = Str::slug($validated['title']) . '-' . time();
-
-            $ad = Ad::create([
-                'user_id' => $user->id,
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'short_description' => substr($validated['description'], 0, 150),
-                'price' => $validated['price'],
-                'currency' => $validated['currency'] ?? 'NGN',
-                'category_id' => $validated['category_id'],
-                'location_id' => $locationId,
-                'state' => $validated['state'] ?? null,
-                'lga' => $validated['lga'] ?? null,
-                'condition' => $validated['condition'],
-                'phone' => $validated['phone'],
-                'whatsapp' => $validated['whatsapp'] ?? null,
-                'slug' => $slug,
-                'status' => $adStatus,
-            ]);
-
-            if ($attributes !== null) {
-                DB::table('ads')->where('id', $ad->id)->update(['attributes' => $attributes]);
-            }
-
-            $price = $boostService->calculatePrice($validated['boost_type'], $validated['duration_days']);
-
-            $paymentResult = $paymentService->initializePayment([
-                'user_id' => $user->id,
-                'ad_id' => $ad->id,
-                'amount' => $price,
-                'currency' => 'NGN',
-                'type' => 'boost',
-                'email' => $user->email ?? '',
-                'metadata' => [
-                    'action' => 'boost_on_publish',
-                    'boost_type' => $validated['boost_type'],
-                    'duration_days' => $validated['duration_days'],
-                    'ad_status' => $adStatus,
-                ],
-            ]);
-
-            if (!$paymentResult['success']) {
-                return $paymentResult;
-            }
-
-            Log::info('Boost-on-publish initiated', [
-                'ad_id' => $ad->id,
-                'boost_type' => $validated['boost_type'],
-                'duration_days' => $validated['duration_days'],
-                'price' => $price,
-                'reference' => $paymentResult['payment_intent']->reference,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'payment_intent' => $paymentResult['payment_intent']->reference,
-                    'authorization_url' => $paymentResult['authorization_url'] ?? null,
-                    'access_code' => $paymentResult['access_code'] ?? null,
-                    'amount' => $price,
-                    'boost_type' => $validated['boost_type'],
-                    'duration_days' => $validated['duration_days'],
-                    'ad_id' => $ad->id,
-                    'ad_slug' => $ad->slug,
-                ],
-            ]);
-        });
     }
 
     public function update(Request $request, $id)
     {
         try {
             $ad = Ad::where('id', $id)->where('user_id', $request->user()->id)->first();
-
             if (!$ad) {
                 return response()->json(['error' => 'Ad not found or unauthorized'], 404);
             }
@@ -600,19 +367,17 @@ class AdController extends Controller
                 'description' => 'sometimes|string|max:5000',
                 'price' => 'sometimes|numeric|min:0',
                 'category_id' => 'sometimes|exists:categories,id',
-                'location_id' => 'sometimes|exists:locations,id',
-                'state' => 'sometimes|string|max:100',
-                'lga' => 'sometimes|string|max:100',
                 'condition' => 'sometimes|in:new,like_new,good,fair',
                 'phone' => 'sometimes|string|max:20',
                 'whatsapp' => 'nullable|string|max:20',
             ]);
 
             $ad->update($validated);
+            event(new AdSaved($ad));
 
             return response()->json([
                 'message' => 'Ad updated successfully',
-                'data' => $ad,
+                'data' => new AdDetailResource($ad->fresh()),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to update ad: ' . $e->getMessage());
@@ -624,7 +389,6 @@ class AdController extends Controller
     {
         try {
             $ad = Ad::where('id', $id)->where('user_id', $request->user()->id)->first();
-
             if (!$ad) {
                 return response()->json(['error' => 'Ad not found or unauthorized'], 404);
             }
@@ -637,44 +401,26 @@ class AdController extends Controller
                 'currency' => 'sometimes|string|in:NGN,USD,EUR,GBP',
                 'category_id' => 'sometimes|exists:categories,id',
                 'location_id' => 'sometimes|string|max:100',
-                'state' => 'sometimes|string|max:100',
-                'lga' => 'sometimes|string|max:100',
                 'condition' => 'sometimes|in:new,like_new,good,fair',
                 'phone' => 'sometimes|string|max:20',
                 'whatsapp' => 'nullable|string|max:20',
                 'status' => 'sometimes|in:active,pending,rejected,expired',
                 'is_featured' => 'sometimes|boolean',
-                'is_verified' => 'sometimes|boolean',
                 'removed_images' => 'sometimes|string',
-                'primary_image_id' => 'sometimes|integer|exists:ad_images,id',
                 'images.*' => 'image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             ]);
 
             $fillableData = array_intersect_key($validated, array_flip([
                 'title', 'description', 'price', 'negotiable', 'currency',
-                'category_id', 'condition',
-                'phone', 'whatsapp', 'status', 'is_featured', 'is_verified',
-                'state', 'lga',
+                'category_id', 'condition', 'phone', 'whatsapp',
+                'status', 'is_featured', 'state', 'lga',
             ]));
 
             if (isset($validated['negotiable'])) {
                 $fillableData['negotiable'] = filter_var($validated['negotiable'], FILTER_VALIDATE_BOOLEAN);
             }
-
             if (isset($validated['location_id'])) {
-                if (is_numeric($validated['location_id'])) {
-                    $fillableData['location_id'] = (int) $validated['location_id'];
-                } else {
-                    $loc = \App\Models\Location::where('slug', $validated['location_id'])->first();
-                    if ($loc) {
-                        $fillableData['location_id'] = $loc->id;
-                    } else {
-                        $loc = \App\Models\Location::where('name', $validated['location_id'])->first();
-                        if ($loc) {
-                            $fillableData['location_id'] = $loc->id;
-                        }
-                    }
-                }
+                $fillableData['location_id'] = $this->resolveLocationId($validated['location_id']);
             }
 
             $ad->update($fillableData);
@@ -685,110 +431,30 @@ class AdController extends Controller
                     AdImage::where('ad_id', $ad->id)
                         ->whereIn('id', $removedIds)
                         ->each(function ($image) {
-                            $this->deleteImageFiles($image);
+                            $this->deleteImageResources($image);
                             $image->delete();
                         });
                 }
             }
 
             if ($request->hasFile('images')) {
-                $imageService = new \App\Services\ImageProcessingService();
-                $existingCount = $ad->images()->count();
-                $maxImages = \App\Services\ImageProcessingService::getMaxImagesPerAd();
-                $files = $request->file('images');
-                $allowedSlots = $maxImages - $existingCount;
-
-                foreach (array_slice($files, 0, $allowedSlots) as $index => $file) {
-                    $imageService->validateImage($file);
-                    $tempFilename = \Str::uuid() . '.' . $file->getClientOriginalExtension();
-                    $tempPath = 'temp/' . $tempFilename;
-                    \Illuminate\Support\Facades\Storage::disk('public')->put($tempPath, file_get_contents($file->getPathname()));
-
-                    $isPrimary = ($existingCount === 0 && $index === 0);
-
-                    \App\Jobs\ProcessAdImageJob::dispatch(
-                        $ad->id,
-                        $tempPath,
-                        $existingCount + $index,
-                        $isPrimary
-                    );
-                }
+                $this->handleImageUploads($request, $ad);
             }
 
-            if (isset($validated['primary_image_id'])) {
-                \App\Models\AdImage::where('ad_id', $ad->id)->update(['is_primary' => false]);
-                \App\Models\AdImage::where('id', $validated['primary_image_id'])->update(['is_primary' => true]);
-            }
+            event(new AdSaved($ad));
 
-            $ad->refresh();
-            $ad->load(['images', 'category', 'location', 'user']);
+            $ad->refresh()->load(['images', 'category', 'location', 'user']);
 
             return response()->json([
                 'message' => 'Ad updated successfully',
-                'data' => $ad,
+                'data' => new AdDetailResource($ad),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['error' => 'Validation failed', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Failed to update ad by ID: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to update ad', 'message' => $e->getMessage()], 500);
+            Log::error('Failed to update ad: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to update ad'], 500);
         }
-    }
-
-    private function deleteImageFiles($image): void
-    {
-        $paths = array_filter([
-            $image->url,
-            $image->original_url,
-            $image->thumbnail_url,
-            $image->medium_url,
-        ]);
-
-        foreach ($paths as $path) {
-            $this->deleteSingleImageFile($path);
-        }
-    }
-
-    private function deleteSingleImageFile(string $path): void
-    {
-        if (empty($path)) return;
-
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            if (str_contains($path, 'cloudinary.com')) {
-                $publicId = $this->extractPublicIdFromCloudinaryUrl($path);
-                if ($publicId) {
-                    try {
-                        $cloudinaryService = app(\App\Services\CloudinaryService::class);
-                        $cloudinaryService->deleteImage($publicId);
-                    } catch (\Exception $e) {
-                        Log::warning('Failed to delete Cloudinary image: ' . $e->getMessage());
-                    }
-                }
-            }
-            return;
-        }
-
-        $storagePath = str_replace('/storage/', '', parse_url($path, PHP_URL_PATH) ?: $path);
-        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($storagePath)) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($storagePath);
-        }
-    }
-
-    private function extractPublicIdFromCloudinaryUrl(string $url): ?string
-    {
-        $parts = parse_url($url);
-        if (!isset($parts['path'])) return null;
-        $path = ltrim($parts['path'], '/');
-        $path = preg_replace('/\.[^.]+$/', '', $path);
-        $segments = explode('/', $path);
-        $uploadIndex = array_search('upload', $segments);
-        if ($uploadIndex !== false && isset($segments[$uploadIndex + 1])) {
-            if (preg_match('/^v\d+$/', $segments[$uploadIndex + 1])) {
-                return implode('/', array_slice($segments, $uploadIndex + 2));
-            }
-            return implode('/', array_slice($segments, $uploadIndex + 1));
-        }
-        return null;
     }
 
     public function destroy(Request $request, $slug)
@@ -802,15 +468,11 @@ class AdController extends Controller
                 return response()->json(['error' => 'Ad not found or unauthorized'], 404);
             }
 
-            $cacheService = new AdImageCacheService();
-            $cacheService->invalidateAdCache($ad->id);
+            CacheService::invalidateAdCache($ad->id, $ad->category?->slug);
 
-            $cloudinary = new CloudinaryService();
             foreach ($ad->images as $image) {
                 if ($image->public_id) {
                     DeleteCloudinaryFileJob::dispatch($image->public_id, 'ad_image');
-                } elseif ($image->url && !str_starts_with($image->url, 'http')) {
-                    Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
                 }
             }
 
@@ -823,339 +485,16 @@ class AdController extends Controller
         }
     }
 
-    public function destroyById(Request $request, $id)
-    {
-        try {
-            $ad = Ad::find($id);
-
-            if (!$ad) {
-                return response()->json(['error' => 'Ad not found'], 404);
-            }
-
-            $cacheService = new AdImageCacheService();
-            $cacheService->invalidateAdCache($ad->id);
-
-            $cloudinary = new CloudinaryService();
-            foreach ($ad->images as $image) {
-                if ($image->public_id) {
-                    DeleteCloudinaryFileJob::dispatch($image->public_id, 'ad_image');
-                } elseif ($image->url && !str_starts_with($image->url, 'http')) {
-                    Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
-                }
-            }
-
-            $ad->delete();
-
-            return response()->json(['message' => 'Ad deleted successfully']);
-        } catch (\Exception $e) {
-            Log::error('Failed to delete ad by ID: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to delete ad'], 500);
-        }
-    }
-
-    public function uploadImages(Request $request, $id)
-    {
-        try {
-            $ad = Ad::find($id);
-
-            if (!$ad) {
-                return response()->json(['error' => 'Ad not found'], 404);
-            }
-
-            if (!$request->hasFile('images')) {
-                return response()->json(['error' => 'No images uploaded'], 422);
-            }
-
-            $cloudinary = new CloudinaryService();
-            $uploadedImages = [];
-            $existingCount = $ad->images()->count();
-            
-            foreach ($request->file('images') as $index => $image) {
-                $tempPath = $image->getPathname();
-                $publicId = 'ads/' . Str::uuid()->toString();
-
-                $uploadResult = $cloudinary->uploadImage($tempPath, [
-                    'folder' => 'classified-ads/ads',
-                    'public_id' => $publicId,
-                ]);
-
-                if (!$uploadResult['success']) {
-                    Log::error('Cloudinary upload failed for ad image: ' . ($uploadResult['error'] ?? 'Unknown error'));
-                    continue;
-                }
-
-                $adImage = AdImage::create([
-                    'ad_id' => $ad->id,
-                    'url' => $uploadResult['secure_url'],
-                    'original_url' => $uploadResult['secure_url'],
-                    'thumbnail_url' => $uploadResult['thumbnail_url'],
-                    'public_id' => $uploadResult['public_id'],
-                    'width' => $uploadResult['width'] ?? null,
-                    'height' => $uploadResult['height'] ?? null,
-                    'file_size' => $uploadResult['bytes'] ?? null,
-                    'is_primary' => ($existingCount === 0 && $index === 0),
-                    'sort_order' => $existingCount + $index,
-                ]);
-                $uploadedImages[] = $adImage;
-            }
-
-            $cacheService = new AdImageCacheService();
-            $cacheService->invalidateAdCache($ad->id);
-
-            return response()->json([
-                'message' => 'Images uploaded successfully',
-                'data' => $uploadedImages,
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('Failed to upload images: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to upload images'], 500);
-        }
-    }
-
-    public function deleteImage(Request $request, $id, $imageId)
-    {
-        try {
-            $ad = Ad::find($id);
-
-            if (!$ad) {
-                return response()->json(['error' => 'Ad not found'], 404);
-            }
-
-            $image = AdImage::where('id', $imageId)->where('ad_id', $id)->first();
-
-            if (!$image) {
-                return response()->json(['error' => 'Image not found'], 404);
-            }
-
-            $cloudinary = new CloudinaryService();
-            if ($image->public_id) {
-                DeleteCloudinaryFileJob::dispatch($image->public_id, 'ad_image');
-            } elseif ($image->url && !str_starts_with($image->url, 'http')) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
-            }
-
-            $image->delete();
-            $cacheService = new AdImageCacheService();
-            $cacheService->invalidateAdCache($id);
-            $cacheService->invalidateImageCache($imageId);
-
-            return response()->json(['message' => 'Image deleted successfully']);
-        } catch (\Exception $e) {
-            Log::error('Failed to delete image: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to delete image'], 500);
-        }
-    }
-
-    public function myAds(Request $request)
-    {
-        try {
-            $user = $request->user();
-            $limit = $request->input('limit', 20);
-            $page = $request->input('page', 1);
-            $offset = ($page - 1) * $limit;
-
-            $query = Ad::with(['images', 'category', 'location', 'activeBoost'])
-                ->where('user_id', $user->id);
-
-            if ($request->input('status')) {
-                $query->where('status', $request->input('status'));
-            }
-
-            $query->orderBy('created_at', 'desc');
-
-            $totalCount = (clone $query)->count();
-            $lastPage = $limit > 0 ? ceil($totalCount / $limit) : 1;
-
-            $ads = $query
-                ->offset($offset)
-                ->limit($limit)
-                ->get();
-
-            $ads = $ads->map(function ($ad) {
-                $data = $ad->toArray();
-                $data['images'] = $ad->images->toArray();
-
-                $data['attributes'] = $ad->attributes ?? [];
-
-                $boost = $ad->activeBoost;
-                $data['is_boosted'] = $boost !== null;
-                $data['boost_type'] = $boost?->boost_type;
-                $data['boost_end_time'] = $boost?->end_time;
-
-                $boostPriorities = [
-                    'top' => 3000,
-                    'featured' => 2000,
-                    'highlight' => 1000,
-                ];
-                $data['boost_priority_score'] = $boost ? ($boostPriorities[$boost->boost_type] ?? 0) : 0;
-
-                return $data;
-            });
-
-            return response()->json([
-                'data' => $ads->values(),
-                'meta' => [
-                    'total' => $totalCount,
-                    'current_page' => $page,
-                    'per_page' => $limit,
-                    'last_page' => $lastPage,
-                ]
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch my ads: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to load ads', 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    public function similarAds(Request $request)
-    {
-        try {
-            $adId = $request->input('ad_id');
-            $limit = min((int) $request->input('limit', 8), 20);
-            $page = (int) $request->input('page', 1);
-            $offset = ($page - 1) * $limit;
-
-            if (!$adId) {
-                return response()->json(['error' => 'Ad ID is required'], 400);
-            }
-
-            $currentAd = Ad::with(['category', 'subcategory', 'location'])->find($adId);
-            if (!$currentAd) {
-                return response()->json(['error' => 'Ad not found'], 404);
-            }
-
-            $baseQuery = Ad::with(['images', 'category', 'user'])
-                ->where('status', 'active')
-                ->where('id', '!=', $adId);
-
-            // Strategy 1: Same subcategory
-            if ($currentAd->subcategory_id) {
-                $subcategoryMatch = (clone $baseQuery)
-                    ->where('subcategory_id', $currentAd->subcategory_id)
-                    ->orderBy('created_at', 'desc')
-                    ->limit($limit)
-                    ->get();
-
-                if ($subcategoryMatch->count() >= $limit) {
-                    return response()->json(['data' => $subcategoryMatch->values()]);
-                }
-                $relatedIds = $subcategoryMatch->pluck('id')->toArray();
-                $remaining = $limit - $subcategoryMatch->count();
-
-                // Strategy 2: Same category (excluding already found)
-                $categoryMatch = (clone $baseQuery)
-                    ->whereNotIn('id', $relatedIds)
-                    ->where('category_id', $currentAd->category_id)
-                    ->orderBy('created_at', 'desc')
-                    ->limit($remaining)
-                    ->get();
-
-                $merged = $subcategoryMatch->merge($categoryMatch);
-                if ($merged->count() >= $limit) {
-                    return response()->json(['data' => $merged->values()]);
-                }
-                $relatedIds = $merged->pluck('id')->toArray();
-                $remaining = $limit - $merged->count();
-
-                // Strategy 3: Same location
-                $locationMatch = (clone $baseQuery)
-                    ->whereNotIn('id', $relatedIds)
-                    ->where('location_id', $currentAd->location_id)
-                    ->orderBy('created_at', 'desc')
-                    ->limit($remaining)
-                    ->get();
-
-                $merged = $merged->merge($locationMatch);
-                if ($merged->count() >= $limit) {
-                    return response()->json(['data' => $merged->values()]);
-                }
-                $relatedIds = $merged->pluck('id')->toArray();
-                $remaining = $limit - $merged->count();
-
-                // Strategy 4: Fallback latest active ads
-                if ($remaining > 0) {
-                    $fallback = (clone $baseQuery)
-                        ->whereNotIn('id', $relatedIds)
-                        ->orderBy('created_at', 'desc')
-                        ->limit($remaining)
-                        ->get();
-                    $merged = $merged->merge($fallback);
-                }
-
-                return response()->json(['data' => $merged->values()]);
-            }
-
-            // Strategy 2: Same category (no subcategory available)
-            if ($currentAd->category_id) {
-                $categoryMatch = (clone $baseQuery)
-                    ->where('category_id', $currentAd->category_id)
-                    ->orderBy('created_at', 'desc')
-                    ->limit($limit)
-                    ->get();
-
-                if ($categoryMatch->count() >= $limit) {
-                    return response()->json(['data' => $categoryMatch->values()]);
-                }
-                $relatedIds = $categoryMatch->pluck('id')->toArray();
-                $remaining = $limit - $categoryMatch->count();
-
-                // Same location
-                $locationMatch = (clone $baseQuery)
-                    ->whereNotIn('id', $relatedIds)
-                    ->where('location_id', $currentAd->location_id)
-                    ->orderBy('created_at', 'desc')
-                    ->limit($remaining)
-                    ->get();
-
-                $merged = $categoryMatch->merge($locationMatch);
-                if ($merged->count() >= $limit) {
-                    return response()->json(['data' => $merged->values()]);
-                }
-                $relatedIds = $merged->pluck('id')->toArray();
-                $remaining = $limit - $merged->count();
-
-                if ($remaining > 0) {
-                    $fallback = (clone $baseQuery)
-                        ->whereNotIn('id', $relatedIds)
-                        ->orderBy('created_at', 'desc')
-                        ->limit($remaining)
-                        ->get();
-                    $merged = $merged->merge($fallback);
-                }
-
-                return response()->json(['data' => $merged->values()]);
-            }
-
-            // Fallback: latest active ads
-            $latestAds = $baseQuery
-                ->orderBy('created_at', 'desc')
-                ->limit($limit)
-                ->get();
-
-            return response()->json([
-                'data' => $latestAds->values(),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch similar ads: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to load similar ads', 'message' => $e->getMessage()], 500);
-        }
-    }
-
     public function closeAd(Request $request, int $id)
     {
         $user = $request->user();
-
         $ad = Ad::where('id', $id)->where('user_id', $user->id)->first();
 
         if (!$ad) {
             return response()->json(['error' => 'Ad not found or unauthorized'], 404);
         }
-
         if (!in_array($ad->status, ['active', 'pending'])) {
-            return response()->json([
-                'error' => 'Ad cannot be closed',
-                'current_status' => $ad->status,
-            ], 400);
+            return response()->json(['error' => 'Ad cannot be closed', 'current_status' => $ad->status], 400);
         }
 
         $ad->update(['status' => 'sold']);
@@ -1164,6 +503,8 @@ class AdController extends Controller
         if ($activeBoost) {
             $activeBoost->update(['status' => 'expired']);
         }
+
+        CacheService::invalidateAdCache($ad->id, $ad->category?->slug);
 
         return response()->json([
             'success' => true,
@@ -1175,26 +516,125 @@ class AdController extends Controller
     public function renewAd(Request $request, int $id)
     {
         $user = $request->user();
-
         $ad = Ad::where('id', $id)->where('user_id', $user->id)->first();
 
         if (!$ad) {
             return response()->json(['error' => 'Ad not found or unauthorized'], 404);
         }
-
         if (!in_array($ad->status, ['expired', 'sold'])) {
-            return response()->json([
-                'error' => 'Ad is already active',
-                'current_status' => $ad->status,
-            ], 400);
+            return response()->json(['error' => 'Ad is already active', 'current_status' => $ad->status], 400);
         }
 
         $ad->update(['status' => 'pending']);
+        CacheService::invalidateAdCache($ad->id, $ad->category?->slug);
 
         return response()->json([
             'success' => true,
             'message' => 'Ad submitted for re-approval',
             'data' => ['status' => 'pending'],
         ]);
+    }
+
+    private function resolveLocationId($locationId): ?int
+    {
+        if (!$locationId) return null;
+        if (is_numeric($locationId)) return (int) $locationId;
+
+        $loc = \App\Models\Location::where('slug', $locationId)->first()
+            ?? \App\Models\Location::where('name', $locationId)->first();
+        return $loc?->id;
+    }
+
+    private function resolveAttributes($attributes): ?string
+    {
+        if (empty($attributes)) return null;
+        try {
+            $raw = html_entity_decode($attributes, ENT_QUOTES, 'UTF-8');
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? json_encode($decoded) : null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    private function uploadAdImages(Request $request, Ad $ad, $user): void
+    {
+        $cloudinary = new CloudinaryService();
+        foreach ($request->file('images') as $index => $image) {
+            try {
+                $result = $cloudinary->uploadImage($image->getPathname(), [
+                    'folder' => 'ads',
+                    'user_id' => $user->id,
+                    'tags' => ['ad', 'ad_' . $ad->id],
+                ]);
+                if ($result['success']) {
+                    AdImage::create([
+                        'ad_id' => $ad->id,
+                        'url' => $result['secure_url'],
+                        'original_url' => $result['secure_url'],
+                        'thumbnail_url' => $result['thumbnail_url'],
+                        'medium_url' => $result['optimized_url'] ?? null,
+                        'public_id' => $result['public_id'],
+                        'width' => $result['width'] ?? null,
+                        'height' => $result['height'] ?? null,
+                        'file_size' => $result['bytes'] ?? null,
+                        'is_primary' => $index === 0,
+                        'sort_order' => $index,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Image upload failed', ['error' => $e->getMessage()]);
+            }
+        }
+        app(AdImageCacheService::class)->invalidateAdCache($ad->id);
+    }
+
+    private function handleImageUploads(Request $request, Ad $ad): void
+    {
+        $imageService = app(\App\Services\ImageProcessingService::class);
+        $existingCount = $ad->images()->count();
+        $maxImages = \App\Services\ImageProcessingService::getMaxImagesPerAd();
+        $allowedSlots = $maxImages - $existingCount;
+
+        foreach (array_slice($request->file('images'), 0, $allowedSlots) as $index => $file) {
+            $imageService->validateImage($file);
+            $tempFilename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $tempPath = 'temp/' . $tempFilename;
+            Storage::disk('public')->put($tempPath, file_get_contents($file->getPathname()));
+
+            \App\Jobs\ProcessAdImageJob::dispatch(
+                $ad->id,
+                $tempPath,
+                $existingCount + $index,
+                ($existingCount === 0 && $index === 0)
+            );
+        }
+    }
+
+    private function deleteImageResources($image): void
+    {
+        if ($image->public_id) {
+            try {
+                app(CloudinaryService::class)->deleteImage($image->public_id);
+            } catch (\Exception $e) {
+                Log::warning('Failed to delete Cloudinary image: ' . $e->getMessage());
+            }
+        }
+    }
+
+    protected function checkAutoApproval(): array
+    {
+        try {
+            $settings = DB::table('settings')->pluck('value', 'key')->toArray();
+            $enabled = filter_var($settings['auto_approval_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            if (!$enabled) return ['should_auto_approve' => false, 'duration_minutes' => 0];
+
+            $durationMinutes = (int) ($settings['approval_duration_minutes'] ?? 0);
+            if ($durationMinutes === 0) return ['should_auto_approve' => true, 'duration_minutes' => $durationMinutes];
+
+            return ['should_auto_approve' => false, 'duration_minutes' => $durationMinutes];
+        } catch (\Exception $e) {
+            return ['should_auto_approve' => false, 'duration_minutes' => 0];
+        }
     }
 }

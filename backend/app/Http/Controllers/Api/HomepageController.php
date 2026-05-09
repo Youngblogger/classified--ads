@@ -7,24 +7,28 @@ use App\Models\Ad;
 use App\Models\Category;
 use App\Models\Banner;
 use App\Models\Location;
+use App\Services\CacheService;
+use App\Services\BoostTierService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class HomepageController extends Controller
 {
-    private const CACHE_TTL = 300;
-    private const FEATURED_LIMIT = 10;
-    private const LATEST_LIMIT = 20;
-
     public function index(Request $request)
     {
-        $cacheKey = 'homepage_data_' . $request->get('lang', 'en');
-        
-        $data = Cache::remember($cacheKey, self::CACHE_TTL, function () {
+        $lang = $request->get('lang', 'en');
+        $cacheKey = CacheService::KEY_HOMEPAGE . '_' . $lang;
+
+        $data = Cache::remember($cacheKey, CacheService::TTL_HOMEPAGE, function () {
+            $featured = $this->getFeaturedAds();
+            $latest = $this->getLatestAds();
+            $boosted = $this->getBoostedAdsForHomepage();
+
             return [
-                'featured' => $this->getFeaturedAds(),
-                'latest' => $this->getLatestAds(),
+                'featured' => $featured,
+                'boosted' => $boosted,
+                'latest' => $latest,
                 'categories' => $this->getCategories(),
                 'locations' => $this->getLocations(),
                 'banners' => $this->getBanners(),
@@ -34,24 +38,15 @@ class HomepageController extends Controller
         return response()->json([
             'success' => true,
             'data' => $data,
-            'cached' => Cache::has('homepage_data_' . app()->getLocale()),
-        ]);
+        ])->header('Cache-Control', 'public, max-age=300, s-maxage=300');
     }
 
     private function getFeaturedAds()
     {
         return Ad::select([
-            'ads.id',
-            'ads.title',
-            'ads.price',
-            'ads.slug',
-            'ads.status',
-            'ads.created_at',
-            'ads.views',
-            'ads.state',
-            'ads.lga',
-            'ads.is_featured',
-            'ads.is_verified',
+            'ads.id', 'ads.title', 'ads.price', 'ads.slug',
+            'ads.created_at', 'ads.views', 'ads.state', 'ads.lga',
+            'ads.is_featured', 'ads.is_verified',
             'categories.name as category_name',
             'categories.slug as category_slug',
             'locations.name as location_name',
@@ -63,24 +58,16 @@ class HomepageController extends Controller
         ->where('ads.status', 'active')
         ->where('ads.is_featured', true)
         ->orderBy('ads.created_at', 'desc')
-        ->limit(self::FEATURED_LIMIT)
+        ->limit(10)
         ->get();
     }
 
     private function getLatestAds()
     {
         return Ad::select([
-            'ads.id',
-            'ads.title',
-            'ads.price',
-            'ads.slug',
-            'ads.status',
-            'ads.created_at',
-            'ads.views',
-            'ads.state',
-            'ads.lga',
-            'ads.is_featured',
-            'ads.is_verified',
+            'ads.id', 'ads.title', 'ads.price', 'ads.slug',
+            'ads.created_at', 'ads.views', 'ads.state', 'ads.lga',
+            'ads.is_featured', 'ads.is_verified',
             'categories.name as category_name',
             'categories.slug as category_slug',
             'locations.name as location_name',
@@ -91,19 +78,52 @@ class HomepageController extends Controller
         ->leftJoin('locations', 'ads.location_id', '=', 'locations.id')
         ->where('ads.status', 'active')
         ->orderBy('ads.created_at', 'desc')
-        ->limit(self::LATEST_LIMIT)
+        ->limit(20)
         ->get();
+    }
+
+    private function getBoostedAdsForHomepage()
+    {
+        try {
+            $tierService = app(BoostTierService::class);
+            $boostData = $tierService->getBoostedAdsForListing();
+            $boostedAdIds = $boostData['boosted_ad_ids'] ?? [];
+
+            if (empty($boostedAdIds)) return [];
+
+            return Ad::select([
+                'ads.id', 'ads.title', 'ads.price', 'ads.slug',
+                'ads.created_at', 'ads.views', 'ads.state', 'ads.lga',
+                'ads.is_featured', 'ads.is_verified',
+                'categories.name as category_name',
+                'categories.slug as category_slug',
+                'locations.name as location_name',
+                DB::raw('(SELECT COALESCE(thumbnail_url, url) FROM ad_images WHERE ad_images.ad_id = ads.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) as image_url'),
+                DB::raw('(SELECT COUNT(*) FROM ad_images WHERE ad_images.ad_id = ads.id) as images_count'),
+            ])
+            ->join('categories', 'ads.category_id', '=', 'categories.id')
+            ->leftJoin('locations', 'ads.location_id', '=', 'locations.id')
+            ->whereIn('ads.id', $boostedAdIds)
+            ->where('ads.status', 'active')
+            ->get()
+            ->map(function ($ad) use ($boostData) {
+                $ad->boost_info = $boostData['boost_data'][$ad->id] ?? null;
+                return $ad;
+            })
+            ->sortByDesc(fn($ad) => $ad->boost_info['priority_score'] ?? 0)
+            ->values();
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     private function getCategories()
     {
-        return Cache::remember('categories_homepage', 3600, function () {
+        return Cache::remember('categories_homepage', CacheService::TTL_CATEGORIES, function () {
             return Category::where('is_active', true)
                 ->whereNull('parent_id')
-                ->with(['children' => function ($query) {
-                    $query->select('id', 'name', 'slug', 'parent_id');
-                }])
-            ->orderBy('sort_order')
+                ->with(['children' => fn($q) => $q->select('id', 'name', 'slug', 'parent_id')])
+                ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug', 'icon', 'ad_count']);
         });
@@ -111,7 +131,7 @@ class HomepageController extends Controller
 
     private function getLocations()
     {
-        return Cache::remember('locations_homepage', 3600, function () {
+        return Cache::remember('locations_homepage', CacheService::TTL_LOCATIONS, function () {
             return Location::where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug']);
@@ -121,13 +141,11 @@ class HomepageController extends Controller
     private function getBanners()
     {
         return Banner::where('status', 'active')
-            ->where(function ($query) {
-                $query->whereNull('starts_at')
-                    ->orWhere('starts_at', '<=', now());
+            ->where(function ($q) {
+                $q->whereNull('starts_at')->orWhere('starts_at', '<=', now());
             })
-            ->where(function ($query) {
-                $query->whereNull('expires_at')
-                    ->orWhere('expires_at', '>=', now());
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>=', now());
             })
             ->orderBy('position')
             ->get(['id', 'title', 'image_url', 'link', 'position']);

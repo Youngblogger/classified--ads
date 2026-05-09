@@ -51,5 +51,36 @@ class AppServiceProvider extends ServiceProvider
                 ], 429);
             });
         });
+
+        // Rate limit for public API (ads listing, search)
+        RateLimiter::for('public-api', function (Request $request) {
+            return Limit::perMinute(120)->by($request->ip() ?? 'guest')->response(function () {
+                return response()->json(['message' => 'Too many requests. Please slow down.'], 429);
+            });
+        });
+
+        // Rate limit for authenticated API
+        RateLimiter::for('auth-api', function (Request $request) {
+            return Limit::perMinute(200)->by($request->user()?->id ?? $request->ip());
+        });
+
+        // Stricter rate limit for search
+        RateLimiter::for('search', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip() ?? 'guest')->response(function () {
+                return response()->json(['message' => 'Too many search requests.'], 429);
+            });
+        });
+
+        // Rate limit for message sending
+        RateLimiter::for('messages', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?? $request->ip())->response(function () {
+                return response()->json(['message' => 'Too many messages. Please slow down.'], 429);
+            });
+        });
+
+        // Rate limit for homepage
+        RateLimiter::for('homepage', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip() ?? 'guest');
+        });
     }
 }

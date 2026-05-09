@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Ad;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -9,12 +10,10 @@ class AdSaved
 {
     use Dispatchable, SerializesModels;
 
-    public int $userId;
-    public int $adId;
+    public Ad $ad;
 
-    public function __construct(int $userId, int $adId)
+    public function __construct(Ad $ad)
     {
-        $this->userId = $userId;
-        $this->adId = $adId;
+        $this->ad = $ad;
     }
 }

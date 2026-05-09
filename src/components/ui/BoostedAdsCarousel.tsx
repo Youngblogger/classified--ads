@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Image as ImageIcon, Bookmark } from 'lucide-react';
 import PremiumBadge from '@/components/ui/PremiumBadge';
@@ -8,9 +8,9 @@ import { getBoostCardClasses, BoostType, sortAdsByBoostPriority } from '@/lib/bo
 import { formatPrice, FALLBACK_IMAGE } from '@/lib/utils';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { useBoostedAds } from '@/hooks/useAds';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
 const BACKEND_URL = API_URL.replace('/api', '');
 
 interface BoostedAd {
@@ -130,7 +130,7 @@ function AdCard({ ad }: { ad: BoostedAd }) {
     e.preventDefault();
     e.stopPropagation();
     const targetSlug = (ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`;
-    window.location.href = `http://localhost:3000/ad/${targetSlug}`;
+    window.location.href = `/ad/${targetSlug}`;
   };
 
   return (
@@ -181,36 +181,12 @@ function AdCard({ ad }: { ad: BoostedAd }) {
 }
 
 export default function BoostedAdsCarousel() {
-  const [boostedAds, setBoostedAds] = useState<BoostedAd[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { boostedAds: rawBoostedAds, isLoading: loading } = useBoostedAds();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchBoostedAds = async () => {
-      try {
-        const res = await fetch(`${API_URL}/ads?limit=50&_t=${Date.now()}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Accept': 'application/json',
-          },
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        if (json?.data && Array.isArray(json.data)) {
-          const boosted = (json.data as BoostedAd[]).filter((ad) => ad.is_boosted && ad.boost_type);
-          const sorted = sortAdsByBoostPriority(boosted);
-          setBoostedAds(sorted.slice(0, 20));
-        }
-      } catch (error) {
-        console.error('Failed to fetch boosted ads:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBoostedAds();
-  }, []);
+  const boostedAds = sortAdsByBoostPriority(
+    (rawBoostedAds as BoostedAd[]).filter((ad) => ad.is_boosted && ad.boost_type)
+  ).slice(0, 20);
 
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;

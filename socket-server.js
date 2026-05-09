@@ -1,8 +1,9 @@
 const { Server } = require('socket.io');
 const http = require('http');
 
+const onlineUsers = new Map();
+
 const httpServer = http.createServer((req, res) => {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -23,17 +24,12 @@ const httpServer = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const { userId, notification } = JSON.parse(body);
-        
-        // Emit to the specific user's room
         if (io) {
           io.to(`user:${userId}`).emit('notification', notification);
-          console.log(`Notification emitted to user ${userId}:`, notification.type);
         }
-        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (error) {
-        console.error('Error processing notification:', error);
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid request' }));
       }
@@ -41,7 +37,6 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
-  // Health check endpoint
   if (req.method === 'GET' && req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', onlineUsers: onlineUsers.size }));
@@ -59,13 +54,16 @@ const io = new Server(httpServer, {
     credentials: false,
     allowedHeaders: ['*']
   },
-  pingTimeout: 60000,
-  pingInterval: 25000,
-  transports: ['polling', 'websocket'],
-  allowEIO3: true
+  pingTimeout: 25000,
+  pingInterval: 10000,
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+  connectTimeout: 10000,
+  maxHttpBufferSize: 1e6,
+  httpCompression: {
+    threshold: 512
+  },
 });
-
-const onlineUsers = new Map();
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);

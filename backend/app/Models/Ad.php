@@ -89,7 +89,51 @@ class Ad extends Model
         if ($value) {
             return $value;
         }
-        
+
         return $this->location ? $this->location->name : null;
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
+    }
+
+    public function scopeForListing($query)
+    {
+        return $query->with(['images', 'category', 'location', 'activeBoost.plan'])
+            ->active()
+            ->orderBy('created_at', 'desc');
+    }
+
+    public function scopeByCategory($query, string $slug)
+    {
+        return $query->whereHas('category', fn($q) => $q->where('slug', $slug));
+    }
+
+    public function scopeByLocation($query, string $slug)
+    {
+        return $query->whereHas('location', fn($q) => $q->where('slug', $slug));
+    }
+
+    public function scopeSearch($query, string $term)
+    {
+        return $query->where(function($q) use ($term) {
+            $q->where('title', 'like', "%{$term}%")
+              ->orWhere('description', 'like', "%{$term}%");
+        });
+    }
+
+    public function scopeDateRange($query, string $start, ?string $end = null)
+    {
+        $query->where('created_at', '>=', $start);
+        if ($end) {
+            $query->where('created_at', '<=', $end);
+        }
+        return $query;
     }
 }

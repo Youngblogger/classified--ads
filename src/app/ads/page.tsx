@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
@@ -8,6 +8,8 @@ import Footer from '@/components/layout/Footer';
 import AdCard from '@/components/ui/AdCard';
 import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal, MapPin, Loader2 } from 'lucide-react';
 import { AdGridSkeleton } from '@/components/ui/Skeleton';
+import { useSearchInfinite } from '@/hooks/useAds';
+import { useDebounce } from '@/hooks/useDebounce';
 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
@@ -82,7 +84,6 @@ function AdsPageContent() {
   const categorySlug = searchParams.get('category') || '';
   const locationSlug = searchParams.get('location') || '';
   const lgaParam = searchParams.get('lga') || '';
-  const page = parseInt(searchParams.get('page') || '1');
 
   // Local state
   const [localQuery, setLocalQuery] = useState(query || '');
@@ -98,15 +99,6 @@ function AdsPageContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  // Error state
-  const [adsError, setAdsError] = useState<string | null>(null);
-  
-  // Infinite scroll state
-  const [allAds, setAllAds] = useState<Ad[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // Fetch categories
@@ -126,97 +118,47 @@ function AdsPageContent() {
   const categories: Category[] = categoriesData?.data || categoriesData || [];
   const locations = locationsData?.data || locationsData || [];
 
-  // Build query params for search API
-  const buildQueryParams = useCallback((pageNum: number) => {
-    const params = new URLSearchParams();
-    if (localQuery) params.set('q', localQuery);
-    if (selectedCategoryId) params.set('category_id', selectedCategoryId.toString());
-    if (selectedLocationSlug) params.set('location', selectedLocationSlug);
-    if (selectedLGA) params.set('lga', selectedLGA);
-    if (priceMinRaw) params.set('min_price', priceMinRaw);
-    if (priceMaxRaw) params.set('max_price', priceMaxRaw);
-    if (condition) params.set('condition', condition);
-    
-    // Sort mapping
-    const sortMapping: Record<SortOption, { sort_by: string; sort_order: string }> = {
-      'newest': { sort_by: 'created_at', sort_order: 'desc' },
-      'price_asc': { sort_by: 'price', sort_order: 'asc' },
-      'price_desc': { sort_by: 'price', sort_order: 'desc' },
-      'popular': { sort_by: 'views', sort_order: 'desc' },
-    };
-    const sortConfig = sortMapping[sortBy];
-    params.set('sort_by', sortConfig.sort_by);
-    params.set('sort_order', sortConfig.sort_order);
-    
-    params.set('page', pageNum.toString());
-    params.set('per_page', '20');
-    return params.toString();
-  }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMin, priceMax, condition, sortBy]);
-
-  // Fetch ads for current page
-  const fetchAds = async (pageNum: number, reset: boolean = false) => {
-    try {
-      setAdsError(null);
-      if (pageNum === 1) {
-        setIsInitialLoad(true);
-      } else {
-        setIsLoadingMore(true);
-      }
-      
-      const queryParams = buildQueryParams(pageNum);
-      
-      const response = await fetch(`${API_URL}/search?${queryParams}`);
-      
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody.message || `Server error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (reset || pageNum === 1) {
-        setAllAds(data.data || []);
-      } else {
-        setAllAds(prev => [...prev, ...(data.data || [])]);
-      }
-      
-      setTotalPages(data.meta?.last_page || 1);
-    } catch (error: any) {
-      console.error('Error fetching ads:', error);
-      setAdsError(error.message || 'Failed to load ads');
-      if (pageNum === 1) setAllAds([]);
-    } finally {
-      setIsInitialLoad(false);
-      setIsLoadingMore(false);
-    }
+  const sortMapping: Record<SortOption, { sort_by: string; sort_order: string }> = {
+    'newest': { sort_by: 'created_at', sort_order: 'desc' },
+    'price_asc': { sort_by: 'price', sort_order: 'asc' },
+    'price_desc': { sort_by: 'price', sort_order: 'desc' },
+    'popular': { sort_by: 'views', sort_order: 'desc' },
   };
 
-  // Initial load and when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-    const timer = setTimeout(() => fetchAds(1, true), 400);
-    return () => clearTimeout(timer);
+  const queryParams = useMemo(() => {
+    const p: Record<string, string> = {};
+    if (localQuery) p.q = localQuery;
+    if (selectedCategoryId) p.category_id = selectedCategoryId.toString();
+    if (selectedLocationSlug) p.location = selectedLocationSlug;
+    if (selectedLGA) p.lga = selectedLGA;
+    if (priceMinRaw) p.min_price = priceMinRaw;
+    if (priceMaxRaw) p.max_price = priceMaxRaw;
+    if (condition) p.condition = condition;
+    const sortConfig = sortMapping[sortBy];
+    p.sort_by = sortConfig.sort_by;
+    p.sort_order = sortConfig.sort_order;
+    return p;
   }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMinRaw, priceMaxRaw, condition, sortBy]);
+
+  const debouncedParams = useDebounce(queryParams, 400);
+
+  const { ads, isLoading, isLoadingMore, hasMore, isError, error, loadMore } = useSearchInfinite(debouncedParams);
 
   // Infinite scroll observer
   useEffect(() => {
+    if (!loadMoreRef.current || !hasMore || isLoadingMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && currentPage < totalPages && !isLoadingMore) {
-          const nextPage = currentPage + 1;
-          setCurrentPage(nextPage);
-          fetchAds(nextPage);
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMore();
         }
       },
       { threshold: 0.1 }
     );
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
+    observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
-  }, [currentPage, totalPages, isLoadingMore]);
+  }, [hasMore, isLoadingMore, loadMore]);
 
   // Find category by slug
   useEffect(() => {
@@ -498,8 +440,7 @@ function AdsPageContent() {
                   {localQuery ? `Results for "${localQuery}"` : 'All Ads'}
                 </h1>
                 <p className="text-sm sm:text-base text-gray-500">
-                  {allAds.length} ads found
-                  {currentPage < totalPages && ` (showing ${currentPage * 20} of ${totalPages * 20})`}
+                  {ads.length} ads found
                 </p>
               </div>
 
@@ -559,7 +500,7 @@ function AdsPageContent() {
             )}
 
             {/* Ads Grid/List */}
-            {isInitialLoad ? (
+            {isLoading ? (
               viewMode === 'grid' ? (
                 <AdGridSkeleton count={12} />
               ) : (
@@ -576,31 +517,25 @@ function AdsPageContent() {
                   ))}
                 </div>
               )
-            ) : adsError ? (
+            ) : isError ? (
               <div className="bg-white rounded-xl p-12 text-center">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">⚠️</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Unable to load ads</h3>
-                <p className="text-gray-500 mb-2">{adsError}</p>
+                <p className="text-gray-500 mb-2">{error?.message || 'An error occurred'}</p>
                 <p className="text-gray-400 mb-6 text-sm">The server may be down. Please try again later.</p>
-                <button
-                  onClick={() => fetchAds(1, true)}
-                  className="px-6 py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700"
-                >
-                  Try Again
-                </button>
               </div>
-            ) : allAds.length > 0 ? (
+            ) : ads.length > 0 ? (
               viewMode === 'grid' ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                  {allAds.map((ad) => (
+                  {ads.map((ad) => (
                     <AdCard key={ad.id} ad={ad} />
                   ))}
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {allAds.map((ad) => (
+                  {ads.map((ad) => (
                     <AdCard key={ad.id} ad={ad} variant="horizontal" />
                   ))}
                 </div>
@@ -630,7 +565,7 @@ function AdsPageContent() {
             )}
             
             {/* Load More Trigger Element */}
-            {currentPage < totalPages && !isLoadingMore && (
+            {hasMore && !isLoadingMore && (
               <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
                 <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
               </div>
