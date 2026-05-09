@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { BarChart3, Zap, Loader2, RefreshCw, TrendingUp } from 'lucide-react';
 import { growthApi } from '@/lib/api';
-import BoostAdModal from '@/components/ui/BoostAdModal';
+import BoostPlansModal from '@/components/ui/BoostPlansModal';
 import ActiveBoostList from '@/components/promotion/ActiveBoostList';
 import ExpiredBoostList from '@/components/promotion/ExpiredBoostList';
 import BoostAnalyticsCards from '@/components/promotion/BoostAnalyticsCards';
@@ -224,7 +224,7 @@ export default function BoostManagerPage() {
       )}
 
       {/* Boost/Renew/Extend Modal */}
-      <BoostAdModal
+      <BoostPlansModal
         adId={boostModal.adId}
         adTitle={boostModal.adTitle}
         isOpen={boostModal.show}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Eye, MousePointerClick, MessageCircle, Heart, Clock, Zap, ChevronRight, RotateCcw, Timer } from 'lucide-react';
 import { getBoostConfig } from '@/lib/boost-config';
 import { getAdImageUrl } from '@/lib/utils';
-import BoostAdModal from '@/components/ui/BoostAdModal';
+import BoostPlansModal from '@/components/ui/BoostPlansModal';
 
 interface AdImage {
   id?: number;
@@ -169,7 +169,7 @@ export default function ActiveBoostList({ items, onRenew }: ActiveBoostListProps
       </div>
 
       {extendModal && (
-        <BoostAdModal
+        <BoostPlansModal
           adId={extendModal.adId}
           adTitle={extendModal.adTitle}
           isOpen={extendModal.show}

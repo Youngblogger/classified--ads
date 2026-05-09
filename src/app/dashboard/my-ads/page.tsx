@@ -8,7 +8,7 @@ import { adsApi } from '@/lib/api';
 import { getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import BoostAdModal from '@/components/ui/BoostAdModal';
+import BoostPlansModal from '@/components/ui/BoostPlansModal';
 import { getAuthToken } from '@/lib/cookies';
 
 type StatusFilter = 'all' | 'active' | 'pending' | 'sold' | 'expired';
@@ -616,7 +616,7 @@ export default function MyAdsPage() {
         </div>
       )}
 
-      <BoostAdModal
+      <BoostPlansModal
         adId={boostModal.adId ?? 0}
         adTitle={boostModal.adTitle ?? ''}
         isOpen={boostModal.show}

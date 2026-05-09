@@ -14,6 +14,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        \App\Models\BoostPlan::truncate();
+        $this->call(BoostPlanSeeder::class);
+
         $this->createSampleUsers();
         $this->createSampleCategories();
         $this->createSampleLocations();

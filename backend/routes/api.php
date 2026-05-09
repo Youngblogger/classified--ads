@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\CloudinaryController;
 use App\Http\Controllers\Api\AdModerationController;
 use App\Http\Controllers\Api\GrowthController;
 use App\Http\Controllers\Api\AdminAnalyticsController;
+use App\Http\Controllers\Api\AdminBoostController;
 use Illuminate\Support\Facades\Route;
 
 // Public auth routes
@@ -190,6 +191,16 @@ Route::prefix('secure-control-9ja')->middleware([\App\Http\Middleware\SecureAdmi
     Route::post('/boosts/{id}/deactivate', [AdminController::class, 'deactivateBoost']);
     Route::post('/boosts/{id}/extend', [AdminController::class, 'extendBoost']);
 
+    // Boost Management
+    Route::get('/boost/plans', [AdminBoostController::class, 'plans']);
+    Route::post('/boost/plans', [AdminBoostController::class, 'createPlan']);
+    Route::put('/boost/plans/{id}', [AdminBoostController::class, 'updatePlan']);
+    Route::delete('/boost/plans/{id}', [AdminBoostController::class, 'deletePlan']);
+    Route::get('/boost/boosts', [AdminBoostController::class, 'allBoosts']);
+    Route::get('/boost/summary', [AdminBoostController::class, 'boostSummary']);
+    Route::post('/boost/boosts/{id}/deactivate', [AdminBoostController::class, 'deactivateBoost']);
+    Route::post('/boost/boosts/{id}/extend', [AdminBoostController::class, 'extendBoost']);
+
     // Analytics
     Route::get('/analytics/summary', [AdminAnalyticsController::class, 'summary']);
     Route::get('/analytics/trends', [AdminAnalyticsController::class, 'trends']);
@@ -282,6 +293,7 @@ Route::prefix('ads')->group(function () {
     Route::get('/recent', [AdController::class, 'recent']);
     Route::get('/similar', [AdController::class, 'similarAds']);
     Route::get('/boost-prices', [GrowthController::class, 'getBoostPrices']);
+    Route::get('/boost-plans', [GrowthController::class, 'getBoostPlans']);
     Route::post('/{id}/track-click', [GrowthController::class, 'trackClick']);
     Route::get('/{id}/share-link', [GrowthController::class, 'getShareLink']);
     Route::get('/{slug}', [AdController::class, 'show'])->where('slug', '^(?=.*[a-z])[a-z0-9\-]+$');

@@ -457,4 +457,58 @@ html {
   .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
+
+  .animate-silver-glow {
+    animation: silver-glow 3s ease-in-out infinite;
+  }
+
+  @keyframes silver-glow {
+    0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(148, 163, 184, 0.3); }
+    50% { opacity: 0.85; box-shadow: 0 0 12px rgba(148, 163, 184, 0.5); }
+  }
+
+  .animate-gold-shimmer {
+    animation: gold-shimmer 3s ease-in-out infinite;
+    background-size: 200% 100% !important;
+  }
+
+  @keyframes gold-shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .animate-diamond-glow {
+    animation: diamond-glow 2.5s ease-in-out infinite;
+    background-size: 200% 200% !important;
+  }
+
+  @keyframes diamond-glow {
+    0%, 100% {
+      background-position: 0% 50%;
+      box-shadow: 0 0 6px rgba(139, 92, 246, 0.3);
+    }
+    50% {
+      background-position: 100% 50%;
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.6);
+    }
+  }
+
+  .animate-premium-pulse {
+    animation: premium-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes premium-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .animate-premium-shimmer {
+    animation: gold-shimmer 3s ease-in-out infinite;
+    background-size: 200% 100% !important;
+  }
+
+  .animate-premium-sparkle {
+    animation: diamond-glow 2.5s ease-in-out infinite;
+    background-size: 200% 200% !important;
+  }
 }

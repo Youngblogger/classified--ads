@@ -10,6 +10,7 @@ use App\Events\BoostRenewed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Services\BoostTierService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
@@ -373,66 +374,30 @@ class PaymentService
         }
 
         $metadata = $paymentIntent->metadata ?? [];
-        $boostType = $metadata['boost_type'] ?? 'top';
-        $durationDays = $metadata['duration_days'] ?? 7;
         $action = $metadata['action'] ?? 'new_boost';
 
-        if (!in_array($boostType, ['top', 'featured', 'highlight'])) {
-            $this->logPaymentEvent(
-                $paymentIntent->id,
-                $paymentIntent->reference,
-                'boost_activation',
-                'rejected',
-                ['boost_type' => $boostType],
-                'Invalid boost type in metadata'
-            );
-
-            return [
-                'success' => false,
-                'error' => 'Invalid boost type',
-            ];
-        }
-
-        if (!in_array((int) $durationDays, [1, 3, 7, 14, 30])) {
-            $this->logPaymentEvent(
-                $paymentIntent->id,
-                $paymentIntent->reference,
-                'boost_activation',
-                'rejected',
-                ['duration_days' => $durationDays],
-                'Invalid duration in metadata'
-            );
-
-            return [
-                'success' => false,
-                'error' => 'Invalid duration',
-            ];
-        }
-
-        $ad = \App\Models\Ad::where('id', $paymentIntent->ad_id)
-            ->where('user_id', $paymentIntent->user_id)
-            ->first();
-
-        if (!$ad) {
-            $this->logPaymentEvent(
-                $paymentIntent->id,
-                $paymentIntent->reference,
-                'boost_activation',
-                'failed',
-                [],
-                'Ad not found or ownership mismatch'
-            );
-
-            return [
-                'success' => false,
-                'error' => 'Ad not found or unauthorized',
-            ];
-        }
-
         if ($action === 'boost_on_publish') {
+            $ad = \App\Models\Ad::where('id', $paymentIntent->ad_id)
+                ->where('user_id', $paymentIntent->user_id)
+                ->first();
+
+            if (!$ad) {
+                $this->logPaymentEvent(
+                    $paymentIntent->id,
+                    $paymentIntent->reference,
+                    'boost_activation',
+                    'failed',
+                    [],
+                    'Ad not found for boost-on-publish'
+                );
+                return [
+                    'success' => false,
+                    'error' => 'Ad not found',
+                ];
+            }
+
             if ($ad->status === 'pending') {
                 $ad->update(['status' => 'active']);
-
                 Log::info('Ad activated via boost-on-publish webhook', [
                     'ad_id' => $ad->id,
                     'reference' => $paymentIntent->reference,
@@ -448,107 +413,46 @@ class PaymentService
                     ['ad_status' => $ad->status],
                     'Ad could not be activated for boost-on-publish'
                 );
-
                 return [
                     'success' => false,
                     'error' => 'Ad could not be activated',
                 ];
             }
-        } else {
-            if ($ad->status !== 'active') {
+        }
+
+        try {
+            $boostTierService = app(BoostTierService::class);
+            $result = $boostTierService->activateBoost($paymentIntent->reference);
+
+            if ($result['success']) {
                 $this->logPaymentEvent(
                     $paymentIntent->id,
                     $paymentIntent->reference,
                     'boost_activation',
-                    'rejected',
-                    ['ad_status' => $ad->status],
-                    'Cannot boost inactive ad'
+                    'success',
+                    [
+                        'ad_id' => $paymentIntent->ad_id,
+                        'boost_id' => $result['boost']->id,
+                        'plan_id' => $result['boost']->plan_id,
+                        'action' => $action,
+                        'was_renewed' => $result['was_renewed'],
+                    ],
+                    null
                 );
-
-                return [
-                    'success' => false,
-                    'error' => 'Ad is not active',
-                ];
             }
-        }
 
-        $existingBoost = BoostedAd::where('ad_id', $paymentIntent->ad_id)
-            ->active()
-            ->where('boost_type', $boostType)
-            ->first();
-
-        $wasExpired = false;
-
-        if ($existingBoost) {
-            $endTime = $existingBoost->end_time->addDays($durationDays);
-            $existingBoost->update([
-                'end_time' => $endTime,
-                'payment_reference' => $paymentIntent->reference,
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('Exception in attachBoostAfterPayment via BoostTierService', [
+                'reference' => $paymentIntent->reference,
+                'error' => $e->getMessage(),
             ]);
-            $boost = $existingBoost->fresh();
-        } else {
-            $recentExpired = BoostedAd::where('ad_id', $paymentIntent->ad_id)
-                ->where('boost_type', $boostType)
-                ->where('status', 'expired')
-                ->latest('end_time')
-                ->first();
 
-            if ($recentExpired && $action === 'renew_boost') {
-                $recentExpired->update([
-                    'status' => 'active',
-                    'start_time' => now(),
-                    'end_time' => now()->addDays($durationDays),
-                    'payment_reference' => $paymentIntent->reference,
-                ]);
-                $boost = $recentExpired->fresh();
-                $wasExpired = true;
-            } else {
-                $boost = BoostedAd::create([
-                    'ad_id' => $paymentIntent->ad_id,
-                    'user_id' => $paymentIntent->user_id,
-                    'boost_type' => $boostType,
-                    'start_time' => now(),
-                    'end_time' => now()->addDays($durationDays),
-                    'status' => 'active',
-                    'payment_reference' => $paymentIntent->reference,
-                ]);
-            }
+            return [
+                'success' => false,
+                'error' => 'Failed to activate boost',
+            ];
         }
-
-        if ($wasExpired) {
-            event(new BoostRenewed($boost, true));
-        } else {
-            event(new AdBoosted($boost));
-        }
-
-        $this->logPaymentEvent(
-            $paymentIntent->id,
-            $paymentIntent->reference,
-            'boost_activation',
-            'success',
-            [
-                'ad_id' => $paymentIntent->ad_id,
-                'boost_id' => $boost->id,
-                'boost_type' => $boostType,
-                'action' => $action,
-                'was_renewed' => $wasExpired,
-            ],
-            null
-        );
-
-        Log::info('Boost attached after payment', [
-            'ad_id' => $paymentIntent->ad_id,
-            'boost_id' => $boost->id,
-            'boost_type' => $boostType,
-            'action' => $action,
-            'was_renewed' => $wasExpired,
-        ]);
-
-        return [
-            'success' => true,
-            'boost' => $boost,
-            'was_renewed' => $wasExpired,
-        ];
     }
 
     public function validateWebhookSignature(string $payload, string $signature): bool

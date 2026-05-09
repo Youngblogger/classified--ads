@@ -51,24 +51,7 @@ class AdController extends Controller
                 });
             }
 
-            try {
-                $boostedAds = BoostedAd::active()
-                    ->get()
-                    ->pluck('boost_type', 'ad_id')
-                    ->toArray();
-            } catch (\Exception $e) {
-                $boostedAds = [];
-            }
-
-            $boostPriorities = [
-                'top' => 3000,
-                'featured' => 2000,
-                'highlight' => 1000,
-            ];
-
-            $query->orderByRaw('is_featured DESC')
-                ->orderBy('created_at', 'desc')
-                ->orderBy('views', 'desc');
+            $query->orderBy('created_at', 'desc');
 
             $totalCount = (clone $query)->count();
             $lastPage = $limit > 0 ? ceil($totalCount / $limit) : 1;
@@ -78,14 +61,12 @@ class AdController extends Controller
                 ->limit($limit)
                 ->get();
 
-            if (!empty($boostedAds)) {
-                $allAds = $allAds->sortByDesc(function ($ad) use ($boostedAds, $boostPriorities) {
-                    if (!isset($boostedAds[$ad->id])) {
-                        return 0;
-                    }
-
-                    return $boostPriorities[$boostedAds[$ad->id]] ?? 0;
-                })->values();
+            try {
+                $tierService = app(\App\Services\BoostTierService::class);
+                $sortCallback = $tierService->getPrioritySortCallback();
+                $allAds = $allAds->sortByDesc($sortCallback)->values();
+            } catch (\Exception $e) {
+                Log::warning('Boost priority sort failed', ['error' => $e->getMessage()]);
             }
 
             $allAds = $allAds->map(function($ad) {
@@ -98,13 +79,10 @@ class AdController extends Controller
                 $data['is_boosted'] = $boost !== null;
                 $data['boost_type'] = $boost?->boost_type;
                 $data['boost_end_time'] = $boost?->end_time;
-
-                $boostPriorities = [
-                    'top' => 3000,
-                    'featured' => 2000,
-                    'highlight' => 1000,
-                ];
-                $data['boost_priority_score'] = $boost ? ($boostPriorities[$boost->boost_type] ?? 0) : 0;
+                $data['plan_id'] = $boost?->plan_id;
+                $data['plan_name'] = $boost?->plan?->name ?? null;
+                $data['badge_label'] = $boost?->badge_label ?? null;
+                $data['boost_priority_score'] = $boost?->priority_score ?? 0;
 
                 $freshnessHours = now()->diffInHours($ad->created_at);
                 $data['freshness_score'] = max(0, 100 - ($freshnessHours / 24));

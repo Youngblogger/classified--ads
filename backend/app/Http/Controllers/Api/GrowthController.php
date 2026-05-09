@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Ad;
 use App\Models\BoostedAd;
 use App\Services\BoostAdService;
+use App\Services\BoostTierService;
 use App\Services\PaymentService;
 use App\Services\SavedAdService;
 use App\Services\RecentlyViewedService;
@@ -16,11 +17,19 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class GrowthController extends Controller
 {
-    public function boostAd(Request $request, int $id, BoostAdService $boostService, PaymentService $paymentService)
+    public function getBoostPlans(BoostTierService $tierService)
+    {
+        $plans = $tierService->getActivePlans();
+
+        return response()->json([
+            'data' => $plans,
+        ]);
+    }
+
+    public function boostAd(Request $request, int $id, BoostTierService $tierService, PaymentService $paymentService)
     {
         $user = $request->user();
 
-        // Rate limit: max 5 boost attempts per hour per user
         $key = 'boost-attempts:' . $user->id;
         if (RateLimiter::tooManyAttempts($key, 5)) {
             return response()->json([
@@ -31,16 +40,18 @@ class GrowthController extends Controller
         RateLimiter::hit($key, 3600);
 
         $validated = $request->validate([
-            'boost_type' => 'required|in:top,featured,highlight',
-            'duration_days' => 'required|integer|in:1,3,7,14,30',
+            'plan_type' => 'required_without:boost_type|in:silver,gold,platinum',
+            'boost_type' => 'required_without:plan_type|in:top,featured,highlight',
+            'duration_days' => 'required_if:boost_type,top,featured,highlight|integer|in:1,3,7,14,30',
         ]);
 
-        $result = $boostService->createBoost(
-            $id,
-            $request->user()->id,
-            $validated['boost_type'],
-            $validated['duration_days']
-        );
+        if (isset($validated['plan_type'])) {
+            $result = $tierService->createBoost($id, $user->id, $validated['plan_type']);
+        } else {
+            $oldService = app(BoostAdService::class);
+            $result = $oldService->createBoost($id, $user->id, $validated['boost_type'], $validated['duration_days']);
+            $result['plan'] = null;
+        }
 
         if (!$result['success']) {
             $status = match ($result['code'] ?? '') {
@@ -55,22 +66,35 @@ class GrowthController extends Controller
             ], $status);
         }
 
-        return response()->json([
+        $responseData = [
             'success' => true,
             'data' => [
                 'payment_intent' => $result['payment_intent']->reference,
                 'authorization_url' => $result['authorization_url'] ?? null,
                 'access_code' => $result['access_code'] ?? null,
                 'amount' => $result['price'],
-                'boost_type' => $result['boost_type'],
-                'duration_days' => $result['duration_days'],
+                'duration_days' => $result['duration_days'] ?? null,
             ],
-        ]);
+        ];
+
+        if (isset($result['plan']) && $result['plan']) {
+            $responseData['data']['plan'] = [
+                'id' => $result['plan']->id,
+                'type' => $result['plan']->type,
+                'name' => $result['plan']->name,
+                'price' => $result['plan']->price,
+                'duration_days' => $result['plan']->duration_days,
+            ];
+        } else {
+            $responseData['data']['boost_type'] = $result['boost_type'] ?? null;
+        }
+
+        return response()->json($responseData);
     }
 
-    public function getBoostStatus(Request $request, int $id, BoostAdService $boostService)
+    public function getBoostStatus(Request $request, int $id, BoostTierService $tierService)
     {
-        $status = $boostService->getBoostStatus($id, $request->user()->id);
+        $status = $tierService->getBoostStatus($id, $request->user()->id);
 
         if (isset($status['error'])) {
             return response()->json(['error' => $status['error']], 404);
@@ -79,22 +103,19 @@ class GrowthController extends Controller
         return response()->json(['data' => $status]);
     }
 
-    public function getBoostPrices(BoostAdService $boostService)
+    public function getBoostPrices(BoostTierService $tierService)
     {
+        $plans = $tierService->getActivePlans();
+
         return response()->json([
             'data' => [
-                'prices' => $boostService->getBoostPrices(),
-                'durations' => $boostService->getAvailableDurations(),
-                'examples' => [
-                    ['type' => 'top', 'days' => 7, 'price' => $boostService->calculatePrice('top', 7)],
-                    ['type' => 'featured', 'days' => 7, 'price' => $boostService->calculatePrice('featured', 7)],
-                    ['type' => 'highlight', 'days' => 7, 'price' => $boostService->calculatePrice('highlight', 7)],
-                ],
+                'plans' => $plans,
+                'prices' => collect($plans)->pluck('price', 'type')->toArray(),
             ],
         ]);
     }
 
-    public function renewBoost(Request $request, int $id, BoostAdService $boostService)
+    public function renewBoost(Request $request, int $id, BoostTierService $tierService)
     {
         $user = $request->user();
 
@@ -107,17 +128,7 @@ class GrowthController extends Controller
         }
         RateLimiter::hit($key, 3600);
 
-        $validated = $request->validate([
-            'boost_type' => 'required|in:top,featured,highlight',
-            'duration_days' => 'required|integer|in:1,3,7,14,30',
-        ]);
-
-        $result = $boostService->renewBoost(
-            $id,
-            $user->id,
-            $validated['boost_type'],
-            $validated['duration_days']
-        );
+        $result = $tierService->renewBoost($id, $user->id);
 
         if (!$result['success']) {
             $status = match ($result['code'] ?? '') {
@@ -139,8 +150,13 @@ class GrowthController extends Controller
                 'authorization_url' => $result['authorization_url'] ?? null,
                 'access_code' => $result['access_code'] ?? null,
                 'amount' => $result['price'],
-                'boost_type' => $result['boost_type'],
-                'duration_days' => $result['duration_days'],
+                'plan' => $result['plan'] ? [
+                    'id' => $result['plan']->id,
+                    'type' => $result['plan']->type,
+                    'name' => $result['plan']->name,
+                    'price' => $result['plan']->price,
+                    'duration_days' => $result['plan']->duration_days,
+                ] : null,
                 'is_renewal' => true,
             ],
         ]);
@@ -253,8 +269,7 @@ class GrowthController extends Controller
                         ? round(($boosts->sum('clicks_count') + $boosts->sum('whatsapp_clicks')) / $boosts->sum('views_count') * 100, 2)
                         : 0,
                 ],
-                'prices' => app(BoostAdService::class)->getBoostPrices(),
-                'durations' => app(BoostAdService::class)->getAvailableDurations(),
+                'prices' => app(BoostTierService::class)->getActivePlans(),
             ],
         ]);
     }

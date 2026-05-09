@@ -11,7 +11,7 @@ import RelatedAds from '@/components/ads/RelatedAds';
 import LatestReviews from '@/components/reviews/LatestReviews';
 import AdAttributes from '@/components/ads/AdAttributes';
 import ReportAdModal from '@/components/ui/ReportAdModal';
-import BoostAdModal from '@/components/ui/BoostAdModal';
+import BoostPlansModal from '@/components/ui/BoostPlansModal';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard, ImageIcon, Zap } from 'lucide-react';
@@ -869,7 +869,7 @@ export default function AdDetailPage() {
       />
 
       {/* Boost Ad Modal */}
-      <BoostAdModal
+      <BoostPlansModal
         adId={ad.id}
         adTitle={ad.title}
         isOpen={showBoostModal}

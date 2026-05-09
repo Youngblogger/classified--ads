@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin } from 'lucide-react';
+import { MapPin, Zap, Crown, Diamond } from 'lucide-react';
 import { Ad } from '@/types';
 import { formatPrice, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
 import { useState, memo, useCallback } from 'react';
 import PremiumBadge from './PremiumBadge';
+import { getBoostConfig } from '@/lib/boost-config';
 
 interface AdCardProps {
   ad: Ad;
@@ -78,6 +79,12 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   
   const currentSrc = imgSrc || imageUrl;
   const showFallback = !currentSrc || imgError;
+
+  const boostType = (ad as any).boost_type;
+  const boostConfig = getBoostConfig(boostType);
+  const cardBoostClasses = boostConfig
+    ? `ring-1 ${boostConfig.cardBorder} ${boostConfig.cardGlow}`
+    : '';
 
   const getLocationDisplay = () => {
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
@@ -153,7 +160,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
 
   if (variant === 'compact') {
     return (
-      <Link href={`/ad/${getSlug()}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow block">
+      <Link href={`/ad/${getSlug()}`} className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow block ${cardBoostClasses}`}>
         <div className="relative aspect-square bg-gray-100">
           {showFallback ? (
             <Image
@@ -179,9 +186,16 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
         </div>
         <div className="p-3">
-          {categoryName && (
-            <span className="text-xs text-primary-600 font-medium">{categoryName}</span>
-          )}
+          <div className="flex items-center gap-1 mb-1 flex-wrap">
+            {categoryName && (
+              <span className="text-xs text-primary-600 font-medium">{categoryName}</span>
+            )}
+            {boostType && (
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
+                Promoted
+              </span>
+            )}
+          </div>
           <p className="text-primary-600 font-bold mb-1">
             {formatPrice(ad.price, ad.currency)}
           </p>
@@ -201,7 +215,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   }
 
   return (
-    <Link href={`/ad/${getSlug()}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group block">
+    <Link href={`/ad/${getSlug()}`} className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group block ${cardBoostClasses}`}>
       <div className="relative h-auto min-h-[200px] overflow-hidden bg-gray-100">
         {showFallback ? (
           <Image
@@ -227,9 +241,16 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
         <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
       </div>
       <div className="p-4">
-        {categoryName && (
-          <span className="text-xs text-primary-600 font-medium">{categoryName}</span>
-        )}
+        <div className="flex items-center gap-2 mb-1">
+          {categoryName && (
+            <span className="text-xs text-primary-600 font-medium">{categoryName}</span>
+          )}
+          {boostType && (
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
+              Promoted
+            </span>
+          )}
+        </div>
         <p className="text-xl font-bold text-primary-600 mb-1">
           {formatPrice(ad.price, ad.currency)}
         </p>

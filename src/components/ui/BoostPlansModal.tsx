@@ -1,0 +1,350 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { X, Zap, Crown, Diamond, Check, Loader2, ArrowRight, Clock, RotateCcw, Sparkles } from 'lucide-react';
+import { getAuthToken } from '@/lib/cookies';
+import toast from 'react-hot-toast';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+
+interface BoostPlan {
+  id: number;
+  name: string;
+  type: string;
+  price: number;
+  duration_days: number;
+  priority_score: number;
+  badge_label: string;
+  badge_icon: string;
+  color_scheme: Record<string, any> | null;
+  features: string[] | null;
+  is_active: boolean;
+  sort_order: number;
+}
+
+interface BoostPlansModalProps {
+  adId: number;
+  adTitle: string;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const TIER_ICONS: Record<string, any> = {
+  silver: Zap,
+  gold: Crown,
+  platinum: Diamond,
+};
+
+const TIER_COLORS: Record<string, { bg: string; border: string; badge: string; btn: string; shadow: string }> = {
+  silver: {
+    bg: 'from-slate-50 to-gray-50',
+    border: 'border-slate-300',
+    badge: 'from-slate-400 via-slate-300 to-slate-400',
+    btn: 'from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700',
+    shadow: 'shadow-slate-400/20',
+  },
+  gold: {
+    bg: 'from-amber-50 to-yellow-50',
+    border: 'border-amber-300',
+    badge: 'from-amber-400 via-yellow-300 to-amber-400',
+    btn: 'from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700',
+    shadow: 'shadow-amber-400/20',
+  },
+  platinum: {
+    bg: 'from-violet-50 via-purple-50 to-fuchsia-50',
+    border: 'border-violet-300',
+    badge: 'from-violet-500 via-purple-400 to-fuchsia-500',
+    btn: 'from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800',
+    shadow: 'shadow-violet-500/20',
+  },
+};
+
+export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: BoostPlansModalProps) {
+  const [plans, setPlans] = useState<BoostPlan[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [step, setStep] = useState<'select' | 'processing'>('select');
+  const [boostStatus, setBoostStatus] = useState<{ has_active_boost: boolean; active_boost?: any; can_renew: boolean; renewal_info?: any } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep('select');
+      setSelectedPlan(null);
+      setBoostStatus(null);
+      setFetching(true);
+      Promise.all([fetchPlans(), fetchStatus()]).finally(() => setFetching(false));
+    }
+  }, [isOpen, adId]);
+
+  const fetchPlans = async () => {
+    try {
+      const res = await fetch(`${API_URL}/ads/boost-plans`);
+      const data = await res.json();
+      if (data.data) {
+        setPlans(data.data);
+        if (data.data.length > 0) {
+          setSelectedPlan(data.data[0].type);
+        }
+      }
+    } catch {
+      setPlans([
+        { id: 0, name: 'Silver Boost', type: 'silver', price: 2000, duration_days: 3, priority_score: 1000, badge_label: 'Boosted', badge_icon: 'zap', color_scheme: null, features: ['Appears above normal listings', 'Highlighted ad card', 'Better search ranking', '"Boosted" badge', 'Increased impressions'], is_active: true, sort_order: 1 },
+        { id: 0, name: 'Gold Featured', type: 'gold', price: 5000, duration_days: 7, priority_score: 2000, badge_label: 'Featured', badge_icon: 'crown', color_scheme: null, features: ['Homepage exposure', 'Priority category placement', 'Higher search visibility', '"Featured" badge', 'More impressions than Silver'], is_active: true, sort_order: 2 },
+        { id: 0, name: 'Platinum VIP', type: 'platinum', price: 10000, duration_days: 14, priority_score: 3000, badge_label: 'VIP', badge_icon: 'diamond', color_scheme: null, features: ['Top homepage placement', 'Always pinned above lower tiers', 'Highest search priority', 'VIP animated badge', 'Priority in recommended ads', 'Increased click visibility', 'Extra premium styling'], is_active: true, sort_order: 3 },
+      ]);
+      setSelectedPlan('silver');
+    }
+  };
+
+  const fetchStatus = async () => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+      const res = await fetch(`${API_URL}/ads/${adId}/boost-status`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBoostStatus(data.data);
+      }
+    } catch {}
+  };
+
+  const selected = plans.find(p => p.type === selectedPlan);
+  const colors = selectedPlan ? TIER_COLORS[selectedPlan] || TIER_COLORS.silver : TIER_COLORS.silver;
+  const Icon = selectedPlan ? TIER_ICONS[selectedPlan] || Zap : Zap;
+
+  const handleBoost = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      toast.error('Please login to boost your ad');
+      return;
+    }
+    if (!selectedPlan) {
+      toast.error('Please select a boost plan');
+      return;
+    }
+
+    setStep('processing');
+    setLoading(true);
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    try {
+      const res = await fetch(`${API_URL}/ads/${adId}/boost`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+        },
+        body: JSON.stringify({ plan_type: selectedPlan }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to initiate boost');
+      }
+
+      if (data.data?.authorization_url) {
+        window.location.href = data.data.authorization_url;
+      } else {
+        throw new Error('Payment URL not received');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to process boost');
+      setStep('select');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRenew = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      toast.error('Please login to renew your boost');
+      return;
+    }
+
+    setStep('processing');
+    setLoading(true);
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    try {
+      const res = await fetch(`${API_URL}/ads/${adId}/boost-renew`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to renew boost');
+      }
+
+      if (data.data?.authorization_url) {
+        window.location.href = data.data.authorization_url;
+      } else {
+        throw new Error('Payment URL not received');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to process renewal');
+      setStep('select');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 flex items-start sm:items-center justify-center z-[99999] p-0 sm:p-4 pt-[5vh] sm:pt-0"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-violet-500" />
+            <h2 className="text-lg font-bold text-gray-900">Boost Your Ad</h2>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {step === 'select' && (
+          <>
+            {/* Scrollable content */}
+            <div className="overflow-y-auto flex-1 px-5 py-4">
+              {/* Ad title */}
+              <p className="text-sm text-gray-600 mb-4 truncate">
+                Boosting: <span className="font-semibold text-gray-900">{adTitle}</span>
+              </p>
+
+              {/* Active/Expired boost banner */}
+              {boostStatus?.has_active_boost && boostStatus.active_boost && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <div className="text-sm">
+                    <span className="font-semibold text-blue-900">Boost active</span>
+                    <span className="text-blue-700 ml-1">
+                      — {boostStatus.active_boost.plan_name || boostStatus.active_boost.boost_type} · {boostStatus.active_boost.time_remaining || `${boostStatus.active_boost.days_remaining} days left`}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {fetching ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+                </div>
+              ) : (
+                <>
+                  {/* Plan cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                    {plans.map((plan) => {
+                      const isSelected = selectedPlan === plan.type;
+                      const c = TIER_COLORS[plan.type] || TIER_COLORS.silver;
+                      const PIcon = TIER_ICONS[plan.type] || Zap;
+                      return (
+                        <button
+                          key={plan.type}
+                          onClick={() => setSelectedPlan(plan.type)}
+                          className={`
+                            relative flex flex-col items-center text-center px-4 py-5 rounded-2xl border-2 transition-all duration-200
+                            ${isSelected
+                              ? `${c.border} bg-gradient-to-b ${c.bg} ${c.shadow} shadow-lg scale-[1.02]`
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+                            }
+                          `}
+                        >
+                          {isSelected && (
+                            <div className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center shadow-md">
+                              <Check className="w-3.5 h-3.5 text-white" />
+                            </div>
+                          )}
+                          <div className={`
+                            w-12 h-12 rounded-full flex items-center justify-center mb-3
+                            bg-gradient-to-br ${c.badge} shadow-lg
+                          `}>
+                            <PIcon className="w-6 h-6 text-white" />
+                          </div>
+                          <h3 className="text-base font-bold text-gray-900 mb-1">{plan.name}</h3>
+                          <div className="text-2xl font-extrabold text-gray-900 mb-1">
+                            ₦{plan.price.toLocaleString()}
+                          </div>
+                          <div className="text-xs font-medium text-gray-500 mb-3">
+                            {plan.duration_days} day{plan.duration_days > 1 ? 's' : ''}
+                          </div>
+                          <div className="w-full space-y-1.5 text-left">
+                            {(plan.features || []).map((feature, i) => (
+                              <div key={i} className="flex items-start gap-1.5 text-xs text-gray-600">
+                                <Check className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
+                                <span>{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            {!fetching && selected && (
+              <div className="px-5 py-4 border-t border-gray-200 flex gap-3 flex-shrink-0 bg-white">
+                <button
+                  onClick={onClose}
+                  className="flex-1 px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={boostStatus?.can_renew ? handleRenew : handleBoost}
+                  disabled={loading}
+                  className={`
+                    flex-1 px-5 py-3 text-white rounded-xl font-semibold transition-all text-sm
+                    flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
+                    bg-gradient-to-r ${colors.btn} shadow-lg ${colors.shadow}
+                  `}
+                >
+                  {boostStatus?.can_renew ? (
+                    <><RotateCcw className="w-4 h-4" /> Renew ₦{selected.price.toLocaleString()}</>
+                  ) : (
+                    <><Zap className="w-4 h-4" /> Boost ₦{selected.price.toLocaleString()}</>
+                  )}
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {step === 'processing' && (
+          <div className="flex flex-col items-center justify-center py-16 px-5">
+            <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mb-4">
+              <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {boostStatus?.can_renew ? 'Processing renewal' : 'Processing boost'}
+            </h3>
+            <p className="text-sm text-gray-500 text-center">Redirecting to secure payment...</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
