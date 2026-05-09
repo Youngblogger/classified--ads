@@ -48,7 +48,7 @@ function normalizeImage(img: any): string {
     return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   }
   if (url.startsWith('/')) return url;
-  if (url.startsWith('json_dataset/')) return '/' + url;
+  if (url.startsWith('json_dataset/')) return url.replace('json_dataset/', '/');
   return `/images/${url}`;
 }
 

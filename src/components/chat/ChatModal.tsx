@@ -35,7 +35,7 @@ function getImageUrl(url: string | null | undefined): string | null {
   }
   // Handle json_dataset/ prefix
   if (url.startsWith('json_dataset/')) {
-    return '/' + url;
+    return url.replace('json_dataset/', '/');
   }
   // Default: assume it's a filename in /images/
   return `/images/${url}`;

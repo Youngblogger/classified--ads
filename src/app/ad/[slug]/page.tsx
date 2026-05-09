@@ -309,7 +309,7 @@ export default function AdDetailPage() {
     if (url.startsWith('/storage/')) return `${BACKEND_URL}${url}`;
     if (url.startsWith('storage/')) return `${BACKEND_URL}/${url}`;
     if (url.startsWith('/')) return url;
-    if (url.startsWith('json_dataset/')) return '/' + url;
+    if (url.startsWith('json_dataset/')) return url.replace('json_dataset/', '/');
     return `/images/${url}`;
   };
 

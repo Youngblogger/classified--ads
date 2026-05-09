@@ -38,7 +38,7 @@ function getImageUrl(img: any): string {
     return url;
   }
   if (url.startsWith('json_dataset/')) {
-    return '/' + url;
+    return url.replace('json_dataset/', '/');
   }
   return `/images/${url}`;
 }
@@ -89,7 +89,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
       return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
     }
     if (url.startsWith('/')) return url;
-    if (url.startsWith('json_dataset/')) return '/' + url;
+    if (url.startsWith('json_dataset/')) return url.replace('json_dataset/', '/');
     return `/images/${url}`;
   };
   

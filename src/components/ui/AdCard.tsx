@@ -38,7 +38,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
       }
       if (!url) return '';
       if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) return url;
-      if (url.startsWith('json_dataset/')) return '/' + url;
+      if (url.startsWith('json_dataset/')) return url.replace('json_dataset/', '/');
       return `/images/${url}`;
     };
     
