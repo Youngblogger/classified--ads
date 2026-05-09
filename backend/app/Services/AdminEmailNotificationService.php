@@ -8,23 +8,16 @@ use Illuminate\Support\Facades\Mail;
 
 class AdminEmailNotificationService
 {
-    protected static string $adminEmail = 'admin@ilist.com';
-    
-    public static function setAdminEmail($email)
-    {
-        self::$adminEmail = $email;
-    }
-    
     public static function getAdminEmail(): string
     {
-        return self::$adminEmail;
+        return config('mail.admin_email', 'admin@ilist.com');
     }
 
     public static function send($subject, $title, $message, $data = null)
     {
         try {
             Mail::raw($message, function ($mail) use ($subject, $title) {
-                $mail->to(self::$adminEmail)
+                $mail->to(self::getAdminEmail())
                      ->subject("[iList Admin] {$subject}")
                      ->from(config('mail.from.address', 'noreply@ilist.com'), 'iList Admin');
             });
@@ -41,7 +34,7 @@ class AdminEmailNotificationService
     {
         try {
             Mail::html($htmlContent, function ($mail) use ($subject, $title) {
-                $mail->to(self::$adminEmail)
+                $mail->to(self::getAdminEmail())
                      ->subject("[iList Admin] {$subject}")
                      ->from(config('mail.from.address', 'noreply@ilist.com'), 'iList Admin');
             });

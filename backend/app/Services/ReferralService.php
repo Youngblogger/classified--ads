@@ -102,7 +102,7 @@ class ReferralService
         }
 
         // Get reward amounts based on action
-        $rewardData = $this->getRewardAmounts($action, $user->referred_by);
+        $rewardData = $this->getRewardAmounts($action);
         
         if (!$rewardData) {
             return ['success' => false, 'message' => 'Invalid action'];

@@ -6,6 +6,7 @@ use App\Models\Ad;
 use App\Models\Category;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class MeiliSearchService
 {
@@ -339,7 +340,7 @@ class MeiliSearchService
     {
         return Cache::remember('meili_loc_ids:' . md5($location), 3600, function () use ($location) {
             return \App\Models\Location::where('name', 'like', '%' . $location . '%')
-                ->orWhere('slug', 'like', '%' . str_slug($location) . '%')
+                ->orWhere('slug', 'like', '%' . Str::slug($location) . '%')
                 ->pluck('id')
                 ->toArray();
         });

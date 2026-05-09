@@ -43,14 +43,7 @@ class FraudDetectionService
                 $isSuspicious = true;
             }
         }
-function name(){
-    if (!empty($data['proof_hash'])) {
-        $imgFlags = $this->checkDuplicateImage($data['proof_hash']);
-        if ($imgFlags) {
-            $flags = array_merge($flags, $imgFlags);
-            $isSuspicious = true;
-        }
-}
+
         // Check 4: Rapid submissions
         $rapidFlags = $this->checkRapidSubmissions($data['user_id'] ?? null);
         if ($rapidFlags) {

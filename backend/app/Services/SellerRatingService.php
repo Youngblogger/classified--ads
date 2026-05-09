@@ -12,49 +12,40 @@ class SellerRatingService
 
     public static function getSummary($sellerId)
     {
-        // Temporarily disable caching for debugging
-        // $cacheKey = self::CACHE_PREFIX . $sellerId;
-        // return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($sellerId) {
+        $cacheKey = self::CACHE_PREFIX . $sellerId;
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($sellerId) {
+            $reviews = Review::where('target_user_id', $sellerId)->get();
 
-        $reviews = Review::where('target_user_id', $sellerId)->get();
-        
-        logger("Seller Rating Summary for seller {$sellerId}:", [
-            'review_count' => $reviews->count(),
-            'ratings' => $reviews->pluck('rating')->toArray(),
-            'average' => $reviews->count() > 0 ? round($reviews->avg('rating'), 1) : 0,
-        ]);
+            $total = $reviews->count();
+            $average = $total > 0 ? round($reviews->avg('rating'), 1) : 0;
 
-        $total = $reviews->count();
-        $average = $total > 0 ? round($reviews->avg('rating'), 1) : 0;
+            $calcPercent = function ($count) use ($total) {
+                return $total > 0 ? round(($count / $total) * 100) : 0;
+            };
 
-        $calcPercent = function ($count) use ($total) {
-            return $total > 0 ? round(($count / $total) * 100) : 0;
-        };
+            $distribution = [
+                5 => $calcPercent($reviews->where('rating', 5)->count()),
+                4 => $calcPercent($reviews->where('rating', 4)->count()),
+                3 => $calcPercent($reviews->where('rating', 3)->count()),
+                2 => $calcPercent($reviews->where('rating', 2)->count()),
+                1 => $calcPercent($reviews->where('rating', 1)->count()),
+            ];
 
-        $distribution = [
-            5 => $calcPercent($reviews->where('rating', 5)->count()),
-            4 => $calcPercent($reviews->where('rating', 4)->count()),
-            3 => $calcPercent($reviews->where('rating', 3)->count()),
-            2 => $calcPercent($reviews->where('rating', 2)->count()),
-            1 => $calcPercent($reviews->where('rating', 1)->count()),
-        ];
+            $counts = [
+                5 => $reviews->where('rating', 5)->count(),
+                4 => $reviews->where('rating', 4)->count(),
+                3 => $reviews->where('rating', 3)->count(),
+                2 => $reviews->where('rating', 2)->count(),
+                1 => $reviews->where('rating', 1)->count(),
+            ];
 
-        $counts = [
-            5 => $reviews->where('rating', 5)->count(),
-            4 => $reviews->where('rating', 4)->count(),
-            3 => $reviews->where('rating', 3)->count(),
-            2 => $reviews->where('rating', 2)->count(),
-            1 => $reviews->where('rating', 1)->count(),
-        ];
-
-        return [
-            'average_rating' => $average,
-            'total_reviews' => $total,
-            'distribution' => $distribution,
-            'counts' => $counts,
-        ];
-
-        // });
+            return [
+                'average_rating' => $average,
+                'total_reviews' => $total,
+                'distribution' => $distribution,
+                'counts' => $counts,
+            ];
+        });
     }
 
     public static function clearCache($sellerId)

@@ -27,6 +27,10 @@ class MonitoringService
         $this->increment("requests:per_minute:{$minute}");
         $this->increment("requests:per_endpoint:{$endpoint}:{$minute}");
 
+        // Running daily total
+        $day = now()->format('Y-m-d');
+        $this->increment("requests:daily:{$day}");
+
         // Status code tracking
         $statusGroup = (int) ($statusCode / 100) . 'xx';
         $this->increment("requests:status:{$statusGroup}:{$hour}");
@@ -282,7 +286,16 @@ class MonitoringService
 
     private function getDailyTotal(string $pattern): int
     {
-        return 0;
+        $day = now()->format('Y-m-d');
+        $total = 0;
+
+        if ($pattern === 'requests:per_minute') {
+            $total = (int) Cache::get(self::METRICS_PREFIX . "requests:daily:{$day}", 0);
+        } else {
+            $total = (int) Cache::get(self::METRICS_PREFIX . "{$pattern}:{$day}", 0);
+        }
+
+        return $total;
     }
 
     private function getCacheHitRate(): float

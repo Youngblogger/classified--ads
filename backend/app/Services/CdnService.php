@@ -35,8 +35,8 @@ class CdnService
             $paths[] = "/api/categories/{$categorySlug}*";
         }
 
-        if (!empty($ad->slug ?? null)) {
-            $paths[] = "/ad/{$ad->slug}*";
+        if ($adId) {
+            $paths[] = "/ad/{$adId}*";
         }
 
         $this->purge($paths);
