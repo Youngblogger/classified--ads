@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { MapPin, Loader2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
 import { formatPrice, getAdImage, getAdImageUrl, getAdImages, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
+import PremiumBadge from '@/components/ui/PremiumBadge';
+import { getBoostCardClasses } from '@/lib/boost-config';
 
 interface AdImage {
   url?: string;
@@ -31,6 +33,8 @@ interface Ad {
   lga?: string;
   created_at: string;
   category?: { name?: string; slug?: string } | string;
+  is_boosted?: boolean;
+  boost_type?: string | null;
 }
 
 interface RelatedAdsProps {
@@ -236,11 +240,13 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-            {ads.map((ad) => (
+            {ads.map((ad) => {
+              const boostCardCls = getBoostCardClasses(ad.boost_type);
+              return (
               <Link
                 key={ad.id}
                 href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`}
-                className="group block bg-white rounded-lg sm:rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 sm:hover:-translate-y-1"
+                className={`group block bg-white rounded-lg sm:rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 sm:hover:-translate-y-1 ${boostCardCls}`}
               >
                 <div className="relative aspect-[4/3] bg-gray-100">
                   {(() => {
@@ -271,6 +277,7 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
                     );
                   })()}
                   {getConditionBadge(ad.condition)}
+                  <PremiumBadge boostType={ad.boost_type} size="sm" />
                 </div>
                 <div className="p-2 sm:p-3">
                   <h4 className="font-medium text-dark text-xs sm:text-sm line-clamp-2 group-hover:text-primary-600 transition-colors">
@@ -285,7 +292,8 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
                   </div>
                 </div>
               </Link>
-            ))}
+            );
+            })}
           </div>
 
           {/* Infinite scroll trigger */}

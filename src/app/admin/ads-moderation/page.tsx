@@ -21,7 +21,8 @@ import {
   MapPin,
   CircleDollarSign,
   Settings2,
-  AlertCircle
+  AlertCircle,
+  Zap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DynamicField, { CategoryField } from '@/components/forms/DynamicField';
@@ -56,6 +57,8 @@ interface Ad {
   created_at: string;
   updated_at?: string;
   edited_by_admin?: boolean;
+  is_boosted?: boolean;
+  boost_type?: string | null;
 }
 
 interface Category {
@@ -1354,6 +1357,11 @@ export default function AdsModerationPage() {
                           <p className="text-sm text-gray-500">
                             ₦{Number(ad.price).toLocaleString()}
                           </p>
+                          {ad.is_boosted && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-1 py-0.5 rounded-full mt-0.5">
+                              <Zap className="w-2.5 h-2.5" /> Boosted
+                            </span>
+                          )}
                           {ad.edited_by_admin && (
                             <span className="text-xs text-purple-600 flex items-center gap-1">
                               <Edit2 className="w-3 h-3" /> Edited

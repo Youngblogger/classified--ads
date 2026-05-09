@@ -12,6 +12,7 @@ import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import BoostedAdsCarousel from '@/components/ui/BoostedAdsCarousel';
+import { getBoostCardClasses } from '@/lib/boost-config';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
 const BACKEND_URL = API_URL.replace('/api', '');
@@ -75,6 +76,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const [imgError, setImgError] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const boostCardClasses = getBoostCardClasses(ad.boost_type);
   
   const normalizeImage = (img: any): string => {
     let url = '';
@@ -184,7 +186,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   };
 
   return (
-    <div onClick={handleAdClick} className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 cursor-pointer">
+    <div onClick={handleAdClick} className={`group bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer ${boostCardClasses}`}>
       <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
           <LazyImage

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { MapPin, ImageIcon } from 'lucide-react';
 import { favoritesApi } from '@/lib/api';
 import { formatPrice, getAdImageUrl } from '@/lib/utils';
+import PremiumBadge from '@/components/ui/PremiumBadge';
+import { getBoostCardClasses } from '@/lib/boost-config';
 import toast from 'react-hot-toast';
 
 // Icons
@@ -155,10 +157,12 @@ export default function FavoritesPage() {
       {/* Favorites Grid */}
       {!loading && filteredFavorites.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {filteredFavorites.map((item) => (
+          {filteredFavorites.map((item) => {
+            const boostCardClasses = getBoostCardClasses((item.ad as any).boost_type);
+            return (
             <div
               key={item.id}
-              className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all duration-300 group"
+              className={`bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all duration-300 group ${boostCardClasses}`}
             >
               {/* Image */}
               <div className="relative aspect-square bg-gray-100">
@@ -179,6 +183,7 @@ export default function FavoritesPage() {
                     </div>
                   );
                 })()}
+                <PremiumBadge boostType={(item.ad as any).boost_type} size="sm" />
                 <button
                   onClick={() => handleRemoveFavorite(item.ad.id)}
                   className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md text-red-500 hover:bg-red-50 transition-colors"
@@ -236,7 +241,8 @@ export default function FavoritesPage() {
                 </Link>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

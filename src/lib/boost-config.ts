@@ -16,6 +16,9 @@ export interface BoostUIConfig {
   animation: string;
   priority: number;
   accentColor: string;
+  cardClasses: string;
+  cardHoverClasses: string;
+  badgeAnimation: string;
 }
 
 const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
@@ -33,6 +36,9 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     animation: 'animate-diamond-glow',
     priority: 3,
     accentColor: '#8b5cf6',
+    cardClasses: 'ring-2 ring-violet-400 shadow-lg shadow-violet-200/50 bg-gradient-to-b from-violet-50/40 to-transparent',
+    cardHoverClasses: 'hover:ring-violet-500 hover:shadow-xl hover:shadow-violet-300/30 hover:-translate-y-1',
+    badgeAnimation: 'animate-diamond-glow',
   },
   gold: {
     label: 'FEATURED',
@@ -48,6 +54,9 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     animation: 'animate-gold-shimmer',
     priority: 2,
     accentColor: '#f59e0b',
+    cardClasses: 'ring-2 ring-amber-400 shadow-lg shadow-amber-200/50 bg-gradient-to-b from-amber-50/30 to-transparent',
+    cardHoverClasses: 'hover:ring-amber-500 hover:shadow-xl hover:shadow-amber-300/30 hover:-translate-y-1',
+    badgeAnimation: 'animate-gold-shimmer',
   },
   silver: {
     label: 'BOOSTED',
@@ -63,6 +72,9 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     animation: 'animate-silver-glow',
     priority: 1,
     accentColor: '#94a3b8',
+    cardClasses: 'ring-1 ring-slate-300 shadow-md shadow-slate-200/40 bg-gradient-to-b from-slate-50/20 to-transparent',
+    cardHoverClasses: 'hover:ring-slate-400 hover:shadow-lg hover:shadow-slate-300/30 hover:-translate-y-0.5',
+    badgeAnimation: 'animate-silver-glow',
   },
   top: {
     label: 'TOP DEAL',
@@ -78,6 +90,9 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     animation: 'animate-gold-shimmer',
     priority: 1,
     accentColor: '#f59e0b',
+    cardClasses: 'ring-2 ring-amber-400 shadow-lg shadow-amber-200/50 bg-gradient-to-b from-amber-50/30 to-transparent',
+    cardHoverClasses: 'hover:ring-amber-500 hover:shadow-xl hover:shadow-amber-300/30 hover:-translate-y-1',
+    badgeAnimation: 'animate-gold-shimmer',
   },
   featured: {
     label: 'FEATURED',
@@ -93,6 +108,9 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     animation: 'animate-gold-shimmer',
     priority: 2,
     accentColor: '#3b82f6',
+    cardClasses: 'ring-2 ring-blue-400 shadow-lg shadow-blue-200/50 bg-gradient-to-b from-blue-50/30 to-transparent',
+    cardHoverClasses: 'hover:ring-blue-500 hover:shadow-xl hover:shadow-blue-300/30 hover:-translate-y-1',
+    badgeAnimation: 'animate-gold-shimmer',
   },
   highlight: {
     label: 'HIGHLIGHTED',
@@ -108,6 +126,9 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     animation: 'animate-premium-sparkle',
     priority: 1,
     accentColor: '#8b5cf6',
+    cardClasses: 'ring-2 ring-purple-400 shadow-lg shadow-purple-200/50 bg-gradient-to-b from-purple-50/30 to-transparent',
+    cardHoverClasses: 'hover:ring-purple-500 hover:shadow-xl hover:shadow-purple-300/30 hover:-translate-y-1',
+    badgeAnimation: 'animate-premium-sparkle',
   },
 };
 
@@ -115,6 +136,17 @@ export function getBoostConfig(boostType: string | null | undefined): BoostUICon
   if (!boostType) return null;
   const key = boostType.toLowerCase();
   return BOOST_UI_CONFIG[key] || null;
+}
+
+export function getBoostCardClasses(boostType: string | null | undefined): string {
+  const config = getBoostConfig(boostType);
+  if (!config) return '';
+  return `${config.cardClasses} ${config.cardHoverClasses}`;
+}
+
+export function getBoostBadgeAnimation(boostType: string | null | undefined): string {
+  const config = getBoostConfig(boostType);
+  return config?.badgeAnimation ?? '';
 }
 
 export function sortAdsByBoostPriority<T extends { is_boosted?: boolean; boost_type?: string | null; boost_priority_score?: number }>(ads: T[]): T[] {
@@ -129,6 +161,15 @@ export function sortAdsByBoostPriority<T extends { is_boosted?: boolean; boost_t
     if (!configB) return -1;
     return configB.priority - configA.priority;
   });
+}
+
+export function getPromotedLabelClasses(boostType: string | null | undefined): string {
+  const config = getBoostConfig(boostType);
+  if (!config) return 'text-amber-600 bg-amber-50';
+  if (boostType === 'platinum') return 'text-violet-700 bg-violet-50';
+  if (boostType === 'gold' || boostType === 'featured' || boostType === 'top') return 'text-amber-700 bg-amber-50';
+  if (boostType === 'silver') return 'text-slate-600 bg-slate-100';
+  return 'text-amber-600 bg-amber-50';
 }
 
 export const TIER_INFO = {

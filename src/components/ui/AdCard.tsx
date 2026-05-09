@@ -7,7 +7,7 @@ import { Ad } from '@/types';
 import { formatPrice, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
 import { useState, memo, useCallback } from 'react';
 import PremiumBadge from './PremiumBadge';
-import { getBoostConfig } from '@/lib/boost-config';
+import { getBoostConfig, getBoostCardClasses, getPromotedLabelClasses } from '@/lib/boost-config';
 
 interface AdCardProps {
   ad: Ad;
@@ -81,10 +81,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   const showFallback = !currentSrc || imgError;
 
   const boostType = (ad as any).boost_type;
-  const boostConfig = getBoostConfig(boostType);
-  const cardBoostClasses = boostConfig
-    ? `ring-1 ${boostConfig.cardBorder} ${boostConfig.cardGlow}`
-    : '';
+  const cardBoostClasses = getBoostCardClasses(boostType);
+  const promotedLabelClasses = getPromotedLabelClasses(boostType);
 
   const getLocationDisplay = () => {
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
@@ -191,7 +189,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               <span className="text-xs text-primary-600 font-medium">{categoryName}</span>
             )}
             {boostType && (
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
+              <span className={`text-[9px] font-semibold uppercase tracking-wider ${promotedLabelClasses} px-1.5 py-0.5 rounded-full`}>
                 Promoted
               </span>
             )}
@@ -246,7 +244,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             <span className="text-xs text-primary-600 font-medium">{categoryName}</span>
           )}
           {boostType && (
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
+            <span className={`text-[10px] font-semibold uppercase tracking-wider ${promotedLabelClasses} px-1.5 py-0.5 rounded-full`}>
               Promoted
             </span>
           )}

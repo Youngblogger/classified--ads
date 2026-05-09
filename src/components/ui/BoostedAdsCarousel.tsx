@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Image as ImageIcon, Bookmark } from 'lucide-react';
 import PremiumBadge from '@/components/ui/PremiumBadge';
-import { getBoostConfig, BoostType, sortAdsByBoostPriority } from '@/lib/boost-config';
+import { getBoostCardClasses, BoostType, sortAdsByBoostPriority } from '@/lib/boost-config';
 import { formatPrice, FALLBACK_IMAGE } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -77,6 +77,7 @@ function AdCard({ ad }: { ad: BoostedAd }) {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const imageUrl = getImageUrl(ad);
   const imageCount = ad.images ? (Array.isArray(ad.images) ? ad.images.length : 0) : 0;
+  const boostCardClasses = getBoostCardClasses(ad.boost_type);
 
   const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -132,7 +133,7 @@ function AdCard({ ad }: { ad: BoostedAd }) {
   };
 
   return (
-    <div onClick={handleAdClick} className="group min-w-[220px] sm:min-w-[260px] md:min-w-[280px] max-w-[280px] bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 cursor-pointer flex-shrink-0">
+    <div onClick={handleAdClick} className={`group min-w-[220px] sm:min-w-[260px] md:min-w-[280px] max-w-[280px] bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer flex-shrink-0 ${boostCardClasses}`}>
       <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
         <img
           src={imgError ? FALLBACK_IMAGE : imageUrl}

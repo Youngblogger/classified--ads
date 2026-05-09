@@ -9,7 +9,9 @@ import { getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import BoostPlansModal from '@/components/ui/BoostPlansModal';
+import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getAuthToken } from '@/lib/cookies';
+import { getBoostCardClasses } from '@/lib/boost-config';
 
 type StatusFilter = 'all' | 'active' | 'pending' | 'sold' | 'expired';
 
@@ -288,10 +290,12 @@ export default function MyAdsPage() {
         </div>
       ) : filteredAds.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {filteredAds.map((ad) => (
+          {filteredAds.map((ad) => {
+            const boostCardClasses = getBoostCardClasses((ad as any).boost_type);
+            return (
             <div
               key={ad.id}
-              className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all duration-300 group"
+              className={`bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all duration-300 group ${boostCardClasses}`}
             >
               {/* Image */}
               <div className="relative aspect-square bg-gray-100">
@@ -335,6 +339,7 @@ export default function MyAdsPage() {
                     </div>
                   );
                 })()}
+                <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
                 <div className="absolute top-3 right-3">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig[ad.status as keyof typeof statusConfig].class}`}>
                     {statusConfig[ad.status as keyof typeof statusConfig].label}
@@ -483,7 +488,8 @@ export default function MyAdsPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="bg-white rounded-2xl p-12 text-center shadow-card">
