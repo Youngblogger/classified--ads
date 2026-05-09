@@ -114,10 +114,12 @@ function getIconComponent(iconName?: string): any {
 function getFullAvatarUrl(user: any): string | null {
   if (!user) return null;
   
-  const avatar = user.full_avatar_url || user.avatar_url || user.avatar || user.google_avatar || user.facebook_avatar;
-  if (!avatar) return null;
+  const raw = user.full_avatar_url || user.avatar_url || user.avatar || user.google_avatar || user.facebook_avatar;
+  if (!raw) return null;
   
-  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+  const avatar = raw.trim();
+  
+  if (/^https?:\/\//i.test(avatar)) {
     return avatar;
   }
   if (avatar.startsWith('/storage/')) {
@@ -1146,7 +1148,7 @@ export default function Header() {
                         onClick={() => setShowUserMenu(!showUserMenu)}
                         className="flex items-center gap-2 p-1.5 hover:bg-primary-700 rounded-xl transition-colors"
                       >
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
+                        <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
                           {(() => {
                             const avatarUrl = getFullAvatarUrl(user);
                             return avatarUrl ? (

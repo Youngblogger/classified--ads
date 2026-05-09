@@ -120,6 +120,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               fill
               sizes="(max-width: 768px) 100vw, 192px"
               className="object-cover"
+              loading={priority ? 'eager' : 'lazy'}
+              priority={priority}
             />
           ) : (
             <Image

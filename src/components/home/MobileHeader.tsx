@@ -116,14 +116,15 @@ export default function MobileHeader() {
           href="/" 
           className="flex-shrink-0 flex items-center gap-1"
         >
-          <Image 
-            src="/icons/iList-white.png" 
-            alt="iList" 
-            width={96}
-            height={32}
-            className="h-8 w-auto"
-            priority
-          />
+          <div className="relative h-8 w-[96px]">
+            <Image 
+              src="/icons/iList-white.png" 
+              alt="iList" 
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
         </Link>
 
         {/* Location Selector */}

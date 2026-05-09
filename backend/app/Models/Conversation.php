@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Conversation extends Model
@@ -45,9 +46,9 @@ class Conversation extends Model
         return $this->hasMany(Message::class);
     }
 
-    public function latestMessage(): HasMany
+    public function latestMessage(): HasOne
     {
-        return $this->hasMany(Message::class)->latest()->limit(1);
+        return $this->hasOne(Message::class)->latest();
     }
 
     protected function participant(): Attribute

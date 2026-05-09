@@ -30,13 +30,16 @@ class ConversationResource extends JsonResource
                 'price' => (float) $this->ad->price,
             ]),
             'ad_image' => $this->whenLoaded('ad.images', fn() => $this->ad->images->first()?->thumbnail_url),
-            'latest_message' => $this->whenLoaded('latestMessage', fn() => [
-                'id' => $this->latestMessage->id,
-                'content' => $this->latestMessage->content,
-                'sender_id' => $this->latestMessage->sender_id,
-                'message_type' => $this->latestMessage->message_type ?? 'text',
-                'created_at' => $this->latestMessage->created_at?->toIso8601String(),
-            ]),
+            'latest_message' => $this->whenLoaded('latestMessage', function () {
+                $msg = $this->latestMessage->first();
+                return $msg ? [
+                    'id' => $msg->id,
+                    'content' => $msg->content,
+                    'sender_id' => $msg->sender_id,
+                    'message_type' => $msg->message_type ?? 'text',
+                    'created_at' => $msg->created_at?->toIso8601String(),
+                ] : null;
+            }),
         ];
     }
 }
