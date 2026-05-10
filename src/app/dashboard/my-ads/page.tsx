@@ -303,7 +303,11 @@ export default function MyAdsPage() {
                 {(() => {
                   let imageUrl = '';
                   
-                  if (Array.isArray(ad.images) && ad.images.length > 0) {
+                  if (ad.image) {
+                    imageUrl = getAdImageUrl(ad.image);
+                  }
+                  
+                  if (!imageUrl && Array.isArray(ad.images) && ad.images.length > 0) {
                     const primaryImage = ad.images.find((img: any) => img?.is_primary) || ad.images[0];
                     imageUrl = getAdImageUrl(primaryImage);
                   }
@@ -333,7 +337,7 @@ export default function MyAdsPage() {
                       />
                       <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
                         <ImageIcon className="w-3 h-3" />
-                        <span>{ad.images?.length || 1}</span>
+                        <span>{ad.images_count || 1}</span>
                       </div>
                     </>
                   ) : (
