@@ -99,6 +99,9 @@ class WalletController extends Controller
                 ], 400);
             }
 
+            // Track pending balance
+            $wallet->increment('pending_balance', $amount);
+
             // Create pending transaction
             Transaction::create([
                 'user_id' => $user->id,
@@ -220,6 +223,7 @@ class WalletController extends Controller
             // Process the payment
             $balanceBefore = $wallet->balance;
             $wallet->increment('balance', $transaction->amount);
+            $wallet->decrement('pending_balance', $transaction->amount);
             $wallet->refresh();
 
             // Update transaction

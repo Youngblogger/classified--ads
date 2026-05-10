@@ -26,7 +26,7 @@ class GrowthController extends Controller
         ]);
     }
 
-    public function boostAd(Request $request, int $id, BoostTierService $tierService, PaymentService $paymentService)
+    public function boostAd(Request $request, int $id, BoostAdService $boostAdService, PaymentService $paymentService)
     {
         $user = $request->user();
 
@@ -46,10 +46,9 @@ class GrowthController extends Controller
         ]);
 
         if (isset($validated['plan_type'])) {
-            $result = $tierService->createBoost($id, $user->id, $validated['plan_type']);
+            $result = $boostAdService->createBoost($id, $user->id, $validated['plan_type']);
         } else {
-            $oldService = app(BoostAdService::class);
-            $result = $oldService->createBoost($id, $user->id, $validated['boost_type'], $validated['duration_days']);
+            $result = $boostAdService->createBoost($id, $user->id, $validated['boost_type'], $validated['duration_days']);
             $result['plan'] = null;
         }
 
@@ -92,9 +91,9 @@ class GrowthController extends Controller
         return response()->json($responseData);
     }
 
-    public function getBoostStatus(Request $request, int $id, BoostTierService $tierService)
+    public function getBoostStatus(Request $request, int $id, BoostAdService $boostAdService)
     {
-        $status = $tierService->getBoostStatus($id, $request->user()->id);
+        $status = $boostAdService->getBoostStatus($id, $request->user()->id);
 
         if (isset($status['error'])) {
             return response()->json(['error' => $status['error']], 404);
@@ -115,7 +114,7 @@ class GrowthController extends Controller
         ]);
     }
 
-    public function renewBoost(Request $request, int $id, BoostTierService $tierService)
+    public function renewBoost(Request $request, int $id, BoostAdService $boostAdService)
     {
         $user = $request->user();
 
@@ -128,7 +127,7 @@ class GrowthController extends Controller
         }
         RateLimiter::hit($key, 3600);
 
-        $result = $tierService->renewBoost($id, $user->id);
+        $result = $boostAdService->renewBoost($id, $user->id);
 
         if (!$result['success']) {
             $status = match ($result['code'] ?? '') {

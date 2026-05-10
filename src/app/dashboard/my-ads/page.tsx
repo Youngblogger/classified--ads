@@ -110,8 +110,8 @@ export default function MyAdsPage() {
   }, [fetchAds]);
 
   const filteredAds = ads.filter(ad => {
-    const matchesSearch = ad.title?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    const title = (ad.title || '').toLowerCase();
+    return title.includes(searchQuery.toLowerCase());
   });
 
   const handleDeleteClick = (adId: number, adSlug: string, adTitle: string) => {
@@ -343,8 +343,8 @@ export default function MyAdsPage() {
                 })()}
                 <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
                 <div className="absolute top-3 right-3">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig[ad.status as keyof typeof statusConfig].class}`}>
-                    {statusConfig[ad.status as keyof typeof statusConfig].label}
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${(statusConfig[ad.status as keyof typeof statusConfig]?.class) || 'bg-gray-100 text-gray-800'}`}>
+                    {(statusConfig[ad.status as keyof typeof statusConfig]?.label) || ad.status || 'Unknown'}
                   </span>
                 </div>
                 {ad.status === 'pending' && (
