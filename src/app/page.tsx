@@ -8,7 +8,7 @@ import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { AdCardSkeleton } from '@/components/ui/Skeleton';
 
-import { formatPrice, FALLBACK_IMAGE } from '@/lib/utils';
+import { formatPrice, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import { useInfiniteAds } from '@/hooks/useAds';
 import Image from 'next/image';
@@ -16,36 +16,7 @@ import toast from 'react-hot-toast';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import BoostedAdsCarousel from '@/components/ui/BoostedAdsCarousel';
 import { getBoostCardClasses } from '@/lib/boost-config';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
-const BACKEND_URL = API_URL.replace('/api', '');
-
-function getImageUrl(img: any): string {
-  if (!img) return '';
-  let url = '';
-  if (typeof img === 'string') {
-    url = img;
-  } else if (typeof img === 'object') {
-    url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.src || img.original_url || img.image || img.path || img.file || '';
-  }
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  if (url.startsWith('/storage/')) {
-    return `${BACKEND_URL}${url}`;
-  }
-  if (url.startsWith('storage/')) {
-    return `${BACKEND_URL}/${url}`;
-  }
-  if (url.startsWith('/')) {
-    return url;
-  }
-  if (url.startsWith('json_dataset/')) {
-    return url.replace('json_dataset/', '/');
-  }
-  return `/images/${url}`;
-}
+import { API_URL } from '@/lib/config';
 
 function LazyImage({ src, alt, className, style, onError }: { src: string; alt: string; className?: string; style?: React.CSSProperties; onError?: () => void }) {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -77,34 +48,14 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const boostCardClasses = getBoostCardClasses(ad.boost_type);
   
-  const normalizeImage = (img: any): string => {
-    let url = '';
-    if (typeof img === 'string') {
-      url = img;
-    } else if (img && typeof img === 'object') {
-      url = img.thumbnail_url || img.listing_url || img.thumbnail || img.full_thumbnail_url || img.display_url || img.url || img.full_url || img.original_url || '';
-    }
-    if (!url) return FALLBACK_IMAGE;
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('/storage/') || url.startsWith('storage/')) {
-      return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-    }
-    if (url.startsWith('/')) return url;
-    if (url.startsWith('json_dataset/')) return url.replace('json_dataset/', '/');
-    return `/images/${url}`;
-  };
-  
-  // Extract image URL from various possible formats
   const getImageUrl = () => {
-    // Check for images array
     if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
-      return normalizeImage(ad.images[0]);
+      return getAdImageUrl(ad.images[0]) || FALLBACK_IMAGE;
     }
-    // Check for single image field
-    if (ad.image || ad.main_image) {
-      return normalizeImage(ad.image || ad.main_image);
+    if (ad.image) {
+      return getAdImageUrl(ad.image) || FALLBACK_IMAGE;
     }
-    return FALLBACK_IMAGE;
+    return getAdImage(ad) || FALLBACK_IMAGE;
   };
   
   const imageUrl = getImageUrl();
@@ -149,8 +100,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
         });
       }
       setIsFavorited(!isFavorited);
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+    } catch {
     } finally {
       setFavoriteLoading(false);
     }

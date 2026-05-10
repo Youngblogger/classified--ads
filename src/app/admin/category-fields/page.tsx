@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Search,
   Plus,
@@ -61,11 +61,6 @@ export default function CategoryFieldsPage() {
     category_id: null as number | null,
   });
 
-  useEffect(() => {
-    fetchCategories();
-    fetchFields();
-  }, []);
-
   const fetchCategories = async () => {
     try {
       const res = await adminApi.getCategories();
@@ -76,7 +71,7 @@ export default function CategoryFieldsPage() {
     }
   };
 
-  const fetchFields = async () => {
+  const fetchFields = useCallback(async () => {
     try {
       setLoading(true);
       const params: Record<string, any> = {};
@@ -91,11 +86,17 @@ export default function CategoryFieldsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchFields();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetchFields();
-  }, [selectedCategory]);
+  }, [selectedCategory, fetchFields]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

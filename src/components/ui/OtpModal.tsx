@@ -40,7 +40,7 @@ export default function OtpModal({ isOpen, onClose, phone = '', email = '', onVe
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [isOpen, resendTimer]);
+  }, [isOpen, resendTimer, success]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Search,
   DollarSign,
@@ -74,11 +74,7 @@ export default function PaymentsPage() {
   const [methodFilter, setMethodFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, [statusFilter, typeFilter, methodFilter]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const params: Record<string, string> = {};
@@ -102,7 +98,11 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, typeFilter, methodFilter]);
+
+  useEffect(() => {
+    fetchData();
+  }, [statusFilter, typeFilter, methodFilter, fetchData]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

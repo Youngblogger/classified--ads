@@ -29,37 +29,38 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
       setComment('');
       setError('');
       setHasExistingReview(false);
+
+      const checkExistingReview = async () => {
+        try {
+          const token = getAuthToken();
+          if (!token) return;
+          
+          const response = await fetch(`${API_URL}/reviews/my-reviews`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json',
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const myReviews = data.data || [];
+            const existingReview = myReviews.find((r: any) => r.ad_id === adId);
+            
+            if (existingReview) {
+              setHasExistingReview(true);
+              setRating(existingReview.rating);
+              setComment(existingReview.comment || '');
+            }
+          }
+        } catch (err) {
+          console.log('Error checking existing review:', err);
+        }
+      };
+
       checkExistingReview();
     }
   }, [isOpen, adId]);
-
-  const checkExistingReview = async () => {
-    try {
-      const token = getAuthToken();
-      if (!token) return;
-      
-      const response = await fetch(`${API_URL}/reviews/my-reviews`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const myReviews = data.data || [];
-        const existingReview = myReviews.find((r: any) => r.ad_id === adId);
-        
-        if (existingReview) {
-          setHasExistingReview(true);
-          setRating(existingReview.rating);
-          setComment(existingReview.comment || '');
-        }
-      }
-    } catch (err) {
-      console.log('Error checking existing review:', err);
-    }
-  };
 
   if (!isOpen) return null;
 

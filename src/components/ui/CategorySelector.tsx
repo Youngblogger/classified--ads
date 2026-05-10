@@ -101,17 +101,7 @@ function DefaultIcon({ className }: { className?: string }) {
 
 type Level = 'main' | 'sub' | 'child';
 
-export default function CategorySelector({ isOpen, onClose, onSelect, selectedCategoryId, selectedBreadcrumb }: CategorySelectorProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentLevel, setCurrentLevel] = useState<Level>('main');
-  const [selectedMainCategory, setSelectedMainCategory] = useState<Category | null>(null);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  const localCategories: Category[] = [
+const localCategories: Category[] = [
     { id: 1, name: 'Vehicles', slug: 'vehicles', icon: 'Car', children: [
       { id: 101, name: 'Cars', slug: 'cars' },
       { id: 102, name: 'Motorcycles', slug: 'motorcycles' },
@@ -184,24 +174,15 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
     ]},
   ];
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchCategories();
-      resetState();
-      setTimeout(() => searchInputRef.current?.focus(), 100);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-      if (e.key === 'Escape') {
-        handleClose();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+export default function CategorySelector({ isOpen, onClose, onSelect, selectedCategoryId, selectedBreadcrumb }: CategorySelectorProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentLevel, setCurrentLevel] = useState<Level>('main');
+  const [selectedMainCategory, setSelectedMainCategory] = useState<Category | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const resetState = useCallback(() => {
     setSearchQuery('');
@@ -210,7 +191,7 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
     setSelectedSubCategory(null);
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/categories`, {
@@ -230,7 +211,30 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
     }
     setCategories(localCategories);
     setLoading(false);
-  };
+  }, []);
+
+  const handleClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategories();
+      resetState();
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [isOpen, fetchCategories, resetState]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleClose]);
 
   const getCurrentCategories = useMemo(() => {
     if (currentLevel === 'main') {
@@ -319,10 +323,6 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
     setCurrentLevel('sub');
     setSelectedSubCategory(null);
     setSearchQuery('');
-  };
-
-  const handleClose = () => {
-    onClose();
   };
 
   const handleOutsideClick = (e: React.MouseEvent) => {
@@ -496,6 +496,7 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
                       onClick={() => handleSelect(selectedMainCategory, null, null)}
                       className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-50 hover:bg-primary-100 transition-colors text-left mb-2"
                       role="option"
+                      aria-selected={selectedCategoryId === selectedMainCategory?.id}
                     >
                       <div className="w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0">
                         {getIcon(selectedMainCategory.icon)}
@@ -520,6 +521,7 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
                         selectedCategoryId === subCategory.id ? 'bg-primary-50 border border-primary-200' : ''
                       }`}
                       role="option"
+                      aria-selected={selectedCategoryId === subCategory.id}
                     >
                       <div className="w-10 h-10 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center flex-shrink-0">
                         {getIcon(subCategory.icon)}
@@ -548,6 +550,7 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
                     onClick={() => handleSelect(selectedSubCategory, selectedMainCategory, null)}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-50 hover:bg-primary-100 transition-colors text-left mb-2"
                     role="option"
+                    aria-selected={selectedCategoryId === selectedSubCategory?.id}
                   >
                     <div className="w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0">
                       {getIcon(selectedSubCategory.icon)}
@@ -571,6 +574,7 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
                         selectedCategoryId === childCategory.id ? 'bg-primary-50 border border-primary-200' : ''
                       }`}
                       role="option"
+                      aria-selected={selectedCategoryId === childCategory.id}
                     >
                       <div className="w-10 h-10 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center flex-shrink-0">
                         {getIcon(childCategory.icon)}

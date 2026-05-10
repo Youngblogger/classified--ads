@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Zap, Search, Clock, CheckCircle, XCircle, Calendar, Loader2 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -40,11 +40,7 @@ export default function BoostsPage() {
   const [extendDays, setExtendDays] = useState(7);
   const [extending, setExtending] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, [statusFilter, typeFilter, page]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const params: Record<string, string> = {};
@@ -71,7 +67,11 @@ export default function BoostsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, typeFilter, page]);
+
+  useEffect(() => {
+    fetchData();
+  }, [statusFilter, typeFilter, page, fetchData]);
 
   const handleDeactivate = async (id: number) => {
     if (!confirm('Deactivate this boost?')) return;

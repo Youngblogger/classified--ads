@@ -27,6 +27,22 @@ export function useSocket({
   onPromotionActivated,
 }: UseSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
+  const callbacksRef = useRef({
+    onNewMessage,
+    onMessageRead,
+    onUserTyping,
+    onNotification,
+    onPaymentCompleted,
+    onPromotionActivated,
+  });
+  callbacksRef.current = {
+    onNewMessage,
+    onMessageRead,
+    onUserTyping,
+    onNotification,
+    onPaymentCompleted,
+    onPromotionActivated,
+  };
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
   const [socketError, setSocketError] = useState<string | null>(null);
@@ -34,41 +50,32 @@ export function useSocket({
   useEffect(() => {
     if (!userId) return;
 
-    // Clean up any existing connection
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
     }
 
-    // Don't attempt connection if URL is localhost and we're not in development
-    const isLocalhost = SOCKET_URL.includes('localhost');
-    
-    // Initialize socket connection
     try {
       socketRef.current = io(SOCKET_URL, {
         transports: ['polling', 'websocket'],
         timeout: 5000,
-        reconnection: false, // Disable auto-reconnection to prevent repeated errors
+        reconnection: false,
         forceBase64: false,
       });
 
       const socket = socketRef.current;
 
       socket.on('connect', () => {
-        console.log('Socket connected:', socket.id);
         setIsConnected(true);
         setSocketError(null);
         socket.emit('join', userId);
       });
 
       socket.on('disconnect', () => {
-        console.log('Socket disconnected');
         setIsConnected(false);
       });
 
-      socket.on('connect_error', (err) => {
-        // Silently handle connection errors - socket is optional
-        console.log('Socket unavailable, using HTTP fallback');
+      socket.on('connect_error', () => {
         setSocketError('Socket unavailable');
         setIsConnected(false);
       });
@@ -77,36 +84,34 @@ export function useSocket({
         setOnlineUsers(users);
       });
 
-      if (onNewMessage) {
-        socket.on('newMessage', (message) => {
-          onNewMessage(message);
-        });
-      }
+      socket.on('newMessage', (message) => {
+        callbacksRef.current.onNewMessage?.(message);
+      });
 
-      if (onMessageRead) {
-        socket.on('messageRead', (data) => {
-          onMessageRead(data);
-        });
-      }
+      socket.on('messageRead', (data) => {
+        callbacksRef.current.onMessageRead?.(data);
+      });
 
-      if (onUserTyping) {
-        socket.on('userTyping', onUserTyping);
-        socket.on('userStoppedTyping', onUserTyping);
-      }
+      socket.on('userTyping', (data) => {
+        callbacksRef.current.onUserTyping?.(data);
+      });
 
-      if (onNotification) {
-        socket.on('notification', onNotification);
-      }
+      socket.on('userStoppedTyping', (data) => {
+        callbacksRef.current.onUserTyping?.(data);
+      });
 
-      if (onPaymentCompleted) {
-        socket.on('paymentCompleted', onPaymentCompleted);
-      }
+      socket.on('notification', (notification) => {
+        callbacksRef.current.onNotification?.(notification);
+      });
 
-      if (onPromotionActivated) {
-        socket.on('promotionActivated', onPromotionActivated);
-      }
-    } catch (error) {
-      console.log('Socket initialization skipped');
+      socket.on('paymentCompleted', (notification) => {
+        callbacksRef.current.onPaymentCompleted?.(notification);
+      });
+
+      socket.on('promotionActivated', (notification) => {
+        callbacksRef.current.onPromotionActivated?.(notification);
+      });
+    } catch {
       setSocketError('Socket not available');
     }
 
@@ -116,7 +121,7 @@ export function useSocket({
         socketRef.current = null;
       }
     };
-  }, [userId, onNewMessage, onMessageRead, onUserTyping, onNotification, onPaymentCompleted, onPromotionActivated]);
+  }, [userId]);
 
   const joinConversation = useCallback((conversationId: string) => {
     if (socketRef.current?.connected) {

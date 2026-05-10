@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, X } from 'lucide-react';
 import { Category } from '@/types';
@@ -45,7 +45,19 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
       }
       setTimeout(() => searchInputRef.current?.focus(), 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  const getSubcategories = useCallback((parentId: number): Category[] => {
+    const parent = categories.find(c => c.id === parentId);
+    if (parent?.children && parent.children.length > 0) {
+      return parent.children;
+    }
+    if ((parent as any)?.subcategories && (parent as any).subcategories.length > 0) {
+      return (parent as any).subcategories;
+    }
+    return categories.filter(c => c.parent_id === parentId);
+  }, [categories]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -73,7 +85,7 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
         setSelectedCategory(filtered[0]);
       }
     }
-  }, [searchQuery, categories, selectedCategory]);
+  }, [searchQuery, categories, selectedCategory, getSubcategories]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -115,19 +127,6 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
     const orderB = popularOrder[b.slug] ?? 999;
     return orderA - orderB;
   });
-  const getSubcategories = (parentId: number): Category[] => {
-    // First try to find children in the category object
-    const parent = categories.find(c => c.id === parentId);
-    if (parent?.children && parent.children.length > 0) {
-      return parent.children;
-    }
-    // Also check for subcategories (backend returns this)
-    if ((parent as any)?.subcategories && (parent as any).subcategories.length > 0) {
-      return (parent as any).subcategories;
-    }
-    // Fallback to filtering by parent_id
-    return categories.filter(c => c.parent_id === parentId);
-  };
 
   const getCategoryIcon = (slug: string, icon?: string) => {
     // Use stored icon if available and not a Lucide icon name

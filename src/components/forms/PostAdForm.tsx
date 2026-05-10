@@ -69,6 +69,69 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
+const localCategories = [
+  { id: 1, name: 'Vehicles', slug: 'vehicles', icon: 'Car', children: [
+    { id: 101, name: 'Cars', slug: 'cars' },
+    { id: 102, name: 'Motorcycles', slug: 'motorcycles' },
+    { id: 103, name: 'Buses & Vans', slug: 'buses-vans' },
+    { id: 104, name: 'Trucks & Trailers', slug: 'trucks-trailers' },
+  ]},
+  { id: 2, name: 'Property', slug: 'property', icon: 'Home', children: [
+    { id: 201, name: 'Apartments for Rent', slug: 'apartments-rent' },
+    { id: 202, name: 'Apartments for Sale', slug: 'apartments-sale' },
+    { id: 203, name: 'Houses for Rent', slug: 'houses-rent' },
+    { id: 204, name: 'Houses for Sale', slug: 'houses-sale' },
+  ]},
+  { id: 3, name: 'Mobile Phones & Tablets', slug: 'mobile-phones', icon: 'Smartphone', children: [
+    { id: 301, name: 'Smartphones', slug: 'smartphones' },
+    { id: 302, name: 'Tablets', slug: 'tablets' },
+    { id: 303, name: 'Smartwatches', slug: 'smartwatches' },
+    { id: 304, name: 'Phone Accessories', slug: 'phone-accessories' },
+  ]},
+  { id: 4, name: 'Electronics', slug: 'electronics', icon: 'Monitor', children: [
+    { id: 401, name: 'Laptops', slug: 'laptops' },
+    { id: 402, name: 'Desktop Computers', slug: 'desktops' },
+    { id: 403, name: 'Televisions', slug: 'tvs' },
+    { id: 404, name: 'Gaming Consoles', slug: 'gaming' },
+  ]},
+  { id: 5, name: 'Fashion', slug: 'fashion', icon: 'Shirt', children: [
+    { id: 501, name: "Men's Clothing", slug: 'men-clothing' },
+    { id: 502, name: "Women's Clothing", slug: 'women-clothing' },
+    { id: 503, name: 'Shoes', slug: 'shoes' },
+    { id: 504, name: 'Watches', slug: 'watches' },
+  ]},
+  { id: 6, name: 'Home, Furniture & Appliances', slug: 'home-furniture', icon: 'Sofa', children: [
+    { id: 601, name: 'Furniture', slug: 'furniture' },
+    { id: 602, name: 'Home Decor', slug: 'home-decor' },
+    { id: 603, name: 'Kitchen Appliances', slug: 'kitchen-appliances' },
+    { id: 604, name: 'Bedding', slug: 'bedding' },
+  ]},
+  { id: 7, name: 'Jobs', slug: 'jobs', icon: 'Briefcase', children: [
+    { id: 701, name: 'Full-time Jobs', slug: 'full-time' },
+    { id: 702, name: 'Part-time Jobs', slug: 'part-time' },
+    { id: 703, name: 'Remote Jobs', slug: 'remote' },
+    { id: 704, name: 'Internships', slug: 'internships' },
+  ]},
+  { id: 8, name: 'Services', slug: 'services', icon: 'Wrench', children: [
+    { id: 801, name: 'Cleaning Services', slug: 'cleaning' },
+    { id: 802, name: 'Repair & Maintenance', slug: 'repair' },
+    { id: 803, name: 'Moving & Logistics', slug: 'moving' },
+    { id: 804, name: 'Event Services', slug: 'events' },
+  ]},
+  { id: 9, name: 'Pets', slug: 'pets', icon: 'Dog', children: [
+    { id: 901, name: 'Dogs', slug: 'dogs' },
+    { id: 902, name: 'Cats', slug: 'cats' },
+    { id: 903, name: 'Birds', slug: 'birds' },
+    { id: 904, name: 'Pet Food', slug: 'pet-food' },
+  ]},
+  { id: 10, name: 'Health & Beauty', slug: 'health-beauty', icon: 'Heart', children: [
+    { id: 1001, name: 'Skincare', slug: 'skincare' },
+    { id: 1002, name: 'Haircare', slug: 'haircare' },
+    { id: 1003, name: 'Makeup', slug: 'makeup' },
+    { id: 1004, name: 'Fragrances', slug: 'fragrances' },
+  ]},
+];
+
 export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFormProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
@@ -122,7 +185,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     if (savedPhone && !phone) {
       setPhone(savedPhone);
     }
-  }, []);
+  }, [phone]);
 
   // Restore draft if available and form is empty
   useEffect(() => {
@@ -163,7 +226,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         setDraftRestored(true);
       }
     } catch {}
-  }, []);
+  }, [title, description, price, images]);
 
   // Auto-save draft while typing (debounced)
   useEffect(() => {
@@ -226,7 +289,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   }, [images]);
   
   // Get category name from categoryId
-  const getCategoryName = (id: number | null): string => {
+  const getCategoryName = useCallback((id: number | null): string => {
     if (!id) return '';
     const cat = categories.find(c => c.id === id || c.children?.some((child: any) => child.id === id));
     if (cat?.children?.some((child: any) => child.id === id)) {
@@ -234,7 +297,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       return child?.name || '';
     }
     return cat?.name || '';
-  };
+  }, [categories]);
   
   // Match selected category to structured data
   useEffect(() => {
@@ -278,7 +341,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     setSelectedModel('');
     setSelectedConfig('');
     setModelPresets([]);
-  }, [categoryId]);
+  }, [categoryId, getCategoryName]);
   
   // Get brands for selected structured category
   const getAvailableBrands = (): string[] => {
@@ -379,70 +442,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       setAttributes(prev => ({ ...prev, configuration: selectedConfig }));
     }
   }, [selectedConfig]);
-
-  // Local fallback categories (same as homepage)
-  const localCategories = [
-    { id: 1, name: 'Vehicles', slug: 'vehicles', icon: 'Car', children: [
-      { id: 101, name: 'Cars', slug: 'cars' },
-      { id: 102, name: 'Motorcycles', slug: 'motorcycles' },
-      { id: 103, name: 'Buses & Vans', slug: 'buses-vans' },
-      { id: 104, name: 'Trucks & Trailers', slug: 'trucks-trailers' },
-    ]},
-    { id: 2, name: 'Property', slug: 'property', icon: 'Home', children: [
-      { id: 201, name: 'Apartments for Rent', slug: 'apartments-rent' },
-      { id: 202, name: 'Apartments for Sale', slug: 'apartments-sale' },
-      { id: 203, name: 'Houses for Rent', slug: 'houses-rent' },
-      { id: 204, name: 'Houses for Sale', slug: 'houses-sale' },
-    ]},
-    { id: 3, name: 'Mobile Phones & Tablets', slug: 'mobile-phones', icon: 'Smartphone', children: [
-      { id: 301, name: 'Smartphones', slug: 'smartphones' },
-      { id: 302, name: 'Tablets', slug: 'tablets' },
-      { id: 303, name: 'Smartwatches', slug: 'smartwatches' },
-      { id: 304, name: 'Phone Accessories', slug: 'phone-accessories' },
-    ]},
-    { id: 4, name: 'Electronics', slug: 'electronics', icon: 'Monitor', children: [
-      { id: 401, name: 'Laptops', slug: 'laptops' },
-      { id: 402, name: 'Desktop Computers', slug: 'desktops' },
-      { id: 403, name: 'Televisions', slug: 'tvs' },
-      { id: 404, name: 'Gaming Consoles', slug: 'gaming' },
-    ]},
-    { id: 5, name: 'Fashion', slug: 'fashion', icon: 'Shirt', children: [
-      { id: 501, name: "Men's Clothing", slug: 'men-clothing' },
-      { id: 502, name: "Women's Clothing", slug: 'women-clothing' },
-      { id: 503, name: 'Shoes', slug: 'shoes' },
-      { id: 504, name: 'Watches', slug: 'watches' },
-    ]},
-    { id: 6, name: 'Home, Furniture & Appliances', slug: 'home-furniture', icon: 'Sofa', children: [
-      { id: 601, name: 'Furniture', slug: 'furniture' },
-      { id: 602, name: 'Home Decor', slug: 'home-decor' },
-      { id: 603, name: 'Kitchen Appliances', slug: 'kitchen-appliances' },
-      { id: 604, name: 'Bedding', slug: 'bedding' },
-    ]},
-    { id: 7, name: 'Jobs', slug: 'jobs', icon: 'Briefcase', children: [
-      { id: 701, name: 'Full-time Jobs', slug: 'full-time' },
-      { id: 702, name: 'Part-time Jobs', slug: 'part-time' },
-      { id: 703, name: 'Remote Jobs', slug: 'remote' },
-      { id: 704, name: 'Internships', slug: 'internships' },
-    ]},
-    { id: 8, name: 'Services', slug: 'services', icon: 'Wrench', children: [
-      { id: 801, name: 'Cleaning Services', slug: 'cleaning' },
-      { id: 802, name: 'Repair & Maintenance', slug: 'repair' },
-      { id: 803, name: 'Moving & Logistics', slug: 'moving' },
-      { id: 804, name: 'Event Services', slug: 'events' },
-    ]},
-    { id: 9, name: 'Pets', slug: 'pets', icon: 'Dog', children: [
-      { id: 901, name: 'Dogs', slug: 'dogs' },
-      { id: 902, name: 'Cats', slug: 'cats' },
-      { id: 903, name: 'Birds', slug: 'birds' },
-      { id: 904, name: 'Pet Food', slug: 'pet-food' },
-    ]},
-    { id: 10, name: 'Health & Beauty', slug: 'health-beauty', icon: 'Heart', children: [
-      { id: 1001, name: 'Skincare', slug: 'skincare' },
-      { id: 1002, name: 'Haircare', slug: 'haircare' },
-      { id: 1003, name: 'Makeup', slug: 'makeup' },
-      { id: 1004, name: 'Fragrances', slug: 'fragrances' },
-    ]},
-  ];
 
   useEffect(() => {
     // Use local categories as default

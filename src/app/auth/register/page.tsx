@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react';
@@ -90,7 +90,7 @@ const hasAnyError = (errors: FormErrors): boolean => {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const searchParams = useMemo(() => typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams(), []);
   const urlRedirect = searchParams.get('redirect') || '/dashboard';
   const redirectUrl = typeof window !== 'undefined' ? (localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || urlRedirect) : urlRedirect;
   const { login } = useAuthStore();
@@ -126,7 +126,7 @@ export default function RegisterPage() {
       localStorage.setItem('authRedirect', urlRedirect);
       sessionStorage.setItem('authRedirect', urlRedirect);
     }
-  }, []);
+  }, [searchParams, urlRedirect]);
   
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

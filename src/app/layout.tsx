@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { Inter, Poppins } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import LoginModal from '@/components/ui/LoginModal';
@@ -10,6 +11,9 @@ import Preloader from '@/components/ui/Preloader';
 import AuthProvider from '@/components/providers/AuthProvider';
 import BottomNav from '@/components/ui/BottomNav';
 import GoogleOneTap from '@/components/auth/GoogleOneTap';
+
+const inter = Inter({ subsets: ['latin'], display: 'swap', weight: ['400', '500', '600', '700', '800'] });
+const poppins = Poppins({ subsets: ['latin'], display: 'swap', weight: ['400', '500', '600', '700', '800'] });
 
 export default function RootLayout({
   children,
@@ -25,12 +29,9 @@ export default function RootLayout({
       <html lang="en">
         <head>
           <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
           <title>iList Admin</title>
         </head>
-        <body style={{ fontFamily: 'Inter, system-ui, sans-serif', margin: 0, padding: 0 }}>
+        <body style={{ fontFamily: inter.style.fontFamily, margin: 0, padding: 0 }}>
           {children}
           <Toaster position="top-right" />
         </body>
@@ -42,12 +43,9 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
         <meta name="csrf-token" content={typeof window !== 'undefined' ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' : ''} />
       </head>
-      <body className="min-h-screen flex flex-col" style={{ fontFamily: 'Inter, system-ui, sans-serif', margin: 0, padding: 0 }}>
+      <body className="min-h-screen flex flex-col" style={{ fontFamily: inter.style.fontFamily, margin: 0, padding: 0 }}>
         <AuthProvider>
           <GoogleOneTap />
           <Preloader />

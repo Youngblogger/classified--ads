@@ -229,22 +229,7 @@ export default function ChatModal({
     initConversation();
   }, [isOpen, isAuthenticated, user, adId, sellerId, conversationId]);
 
-  useEffect(() => {
-    if (!conversationId || !isOpen) return;
-
-    joinConversation(conversationId.toString());
-    fetchMessages();
-
-    return () => {
-      leaveConversation(conversationId.toString());
-    };
-  }, [conversationId, isOpen, joinConversation, leaveConversation]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     if (!conversationId) return;
     setIsLoading(true);
     try {
@@ -271,7 +256,22 @@ export default function ChatModal({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (!conversationId || !isOpen) return;
+
+    joinConversation(conversationId.toString());
+    fetchMessages();
+
+    return () => {
+      leaveConversation(conversationId.toString());
+    };
+  }, [conversationId, isOpen, joinConversation, leaveConversation, fetchMessages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
   
   // Deduplicate messages whenever they change
   useEffect(() => {
@@ -295,7 +295,7 @@ export default function ChatModal({
     if (uniqueMessages.length !== messages.length) {
       setMessages(uniqueMessages);
     }
-  }, [messages.length]);
+  }, [messages]);
 
   const startRecording = async () => {
     try {

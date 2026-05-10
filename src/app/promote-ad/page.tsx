@@ -51,10 +51,6 @@ export default function PromoteAdPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
   const fetchPlans = async () => {
     try {
       const response = await promotionsApi.getPlans();
@@ -78,6 +74,10 @@ export default function PromoteAdPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
 
   const handlePromoteClick = () => {
     if (!isAuthenticated) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Star, User, CheckCircle, Heart } from 'lucide-react';
 import axios from 'axios';
 import { useAuthStore } from '@/lib/store';
@@ -102,10 +103,13 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0">
           {avatarUrl ? (
-            <img
+            <Image
               src={avatarUrl}
               alt={review.user?.name || 'User'}
-              className="w-12 h-12 rounded-full object-cover"
+              width={48}
+              height={48}
+              className="rounded-full object-cover"
+              unoptimized
             />
           ) : (
             <div className="w-12 h-12 rounded-full bg-[#4B5320]/10 flex items-center justify-center">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -174,7 +174,7 @@ export default function SearchBar({
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 300000, fallbackData: { data: [] } }
   );
-  const locations = locationsData?.data || locationsData || [];
+  const locations = useMemo(() => locationsData?.data || locationsData || [], [locationsData]);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -268,6 +268,35 @@ export default function SearchBar({
 
   // Detect user location using browser Geolocation API
   const detectUserLocation = useCallback(async () => {
+    function matchCoordinatesToNigerianState(lat: number, lng: number): any | null {
+      // Simplified approximate boundaries for Nigerian states
+      const states: { name: string; slug: string; minLat: number; maxLat: number; minLng: number; maxLng: number }[] = [
+        { name: 'Lagos', slug: 'lagos', minLat: 6.4, maxLat: 6.7, minLng: 3.0, maxLng: 3.5 },
+        { name: 'Abuja', slug: 'abuja', minLat: 8.9, maxLat: 9.2, minLng: 7.2, maxLng: 7.5 },
+        { name: ' Kano', slug: 'kano', minLat: 11.9, maxLat: 12.3, minLng: 8.4, maxLng: 8.8 },
+        { name: 'Rivers', slug: 'rivers', minLat: 4.4, maxLat: 5.0, minLng: 6.5, maxLng: 7.2 },
+        { name: 'Delta', slug: 'delta', minLat: 5.0, maxLat: 5.8, minLng: 5.5, maxLng: 6.5 },
+        { name: 'Oyo', slug: 'oyo', minLat: 7.5, maxLat: 8.0, minLng: 3.5, maxLng: 4.2 },
+        { name: 'Ogun', slug: 'ogun', minLat: 6.5, maxLat: 7.2, minLng: 3.0, maxLng: 3.8 },
+        { name: 'Enugu', slug: 'enugu', minLat: 6.4, maxLat: 6.9, minLng: 7.0, maxLng: 7.6 },
+        { name: 'Kogi', slug: 'kogi', minLat: 7.2, maxLat: 7.9, minLng: 6.2, maxLng: 7.0 },
+        { name: 'Anambra', slug: 'anambra', minLat: 5.9, maxLat: 6.4, minLng: 6.8, maxLng: 7.3 },
+        { name: 'Imo', slug: 'imo', minLat: 5.4, maxLat: 5.9, minLng: 6.7, maxLng: 7.2 },
+        { name: 'Abia', slug: 'abia', minLat: 5.0, maxLat: 5.5, minLng: 7.4, maxLng: 7.9 },
+        { name: 'Niger', slug: 'niger', minLat: 9.3, maxLat: 10.3, minLng: 5.5, maxLng: 6.8 },
+        { name: 'Benue', slug: 'benue', minLat: 6.5, maxLat: 7.5, minLng: 7.5, maxLng: 8.8 },
+        { name: 'Plateau', slug: 'plateau', minLat: 8.8, maxLat: 9.5, minLng: 8.5, maxLng: 9.5 },
+      ];
+
+      for (const state of states) {
+        if (lat >= state.minLat && lat <= state.maxLat && lng >= state.minLng && lng <= state.maxLng) {
+          return locations.find((loc: any) => loc.name.trim() === state.name) || null;
+        }
+      }
+
+      return locations.find((loc: any) => loc.name === 'Lagos') || null;
+    }
+
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser');
       return;
@@ -279,8 +308,6 @@ export default function SearchBar({
       async (position) => {
         const { latitude, longitude } = position.coords;
         
-        // Nigerian state approximate boundaries (simplified)
-        // We'll match to the closest Nigerian state based on coordinates
         const stateMatch = matchCoordinatesToNigerianState(latitude, longitude);
         
         if (stateMatch) {
@@ -298,38 +325,7 @@ export default function SearchBar({
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
-  }, []);
-
-  // Simple coordinate matching for Nigerian states
-  function matchCoordinatesToNigerianState(lat: number, lng: number): any | null {
-    // Simplified approximate boundaries for Nigerian states
-    const states: { name: string; slug: string; minLat: number; maxLat: number; minLng: number; maxLng: number }[] = [
-      { name: 'Lagos', slug: 'lagos', minLat: 6.4, maxLat: 6.7, minLng: 3.0, maxLng: 3.5 },
-      { name: 'Abuja', slug: 'abuja', minLat: 8.9, maxLat: 9.2, minLng: 7.2, maxLng: 7.5 },
-      { name: ' Kano', slug: 'kano', minLat: 11.9, maxLat: 12.3, minLng: 8.4, maxLng: 8.8 },
-      { name: 'Rivers', slug: 'rivers', minLat: 4.4, maxLat: 5.0, minLng: 6.5, maxLng: 7.2 },
-      { name: 'Delta', slug: 'delta', minLat: 5.0, maxLat: 5.8, minLng: 5.5, maxLng: 6.5 },
-      { name: 'Oyo', slug: 'oyo', minLat: 7.5, maxLat: 8.0, minLng: 3.5, maxLng: 4.2 },
-      { name: 'Ogun', slug: 'ogun', minLat: 6.5, maxLat: 7.2, minLng: 3.0, maxLng: 3.8 },
-      { name: 'Enugu', slug: 'enugu', minLat: 6.4, maxLat: 6.9, minLng: 7.0, maxLng: 7.6 },
-      { name: 'Kogi', slug: 'kogi', minLat: 7.2, maxLat: 7.9, minLng: 6.2, maxLng: 7.0 },
-      { name: 'Anambra', slug: 'anambra', minLat: 5.9, maxLat: 6.4, minLng: 6.8, maxLng: 7.3 },
-      { name: 'Imo', slug: 'imo', minLat: 5.4, maxLat: 5.9, minLng: 6.7, maxLng: 7.2 },
-      { name: 'Abia', slug: 'abia', minLat: 5.0, maxLat: 5.5, minLng: 7.4, maxLng: 7.9 },
-      { name: 'Niger', slug: 'niger', minLat: 9.3, maxLat: 10.3, minLng: 5.5, maxLng: 6.8 },
-      { name: 'Benue', slug: 'benue', minLat: 6.5, maxLat: 7.5, minLng: 7.5, maxLng: 8.8 },
-      { name: 'Plateau', slug: 'plateau', minLat: 8.8, maxLat: 9.5, minLng: 8.5, maxLng: 9.5 },
-    ];
-
-    for (const state of states) {
-      if (lat >= state.minLat && lat <= state.maxLat && lng >= state.minLng && lng <= state.maxLng) {
-        return locations.find((loc: any) => loc.name.trim() === state.name) || null;
-      }
-    }
-
-    // Default to Lagos if not matched (most likely urban area)
-    return locations.find((loc: any) => loc.name === 'Lagos') || null;
-  }
+  }, [locations]);
 
   const handleResultClick = (type: 'ad' | 'category' | 'location', item: any) => {
     saveRecentSearch(item.title || item.name);

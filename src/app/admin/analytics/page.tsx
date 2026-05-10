@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   LineChart,
   Line,
@@ -58,6 +58,30 @@ export default function AnalyticsPage() {
   const [statesLoading, setStatesLoading] = useState(true);
   const [sortConfig, setSortConfig] = useState<{ key: string; order: 'asc' | 'desc' }>({ key: 'total_ads', order: 'desc' });
 
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await adminApi.getAnalytics({ period: dateRange });
+      setAnalytics(res.data || {});
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange]);
+
+  const fetchStatesAnalytics = useCallback(async () => {
+    try {
+      setStatesLoading(true);
+      const res = await adminApi.getStatesAnalytics({ sort_by: sortConfig.key, sort_order: sortConfig.order });
+      setStatesData(res.data || []);
+    } catch (error) {
+      console.error('Failed to fetch states analytics:', error);
+    } finally {
+      setStatesLoading(false);
+    }
+  }, [sortConfig]);
+
   useEffect(() => {
     fetchAnalytics();
     fetchStatesAnalytics();
@@ -75,31 +99,7 @@ export default function AnalyticsPage() {
       clearInterval(analyticsInterval);
       clearInterval(statesInterval);
     };
-  }, [dateRange, sortConfig]);
-
-  const fetchAnalytics = async () => {
-    try {
-      setLoading(true);
-      const res = await adminApi.getAnalytics({ period: dateRange });
-      setAnalytics(res.data || {});
-    } catch (error) {
-      console.error('Failed to fetch analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStatesAnalytics = async () => {
-    try {
-      setStatesLoading(true);
-      const res = await adminApi.getStatesAnalytics({ sort_by: sortConfig.key, sort_order: sortConfig.order });
-      setStatesData(res.data || []);
-    } catch (error) {
-      console.error('Failed to fetch states analytics:', error);
-    } finally {
-      setStatesLoading(false);
-    }
-  };
+  }, [dateRange, sortConfig, fetchAnalytics, fetchStatesAnalytics]);
 
   const handleSort = (key: string) => {
     const newOrder = sortConfig.key === key && sortConfig.order === 'desc' ? 'asc' : 'desc';

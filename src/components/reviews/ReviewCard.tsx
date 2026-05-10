@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Star, User, CheckCircle, Heart } from 'lucide-react';
 import axios from 'axios';
 import { getAuthToken } from '@/lib/cookies';
@@ -92,10 +93,13 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
         {/* Avatar */}
         <div className="flex-shrink-0">
           {review.user.avatar ? (
-            <img
+            <Image
               src={review.user.avatar}
               alt={review.user.name}
-              className="w-12 h-12 rounded-full object-cover"
+              width={48}
+              height={48}
+              className="rounded-full object-cover"
+              unoptimized
             />
           ) : (
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">

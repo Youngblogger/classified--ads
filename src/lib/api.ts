@@ -145,9 +145,10 @@ class ApiClient {
           withCredentials: true,
         });
         this.csrfFetched = true;
-        console.log('[API] CSRF token fetched successfully');
       } catch (error) {
-        console.warn('[API] Failed to fetch CSRF token:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[API] Failed to fetch CSRF token:', error);
+        }
       }
     }
 

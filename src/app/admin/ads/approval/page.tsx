@@ -15,6 +15,7 @@ import {
   Clock,
   ImageIcon
 } from 'lucide-react';
+import Image from 'next/image';
 import { adminApi } from '@/lib/api';
 import { getAdImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -60,10 +61,18 @@ export default function AdsApprovalPage() {
     ad_expiration_days: 30,
   });
 
-  useEffect(() => {
-    fetchPendingAds();
-    fetchSettings();
-  }, []);
+  const fetchPendingAds = async () => {
+    try {
+      setLoading(true);
+      const res = await adminApi.getAds({ status: 'pending' });
+      setAds(res.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch ads:', error);
+      toast.error('Failed to load ads');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -84,6 +93,11 @@ export default function AdsApprovalPage() {
     }
   };
 
+  useEffect(() => {
+    fetchPendingAds();
+    fetchSettings();
+  }, []);
+
   const saveApprovalSettings = async () => {
     try {
       setSavingSettings(true);
@@ -101,19 +115,6 @@ export default function AdsApprovalPage() {
 
   const getImageUrl = (ad: Ad): string => {
     return getAdImageUrl(ad);
-  };
-
-  const fetchPendingAds = async () => {
-    try {
-      setLoading(true);
-      const res = await adminApi.getAds({ status: 'pending' });
-      setAds(res.data.data || []);
-    } catch (error) {
-      console.error('Failed to fetch ads:', error);
-      toast.error('Failed to load ads');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleApprove = async (adId: number) => {
@@ -349,10 +350,12 @@ export default function AdsApprovalPage() {
                 <div className="w-full lg:w-48 h-48 relative rounded-lg overflow-hidden bg-gray-100">
                   {ad.images && ad.images.length > 0 ? (
                     <>
-                      <img
+                      <Image
                         src={getImageUrl(ad)}
                         alt={ad.title}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        unoptimized
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                           (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');

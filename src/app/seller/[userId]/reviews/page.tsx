@@ -199,7 +199,7 @@ export default function SellerReviewsPage() {
     }
   }, [sellerId, hasMore]);
 
-  const fetchSellerProfile = async () => {
+  const fetchSellerProfile = useCallback(async () => {
     try {
       const response = await sellerReviewsApi.getSellerProfile(sellerId);
       const rawData = response.data;
@@ -214,12 +214,12 @@ export default function SellerReviewsPage() {
     } catch (error) {
       console.error('Error fetching seller profile:', error);
     }
-  };
+  }, [sellerId]);
 
   useEffect(() => {
     fetchSellerProfile();
     fetchReviews(1, true);
-  }, [sellerId]);
+  }, [sellerId, fetchSellerProfile, fetchReviews]);
 
   useEffect(() => {
     if (loading || !hasMore) return;

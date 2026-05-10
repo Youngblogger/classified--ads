@@ -106,6 +106,44 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Admin inactivity timeout - 2 hours (7,200,000 ms)
   const ADMIN_INACTIVITY_TIMEOUT = 2 * 60 * 60 * 1000;
 
+  const handleLogout = useCallback(async () => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+
+    try {
+      const adminToken = localStorage.getItem('admin_token');
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/secure-control-9ja/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken || token}`,
+          'Accept': 'application/json',
+        },
+      });
+    } catch (e) {
+      console.log('Logout API error:', e);
+    }
+
+    deleteCookie('admin_token');
+
+    localStorage.removeItem('admin-auth-storage');
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_user');
+    localStorage.removeItem('admin_last_activity');
+
+    document.cookie.split(';').forEach((cookie) => {
+      const name = cookie.trim().split('=')[0];
+      if (name === 'admin_token') {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+      }
+    });
+
+    logout();
+
+    window.location.href = '/admin/login';
+  }, [token, logout]);
+
   const resetInactivityTimer = useCallback(() => {
     if (!isVerified) return;
     
@@ -118,7 +156,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     inactivityTimerRef.current = setTimeout(() => {
       handleLogout();
     }, ADMIN_INACTIVITY_TIMEOUT);
-  }, [isVerified]);
+  }, [isVerified, ADMIN_INACTIVITY_TIMEOUT, handleLogout]);
 
   useEffect(() => {
     if (!isVerified) return;
@@ -387,44 +425,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </div>
     );
   }
-
-  const handleLogout = async () => {
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
-      inactivityTimerRef.current = null;
-    }
-
-    try {
-      const adminToken = localStorage.getItem('admin_token');
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/secure-control-9ja/auth/logout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${adminToken || token}`,
-          'Accept': 'application/json',
-        },
-      });
-    } catch (e) {
-      console.log('Logout API error:', e);
-    }
-    
-    deleteCookie('admin_token');
-    
-    localStorage.removeItem('admin-auth-storage');
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_user');
-    localStorage.removeItem('admin_last_activity');
-    
-    document.cookie.split(';').forEach((cookie) => {
-      const name = cookie.trim().split('=')[0];
-      if (name === 'admin_token') {
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
-      }
-    });
-    
-    logout();
-    
-    window.location.href = '/admin/login';
-  };
 
   const admin = verifiedUser;
 

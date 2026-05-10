@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, ClipboardEvent, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, useCallback, ClipboardEvent, KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, Eye, EyeOff, Phone, Send, CheckCircle, Loader2 } from 'lucide-react';
@@ -62,7 +62,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
     } catch (e) {
       // Ignore errors when in restricted context
     }
-  }, []);
+  }, [forceRedirectUrl]);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -425,6 +425,42 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
     }
   };
 
+  const handleGoogleCredential = useCallback(async (response: { credential: string }) => {
+    setGoogleLoading(true);
+    setError('');
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+      const res = await fetch(`${apiUrl}/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Google login failed');
+      }
+
+      login(data.user, data.token);
+      toast.success(`Welcome, ${data.user?.name || 'User'}!`);
+      closeAllModals();
+      
+      if (redirectUrl) {
+        window.scrollTo(0, 0);
+        window.location.href = redirectUrl;
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Google login failed');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [login, redirectUrl, closeAllModals]);
+
   const handleFacebookCredential = async (response: any) => {
     setFacebookLoading(true);
     setError('');
@@ -521,43 +557,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
     };
 
     loadGoogleScript();
-  }, [isLoginModalOpen]);
-
-  const handleGoogleCredential = async (response: { credential: string }) => {
-    setGoogleLoading(true);
-    setError('');
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const res = await fetch(`${apiUrl}/auth/google`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Google login failed');
-      }
-
-      login(data.user, data.token);
-      toast.success(`Welcome, ${data.user?.name || 'User'}!`);
-      closeAllModals();
-      
-      if (redirectUrl) {
-        window.scrollTo(0, 0);
-        window.location.href = redirectUrl;
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Google login failed');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
+  }, [isLoginModalOpen, GOOGLE_CLIENT_ID, handleGoogleCredential]);
 
   if (!isLoginModalOpen) return null;
 

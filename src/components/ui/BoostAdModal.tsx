@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Zap, Loader2, CheckCircle, AlertCircle, ArrowRight, Clock, RotateCcw, Timer } from 'lucide-react';
 import { getAuthToken } from '@/lib/cookies';
 import toast from 'react-hot-toast';
@@ -54,29 +54,7 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
   const [renewalInfo, setRenewalInfo] = useState<RenewalInfo | null>(null);
   const [isRenewal, setIsRenewal] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      setStep('select');
-      setBoostType('top');
-      setDuration(7);
-      setPrice(null);
-      setBoostStatus('none');
-      setRenewalInfo(null);
-      setIsRenewal(false);
-      setPrices({ top: 5, featured: 10, highlight: 3 });
-      setPrice(5 * 7);
-
-      Promise.all([fetchPrices(), fetchBoostStatus()]);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (Object.keys(prices).length > 0) {
-      calculatePrice();
-    }
-  }, [boostType, duration, prices]);
-
-  const fetchPrices = async () => {
+  const fetchPrices = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/ads/boost-prices`);
       const data = await response.json();
@@ -86,9 +64,9 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
     } catch {
       // Default prices already set
     }
-  };
+  }, []);
 
-  const fetchBoostStatus = async () => {
+  const fetchBoostStatus = useCallback(async () => {
     try {
       const token = getAuthToken();
       if (!token) return;
@@ -111,13 +89,35 @@ export default function BoostAdModal({ adId, adTitle, isOpen, onClose }: BoostAd
     } catch {
       // Non-critical
     }
-  };
+  }, [adId]);
 
-  const calculatePrice = () => {
+  const calculatePrice = useCallback(() => {
     const basePrice = prices[boostType] || 5;
     const multiplier = duration >= 30 ? 0.7 : duration >= 14 ? 0.8 : duration >= 7 ? 0.85 : duration >= 3 ? 0.9 : 1.0;
     setPrice(Math.round(basePrice * duration * multiplier * 100) / 100);
-  };
+  }, [prices, boostType, duration]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep('select');
+      setBoostType('top');
+      setDuration(7);
+      setPrice(null);
+      setBoostStatus('none');
+      setRenewalInfo(null);
+      setIsRenewal(false);
+      setPrices({ top: 5, featured: 10, highlight: 3 });
+      setPrice(5 * 7);
+
+      Promise.all([fetchPrices(), fetchBoostStatus()]);
+    }
+  }, [isOpen, fetchPrices, fetchBoostStatus, adId]);
+
+  useEffect(() => {
+    if (Object.keys(prices).length > 0) {
+      calculatePrice();
+    }
+  }, [boostType, duration, prices, calculatePrice]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {

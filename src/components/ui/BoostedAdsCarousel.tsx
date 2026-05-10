@@ -5,13 +5,12 @@ import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Image as ImageIcon, Bookmark } from 'lucide-react';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses, BoostType, sortAdsByBoostPriority } from '@/lib/boost-config';
-import { formatPrice, FALLBACK_IMAGE } from '@/lib/utils';
+import { formatPrice, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useBoostedAds } from '@/hooks/useAds';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const BACKEND_URL = API_URL.replace('/api', '');
+import { API_URL } from '@/lib/config';
 
 interface BoostedAd {
   id: number | string;
@@ -35,32 +34,14 @@ interface BoostedAd {
   created_at?: string;
 }
 
-function normalizeImage(img: any): string {
-  if (!img) return FALLBACK_IMAGE;
-  let url = '';
-  if (typeof img === 'string') {
-    url = img;
-  } else if (typeof img === 'object') {
-    url = img.thumbnail_url || img.listing_url || img.thumbnail || img.full_thumbnail_url || img.display_url || img.url || img.full_url || img.original_url || '';
-  }
-  if (!url) return FALLBACK_IMAGE;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('/storage/') || url.startsWith('storage/')) {
-    return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-  }
-  if (url.startsWith('/')) return url;
-  if (url.startsWith('json_dataset/')) return url.replace('json_dataset/', '/');
-  return `/images/${url}`;
-}
-
 function getImageUrl(ad: BoostedAd): string {
   if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
-    return normalizeImage(ad.images[0]);
+    return getAdImageUrl(ad.images[0]) || FALLBACK_IMAGE;
   }
-  if (ad.image || ad.main_image) {
-    return normalizeImage(ad.image || ad.main_image);
+  if (ad.image) {
+    return getAdImageUrl(ad.image) || FALLBACK_IMAGE;
   }
-  return FALLBACK_IMAGE;
+  return getAdImage(ad) || FALLBACK_IMAGE;
 }
 
 function getLocationDisplay(ad: BoostedAd): string {

@@ -79,10 +79,6 @@ export default function PromotionsPage() {
   });
   const [savingPlan, setSavingPlan] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -112,6 +108,10 @@ export default function PromotionsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleSavePlan = async (e: React.FormEvent) => {
     e.preventDefault();

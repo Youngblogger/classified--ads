@@ -1,21 +1,28 @@
 /** @type {import('next').NextConfig} */
+
+const isProduction = process.env.NODE_ENV === 'production';
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const backendHost = new URL(apiUrl).hostname;
+const backendPort = new URL(apiUrl).port || '8000';
+const backendOrigin = `${new URL(apiUrl).protocol}//${backendHost}${backendPort ? ':' + backendPort : ''}`;
+
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://connect.facebook.net;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com http://127.0.0.1:8000 http://localhost:8000;
+  img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://source.unsplash.com https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com ${backendOrigin} http://127.0.0.1:8000;
   font-src 'self' data: https://fonts.gstatic.com;
-  connect-src 'self' http://localhost:8000 https://localhost:8000 http://localhost:3006 ws://localhost:3006 http://127.0.0.1:8000 https://accounts.google.com;
+  connect-src 'self' ${backendOrigin} https://accounts.google.com;
   frame-src https://accounts.google.com https://connect.facebook.net;
   object-src 'none';
   base-uri 'self';
   form-action 'self';
   frame-ancestors 'none';
-  upgrade-insecure-requests;
+  ${isProduction ? '' : 'upgrade-insecure-requests;'}
 `;
 
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: !isProduction,
   eslint: {
     ignoreDuringBuilds: false,
   },
@@ -56,21 +63,33 @@ const nextConfig = {
         ],
       },
       {
-        source: '/api/(.*)',
+        source: '/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
         ],
       },
       {
-        source: '/_next/static/(.*)',
+        source: '/api/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
+      {
+        source: '/_next/static/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
       {
-        source: '/static/(.*)',
+        source: '/static/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/images/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=3600' },
         ],
       },
     ];
@@ -87,24 +106,24 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'source.unsplash.com' },
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'platform-lookaside.fbsbx.com' },
-      { protocol: 'http', hostname: '127.0.0.1', pathname: '/**' },
-      { protocol: 'http', hostname: 'localhost', pathname: '/**' },
+      { protocol: 'http', hostname: '127.0.0.1', port: '8000', pathname: '/**' },
+      { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/**' },
     ],
     localPatterns: [
-      { pathname: '**/json_dataset/images/**' },
-      { pathname: '**/images/**' },
+      { pathname: '/images/**' },
       { pathname: '/icons/**' },
     ],
     deviceSizes: [320, 480, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,
+    unoptimized: isProduction ? false : false,
   },
   generateEtags: true,
-  compress: true,
   productionBrowserSourceMaps: false,
   optimizeFonts: true,
   swcMinify: true,

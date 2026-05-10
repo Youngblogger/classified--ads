@@ -18,6 +18,7 @@ import {
   User,
   ChevronDown
 } from 'lucide-react';
+import Image from 'next/image';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -56,42 +57,7 @@ export default function UsersPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Initial fetch
-  useEffect(() => {
-    fetchUsers(true);
-  }, [statusFilter]);
-
-  // Load more when page changes
-  useEffect(() => {
-    if (currentPage > 1) {
-      fetchUsers(false);
-    }
-  }, [currentPage]);
-
-  // Infinite scroll observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-          if (loadingMore || !hasMore) return;
-          setCurrentPage(prev => prev + 1);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-  }, [hasMore, loadingMore, loading]);
-
-  const fetchUsers = async (reset = false) => {
+  const fetchUsers = useCallback(async (reset = false) => {
     try {
       if (reset) {
         setLoading(true);
@@ -132,7 +98,44 @@ export default function UsersPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [statusFilter, currentPage]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchUsers(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
+
+  // Load more when page changes
+  useEffect(() => {
+    if (currentPage > 1) {
+      fetchUsers(false);
+    }
+  }, [currentPage, fetchUsers]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          if (loadingMore || !hasMore) return;
+          setCurrentPage(prev => prev + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMore, loadingMore, loading]);
 
   const loadMore = () => {
     if (loadingMore || !hasMore) return;
@@ -399,10 +402,13 @@ export default function UsersPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           {avatarUrl ? (
-                            <img
+                            <Image
                               src={avatarUrl}
                               alt={user.name}
-                              className="w-11 h-11 rounded-full object-cover ring-2 ring-gray-100"
+                              width={44}
+                              height={44}
+                              className="rounded-full object-cover ring-2 ring-gray-100"
+                              unoptimized
                             />
                           ) : (
                             <div className="w-11 h-11 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center ring-2 ring-gray-100">

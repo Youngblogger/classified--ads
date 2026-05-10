@@ -24,10 +24,6 @@ export default function SocialSettingsPage() {
   const [settings, setSettings] = useState<SocialSettings[]>([]);
   const [formData, setFormData] = useState<Record<string, SocialSettings>>({});
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
   const fetchSettings = async () => {
     setLoading(true);
     try {
@@ -47,6 +43,10 @@ export default function SocialSettingsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   const handleChange = (platform: string, field: keyof SocialSettings, value: string | boolean) => {
     setFormData(prev => ({

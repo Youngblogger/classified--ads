@@ -58,11 +58,6 @@ export default function BankTransfersPage() {
   const [rejectNote, setRejectNote] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
 
-  useEffect(() => {
-    fetchTransfers();
-    fetchStats();
-  }, [page, statusFilter]);
-
   const fetchTransfers = async () => {
     setLoading(true);
     try {
@@ -94,6 +89,12 @@ export default function BankTransfersPage() {
       console.error('Failed to fetch stats:', error);
     }
   };
+
+  useEffect(() => {
+    fetchTransfers();
+    fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, statusFilter]);
 
   const handleApprove = async (id: number) => {
     setActionLoading(id);

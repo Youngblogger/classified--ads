@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin, Loader2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
@@ -256,11 +257,13 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
                     
                     if (imageUrl) {
                       return (
-                        <img
+                        <Image
                           src={imageUrl}
                           alt={ad.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                          className="object-cover"
+                          unoptimized
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = fallbackImage;
                           }}
@@ -268,11 +271,13 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
                       );
                     }
                     return (
-                      <img
+                      <Image
                         src={fallbackImage}
                         alt={ad.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                        className="object-cover"
+                        unoptimized
                       />
                     );
                   })()}

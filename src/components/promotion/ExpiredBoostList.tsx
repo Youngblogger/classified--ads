@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Eye, MousePointerClick, MessageCircle, Heart, Clock, RotateCcw, ChevronRight, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 import { getBoostConfig } from '@/lib/boost-config';
 import { getAdImageUrl } from '@/lib/utils';
 
@@ -69,10 +70,12 @@ export default function ExpiredBoostList({ items, onBoostAgain }: ExpiredBoostLi
               <div className="flex flex-col sm:flex-row">
                 <div className="sm:w-36 h-32 sm:h-auto relative bg-gray-100 flex-shrink-0">
                   {imageUrl ? (
-                    <img
+                    <Image
                       src={imageUrl}
                       alt={item.ad.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">

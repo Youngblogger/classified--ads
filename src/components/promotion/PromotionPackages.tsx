@@ -57,10 +57,6 @@ export default function PromotionPackages({ selectedPlan, onSelectPlan }: Promot
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuthStore();
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
   const fetchPlans = async () => {
     try {
       setLoading(true);
@@ -79,12 +75,16 @@ export default function PromotionPackages({ selectedPlan, onSelectPlan }: Promot
         }
         return { ...plan, features };
       }));
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load promotion plans');
-    } finally {
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to load plans:', error);
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
 
   if (loading) {
     return (

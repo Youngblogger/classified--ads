@@ -68,6 +68,40 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
   const [boostStatus, setBoostStatus] = useState<{ has_active_boost: boolean; active_boost?: any; can_renew: boolean; renewal_info?: any } | null>(null);
 
   useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const res = await fetch(`${API_URL}/ads/boost-plans`);
+        const data = await res.json();
+        if (data.data) {
+          setPlans(data.data);
+          if (data.data.length > 0) {
+            setSelectedPlan(data.data[0].type);
+          }
+        }
+      } catch {
+        setPlans([
+          { id: 0, name: 'Silver Boost', type: 'silver', price: 2000, duration_days: 3, priority_score: 1000, badge_label: 'Boosted', badge_icon: 'zap', color_scheme: null, features: ['Appears above normal listings', 'Highlighted ad card', 'Better search ranking', '"Boosted" badge', 'Increased impressions'], is_active: true, sort_order: 1 },
+          { id: 0, name: 'Gold Featured', type: 'gold', price: 5000, duration_days: 7, priority_score: 2000, badge_label: 'Featured', badge_icon: 'crown', color_scheme: null, features: ['Homepage exposure', 'Priority category placement', 'Higher search visibility', '"Featured" badge', 'More impressions than Silver'], is_active: true, sort_order: 2 },
+          { id: 0, name: 'Platinum VIP', type: 'platinum', price: 10000, duration_days: 14, priority_score: 3000, badge_label: 'VIP', badge_icon: 'diamond', color_scheme: null, features: ['Top homepage placement', 'Always pinned above lower tiers', 'Highest search priority', 'VIP animated badge', 'Priority in recommended ads', 'Increased click visibility', 'Extra premium styling'], is_active: true, sort_order: 3 },
+        ]);
+        setSelectedPlan('silver');
+      }
+    };
+
+    const fetchStatus = async () => {
+      try {
+        const token = getAuthToken();
+        if (!token) return;
+        const res = await fetch(`${API_URL}/ads/${adId}/boost-status`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setBoostStatus(data.data);
+        }
+      } catch {}
+    };
+
     if (isOpen) {
       setStep('select');
       setSelectedPlan(null);
@@ -76,40 +110,6 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
       Promise.all([fetchPlans(), fetchStatus()]).finally(() => setFetching(false));
     }
   }, [isOpen, adId]);
-
-  const fetchPlans = async () => {
-    try {
-      const res = await fetch(`${API_URL}/ads/boost-plans`);
-      const data = await res.json();
-      if (data.data) {
-        setPlans(data.data);
-        if (data.data.length > 0) {
-          setSelectedPlan(data.data[0].type);
-        }
-      }
-    } catch {
-      setPlans([
-        { id: 0, name: 'Silver Boost', type: 'silver', price: 2000, duration_days: 3, priority_score: 1000, badge_label: 'Boosted', badge_icon: 'zap', color_scheme: null, features: ['Appears above normal listings', 'Highlighted ad card', 'Better search ranking', '"Boosted" badge', 'Increased impressions'], is_active: true, sort_order: 1 },
-        { id: 0, name: 'Gold Featured', type: 'gold', price: 5000, duration_days: 7, priority_score: 2000, badge_label: 'Featured', badge_icon: 'crown', color_scheme: null, features: ['Homepage exposure', 'Priority category placement', 'Higher search visibility', '"Featured" badge', 'More impressions than Silver'], is_active: true, sort_order: 2 },
-        { id: 0, name: 'Platinum VIP', type: 'platinum', price: 10000, duration_days: 14, priority_score: 3000, badge_label: 'VIP', badge_icon: 'diamond', color_scheme: null, features: ['Top homepage placement', 'Always pinned above lower tiers', 'Highest search priority', 'VIP animated badge', 'Priority in recommended ads', 'Increased click visibility', 'Extra premium styling'], is_active: true, sort_order: 3 },
-      ]);
-      setSelectedPlan('silver');
-    }
-  };
-
-  const fetchStatus = async () => {
-    try {
-      const token = getAuthToken();
-      if (!token) return;
-      const res = await fetch(`${API_URL}/ads/${adId}/boost-status`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setBoostStatus(data.data);
-      }
-    } catch {}
-  };
 
   const selected = plans.find(p => p.type === selectedPlan);
   const colors = selectedPlan ? TIER_COLORS[selectedPlan] || TIER_COLORS.silver : TIER_COLORS.silver;

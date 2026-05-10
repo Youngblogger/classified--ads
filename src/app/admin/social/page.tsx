@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { Loader2, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Facebook, Instagram, ExternalLink, Calendar, Send, Plus, Trash2, Play, Pause, Share2, Check } from 'lucide-react';
@@ -89,17 +89,7 @@ export default function SocialPostsPage() {
   const [adsHasMore, setAdsHasMore] = useState(true);
   const [adsLoading, setAdsLoading] = useState(false);
 
-  useEffect(() => {
-    // Test API connection
-    api.get('/test').then(res => console.log('API test:', res.data)).catch(err => console.error('API test failed:', err));
-    
-    fetchPosts();
-    fetchStats();
-    fetchScheduledPosts();
-    fetchAds(1, false);
-  }, [filter]);
-
-  const fetchAds = async (page: number = 1, append: boolean = true) => {
+  const fetchAds = useCallback(async (page: number = 1, append: boolean = true) => {
     if (adsLoading || (!append && page === 1)) {
       if (page !== 1 && !append) return;
     }
@@ -126,33 +116,9 @@ export default function SocialPostsPage() {
     } finally {
       setAdsLoading(false);
     }
-  };
+  }, [adsLoading, selectedCategory]);
 
-  const loadMoreAds = () => {
-    if (adsHasMore && !adsLoading) {
-      fetchAds(adsPage + 1, true);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await api.get('/categories');
-      setCategories(response.data.data || []);
-    } catch (error) {
-      console.error('Failed to fetch categories');
-    }
-  };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  // Reset and refetch ads when category changes
-  useEffect(() => {
-    fetchAds(1, false);
-  }, [selectedCategory]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -171,7 +137,7 @@ export default function SocialPostsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
   const fetchScheduledPosts = async () => {
     try {
@@ -198,6 +164,41 @@ export default function SocialPostsPage() {
       console.error('Error status:', err?.status);
     }
   };
+
+  useEffect(() => {
+    // Test API connection
+    api.get('/test').then(res => console.log('API test:', res.data)).catch(err => console.error('API test failed:', err));
+    
+    fetchPosts();
+    fetchStats();
+    fetchScheduledPosts();
+    fetchAds(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, fetchPosts]);
+
+  const loadMoreAds = () => {
+    if (adsHasMore && !adsLoading) {
+      fetchAds(adsPage + 1, true);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/categories');
+      setCategories(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch categories');
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // Reset and refetch ads when category changes
+  useEffect(() => {
+    fetchAds(1, false);
+  }, [selectedCategory, fetchAds]);
 
   const handlePostNow = async () => {
     if (selectedAds.length === 0) {

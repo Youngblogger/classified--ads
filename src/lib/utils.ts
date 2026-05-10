@@ -1,13 +1,11 @@
 import { clsx, type ClassValue } from 'clsx';
+import { config, FALLBACK_IMAGE, CLOUDINARY_CLOUD_NAME, BACKEND_URL } from './config';
+
+export { BACKEND_URL, FALLBACK_IMAGE, CLOUDINARY_CLOUD_NAME } from './config';
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
-
-export const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
-export const CLOUDINARY_CLOUD_NAME = 'dcklcvihq';
-
-export const FALLBACK_IMAGE = '/placeholder-image.svg';
 
 export function getCloudinaryUrl(publicId: string, options?: {
   width?: number;
@@ -309,15 +307,25 @@ export function getAdImageUrl(img: any): string {
   }
   
   if (url.startsWith('json_dataset/')) {
-    return url.replace('json_dataset/images/', '/images/');
+    const filename = url.replace('json_dataset/', '').replace(/^images\//, '');
+    return `/images/${filename}`;
   }
   
   if (url.includes('json_dataset')) {
     return '/images/' + url.split('/').pop();
   }
   
+  if (url.startsWith('ads/') || url.startsWith('vehicles/') || url.startsWith('properties/') || url.startsWith('electronics/') || url.startsWith('fashion/')) {
+    const filename = url.split('/').pop();
+    return `/images/${filename}`;
+  }
+  
   if (!url.includes('/') && !url.includes(':')) {
     return `/images/${url}`;
+  }
+  
+  if (url.startsWith('/')) {
+    return url;
   }
   
   return `${BACKEND_URL}/storage/${url}`;
@@ -385,6 +393,12 @@ export function getAdImages(ad: any): string[] {
         }
         return getAdImageUrl(img);
       }).filter(Boolean);
+  }
+  
+  // Fallback to single image object (AdListResource format)
+  if (images.length === 0 && ad.image && typeof ad.image === 'object') {
+    const url = getAdImageUrl(ad.image);
+    if (url) images = [url];
   }
   
   return images;

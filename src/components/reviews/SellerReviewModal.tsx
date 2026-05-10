@@ -35,36 +35,36 @@ export default function SellerReviewModal({
 
   useEffect(() => {
     if (isOpen && isAuthenticated) {
+      const checkPermission = async () => {
+        setLoadingPermission(true);
+        try {
+          const response = await sellerReviewsApi.canReview(sellerId);
+          setCanReview(response.data);
+        } catch (error) {
+          console.error('Error checking review permission:', error);
+          setCanReview({ allowed: false, reason: 'Unable to check review permissions', requires: [] });
+        } finally {
+          setLoadingPermission(false);
+        }
+      };
+
+      const loadExistingReview = async () => {
+        try {
+          const response = await sellerReviewsApi.getMyReview(sellerId);
+          if (response.data && response.data.review) {
+            setExistingReview(response.data.review);
+            setRating(response.data.review.rating);
+            setComment(response.data.review.comment || '');
+          }
+        } catch (error) {
+          console.error('Error loading existing review:', error);
+        }
+      };
+
       checkPermission();
       loadExistingReview();
     }
   }, [isOpen, isAuthenticated, sellerId]);
-
-  const checkPermission = async () => {
-    setLoadingPermission(true);
-    try {
-      const response = await sellerReviewsApi.canReview(sellerId);
-      setCanReview(response.data);
-    } catch (error) {
-      console.error('Error checking review permission:', error);
-      setCanReview({ allowed: false, reason: 'Unable to check review permissions', requires: [] });
-    } finally {
-      setLoadingPermission(false);
-    }
-  };
-
-  const loadExistingReview = async () => {
-    try {
-      const response = await sellerReviewsApi.getMyReview(sellerId);
-      if (response.data && response.data.review) {
-        setExistingReview(response.data.review);
-        setRating(response.data.review.rating);
-        setComment(response.data.review.comment || '');
-      }
-    } catch (error) {
-      console.error('Error loading existing review:', error);
-    }
-  };
 
   const handleSubmit = async () => {
     if (rating === 0) {

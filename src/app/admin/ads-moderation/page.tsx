@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import {
   Search,
@@ -971,18 +971,7 @@ export default function AdsModerationPage() {
   const [selectedAds, setSelectedAds] = useState<Set<number>>(new Set());
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
-  useEffect(() => {
-    fetchCategories();
-    fetchLocations();
-  }, []);
-
-  useEffect(() => {
-    setPage(1);
-    setSelectedAds(new Set());
-    fetchAds(1, false);
-  }, [statusFilter, searchTerm]);
-
-  const fetchAds = async (pageNum: number = 1, append: boolean = false) => {
+  const fetchAds = useCallback(async (pageNum: number = 1, append: boolean = false) => {
     try {
       if (append) {
         setLoadingMore(true);
@@ -1038,7 +1027,18 @@ export default function AdsModerationPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [perPage, statusFilter, searchTerm]);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchLocations();
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+    setSelectedAds(new Set());
+    fetchAds(1, false);
+  }, [statusFilter, searchTerm, fetchAds]);
 
   const loadMore = () => {
     if (!loadingMore && hasMore) {

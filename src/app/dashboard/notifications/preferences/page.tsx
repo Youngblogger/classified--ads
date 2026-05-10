@@ -65,10 +65,6 @@ export default function NotificationPreferencesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchPreferences();
-  }, []);
-
   const fetchPreferences = async () => {
     const timeoutId = setTimeout(() => {
       console.log('Preferences fetch timeout - forcing loading to false');
@@ -89,6 +85,10 @@ export default function NotificationPreferencesPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPreferences();
+  }, []);
 
   const handleToggle = (key: keyof NotificationPreferences) => {
     setPreferences(prev => ({ ...prev, [key]: !prev[key] }));

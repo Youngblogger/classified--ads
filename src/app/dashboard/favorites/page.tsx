@@ -61,10 +61,6 @@ export default function FavoritesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchFavorites();
-  }, []);
-
   const fetchFavorites = async () => {
     const timeoutId = setTimeout(() => {
       console.log('Favorites fetch timeout - forcing loading to false');
@@ -85,6 +81,10 @@ export default function FavoritesPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchFavorites();
+  }, []);
 
   const handleRemoveFavorite = async (adId: number) => {
     try {

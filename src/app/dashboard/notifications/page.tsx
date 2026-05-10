@@ -85,10 +85,7 @@ function NotificationsContent() {
   const [deleting, setDeleting] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchNotifications();
-  }, [typeFilter, readFilter, page]);
-
-  const fetchNotifications = async () => {
+    const fetchNotifications = async () => {
     const timeoutId = setTimeout(() => {
       console.log('Notifications fetch timeout - forcing loading to false');
       setLoading(false);
@@ -128,6 +125,9 @@ function NotificationsContent() {
       setLoading(false);
     }
   };
+
+    fetchNotifications();
+  }, [typeFilter, readFilter, page]);
 
   const markAsRead = async (id: number) => {
     try {

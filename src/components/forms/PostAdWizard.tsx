@@ -136,7 +136,7 @@ export default function PostAdWizard() {
   useEffect(() => {
     const savedPhone = localStorage.getItem('user_phone');
     if (savedPhone && !phone) setPhone(savedPhone);
-  }, []);
+  }, [phone]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -147,10 +147,6 @@ export default function PostAdWizard() {
       } catch {}
     };
     fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    fetchBoostPrices();
   }, []);
 
   const fetchBoostPrices = async () => {
@@ -166,6 +162,10 @@ export default function PostAdWizard() {
       setFetchingPrices(false);
     }
   };
+
+  useEffect(() => {
+    fetchBoostPrices();
+  }, []);
 
   const calculatePrice = (): number => {
     const basePrice = prices[boostType] || 5;

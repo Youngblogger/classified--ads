@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { adminApi } from '@/lib/api';
-import { Type, Image, Save, RefreshCw, Eye, EyeOff, Upload, Trash2 } from 'lucide-react';
+import { Type, Save, RefreshCw, Eye, EyeOff, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 
 interface WatermarkSettings {
   enabled: boolean;
@@ -86,10 +87,6 @@ export default function WatermarkSettingsPage() {
   const [regenerateAll, setRegenerateAll] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
   const fetchSettings = async () => {
     try {
       const response = await adminApi.getWatermarkSettings();
@@ -102,6 +99,10 @@ export default function WatermarkSettingsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -243,7 +244,7 @@ export default function WatermarkSettingsPage() {
                 onChange={() => handleChange('type', 'logo')}
                 className="sr-only"
               />
-              <Image className="w-5 h-5" />
+              <ImageIcon className="w-5 h-5" />
               <span className="font-medium">Logo</span>
             </label>
           </div>
@@ -290,10 +291,13 @@ export default function WatermarkSettingsPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Watermark Logo</h2>
             {settings.logo_url ? (
               <div className="relative">
-                <img
+                <Image
                   src={settings.logo_url}
                   alt="Watermark logo"
-                  className="max-h-32 rounded-lg border border-gray-200"
+                  width={200}
+                  height={128}
+                  className="max-h-32 w-auto rounded-lg border border-gray-200"
+                  unoptimized
                 />
                 <button
                   onClick={() => {

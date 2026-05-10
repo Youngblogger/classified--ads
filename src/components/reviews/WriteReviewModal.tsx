@@ -32,52 +32,53 @@ export default function WriteReviewModal({ sellerId, sellerName, isOpen, onClose
       setExistingReview(null);
       setRating(0);
       setComment('');
-      checkEligibility();
-    }
-  }, [isOpen, sellerId]);
 
-  const checkEligibility = async () => {
-    if (!isAuthenticated || !user) {
-      setCanReview(false);
-      setCheckError('Please login to write a review');
-      return;
-    }
+      const checkEligibility = async () => {
+        if (!isAuthenticated || !user) {
+          setCanReview(false);
+          setCheckError('Please login to write a review');
+          return;
+        }
 
-    try {
-      console.log('Checking eligibility for seller:', sellerId);
-      const eligibility = await sellerReviewsApi.canReview(sellerId);
-      console.log('Eligibility response:', eligibility.data);
-      setCanReview(eligibility.data.allowed);
-      setCheckError(eligibility.data.allowed ? '' : eligibility.data.reason);
-      
-      if (eligibility.data.allowed) {
         try {
-          const review = await sellerReviewsApi.getMyReview(sellerId);
-          console.log('Review response:', review.data);
-          if (review.data?.review) {
-            setExistingReview(review.data.review);
-            setRating(review.data.review.rating);
-            setComment(review.data.review.comment || '');
+          console.log('Checking eligibility for seller:', sellerId);
+          const eligibility = await sellerReviewsApi.canReview(sellerId);
+          console.log('Eligibility response:', eligibility.data);
+          setCanReview(eligibility.data.allowed);
+          setCheckError(eligibility.data.allowed ? '' : eligibility.data.reason);
+          
+          if (eligibility.data.allowed) {
+            try {
+              const review = await sellerReviewsApi.getMyReview(sellerId);
+              console.log('Review response:', review.data);
+              if (review.data?.review) {
+                setExistingReview(review.data.review);
+                setRating(review.data.review.rating);
+                setComment(review.data.review.comment || '');
+              }
+            } catch (reviewErr: any) {
+              console.log('No existing review or error:', reviewErr);
+              if (reviewErr.response?.status !== 404) {
+                console.error('Error fetching existing review:', reviewErr);
+              }
+            }
           }
-        } catch (reviewErr: any) {
-          console.log('No existing review or error:', reviewErr);
-          if (reviewErr.response?.status !== 404) {
-            console.error('Error fetching existing review:', reviewErr);
+        } catch (err: any) {
+          console.error('Error checking eligibility:', err);
+          setCanReview(false);
+          if (err.response?.status === 401) {
+            setCheckError('Session expired. Please login again.');
+          } else if (err.response?.status === 404) {
+            setCheckError('Seller not found.');
+          } else {
+            setCheckError(err.response?.data?.message || 'Unable to check review eligibility. Please try again.');
           }
         }
-      }
-    } catch (err: any) {
-      console.error('Error checking eligibility:', err);
-      setCanReview(false);
-      if (err.response?.status === 401) {
-        setCheckError('Session expired. Please login again.');
-      } else if (err.response?.status === 404) {
-        setCheckError('Seller not found.');
-      } else {
-        setCheckError(err.response?.data?.message || 'Unable to check review eligibility. Please try again.');
-      }
+      };
+
+      checkEligibility();
     }
-  };
+  }, [isOpen, sellerId, isAuthenticated, user]);
 
   if (!isOpen) return null;
 

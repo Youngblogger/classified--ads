@@ -205,7 +205,7 @@ export default function PaymentMethods({
     }
   };
 
-  const handleVirtualAccount = async () => {
+  const handleVirtualAccount = useCallback(async () => {
     if (!adId || !planId) return;
 
     setPaymentState({ processing: true, error: null, status: 'processing', paymentData: null });
@@ -231,9 +231,9 @@ export default function PaymentMethods({
       const errorMsg = err.response?.data?.message || 'Failed to create virtual account';
       setPaymentState({ processing: false, error: errorMsg, status: 'failed', paymentData: null });
     }
-  };
+  }, [adId, planId]);
 
-  const handleUssdPayment = async () => {
+  const handleUssdPayment = useCallback(async () => {
     if (!adId || !planId) return;
 
     setPaymentState({ processing: true, error: null, status: 'processing', paymentData: null });
@@ -259,7 +259,7 @@ export default function PaymentMethods({
       const errorMsg = err.response?.data?.message || 'Failed to initiate USSD payment';
       setPaymentState({ processing: false, error: errorMsg, status: 'failed', paymentData: null });
     }
-  };
+  }, [adId, planId]);
 
   const handleWalletPayment = async () => {
     if (!adId || !planId) return;
@@ -315,7 +315,7 @@ export default function PaymentMethods({
     setTimeout(() => clearInterval(interval), 120000);
   }, [onPaymentSuccess]);
 
-  const checkBankPayment = async () => {
+  const checkBankPayment = useCallback(async () => {
     if (!paymentState.paymentData?.payment?.reference) return;
     
     setCheckingPayment(true);
@@ -338,9 +338,9 @@ export default function PaymentMethods({
     } finally {
       setCheckingPayment(false);
     }
-  };
+  }, [paymentState.paymentData, onPaymentSuccess]);
 
-  const checkUssdPayment = async () => {
+  const checkUssdPayment = useCallback(async () => {
     if (!paymentState.paymentData?.payment?.reference) return;
     
     setCheckingPayment(true);
@@ -363,7 +363,7 @@ export default function PaymentMethods({
     } finally {
       setCheckingPayment(false);
     }
-  };
+  }, [paymentState.paymentData, onPaymentSuccess]);
 
   useEffect(() => {
     if (selectedMethod === 'bank' && !paymentState.paymentData) {
@@ -371,7 +371,7 @@ export default function PaymentMethods({
     } else if (selectedMethod === 'ussd' && !paymentState.paymentData) {
       handleUssdPayment();
     }
-  }, [selectedMethod, adId, planId]);
+  }, [selectedMethod, adId, planId, paymentState.paymentData, handleVirtualAccount, handleUssdPayment]);
 
   useEffect(() => {
     if (paymentState.paymentData?.bank_details?.expires_at) {
@@ -406,14 +406,14 @@ export default function PaymentMethods({
       const interval = setInterval(checkBankPayment, 10000);
       return () => clearInterval(interval);
     }
-  }, [selectedMethod, paymentState.status, paymentState.paymentData?.payment?.reference]);
+  }, [selectedMethod, paymentState.status, checkBankPayment]);
 
   useEffect(() => {
     if (selectedMethod === 'ussd' && paymentState.status === 'processing') {
       const interval = setInterval(checkUssdPayment, 10000);
       return () => clearInterval(interval);
     }
-  }, [selectedMethod, paymentState.status, paymentState.paymentData?.payment?.reference]);
+  }, [selectedMethod, paymentState.status, checkUssdPayment]);
 
   const copyToClipboard = async (text: string) => {
     try {

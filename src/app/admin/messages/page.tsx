@@ -79,22 +79,7 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchConversations();
-    fetchStats();
-  }, []);
-
-  useEffect(() => {
-    if (selectedConversation) {
-      fetchMessages(selectedConversation);
-    }
-  }, [selectedConversation]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
       const res = await messagesApi.getConversations().catch(() => ({ data: { data: [] } }));
@@ -113,7 +98,7 @@ export default function MessagesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
   const fetchStats = async () => {
     try {
@@ -143,6 +128,22 @@ export default function MessagesPage() {
       setLoadingMessages(false);
     }
   };
+
+  useEffect(() => {
+    fetchConversations();
+    fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      fetchMessages(selectedConversation);
+    }
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const filteredConversations = conversations.filter(conv => {
     const matchesSearch = 

@@ -22,10 +22,6 @@ export default function FontsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    fetchFonts();
-  }, []);
-
   const fetchFonts = async () => {
     try {
       const response = await adminApi.getFonts();
@@ -36,6 +32,10 @@ export default function FontsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchFonts();
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

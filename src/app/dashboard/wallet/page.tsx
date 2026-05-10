@@ -40,29 +40,6 @@ export default function WalletPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  useEffect(() => {
-    fetchWallet();
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const verified = params.get('verified');
-    const reference = params.get('reference');
-    
-    if (verified === 'true' && reference) {
-      api.post('/wallet/verify', { reference })
-        .then(() => {
-          toast.success('Payment successful! Your wallet has been credited.');
-          fetchWallet();
-        })
-        .catch(() => {
-          toast.error('Payment verification failed');
-        });
-      
-      window.history.replaceState({}, '', '/dashboard/wallet');
-    }
-  }, []);
-
   const fetchWallet = async () => {
     const timeoutId = setTimeout(() => {
       console.log('Wallet fetch timeout - forcing loading to false');
@@ -85,6 +62,29 @@ export default function WalletPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchWallet();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verified = params.get('verified');
+    const reference = params.get('reference');
+    
+    if (verified === 'true' && reference) {
+      api.post('/wallet/verify', { reference })
+        .then(() => {
+          toast.success('Payment successful! Your wallet has been credited.');
+          fetchWallet();
+        })
+        .catch(() => {
+          toast.error('Payment verification failed');
+        });
+      
+      window.history.replaceState({}, '', '/dashboard/wallet');
+    }
+  }, []);
 
   const handleFund = async (e: React.FormEvent) => {
     e.preventDefault();

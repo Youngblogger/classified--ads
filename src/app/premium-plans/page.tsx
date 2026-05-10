@@ -63,10 +63,6 @@ export default function PremiumPlansPage() {
   const [loading, setLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
   const fetchPlans = async () => {
     try {
       const response = await promotionsApi.getPlans();
@@ -90,6 +86,10 @@ export default function PremiumPlansPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
 
   const getGradient = (type: string) => {
     switch (type) {

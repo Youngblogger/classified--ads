@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/home/Header';
@@ -54,18 +54,7 @@ export default function AdReviewsPage() {
   const [adId, setAdId] = useState<number | null>(null);
   const [sellerInfo, setSellerInfo] = useState<{ id: number; name: string } | null>(null);
 
-  useEffect(() => {
-    fetchAdId();
-  }, [slug]);
-
-  useEffect(() => {
-    if (adId) {
-      fetchReviews();
-      fetchSummary();
-    }
-  }, [adId, currentPage, sortBy, filterRating]);
-
-  const fetchAdId = async () => {
+  const fetchAdId = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/ads/${slug}`);
       const adData = response.data.data || response.data;
@@ -76,9 +65,9 @@ export default function AdReviewsPage() {
     } catch (error) {
       console.error('Error fetching ad:', error);
     }
-  };
+  }, [slug]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     setLoading(true);
     try {
       const params: any = {
@@ -98,16 +87,27 @@ export default function AdReviewsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, sortBy, filterRating, adId]);
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/ads/${adId}/reviews/summary`);
       setSummary(response.data);
     } catch (error) {
       console.error('Error fetching summary:', error);
     }
-  };
+  }, [adId]);
+
+  useEffect(() => {
+    fetchAdId();
+  }, [fetchAdId, slug]);
+
+  useEffect(() => {
+    if (adId) {
+      fetchReviews();
+      fetchSummary();
+    }
+  }, [adId, currentPage, sortBy, filterRating, fetchReviews, fetchSummary]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);

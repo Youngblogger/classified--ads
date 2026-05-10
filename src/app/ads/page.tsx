@@ -115,17 +115,16 @@ function AdsPageContent() {
     { revalidateOnFocus: false, dedupingInterval: 300000, fallbackData: [], shouldRetryOnError: false }
   );
   
-  const categories: Category[] = categoriesData?.data || categoriesData || [];
+  const categories: Category[] = useMemo(() => categoriesData?.data || categoriesData || [], [categoriesData]);
   const locations = locationsData?.data || locationsData || [];
 
-  const sortMapping: Record<SortOption, { sort_by: string; sort_order: string }> = {
-    'newest': { sort_by: 'created_at', sort_order: 'desc' },
-    'price_asc': { sort_by: 'price', sort_order: 'asc' },
-    'price_desc': { sort_by: 'price', sort_order: 'desc' },
-    'popular': { sort_by: 'views', sort_order: 'desc' },
-  };
-
   const queryParams = useMemo(() => {
+    const sortMapping: Record<SortOption, { sort_by: string; sort_order: string }> = {
+      'newest': { sort_by: 'created_at', sort_order: 'desc' },
+      'price_asc': { sort_by: 'price', sort_order: 'asc' },
+      'price_desc': { sort_by: 'price', sort_order: 'desc' },
+      'popular': { sort_by: 'views', sort_order: 'desc' },
+    };
     const p: Record<string, string> = {};
     if (localQuery) p.q = localQuery;
     if (selectedCategoryId) p.category_id = selectedCategoryId.toString();

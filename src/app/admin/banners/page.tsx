@@ -52,10 +52,6 @@ export default function BannersPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchBanners();
-  }, []);
-
   const fetchBanners = async () => {
     try {
       setLoading(true);
@@ -71,6 +67,10 @@ export default function BannersPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchBanners();
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

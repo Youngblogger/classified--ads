@@ -42,10 +42,6 @@ export default function BroadcastsPage() {
     recipient_type: 'all'
   });
 
-  useEffect(() => {
-    fetchBroadcasts();
-  }, []);
-
   const fetchBroadcasts = async () => {
     try {
       setLoading(true);
@@ -58,6 +54,10 @@ export default function BroadcastsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchBroadcasts();
+  }, []);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();

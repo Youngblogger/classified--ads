@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import {
   Search,
@@ -40,11 +40,7 @@ export default function ReportsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchReports();
-  }, [statusFilter]);
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
       const params: Record<string, string> = {};
@@ -59,7 +55,11 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    fetchReports();
+  }, [statusFilter, fetchReports]);
 
   const handleResolve = async (id: number) => {
     try {

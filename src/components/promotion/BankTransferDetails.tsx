@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Copy, RefreshCw, Building2, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { promotionsApi } from '@/lib/api';
 
@@ -34,46 +34,41 @@ export default function BankTransferDetails({
   const [resending, setResending] = useState(false);
 
   useEffect(() => {
+    const updateTimeLeft = () => {
+      if (!bankDetails.expires_at) return;
+      
+      const expires = new Date(bankDetails.expires_at);
+      const now = new Date();
+      
+      if (expires <= now) {
+        setStatus('expired');
+        setTimeLeft('Expired');
+        return;
+      }
+
+      const diff = expires.getTime() - now.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (hours > 0) {
+        setTimeLeft(`${hours}h ${minutes}m`);
+      } else {
+        setTimeLeft(`${minutes}m`);
+      }
+    };
+
     updateTimeLeft();
     const interval = setInterval(updateTimeLeft, 60000);
     return () => clearInterval(interval);
   }, [bankDetails.expires_at]);
 
-  useEffect(() => {
-    const pollInterval = setInterval(checkPaymentStatus, 10000);
-    return () => clearInterval(pollInterval);
-  }, [reference]);
-
-  const updateTimeLeft = () => {
-    if (!bankDetails.expires_at) return;
-    
-    const expires = new Date(bankDetails.expires_at);
-    const now = new Date();
-    
-    if (expires <= now) {
-      setStatus('expired');
-      setTimeLeft('Expired');
-      return;
-    }
-
-    const diff = expires.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (hours > 0) {
-      setTimeLeft(`${hours}h ${minutes}m`);
-    } else {
-      setTimeLeft(`${minutes}m`);
-    }
-  };
-
-  const checkPaymentStatus = async () => {
+  const checkPaymentStatus = useCallback(async () => {
     if (status !== 'pending') return;
-    
+
     try {
       setChecking(true);
       const response = await promotionsApi.verifyPayment(reference);
-      
+
       if (response.data.success) {
         setStatus('paid');
         onSuccess();
@@ -83,7 +78,12 @@ export default function BankTransferDetails({
     } finally {
       setChecking(false);
     }
-  };
+  }, [reference, status, onSuccess]);
+
+  useEffect(() => {
+    const pollInterval = setInterval(checkPaymentStatus, 10000);
+    return () => clearInterval(pollInterval);
+  }, [checkPaymentStatus]);
 
   const copyToClipboard = async (text: string) => {
     try {

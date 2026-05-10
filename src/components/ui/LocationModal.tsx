@@ -38,19 +38,6 @@ export default function LocationModal() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  useEffect(() => {
-    if (isLocationModalOpen && locations.length === 0) {
-      fetchLocations();
-    }
-    // Reset state when modal opens
-    if (isLocationModalOpen) {
-      setShowLGAView(false);
-      setSearchQuery('');
-      setSelectedLGA(null);
-      // Keep selectedState to show current selection in header
-    }
-  }, [isLocationModalOpen]);
-
   const fetchLocations = async () => {
     setLoading(true);
     setError(null);
@@ -68,6 +55,25 @@ export default function LocationModal() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isLocationModalOpen && locations.length === 0) {
+      fetchLocations();
+    }
+    if (isLocationModalOpen) {
+      setShowLGAView(false);
+      setSearchQuery('');
+      setSelectedLGA(null);
+    }
+  }, [isLocationModalOpen, locations]);
+
+  const handleClose = useCallback(() => {
+    setSearchQuery('');
+    setSelectedState(null);
+    setSelectedLGA(null);
+    setShowLGAView(false);
+    closeAllModals();
+  }, [closeAllModals]);
 
   const filteredLocations = useMemo(() => {
     if (!searchQuery.trim()) return locations;
@@ -104,7 +110,7 @@ export default function LocationModal() {
     } else {
       setShowLGAView(true);
     }
-  }, [setSelectedLocation]);
+  }, [setSelectedLocation, handleClose]);
 
   const handleLGASelect = useCallback((lga: LocationData) => {
     setSelectedLGA(lga);
@@ -123,7 +129,7 @@ export default function LocationModal() {
       handleClose();
     } else {
     }
-  }, [selectedState, setSelectedLocation]);
+  }, [selectedState, setSelectedLocation, handleClose]);
 
   // Removed auto-save useEffect - now handled directly in handleLGASelect
 
@@ -138,14 +144,6 @@ export default function LocationModal() {
       });
       handleClose();
     }
-  };
-
-  const handleClose = () => {
-    setSearchQuery('');
-    setSelectedState(null);
-    setSelectedLGA(null);
-    setShowLGAView(false);
-    closeAllModals();
   };
 
   const handleBack = () => {

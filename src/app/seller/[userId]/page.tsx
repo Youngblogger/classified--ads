@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Star, MapPin, Calendar, CheckCircle, MessageCircle, Phone, ChevronLeft, Loader2, UserPlus, UserMinus } from 'lucide-react';
+import Image from 'next/image';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import SellerRatingSummary from '@/components/reviews/SellerRatingSummary';
@@ -36,18 +37,7 @@ export default function SellerProfilePage() {
   const [followLoading, setFollowLoading] = useState(false);
   const { user } = useAuthStore();
 
-  useEffect(() => {
-    fetchSellerProfile();
-    fetchFollowStatus();
-  }, [sellerId, isAuthenticated]);
-
-  useEffect(() => {
-    if (seller) {
-      fetchReviews();
-    }
-  }, [sellerId, reviewSort, refreshKey]);
-
-  const fetchSellerProfile = async () => {
+  const fetchSellerProfile = useCallback(async () => {
     try {
       const profileRes = await sellerReviewsApi.getSellerProfile(sellerId);
       setSeller(profileRes.data);
@@ -65,9 +55,9 @@ export default function SellerProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sellerId]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     setReviewsLoading(true);
     try {
       const response = await sellerReviewsApi.getReviews(sellerId, { sort: reviewSort });
@@ -81,9 +71,9 @@ export default function SellerProfilePage() {
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }, [sellerId, reviewSort]);
 
-  const fetchFollowStatus = async () => {
+  const fetchFollowStatus = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
       const response = await followApi.getUserStats(sellerId);
@@ -93,7 +83,18 @@ export default function SellerProfilePage() {
     } catch (error) {
       console.error('Error fetching follow status:', error);
     }
-  };
+  }, [sellerId, isAuthenticated]);
+
+  useEffect(() => {
+    fetchSellerProfile();
+    fetchFollowStatus();
+  }, [sellerId, isAuthenticated, fetchSellerProfile, fetchFollowStatus]);
+
+  useEffect(() => {
+    if (seller) {
+      fetchReviews();
+    }
+  }, [sellerId, reviewSort, refreshKey, seller, fetchReviews]);
 
   const handleFollow = async () => {
     if (!isAuthenticated) {
@@ -181,10 +182,13 @@ export default function SellerProfilePage() {
                 <div className="text-center mb-6">
                   <div className="relative inline-block">
                     {avatarUrl ? (
-                      <img
+                      <Image
                         src={avatarUrl}
                         alt={seller.seller?.name || 'Seller'}
-                        className="w-24 h-24 rounded-full object-cover mx-auto"
+                        width={96}
+                        height={96}
+                        className="rounded-full object-cover mx-auto"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-24 h-24 rounded-full bg-[#4B5320]/10 flex items-center justify-center mx-auto">

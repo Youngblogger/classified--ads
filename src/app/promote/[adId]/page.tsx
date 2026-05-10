@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, XCircle } from 'lucide-react';
+import Image from 'next/image';
 import { adsApi, walletApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
@@ -55,16 +56,7 @@ export default function PromoteAdPage() {
   
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login?redirect=/promote/' + adId);
-      return;
-    }
-    fetchAd();
-    fetchWalletBalance();
-  }, [adId, isAuthenticated]);
-
-  const fetchAd = async () => {
+  const fetchAd = useCallback(async () => {
     try {
       const res = await adsApi.getById(parseInt(adId));
       setAd(res.data);
@@ -74,16 +66,25 @@ export default function PromoteAdPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [adId]);
 
-  const fetchWalletBalance = async () => {
+  const fetchWalletBalance = useCallback(async () => {
     try {
       const res = await walletApi.getBalance();
       setWalletBalance(parseFloat(res.data.balance) || 0);
     } catch (err) {
       console.error('Failed to fetch wallet:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/promote/' + adId);
+      return;
+    }
+    fetchAd();
+    fetchWalletBalance();
+  }, [adId, isAuthenticated, router, fetchAd, fetchWalletBalance]);
 
   const handleSelectPlan = (plan: Plan) => {
     setSelectedPlan(plan);
@@ -165,10 +166,13 @@ export default function PromoteAdPage() {
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center gap-4">
               {ad.images?.[0] && (
-                <img
+                <Image
                   src={typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].url}
                   alt={ad.title}
-                  className="w-16 h-16 object-cover rounded-lg"
+                  width={64}
+                  height={64}
+                  className="object-cover rounded-lg"
+                  unoptimized
                 />
               )}
               <div>

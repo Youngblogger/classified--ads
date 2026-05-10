@@ -220,7 +220,7 @@ export default function DashboardLayout({
         }
       }
     }
-  }, []);
+  }, [authUser]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -228,7 +228,7 @@ export default function DashboardLayout({
     if (!hasAuth) {
       router.push('/login');
     }
-  }, [authUser]);
+  }, [authUser, router]);
 
   // Use auth user
   const user = authUser;

@@ -102,7 +102,7 @@ export default function AdDetailPage() {
     const images = getAdImages(adData);
     if (images.length === 0) return getFallbackForAd(adData);
     return images[index] || images[0] || getFallbackForAd(adData);
-  }, [getAdImages, getFallbackForAd]);
+  }, [getFallbackForAd]);
 
   const minSwipeDistance = 50;
 

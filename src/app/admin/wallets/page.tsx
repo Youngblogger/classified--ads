@@ -56,16 +56,6 @@ export default function WalletsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedWallet) {
-      fetchTransactions(selectedWallet);
-    }
-  }, [selectedWallet]);
-
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -98,6 +88,16 @@ export default function WalletsPage() {
       setLoadingTransactions(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedWallet) {
+      fetchTransactions(selectedWallet);
+    }
+  }, [selectedWallet]);
 
   const handleCredit = async (walletId: number) => {
     const amount = prompt('Enter amount to credit:');

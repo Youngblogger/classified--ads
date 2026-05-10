@@ -30,7 +30,7 @@ export default function LoginPage() {
       sessionStorage.removeItem('authRedirect');
       router.push(redirect);
     }
-  }, []);
+  }, [isAuthenticated, router, toggleLoginModal, urlRedirect]);
 
   useEffect(() => {
     if (mounted && isAuthenticated) {

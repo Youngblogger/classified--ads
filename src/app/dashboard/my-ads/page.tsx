@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ImageIcon, MapPin, Eye, Zap, X, Ban, RefreshCw, Pencil, Trash2, ExternalLink, Search } from 'lucide-react';
@@ -90,11 +90,7 @@ export default function MyAdsPage() {
   const [renewing, setRenewing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  useEffect(() => {
-    fetchAds();
-  }, [statusFilter]);
-
-  const fetchAds = async () => {
+  const fetchAds = useCallback(async () => {
     try {
       setLoading(true);
       const params = statusFilter === 'all' ? {} : { status: statusFilter };
@@ -107,7 +103,11 @@ export default function MyAdsPage() {
       setLoading(false);
       setIsInitialLoad(false);
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    fetchAds();
+  }, [fetchAds]);
 
   const filteredAds = ads.filter(ad => {
     const matchesSearch = ad.title?.toLowerCase().includes(searchQuery.toLowerCase());

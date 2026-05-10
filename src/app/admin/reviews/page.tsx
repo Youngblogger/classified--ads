@@ -155,6 +155,7 @@ export default function ReviewsManagementPage() {
 
   useEffect(() => {
     fetchReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, statusFilter, ratingFilter]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -381,10 +382,13 @@ export default function ReviewsManagementPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
                         {review.user?.avatar ? (
-                          <img
+                          <Image
                             src={getAvatarUrl(review.user.avatar)}
                             alt={review.user.name}
+                            width={40}
+                            height={40}
                             className="w-full h-full object-cover"
+                            unoptimized
                           />
                         ) : (
                           <User className="w-5 h-5 text-gray-400" />
@@ -525,10 +529,13 @@ export default function ReviewsManagementPage() {
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
                   {selectedReview.user?.avatar ? (
-                    <img
+                    <Image
                       src={getAvatarUrl(selectedReview.user.avatar)}
                       alt={selectedReview.user.name}
+                      width={64}
+                      height={64}
                       className="w-full h-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <User className="w-8 h-8 text-gray-400" />
