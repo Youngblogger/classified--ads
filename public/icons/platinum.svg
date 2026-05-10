@@ -1,0 +1,31 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="platBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E2E8F0"/>
+      <stop offset="30%" stop-color="#CBD5E1"/>
+      <stop offset="60%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#64748B"/>
+    </linearGradient>
+    <linearGradient id="platShine" x1="-0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.2"/>
+      <stop offset="80%" stop-color="#FFFFFF" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="platEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F1F5F9"/>
+      <stop offset="50%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <filter id="platGlow">
+      <feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="#94A3B8" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g filter="url(#platGlow)">
+    <path d="M16 2L28 12L24 26L8 26L4 12L16 2Z" fill="url(#platBody)" stroke="url(#platEdge)" stroke-width="0.8"/>
+    <path d="M16 2L28 12L24 26L8 26L4 12L16 2Z" fill="url(#platShine)"/>
+    <path d="M16 6L24 13L21 23H11L8 13L16 6Z" fill="url(#platShine)" fill-opacity="0.3"/>
+    <circle cx="16" cy="14" r="3" fill="white" fill-opacity="0.15"/>
+  </g>
+</svg>

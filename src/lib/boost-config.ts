@@ -6,6 +6,7 @@ export interface BoostUIConfig {
   label: string;
   badgeLabel: string;
   icon: LucideIcon;
+  svgIcon: string;
   gradient: string;
   borderGradient: string;
   glowColor: string;
@@ -26,6 +27,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     label: 'VIP',
     badgeLabel: 'VIP',
     icon: Diamond,
+    svgIcon: '/icons/diamond.svg',
     gradient: 'from-violet-500 via-purple-400 to-fuchsia-500',
     borderGradient: 'from-violet-400 to-fuchsia-500',
     glowColor: 'shadow-violet-500/40',
@@ -44,6 +46,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     label: 'FEATURED',
     badgeLabel: 'Featured',
     icon: Crown,
+    svgIcon: '/icons/platinum.svg',
     gradient: 'from-amber-400 via-yellow-300 to-amber-400',
     borderGradient: 'from-amber-400 to-amber-600',
     glowColor: 'shadow-amber-400/30',
@@ -62,6 +65,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     label: 'BOOSTED',
     badgeLabel: 'Boosted',
     icon: Zap,
+    svgIcon: '/icons/gold.svg',
     gradient: 'from-slate-400 via-slate-300 to-slate-400',
     borderGradient: 'from-slate-300 to-slate-400',
     glowColor: 'shadow-slate-400/30',
@@ -80,6 +84,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     label: 'TOP DEAL',
     badgeLabel: 'Boosted',
     icon: Zap,
+    svgIcon: '/icons/gold.svg',
     gradient: 'from-amber-400 via-yellow-300 to-amber-400',
     borderGradient: 'from-amber-400 to-blue-400',
     glowColor: 'shadow-amber-400/30',
@@ -98,6 +103,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     label: 'FEATURED',
     badgeLabel: 'Featured',
     icon: Crown,
+    svgIcon: '/icons/platinum.svg',
     gradient: 'from-blue-500 via-blue-400 to-blue-500',
     borderGradient: 'from-blue-400 to-blue-600',
     glowColor: 'shadow-blue-400/30',
@@ -116,6 +122,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     label: 'HIGHLIGHTED',
     badgeLabel: 'Highlighted',
     icon: Crown,
+    svgIcon: '/icons/gold.svg',
     gradient: 'from-purple-500 via-purple-400 to-purple-500',
     borderGradient: 'from-purple-400 to-purple-600',
     glowColor: 'shadow-purple-400/30',

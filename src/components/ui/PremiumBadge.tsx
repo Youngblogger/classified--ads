@@ -9,42 +9,40 @@ interface PremiumBadgeProps {
   variant?: 'absolute' | 'inline';
 }
 
+const TIER_CLASS: Record<string, string> = {
+  platinum: 'boost-badge--diamond',
+  gold: 'boost-badge--platinum',
+  silver: 'boost-badge--gold',
+  top: 'boost-badge--gold',
+  featured: 'boost-badge--platinum',
+  highlight: 'boost-badge--gold',
+};
+
 export default function PremiumBadge({ boostType, size = 'sm', className = '', variant = 'absolute' }: PremiumBadgeProps) {
   const config = getBoostConfig(boostType);
   if (!config) return null;
 
-  const Icon = config.icon;
-
-  const sizeClasses = size === 'sm'
-    ? 'px-1.5 py-0.5 text-[9px] sm:text-[10px] gap-0.5'
-    : 'px-2.5 py-1 text-xs gap-1';
-
-  const iconSize = size === 'sm' ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5';
+  const iconSize = size === 'sm' ? 'w-5 h-5' : 'w-6 h-6';
+  const tier = boostType?.toLowerCase() || '';
+  const tierClass = TIER_CLASS[tier] || 'boost-badge--gold';
 
   const badge = (
-    <span
-      className={`
-        inline-flex items-center font-bold rounded-full
-        bg-gradient-to-r ${config.gradient}
-        text-white shadow-lg ${config.glowColor}
-        ${sizeClasses}
-        ${config.animation}
-      `}
-      style={{
-        backgroundSize: '200% 100%',
-      }}
-    >
-      <Icon className={`${iconSize} flex-shrink-0`} />
-      <span className="tracking-wide uppercase leading-none">{config.label}</span>
-    </span>
+    <div className={`boost-badge relative inline-flex ${tierClass} ${iconSize} ${className}`}>
+      <img
+        src={config.svgIcon}
+        alt=""
+        className="boost-badge__icon"
+        style={{ pointerEvents: 'none' }}
+      />
+    </div>
   );
 
   if (variant === 'inline') {
-    return <div className={`inline-flex ${className}`}>{badge}</div>;
+    return badge;
   }
 
   return (
-    <div className={`absolute top-1.5 sm:top-2 left-1.5 sm:left-2 z-10 flex flex-col gap-1 ${className}`}>
+    <div className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 z-10 flex flex-col gap-1">
       {badge}
     </div>
   );

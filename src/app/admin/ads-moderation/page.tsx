@@ -1361,9 +1361,13 @@ export default function AdsModerationPage() {
                             ₦{Number(ad.price).toLocaleString()}
                           </p>
                           {ad.is_boosted && (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-1 py-0.5 rounded-full mt-0.5">
-                              <Zap className="w-2.5 h-2.5" /> Boosted
-                            </span>
+                            <div className={`boost-badge boost-badge--${ad.boost_type === 'platinum' ? 'diamond' : ad.boost_type === 'gold' ? 'platinum' : 'gold'} w-5 h-5 mt-0.5`}>
+                              <img
+                                src={ad.boost_type === 'platinum' ? '/icons/diamond.svg' : ad.boost_type === 'gold' ? '/icons/platinum.svg' : '/icons/gold.svg'}
+                                alt=""
+                                className="boost-badge__icon"
+                              />
+                            </div>
                           )}
                           {ad.edited_by_admin && (
                             <span className="text-xs text-purple-600 flex items-center gap-1">
