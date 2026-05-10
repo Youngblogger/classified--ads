@@ -421,8 +421,8 @@ class PaymentService
         }
 
         try {
-            $boostTierService = app(BoostTierService::class);
-            $result = $boostTierService->activateBoost($paymentIntent->reference);
+            $boostAdService = app(BoostAdService::class);
+            $result = $boostAdService->activateBoost($paymentIntent->reference);
 
             if ($result['success']) {
                 $this->logPaymentEvent(
@@ -433,7 +433,7 @@ class PaymentService
                     [
                         'ad_id' => $paymentIntent->ad_id,
                         'boost_id' => $result['boost']->id,
-                        'plan_id' => $result['boost']->plan_id,
+                        'plan_id' => $result['boost']->plan_id ?? null,
                         'action' => $action,
                         'was_renewed' => $result['was_renewed'],
                     ],
@@ -443,7 +443,7 @@ class PaymentService
 
             return $result;
         } catch (\Throwable $e) {
-            Log::error('Exception in attachBoostAfterPayment via BoostTierService', [
+            Log::error('Exception in attachBoostAfterPayment via BoostAdService', [
                 'reference' => $paymentIntent->reference,
                 'error' => $e->getMessage(),
             ]);

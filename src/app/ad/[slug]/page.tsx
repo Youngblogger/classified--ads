@@ -404,6 +404,7 @@ export default function AdDetailPage() {
                       sizes="(max-width: 768px) 100vw, 60vw"
                       className="object-cover"
                       onError={() => setCurrentImageError(true)}
+                      priority={currentImageIndex === 0}
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100">

@@ -722,13 +722,12 @@ export default function Header() {
           <div className="flex items-center justify-between h-16 gap-4">
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
-              <Image 
+              <img 
                 src="/icons/iList-white.png" 
                 alt="iList" 
                 width={120}
                 height={40}
                 className="h-10 w-auto"
-                priority
               />
             </Link>
 

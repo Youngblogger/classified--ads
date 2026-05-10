@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Zap, Crown, Diamond, Check, Loader2, ArrowRight, Clock, RotateCcw, Sparkles } from 'lucide-react';
+import { X, Zap, Crown, Diamond, Check, Loader2, ArrowRight, Clock, RotateCcw, Sparkles, Wallet, CreditCard } from 'lucide-react';
 import { getAuthToken } from '@/lib/cookies';
 import toast from 'react-hot-toast';
 
@@ -66,6 +66,8 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
   const [fetching, setFetching] = useState(true);
   const [step, setStep] = useState<'select' | 'processing'>('select');
   const [boostStatus, setBoostStatus] = useState<{ has_active_boost: boolean; active_boost?: any; can_renew: boolean; renewal_info?: any } | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -102,12 +104,29 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
       } catch {}
     };
 
+    const fetchBalance = async () => {
+      try {
+        const token = getAuthToken();
+        if (!token) return;
+        const res = await fetch(`${API_URL}/wallet/balance`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const raw = data.available_balance ?? data.data?.available_balance ?? data.balance ?? data.data?.balance;
+          setWalletBalance(raw !== null && raw !== undefined ? Number(raw) : null);
+        }
+      } catch {}
+    };
+
     if (isOpen) {
       setStep('select');
       setSelectedPlan(null);
       setBoostStatus(null);
+      setWalletBalance(null);
+      setPaymentMethod(null);
       setFetching(true);
-      Promise.all([fetchPlans(), fetchStatus()]).finally(() => setFetching(false));
+      Promise.all([fetchPlans(), fetchStatus(), fetchBalance()]).finally(() => setFetching(false));
     }
   }, [isOpen, adId]);
 
@@ -115,7 +134,9 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
   const colors = selectedPlan ? TIER_COLORS[selectedPlan] || TIER_COLORS.silver : TIER_COLORS.silver;
   const Icon = selectedPlan ? TIER_ICONS[selectedPlan] || Zap : Zap;
 
-  const handleBoost = async () => {
+  const hasSufficientBalance = walletBalance !== null && selected && walletBalance >= selected.price;
+
+  const handleWalletBoost = async () => {
     const token = getAuthToken();
     if (!token) {
       toast.error('Please login to boost your ad');
@@ -125,7 +146,12 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
       toast.error('Please select a boost plan');
       return;
     }
+    if (!hasSufficientBalance) {
+      toast.error('Insufficient wallet balance');
+      return;
+    }
 
+    setPaymentMethod('wallet');
     setStep('processing');
     setLoading(true);
 
@@ -140,13 +166,65 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
           'Content-Type': 'application/json',
           ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
         },
-        body: JSON.stringify({ plan_type: selectedPlan }),
+        body: JSON.stringify({
+          plan_type: selectedPlan,
+          payment_method: 'wallet',
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to initiate boost');
+        throw new Error(data.error || data.message || `Request failed (${res.status})`);
+      }
+
+      toast.success('Boost activated successfully via wallet!');
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to process boost');
+      console.error('Wallet boost error:', error);
+      setStep('select');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaystackBoost = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      toast.error('Please login to boost your ad');
+      return;
+    }
+    if (!selectedPlan) {
+      toast.error('Please select a boost plan');
+      return;
+    }
+
+    setPaymentMethod('paystack');
+    setStep('processing');
+    setLoading(true);
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    try {
+      const res = await fetch(`${API_URL}/ads/${adId}/boost`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+        },
+        body: JSON.stringify({
+          plan_type: selectedPlan,
+          payment_method: 'paystack',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || `Request failed (${res.status})`);
       }
 
       if (data.data?.authorization_url) {
@@ -156,19 +234,25 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to process boost');
+      console.error('Paystack boost error:', error);
       setStep('select');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRenew = async () => {
+  const handleRenew = async (method: 'wallet' | 'paystack' = 'paystack') => {
     const token = getAuthToken();
     if (!token) {
       toast.error('Please login to renew your boost');
       return;
     }
+    if (!selectedPlan) {
+      toast.error('Please select a boost plan');
+      return;
+    }
 
+    setPaymentMethod(method);
     setStep('processing');
     setLoading(true);
 
@@ -183,15 +267,22 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
           'Content-Type': 'application/json',
           ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
         },
+        body: JSON.stringify({
+          plan_type: selectedPlan,
+          payment_method: method,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to renew boost');
+        throw new Error(data.error || data.message || `Request failed (${res.status})`);
       }
 
-      if (data.data?.authorization_url) {
+      if (method === 'wallet') {
+        toast.success('Boost renewed successfully via wallet!');
+        onClose();
+      } else if (data.data?.authorization_url) {
         window.location.href = data.data.authorization_url;
       } else {
         throw new Error('Payment URL not received');
@@ -231,6 +322,22 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
               <p className="text-sm text-gray-600 mb-4 truncate">
                 Boosting: <span className="font-semibold text-gray-900">{adTitle}</span>
               </p>
+
+              {/* Wallet Balance Banner */}
+              {walletBalance !== null && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4 flex items-center gap-3">
+                  <Wallet className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div className="text-sm">
+                    <span className="font-semibold text-emerald-900">Wallet Balance</span>
+                    <span className="text-emerald-700 ml-2">Available: ₦{walletBalance.toLocaleString()}</span>
+                    {selected && (
+                      <span className={`ml-2 ${hasSufficientBalance ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {hasSufficientBalance ? '✓ Sufficient' : '✗ Insufficient'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Active/Expired boost banner */}
               {boostStatus?.has_active_boost && boostStatus.active_boost && (
@@ -303,31 +410,49 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
               )}
             </div>
 
-            {/* Footer */}
+            {/* Footer with payment options */}
             {!fetching && selected && (
-              <div className="px-5 py-4 border-t border-gray-200 flex gap-3 flex-shrink-0 bg-white">
-                <button
-                  onClick={onClose}
-                  className="flex-1 px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={boostStatus?.can_renew ? handleRenew : handleBoost}
-                  disabled={loading}
-                  className={`
-                    flex-1 px-5 py-3 text-white rounded-xl font-semibold transition-all text-sm
-                    flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
-                    bg-gradient-to-r ${colors.btn} shadow-lg ${colors.shadow}
-                  `}
-                >
-                  {boostStatus?.can_renew ? (
-                    <><RotateCcw className="w-4 h-4" /> Renew ₦{selected.price.toLocaleString()}</>
-                  ) : (
-                    <><Zap className="w-4 h-4" /> Boost ₦{selected.price.toLocaleString()}</>
-                  )}
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+              <div className="px-5 py-4 border-t border-gray-200 flex flex-col gap-3 flex-shrink-0 bg-white">
+                {walletBalance !== null && hasSufficientBalance && (
+                  <button
+                    onClick={boostStatus?.can_renew ? () => handleRenew('wallet') : handleWalletBoost}
+                    disabled={loading}
+                    className="w-full px-5 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-200"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    {boostStatus?.can_renew ? 'Renew' : 'Boost'} using Wallet — ₦{selected.price.toLocaleString()}
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+                {walletBalance !== null && !hasSufficientBalance && (
+                  <div className="text-xs text-red-500 text-center -mb-2">
+                    Insufficient wallet balance. Please fund your wallet or use Paystack.
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    onClick={onClose}
+                    className="flex-1 px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={boostStatus?.can_renew ? () => handleRenew('paystack') : handlePaystackBoost}
+                    disabled={loading}
+                    className={`
+                      flex-1 px-5 py-3 text-white rounded-xl font-semibold transition-all text-sm
+                      flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
+                      bg-gradient-to-r ${colors.btn} shadow-lg ${colors.shadow}
+                    `}
+                  >
+                    {boostStatus?.can_renew ? (
+                      <><RotateCcw className="w-4 h-4" /> Renew with Paystack</>
+                    ) : (
+                      <><CreditCard className="w-4 h-4" /> Pay with Paystack</>
+                    )}
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
           </>
@@ -339,9 +464,11 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
               <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {boostStatus?.can_renew ? 'Processing renewal' : 'Processing boost'}
+              {paymentMethod === 'wallet' ? 'Activating boost' : (boostStatus?.can_renew ? 'Processing renewal' : 'Processing boost')}
             </h3>
-            <p className="text-sm text-gray-500 text-center">Redirecting to secure payment...</p>
+            <p className="text-sm text-gray-500 text-center">
+              {paymentMethod === 'wallet' ? 'Please wait...' : 'Redirecting to secure payment...'}
+            </p>
           </div>
         )}
       </div>

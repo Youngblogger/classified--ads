@@ -18,6 +18,7 @@ class BoostedAd extends Model
         'status',
         'payment_reference',
         'payment_intent_id',
+        'paid_from',
         'impressions',
         'clicks',
     ];

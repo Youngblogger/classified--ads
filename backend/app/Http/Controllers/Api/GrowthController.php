@@ -43,28 +43,66 @@ class GrowthController extends Controller
             'plan_type' => 'required_without:boost_type|in:silver,gold,platinum',
             'boost_type' => 'required_without:plan_type|in:top,featured,highlight',
             'duration_days' => 'required_if:boost_type,top,featured,highlight|integer|in:1,3,7,14,30',
+            'payment_method' => 'sometimes|in:wallet,paystack',
         ]);
 
+        $paymentMethod = $validated['payment_method'] ?? 'paystack';
+
         if (isset($validated['plan_type'])) {
-            $result = $boostAdService->createBoost($id, $user->id, $validated['plan_type']);
+            $result = $boostAdService->createPlanBoost($id, $user->id, $validated['plan_type'], $paymentMethod);
         } else {
-            $result = $boostAdService->createBoost($id, $user->id, $validated['boost_type'], $validated['duration_days']);
-            $result['plan'] = null;
+            $result = $boostAdService->createBoost($id, $user->id, $validated['boost_type'], $validated['duration_days'], $paymentMethod);
         }
 
         if (!$result['success']) {
             $status = match ($result['code'] ?? '') {
                 'ad_not_found' => 404,
                 'ad_not_active' => 422,
+                'insufficient_balance' => 402,
+                'wallet_not_found' => 404,
+                'invalid_plan' => 400,
                 default => 400,
             };
 
-            return response()->json([
+            $response = [
                 'success' => false,
                 'error' => $result['error'],
-            ], $status);
+            ];
+
+            if (isset($result['available_balance'])) {
+                $response['available_balance'] = $result['available_balance'];
+            }
+            if (isset($result['required_amount'])) {
+                $response['required_amount'] = $result['required_amount'];
+            }
+
+            return response()->json($response, $status);
         }
 
+        // Wallet boost — instant activation (no payment redirect needed)
+        if ($paymentMethod === 'wallet') {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'boost_id' => $result['boost']->id,
+                    'amount' => $result['price'],
+                    'paid_from' => 'wallet',
+                    'plan' => isset($result['plan']) ? [
+                        'id' => $result['plan']->id,
+                        'type' => $result['plan']->type,
+                        'name' => $result['plan']->name,
+                        'price' => $result['plan']->price,
+                        'duration_days' => $result['plan']->duration_days,
+                    ] : null,
+                    'boost_type' => $result['boost_type'] ?? null,
+                    'duration_days' => $result['duration_days'] ?? null,
+                    'balance_after' => $result['balance_after'] ?? null,
+                    'message' => 'Boost activated successfully via wallet',
+                ],
+            ]);
+        }
+
+        // Paystack boost — redirect to payment
         $responseData = [
             'success' => true,
             'data' => [
@@ -127,21 +165,62 @@ class GrowthController extends Controller
         }
         RateLimiter::hit($key, 3600);
 
-        $result = $boostAdService->renewBoost($id, $user->id);
+        $validated = $request->validate([
+            'plan_type' => 'required|in:silver,gold,platinum',
+            'payment_method' => 'sometimes|in:wallet,paystack',
+        ]);
+
+        $paymentMethod = $validated['payment_method'] ?? 'paystack';
+        $result = $boostAdService->createPlanRenew($id, $user->id, $validated['plan_type'], $paymentMethod);
 
         if (!$result['success']) {
             $status = match ($result['code'] ?? '') {
                 'ad_not_found' => 404,
                 'ad_not_active' => 422,
+                'insufficient_balance' => 402,
+                'wallet_not_found' => 404,
+                'invalid_plan' => 400,
                 default => 400,
             };
 
-            return response()->json([
+            $response = [
                 'success' => false,
                 'error' => $result['error'],
-            ], $status);
+            ];
+
+            if (isset($result['available_balance'])) {
+                $response['available_balance'] = $result['available_balance'];
+            }
+            if (isset($result['required_amount'])) {
+                $response['required_amount'] = $result['required_amount'];
+            }
+
+            return response()->json($response, $status);
         }
 
+        // Wallet renew — instant activation
+        if ($paymentMethod === 'wallet') {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'boost_id' => $result['boost']->id,
+                    'amount' => $result['price'],
+                    'paid_from' => 'wallet',
+                    'plan' => [
+                        'id' => $result['plan']->id,
+                        'type' => $result['plan']->type,
+                        'name' => $result['plan']->name,
+                        'price' => $result['plan']->price,
+                        'duration_days' => $result['plan']->duration_days,
+                    ],
+                    'balance_after' => $result['balance_after'] ?? null,
+                    'message' => 'Boost renewed successfully via wallet',
+                    'is_renewal' => true,
+                ],
+            ]);
+        }
+
+        // Paystack renew — redirect to payment
         return response()->json([
             'success' => true,
             'data' => [
@@ -149,13 +228,13 @@ class GrowthController extends Controller
                 'authorization_url' => $result['authorization_url'] ?? null,
                 'access_code' => $result['access_code'] ?? null,
                 'amount' => $result['price'],
-                'plan' => $result['plan'] ? [
+                'plan' => [
                     'id' => $result['plan']->id,
                     'type' => $result['plan']->type,
                     'name' => $result['plan']->name,
                     'price' => $result['plan']->price,
                     'duration_days' => $result['plan']->duration_days,
-                ] : null,
+                ],
                 'is_renewal' => true,
             ],
         ]);

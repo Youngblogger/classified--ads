@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Ad;
+use App\Models\BoostPlan;
 use App\Models\BoostedAd;
 use App\Models\PaymentIntent;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Events\AdBoosted;
 use App\Events\BoostExpired;
 use App\Events\BoostRenewed;
@@ -50,7 +52,7 @@ class BoostAdService
         return round($basePrice * $days * $multiplier, 2);
     }
 
-    public function createBoost(int $adId, int $userId, string $boostType, int $durationDays): array
+    public function createBoost(int $adId, int $userId, string $boostType, int $durationDays, string $paymentMethod = 'paystack'): array
     {
         $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
 
@@ -88,7 +90,111 @@ class BoostAdService
 
         $price = $this->calculatePrice($boostType, $durationDays);
 
-        $existingBoost = BoostedAd::where('ad_id', $adId)
+        if ($paymentMethod === 'wallet') {
+            return $this->processWalletBoost($ad, $userId, $boostType, $durationDays, $price);
+        }
+
+        return $this->processPaystackBoost($ad, $userId, $boostType, $durationDays, $price);
+    }
+
+    protected function processWalletBoost(Ad $ad, int $userId, string $boostType, int $durationDays, float $price): array
+    {
+        $wallet = Wallet::where('user_id', $userId)->first();
+
+        if (!$wallet) {
+            return [
+                'success' => false,
+                'error' => 'Wallet not found',
+                'code' => 'wallet_not_found',
+            ];
+        }
+
+        if ($wallet->available_balance < $price) {
+            return [
+                'success' => false,
+                'error' => 'Insufficient wallet balance. Available: ₦' . number_format($wallet->available_balance, 2) . ', Required: ₦' . number_format($price, 2),
+                'code' => 'insufficient_balance',
+                'available_balance' => $wallet->available_balance,
+                'required_amount' => $price,
+            ];
+        }
+
+        $reference = 'WLB' . date('Ymd') . strtoupper(Str::random(10));
+
+        return DB::transaction(function () use ($ad, $userId, $boostType, $durationDays, $price, $wallet, $reference) {
+            $existingBoost = BoostedAd::where('ad_id', $ad->id)
+                ->active()
+                ->where('boost_type', $boostType)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingBoost) {
+                return [
+                    'success' => false,
+                    'error' => 'This boost type is already active for this ad',
+                    'code' => 'duplicate_boost',
+                ];
+            }
+
+            $transaction = $wallet->atomicDebit($price, 'Boost payment for ad #' . $ad->id . ' (' . $boostType . ', ' . $durationDays . ' days)', $reference, [
+                'ad_id' => $ad->id,
+                'boost_type' => $boostType,
+                'duration_days' => $durationDays,
+                'source' => 'wallet_boost',
+            ]);
+
+            if ($transaction === null) {
+                return [
+                    'success' => false,
+                    'error' => 'Insufficient wallet balance',
+                    'code' => 'insufficient_balance',
+                ];
+            }
+
+            $boost = BoostedAd::create([
+                'ad_id' => $ad->id,
+                'user_id' => $userId,
+                'boost_type' => $boostType,
+                'start_time' => now(),
+                'end_time' => now()->addDays($durationDays),
+                'status' => 'active',
+                'payment_reference' => $reference,
+                'paid_from' => 'wallet',
+            ]);
+
+            $transaction->update([
+                'description' => 'Boost payment for ad #' . $ad->id . ' (' . $boostType . ', ' . $durationDays . ' days) - Ref: ' . $reference,
+            ]);
+
+            event(new AdBoosted($boost));
+
+            Log::info('Wallet boost activated', [
+                'ad_id' => $ad->id,
+                'boost_id' => $boost->id,
+                'user_id' => $userId,
+                'boost_type' => $boostType,
+                'duration_days' => $durationDays,
+                'price' => $price,
+                'reference' => $reference,
+                'balance_after' => $wallet->fresh()->balance,
+            ]);
+
+            return [
+                'success' => true,
+                'boost' => $boost,
+                'price' => $price,
+                'boost_type' => $boostType,
+                'duration_days' => $durationDays,
+                'reference' => $reference,
+                'paid_from' => 'wallet',
+                'balance_after' => $wallet->fresh()->balance,
+            ];
+        });
+    }
+
+    protected function processPaystackBoost(Ad $ad, int $userId, string $boostType, int $durationDays, float $price): array
+    {
+        $existingBoost = BoostedAd::where('ad_id', $ad->id)
             ->active()
             ->where('boost_type', $boostType)
             ->first();
@@ -145,6 +251,252 @@ class BoostAdService
                 'price' => $price,
                 'boost_type' => $boostType,
                 'duration_days' => $durationDays,
+                'paid_from' => 'paystack',
+            ];
+        });
+    }
+
+    public function createPlanBoost(int $adId, int $userId, string $planType, string $paymentMethod = 'paystack'): array
+    {
+        $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
+
+        if (!$ad) {
+            return [
+                'success' => false,
+                'error' => 'Ad not found or unauthorized',
+                'code' => 'ad_not_found',
+            ];
+        }
+
+        if (!in_array($ad->status, ['active'])) {
+            return [
+                'success' => false,
+                'error' => 'Only active ads can be boosted',
+                'code' => 'ad_not_active',
+            ];
+        }
+
+        $plan = BoostPlan::where('type', $planType)->where('is_active', true)->first();
+
+        if (!$plan) {
+            return [
+                'success' => false,
+                'error' => 'Invalid or inactive boost plan',
+                'code' => 'invalid_plan',
+            ];
+        }
+
+        $price = (float) $plan->price;
+        $durationDays = $plan->duration_days;
+
+        if ($paymentMethod === 'wallet') {
+            return $this->processWalletPlanBoost($ad, $userId, $plan, $price, $durationDays);
+        }
+
+        return $this->processPaystackPlanBoost($ad, $userId, $plan, $price, $durationDays);
+    }
+
+    public function createPlanRenew(int $adId, int $userId, string $planType, string $paymentMethod = 'paystack'): array
+    {
+        $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
+
+        if (!$ad) {
+            return [
+                'success' => false,
+                'error' => 'Ad not found or unauthorized',
+                'code' => 'ad_not_found',
+            ];
+        }
+
+        $canRenew = $this->canRenewBoost($adId, $userId, $planType);
+
+        if (!$canRenew['can_renew']) {
+            return [
+                'success' => false,
+                'error' => $canRenew['reason'],
+                'code' => $canRenew['code'],
+            ];
+        }
+
+        $plan = BoostPlan::where('type', $planType)->where('is_active', true)->first();
+
+        if (!$plan) {
+            return [
+                'success' => false,
+                'error' => 'Invalid or inactive boost plan',
+                'code' => 'invalid_plan',
+            ];
+        }
+
+        $price = (float) $plan->price;
+        $durationDays = $plan->duration_days;
+
+        if ($paymentMethod === 'wallet') {
+            return $this->processWalletPlanBoost($ad, $userId, $plan, $price, $durationDays);
+        }
+
+        return $this->processPaystackPlanBoost($ad, $userId, $plan, $price, $durationDays);
+    }
+
+    protected function processWalletPlanBoost(Ad $ad, int $userId, BoostPlan $plan, float $price, int $durationDays): array
+    {
+        $wallet = Wallet::where('user_id', $userId)->first();
+
+        if (!$wallet) {
+            return [
+                'success' => false,
+                'error' => 'Wallet not found',
+                'code' => 'wallet_not_found',
+            ];
+        }
+
+        if ($wallet->available_balance < $price) {
+            return [
+                'success' => false,
+                'error' => 'Insufficient wallet balance. Available: ₦' . number_format($wallet->available_balance, 2) . ', Required: ₦' . number_format($price, 2),
+                'code' => 'insufficient_balance',
+                'available_balance' => $wallet->available_balance,
+                'required_amount' => $price,
+            ];
+        }
+
+        $reference = 'WLB' . date('Ymd') . strtoupper(Str::random(10));
+
+        return DB::transaction(function () use ($ad, $userId, $plan, $price, $durationDays, $wallet, $reference) {
+            $existingBoost = BoostedAd::where('ad_id', $ad->id)
+                ->active()
+                ->where(function ($q) use ($plan) {
+                    $q->where('plan_id', $plan->id)
+                      ->orWhere('boost_type', $plan->type);
+                })
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingBoost) {
+                return [
+                    'success' => false,
+                    'error' => 'This boost plan is already active for this ad',
+                    'code' => 'duplicate_boost',
+                ];
+            }
+
+            $transaction = $wallet->atomicDebit($price, 'Boost payment for ad #' . $ad->id . ' (' . $plan->name . ')', $reference, [
+                'ad_id' => $ad->id,
+                'plan_id' => $plan->id,
+                'plan_type' => $plan->type,
+                'source' => 'wallet_boost',
+            ]);
+
+            if ($transaction === null) {
+                return [
+                    'success' => false,
+                    'error' => 'Insufficient wallet balance',
+                    'code' => 'insufficient_balance',
+                ];
+            }
+
+            $boost = BoostedAd::create([
+                'ad_id' => $ad->id,
+                'user_id' => $userId,
+                'plan_id' => $plan->id,
+                'boost_type' => $plan->type,
+                'priority_score' => $plan->priority_score,
+                'start_time' => now(),
+                'end_time' => now()->addDays($durationDays),
+                'status' => 'active',
+                'payment_reference' => $reference,
+                'paid_from' => 'wallet',
+            ]);
+
+            $transaction->update([
+                'description' => 'Boost payment for ad #' . $ad->id . ' (' . $plan->name . ') - Ref: ' . $reference,
+            ]);
+
+            event(new AdBoosted($boost));
+
+            Log::info('Wallet plan boost activated', [
+                'ad_id' => $ad->id,
+                'boost_id' => $boost->id,
+                'plan_id' => $plan->id,
+                'plan_name' => $plan->name,
+                'user_id' => $userId,
+                'price' => $price,
+                'reference' => $reference,
+                'balance_after' => $wallet->fresh()->balance,
+            ]);
+
+            return [
+                'success' => true,
+                'boost' => $boost,
+                'price' => $price,
+                'plan' => $plan,
+                'reference' => $reference,
+                'paid_from' => 'wallet',
+                'balance_after' => $wallet->fresh()->balance,
+            ];
+        });
+    }
+
+    protected function processPaystackPlanBoost(Ad $ad, int $userId, BoostPlan $plan, float $price, int $durationDays): array
+    {
+        $existingBoost = BoostedAd::where('ad_id', $ad->id)
+            ->active()
+            ->where(function ($q) use ($plan) {
+                $q->where('plan_id', $plan->id)
+                  ->orWhere('boost_type', $plan->type);
+            })
+            ->first();
+
+        if ($existingBoost) {
+            return [
+                'success' => false,
+                'error' => 'This boost plan is already active for this ad',
+                'code' => 'duplicate_boost',
+            ];
+        }
+
+        $user = User::find($userId);
+
+        return DB::transaction(function () use ($ad, $userId, $plan, $price, $durationDays, $user) {
+            $paymentService = app(PaymentService::class);
+
+            $result = $paymentService->initializePayment([
+                'user_id' => $userId,
+                'ad_id' => $ad->id,
+                'amount' => $price,
+                'currency' => 'NGN',
+                'type' => 'boost',
+                'email' => $user?->email ?? '',
+                'metadata' => [
+                    'action' => 'new_boost',
+                    'plan_type' => $plan->type,
+                    'plan_id' => $plan->id,
+                    'duration_days' => $durationDays,
+                ],
+            ]);
+
+            if (!$result['success']) {
+                return $result;
+            }
+
+            Log::info('Boost plan payment initiated', [
+                'ad_id' => $ad->id,
+                'user_id' => $userId,
+                'plan_id' => $plan->id,
+                'plan_name' => $plan->name,
+                'price' => $price,
+                'reference' => $result['payment_intent']->reference,
+            ]);
+
+            return [
+                'success' => true,
+                'payment_intent' => $result['payment_intent'],
+                'authorization_url' => $result['authorization_url'] ?? null,
+                'access_code' => $result['access_code'] ?? null,
+                'price' => $price,
+                'plan' => $plan,
+                'duration_days' => $durationDays,
+                'paid_from' => 'paystack',
             ];
         });
     }
@@ -294,9 +646,10 @@ class BoostAdService
         }
 
         $metadata = $paymentIntent->metadata ?? [];
-        $boostType = $metadata['boost_type'] ?? 'top';
+        $boostType = $metadata['boost_type'] ?? $metadata['plan_type'] ?? 'top';
         $durationDays = $metadata['duration_days'] ?? 7;
         $action = $metadata['action'] ?? 'new_boost';
+        $planId = $metadata['plan_id'] ?? null;
 
         $existingBoost = BoostedAd::where('ad_id', $paymentIntent->ad_id)
             ->active()
@@ -329,7 +682,7 @@ class BoostAdService
                 $boost = $recentExpired->fresh();
                 $wasExpired = true;
             } else {
-                $boost = BoostedAd::create([
+                $boostData = [
                     'ad_id' => $paymentIntent->ad_id,
                     'user_id' => $paymentIntent->user_id,
                     'boost_type' => $boostType,
@@ -337,7 +690,18 @@ class BoostAdService
                     'end_time' => now()->addDays($durationDays),
                     'status' => 'active',
                     'payment_reference' => $paymentIntent->reference,
-                ]);
+                    'paid_from' => 'paystack',
+                ];
+
+                if ($planId) {
+                    $boostData['plan_id'] = $planId;
+                    $plan = BoostPlan::find($planId);
+                    if ($plan) {
+                        $boostData['priority_score'] = $plan->priority_score;
+                    }
+                }
+
+                $boost = BoostedAd::create($boostData);
             }
         }
 
@@ -347,12 +711,13 @@ class BoostAdService
             event(new AdBoosted($boost));
         }
 
-        Log::info('Boost activated', [
+        Log::info('Boost activated via Paystack', [
             'ad_id' => $paymentIntent->ad_id,
             'boost_id' => $boost->id,
             'action' => $action,
             'was_renewed' => $wasExpired,
             'payment_reference' => $paymentReference,
+            'paid_from' => 'paystack',
         ]);
 
         return [

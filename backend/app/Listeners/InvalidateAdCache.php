@@ -23,33 +23,33 @@ class InvalidateAdCache
     {
         CacheService::clearBoostedAds();
         CacheService::clearHomepage();
-        if ($event->boost->ad) {
-            CacheService::clearAdDetail($event->boost->ad_id);
+        if ($event->boostedAd->ad) {
+            CacheService::clearAdDetail($event->boostedAd->ad_id);
         }
         app(BoostTierService::class)->clearBoostedAdsCache();
-        Log::debug('Cache invalidated: AdBoosted', ['ad_id' => $event->boost->ad_id]);
+        Log::debug('Cache invalidated: AdBoosted', ['ad_id' => $event->boostedAd->ad_id]);
     }
 
     public function handleBoostExpired(BoostExpired $event): void
     {
         CacheService::clearBoostedAds();
         CacheService::clearHomepage();
-        if ($event->boost->ad) {
-            CacheService::clearAdDetail($event->boost->ad_id);
+        if ($event->boostedAd->ad) {
+            CacheService::clearAdDetail($event->boostedAd->ad_id);
         }
         app(BoostTierService::class)->clearBoostedAdsCache();
-        Log::debug('Cache invalidated: BoostExpired', ['ad_id' => $event->boost->ad_id]);
+        Log::debug('Cache invalidated: BoostExpired', ['ad_id' => $event->boostedAd->ad_id]);
     }
 
     public function handleBoostRenewed(BoostRenewed $event): void
     {
         CacheService::clearBoostedAds();
         CacheService::clearHomepage();
-        if ($event->boost->ad) {
-            CacheService::clearAdDetail($event->boost->ad_id);
+        if ($event->boostedAd->ad) {
+            CacheService::clearAdDetail($event->boostedAd->ad_id);
         }
         app(BoostTierService::class)->clearBoostedAdsCache();
-        Log::debug('Cache invalidated: BoostRenewed', ['ad_id' => $event->boost->ad_id]);
+        Log::debug('Cache invalidated: BoostRenewed', ['ad_id' => $event->boostedAd->ad_id]);
     }
 
     public function subscribe(Dispatcher $events): void

@@ -48,6 +48,7 @@ class Wallet extends Model
             
             return $this->transactions()->create([
                 'type' => 'credit',
+                'user_id' => $this->user_id,
                 'amount' => $amount,
                 'balance_before' => $balanceBefore,
                 'balance_after' => $this->balance,
@@ -70,6 +71,7 @@ class Wallet extends Model
             
             return $this->transactions()->create([
                 'type' => 'debit',
+                'user_id' => $this->user_id,
                 'amount' => $amount,
                 'balance_before' => $balanceBefore,
                 'balance_after' => $this->balance,
@@ -96,6 +98,7 @@ class Wallet extends Model
             
             return $this->transactions()->create([
                 'type' => 'debit',
+                'user_id' => $this->user_id,
                 'amount' => $amount,
                 'balance_before' => $balanceBefore,
                 'balance_after' => $this->balance,

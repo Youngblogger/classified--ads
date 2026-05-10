@@ -4,10 +4,8 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { CheckCircle, UserPlus, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { API_URL, BACKEND_URL } from '@/lib/config';
 import toast from 'react-hot-toast';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const BACKEND_URL = API_URL.replace('/api', '');
 
 interface SellerProfileCardProps {
   seller: {

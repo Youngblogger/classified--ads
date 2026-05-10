@@ -182,58 +182,58 @@ export function getCategoryFallback(category: string | { name?: string; slug?: s
   
   for (const [key, images] of Object.entries(CATEGORY_FALLBACK_IMAGES)) {
     if (normalizedCat.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedCat)) {
-      return images[Math.floor(Math.random() * images.length)];
+      return images[0];
     }
   }
   
   const phoneMatch = normalizedCat.match(/phone|mobile|smartphone|tablet|ipad|android|iphone|samsung|tecno|infinix|oppo|vivo|xiaomi/);
   if (phoneMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Mobile Phones'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['Mobile Phones'].length)];
+    return CATEGORY_FALLBACK_IMAGES['Mobile Phones'][0];
   }
   
   const carMatch = normalizedCat.match(/car|vehicle|motor|toyota|honda|mercedes|bmw|lexus|ford|jeep|suv/);
   if (carMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Cars'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['Cars'].length)];
+    return CATEGORY_FALLBACK_IMAGES['Cars'][0];
   }
   
   const laptopMatch = normalizedCat.match(/laptop|macbook|notebook|computer|asus|dell|hp|lenovo/);
   if (laptopMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Laptops'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['Laptops'].length)];
+    return CATEGORY_FALLBACK_IMAGES['Laptops'][0];
   }
   
   const tvMatch = normalizedCat.match(/tv|television|samsung tv|smart tv|led|lcd/);
   if (tvMatch) {
-    return CATEGORY_FALLBACK_IMAGES['TVs'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['TVs'].length)];
+    return CATEGORY_FALLBACK_IMAGES['TVs'][0];
   }
   
   const gamingMatch = normalizedCat.match(/ps5|ps4|playstation|xbox|gaming|console|nintendo/);
   if (gamingMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Gaming'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['Gaming'].length)];
+    return CATEGORY_FALLBACK_IMAGES['Gaming'][0];
   }
   
   const fashionMatch = normalizedCat.match(/fashion|shoe|clothing|shirt|dress|ankara|fabric|wear/);
   if (fashionMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Fashion'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['Fashion'].length)];
+    return CATEGORY_FALLBACK_IMAGES['Fashion'][0];
   }
   
   const propertyMatch = normalizedCat.match(/property|house|apartment|land|rent|sale|estate|flat/);
   if (propertyMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Property'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['Property'].length)];
+    return CATEGORY_FALLBACK_IMAGES['Property'][0];
   }
   
   const furnitureMatch = normalizedCat.match(/furniture|sofa|chair|table|bed|desk|cabinet/);
   if (furnitureMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Furniture'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['Furniture'].length)];
+    return CATEGORY_FALLBACK_IMAGES['Furniture'][0];
   }
   
   const applianceMatch = normalizedCat.match(/fridge|refrigerator|freezer|ac|air.?condition|washer|washing|microwave|oven/);
   if (applianceMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Appliances'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['Appliances'].length)];
+    return CATEGORY_FALLBACK_IMAGES['Appliances'][0];
   }
   
   const cameraMatch = normalizedCat.match(/camera|canon|nikon|sony|photo|dslr/);
   if (cameraMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Cameras'][Math.floor(Math.random() * CATEGORY_FALLBACK_IMAGES['Cameras'].length)];
+    return CATEGORY_FALLBACK_IMAGES['Cameras'][0];
   }
   
   return FALLBACK_IMAGE;

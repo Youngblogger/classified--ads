@@ -515,18 +515,20 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
         
         // Style the rendered Google button to match Facebook spacing
         setTimeout(() => {
-          const iframe = container.querySelector('iframe');
-          if (iframe) {
-            const doc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (doc) {
-              const style = doc.createElement('style');
-              style.textContent = `
-                .nsm7Bb-Hzdo7f { padding: 8px 12px !important; }
-                .nsm7Bb-Hzdo7f .nsm7Bb-Izi3cf { gap: 4px !important; }
-              `;
-              doc.head.appendChild(style);
+          try {
+            const iframe = container.querySelector('iframe');
+            if (iframe) {
+              const doc = iframe.contentDocument || iframe.contentWindow?.document;
+              if (doc) {
+                const style = doc.createElement('style');
+                style.textContent = `
+                  .nsm7Bb-Hzdo7f { padding: 8px 12px !important; }
+                  .nsm7Bb-Hzdo7f .nsm7Bb-Izi3cf { gap: 4px !important; }
+                `;
+                doc.head.appendChild(style);
+              }
             }
-          }
+          } catch (_e) { /* cross-origin iframe access blocked */ }
           // Also try to style the direct button if not in iframe
           const btn = container.querySelector('.nsm7Bb-Hzdo7f') as HTMLElement;
           if (btn) {

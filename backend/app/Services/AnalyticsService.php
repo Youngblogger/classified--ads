@@ -35,7 +35,7 @@ class AnalyticsService
 
         $targetDate = $date ?? now()->toDateString();
 
-        DailyAnalytic::updateOrCreate(
+        DB::table('daily_analytics')->updateOrInsert(
             ['date' => $targetDate, 'metric_type' => $metricType],
             ['value' => DB::raw('COALESCE(value, 0) + ' . (int) $value)]
         );
@@ -45,7 +45,7 @@ class AnalyticsService
     {
         $targetDate = $date ?? now()->toDateString();
 
-        DailyAnalytic::updateOrCreate(
+        DB::table('daily_analytics')->updateOrInsert(
             ['date' => $targetDate, 'metric_type' => 'revenue'],
             ['value' => DB::raw('COALESCE(value, 0) + ' . (int) ($amount * 100))]
         );
