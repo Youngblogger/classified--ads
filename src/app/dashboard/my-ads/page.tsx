@@ -15,11 +15,12 @@ import { getBoostCardClasses } from '@/lib/boost-config';
 
 type StatusFilter = 'all' | 'active' | 'pending' | 'sold' | 'expired';
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; class: string }> = {
   active: { label: 'Active', class: 'bg-green-100 text-green-800' },
   pending: { label: 'Pending', class: 'bg-yellow-100 text-yellow-800' },
   sold: { label: 'Closed', class: 'bg-gray-100 text-gray-800' },
   expired: { label: 'Expired', class: 'bg-red-100 text-red-800' },
+  rejected: { label: 'Rejected', class: 'bg-red-100 text-red-800' },
 };
 
 const formatPrice = (price: number | string): string => {
@@ -460,6 +461,24 @@ export default function MyAdsPage() {
                         <RefreshCw className="w-3.5 h-3.5" />
                         <span>Renew</span>
                       </button>
+                      <button
+                        onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
+                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-red-500 hover:border-red-300 hover:bg-red-50 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  )}
+                  {ad.status === 'rejected' && (
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/ad/edit/${ad.id}`}
+                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 transition-all"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </Link>
                       <button
                         onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
                         className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-red-500 hover:border-red-300 hover:bg-red-50 transition-all"

@@ -54,6 +54,7 @@ class AdListResource extends JsonResource
                 'avatar' => $this->user->full_avatar_url ?? $this->user->avatar_url,
                 'is_verified' => (bool) $this->user->email_verified_at,
             ]),
+            'status' => $this->status,
             'freshness_score' => max(0, 100 - (now()->diffInHours($this->created_at) / 24)),
         ];
     }
