@@ -64,25 +64,23 @@ export default function WalletPage() {
   };
 
   useEffect(() => {
-    fetchWallet();
-  }, []);
-
-  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const verified = params.get('verified');
     const reference = params.get('reference');
-    
+
     if (verified === 'true' && reference) {
       api.post('/wallet/verify', { reference })
         .then(() => {
           toast.success('Payment successful! Your wallet has been credited.');
+          window.history.replaceState({}, '', '/dashboard/wallet');
           fetchWallet();
         })
         .catch(() => {
           toast.error('Payment verification failed');
+          window.history.replaceState({}, '', '/dashboard/wallet');
         });
-      
-      window.history.replaceState({}, '', '/dashboard/wallet');
+    } else {
+      fetchWallet();
     }
   }, []);
 

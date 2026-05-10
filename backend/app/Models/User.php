@@ -104,6 +104,11 @@ class User extends Authenticatable
         return $this->hasOne(\App\Models\Wallet::class);
     }
 
+    public function transactions()
+    {
+        return $this->hasManyThrough(\App\Models\Transaction::class, \App\Models\Wallet::class);
+    }
+
     public function followers()
     {
         return $this->hasMany(\App\Models\Follow::class, 'following_id');
