@@ -171,7 +171,7 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
     }
     
     return (
-      <span className={`absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[10px] sm:text-xs font-medium rounded-full ${badgeClass}`}>
+      <span className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[10px] sm:text-xs font-medium rounded-full ${badgeClass}`}>
         {label}
       </span>
     );

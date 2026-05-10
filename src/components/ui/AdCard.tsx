@@ -93,7 +93,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
     return stateName || lgaName || 'No location';
   };
 
-  const getConditionBadge = () => {
+  const getConditionBadge = (positionClasses = '') => {
     if (!ad.condition) return null;
     const condition = String(ad.condition).toLowerCase();
     const badgeClasses = condition === 'new' || condition === 'brand_new' || condition === 'brand new' ? 'bg-green-50 text-green-700' :
@@ -105,7 +105,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
                  condition === 'like_new' || condition === 'like new' ? 'Like New' :
                  condition === 'good' ? 'Used' :
                  condition === 'fair' ? 'Refurbished' : condition.charAt(0).toUpperCase() + condition.slice(1);
-    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClasses}`}>{label}</span>;
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClasses} ${positionClasses}`}>{label}</span>;
   };
 
   if (variant === 'horizontal') {
@@ -134,7 +134,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               priority={priority}
             />
           )}
-          {getConditionBadge()}
+          {getConditionBadge('absolute top-2 right-2')}
           <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
         </div>
         <div className="flex-1 p-4">
@@ -181,7 +181,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               priority={priority}
             />
           )}
-          {getConditionBadge()}
+          {getConditionBadge('absolute top-2 right-2')}
           <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
         </div>
         <div className="p-3">
@@ -231,7 +231,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             priority={priority}
           />
         )}
-        {getConditionBadge()}
+        {getConditionBadge('absolute top-2 right-2')}
         <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
       </div>
       <div className="p-4">

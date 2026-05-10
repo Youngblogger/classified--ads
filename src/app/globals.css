@@ -512,152 +512,53 @@ html {
     background-size: 200% 200% !important;
   }
 
-  /* ===== Premium Boost Badge System ===== */
+  /* ===== Premium Boost Pill Badge ===== */
 
-  .boost-badge {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    overflow: visible;
-    isolation: isolate;
+  .boost-pill {
+    border-radius: 9999px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .boost-badge__icon {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-    position: relative;
-    z-index: 1;
+  .boost-pill:hover {
+    transform: scale(1.05);
   }
 
-  /* --- Shine sweep (applied to all tiers via ::after) --- */
+  /* --- Gold Pill --- */
 
-  .boost-badge::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 60%;
-    height: 100%;
-    z-index: 2;
-    pointer-events: none;
-    background: linear-gradient(
-      120deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.55) 45%,
-      rgba(255, 255, 255, 0.7) 50%,
-      rgba(255, 255, 255, 0.55) 55%,
-      transparent 100%
-    );
-    animation: boost-shine 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    transform: skewX(-20deg);
+  .boost-pill--gold {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    box-shadow: 0 1px 6px rgba(251, 191, 36, 0.35);
+    border: 1px solid rgba(251, 191, 36, 0.5);
   }
 
-  @keyframes boost-shine {
-    0% { left: -100%; }
-    30% { left: 120%; }
-    100% { left: 120%; }
+  .boost-pill--gold:hover {
+    box-shadow: 0 2px 12px rgba(251, 191, 36, 0.55);
   }
 
-  /* --- Base pulse (all tiers) --- */
+  /* --- Platinum Pill --- */
 
-  .boost-badge {
-    animation: boost-pulse 2.5s ease-in-out infinite;
+  .boost-pill--platinum {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    color: #334155;
+    box-shadow: 0 1px 6px rgba(148, 163, 184, 0.35);
+    border: 1px solid rgba(148, 163, 184, 0.5);
   }
 
-  @keyframes boost-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.06); }
+  .boost-pill--platinum:hover {
+    box-shadow: 0 2px 12px rgba(148, 163, 184, 0.55);
   }
 
-  /* ===== Gold Tier ===== */
+  /* --- Diamond Pill --- */
 
-  .boost-badge--gold {
-    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.5));
+  .boost-pill--diamond {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1e40af;
+    box-shadow: 0 1px 6px rgba(59, 130, 246, 0.4);
+    border: 1px solid rgba(59, 130, 246, 0.5);
   }
 
-  /* ===== Platinum Tier ===== */
-
-  .boost-badge--platinum {
-    filter: drop-shadow(0 0 5px rgba(148, 163, 184, 0.5));
-  }
-
-  .boost-badge--platinum::after {
-    animation-duration: 2.5s;
-    background: linear-gradient(
-      120deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.65) 45%,
-      rgba(255, 255, 255, 0.8) 50%,
-      rgba(255, 255, 255, 0.65) 55%,
-      transparent 100%
-    );
-  }
-
-  /* ===== Diamond Tier ===== */
-
-  .boost-badge--diamond {
-    filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.6))
-           drop-shadow(0 0 12px rgba(59, 130, 246, 0.25));
-    animation: boost-diamond-float 3s ease-in-out infinite;
-  }
-
-  .boost-badge--diamond::after {
-    animation-duration: 2.2s;
-    background: linear-gradient(
-      120deg,
-      transparent 0%,
-      rgba(147, 197, 253, 0.5) 40%,
-      rgba(255, 255, 255, 0.8) 50%,
-      rgba(147, 197, 253, 0.5) 60%,
-      transparent 100%
-    );
-  }
-
-  @keyframes boost-diamond-float {
-    0%, 100% {
-      transform: translateY(0) scale(1);
-      filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.6))
-             drop-shadow(0 0 12px rgba(59, 130, 246, 0.25));
-    }
-    33% {
-      transform: translateY(-1.5px) scale(1.04);
-      filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.8))
-             drop-shadow(0 0 18px rgba(59, 130, 246, 0.35));
-    }
-    66% {
-      transform: translateY(0) scale(1.02);
-      filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.7))
-             drop-shadow(0 0 14px rgba(59, 130, 246, 0.3));
-    }
-  }
-
-  /* --- Diamond sparkle dots (extra twinkle) --- */
-
-  .boost-badge--diamond::before {
-    content: '';
-    position: absolute;
-    width: 3px;
-    height: 3px;
-    background: white;
-    border-radius: 50%;
-    top: 10%;
-    right: 15%;
-    z-index: 3;
-    pointer-events: none;
-    opacity: 0;
-    box-shadow:
-      0 0 4px 2px rgba(147, 197, 253, 0.8),
-      0 0 8px 4px rgba(147, 197, 253, 0.3);
-    animation: boost-sparkle 2.5s ease-in-out infinite;
-  }
-
-  @keyframes boost-sparkle {
-    0%, 85%, 100% { opacity: 0; transform: scale(0.5); }
-    88% { opacity: 1; transform: scale(1.2); }
-    92% { opacity: 0.6; transform: scale(0.8); }
-    95% { opacity: 1; transform: scale(1); }
+  .boost-pill--diamond:hover {
+    box-shadow: 0 2px 14px rgba(59, 130, 246, 0.65);
   }
 }

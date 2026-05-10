@@ -118,7 +118,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
                   condition === 'like_new' || condition === 'like new' ? 'Like New' :
                   condition === 'good' ? 'Good' :
                   condition === 'fair' ? 'Fair' : condition.charAt(0).toUpperCase() + condition.slice(1);
-    return <span className={`absolute top-1.5 sm:top-2 left-1.5 sm:left-2 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full ${badgeClasses}`}>{label}</span>;
+    return <span className={`absolute top-1.5 sm:top-2 right-1.5 sm:right-2 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full ${badgeClasses}`}>{label}</span>;
   };
   
   const handleAdClick = (e: React.MouseEvent) => {
@@ -157,20 +157,6 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
         {getConditionBadge()}
         <PremiumBadge boostType={ad.boost_type} size="sm" />
         
-        <button 
-          onClick={handleFavoriteClick}
-          disabled={favoriteLoading}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 disabled:opacity-50 z-20 border border-gray-200"
-        >
-          <Bookmark 
-            className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors ${
-              isFavorited 
-                ? 'text-primary-600 fill-primary-600' 
-                : 'text-gray-600 hover:text-primary-600'
-            }`} 
-          />
-        </button>
-        
         {imageCount > 1 && (
           <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 bg-black/70 text-white text-[10px] sm:text-xs font-medium px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded flex items-center gap-0.5 sm:gap-1">
             <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -180,9 +166,24 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
       </div>
       
       <div className="p-2 sm:p-3">
-        <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600">
-          {formatPrice(ad.price, ad.currency)}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600">
+            {formatPrice(ad.price, ad.currency)}
+          </p>
+          <button 
+            onClick={handleFavoriteClick}
+            disabled={favoriteLoading}
+            className="p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 disabled:opacity-50 border border-gray-200 ml-2 flex-shrink-0"
+          >
+            <Bookmark 
+              className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors ${
+                isFavorited 
+                  ? 'text-primary-600 fill-primary-600' 
+                  : 'text-gray-600 hover:text-primary-600'
+              }`} 
+            />
+          </button>
+        </div>
         
         <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-gray-700 transition-colors text-sm sm:text-base md:text-lg leading-snug mt-1">
           {ad.title}

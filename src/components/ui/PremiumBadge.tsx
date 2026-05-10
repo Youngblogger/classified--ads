@@ -9,31 +9,33 @@ interface PremiumBadgeProps {
   variant?: 'absolute' | 'inline';
 }
 
-const TIER_CLASS: Record<string, string> = {
-  platinum: 'boost-badge--diamond',
-  gold: 'boost-badge--platinum',
-  silver: 'boost-badge--gold',
-  top: 'boost-badge--gold',
-  featured: 'boost-badge--platinum',
-  highlight: 'boost-badge--gold',
+const GLOW_CLASS: Record<string, string> = {
+  platinum: 'boost-pill--diamond',
+  gold: 'boost-pill--platinum',
+  silver: 'boost-pill--gold',
+  top: 'boost-pill--gold',
+  featured: 'boost-pill--platinum',
+  highlight: 'boost-pill--gold',
 };
 
 export default function PremiumBadge({ boostType, size = 'sm', className = '', variant = 'absolute' }: PremiumBadgeProps) {
   const config = getBoostConfig(boostType);
   if (!config) return null;
 
-  const iconSize = size === 'sm' ? 'w-5 h-5' : 'w-6 h-6';
+  const pillSize = size === 'sm' ? 'text-[10px] px-1.5 py-0.5 gap-0.5' : 'text-xs px-2 py-1 gap-1';
+  const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
   const tier = boostType?.toLowerCase() || '';
-  const tierClass = TIER_CLASS[tier] || 'boost-badge--gold';
+  const glowClass = GLOW_CLASS[tier] || 'boost-pill--gold';
 
   const badge = (
-    <div className={`boost-badge relative inline-flex ${tierClass} ${iconSize} ${className}`}>
+    <div className={`boost-pill inline-flex items-center ${pillSize} ${glowClass} ${className}`}>
       <img
         src={config.svgIcon}
         alt=""
-        className="boost-badge__icon"
+        className={iconSize}
         style={{ pointerEvents: 'none' }}
       />
+      <span className="font-semibold whitespace-nowrap leading-none">{config.displayName}</span>
     </div>
   );
 
@@ -42,7 +44,7 @@ export default function PremiumBadge({ boostType, size = 'sm', className = '', v
   }
 
   return (
-    <div className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 z-10 flex flex-col gap-1">
+    <div className="absolute top-2 left-2 z-10">
       {badge}
     </div>
   );

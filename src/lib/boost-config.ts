@@ -5,6 +5,7 @@ export type BoostType = 'silver' | 'gold' | 'platinum' | 'top' | 'featured' | 'h
 export interface BoostUIConfig {
   label: string;
   badgeLabel: string;
+  displayName: string;
   icon: LucideIcon;
   svgIcon: string;
   gradient: string;
@@ -26,6 +27,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
   platinum: {
     label: 'VIP',
     badgeLabel: 'VIP',
+    displayName: 'Diamond',
     icon: Diamond,
     svgIcon: '/icons/diamond.svg',
     gradient: 'from-blue-500 via-blue-400 to-blue-600',
@@ -45,6 +47,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
   gold: {
     label: 'FEATURED',
     badgeLabel: 'Featured',
+    displayName: 'Platinum',
     icon: Crown,
     svgIcon: '/icons/platinum.svg',
     gradient: 'from-slate-400 via-slate-300 to-slate-400',
@@ -64,6 +67,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
   silver: {
     label: 'BOOSTED',
     badgeLabel: 'Boosted',
+    displayName: 'Gold',
     icon: Zap,
     svgIcon: '/icons/gold.svg',
     gradient: 'from-amber-400 via-yellow-300 to-amber-400',
@@ -83,6 +87,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
   top: {
     label: 'TOP DEAL',
     badgeLabel: 'Boosted',
+    displayName: 'Gold',
     icon: Zap,
     svgIcon: '/icons/gold.svg',
     gradient: 'from-amber-400 via-yellow-300 to-amber-400',
@@ -102,6 +107,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
   featured: {
     label: 'FEATURED',
     badgeLabel: 'Featured',
+    displayName: 'Platinum',
     icon: Crown,
     svgIcon: '/icons/platinum.svg',
     gradient: 'from-slate-400 via-slate-300 to-slate-400',
@@ -121,6 +127,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
   highlight: {
     label: 'HIGHLIGHTED',
     badgeLabel: 'Highlighted',
+    displayName: 'Gold',
     icon: Crown,
     svgIcon: '/icons/gold.svg',
     gradient: 'from-amber-400 via-yellow-300 to-amber-400',

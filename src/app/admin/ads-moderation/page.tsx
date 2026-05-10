@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DynamicField, { CategoryField } from '@/components/forms/DynamicField';
+import PremiumBadge from '@/components/ui/PremiumBadge';
 
 interface AdImage {
   id: number;
@@ -1361,13 +1362,7 @@ export default function AdsModerationPage() {
                             ₦{Number(ad.price).toLocaleString()}
                           </p>
                           {ad.is_boosted && (
-                            <div className={`boost-badge boost-badge--${ad.boost_type === 'platinum' ? 'diamond' : ad.boost_type === 'gold' ? 'platinum' : 'gold'} w-5 h-5 mt-0.5`}>
-                              <img
-                                src={ad.boost_type === 'platinum' ? '/icons/diamond.svg' : ad.boost_type === 'gold' ? '/icons/platinum.svg' : '/icons/gold.svg'}
-                                alt=""
-                                className="boost-badge__icon"
-                              />
-                            </div>
+                            <PremiumBadge boostType={ad.boost_type} size="sm" variant="inline" className="mt-0.5" />
                           )}
                           {ad.edited_by_admin && (
                             <span className="text-xs text-purple-600 flex items-center gap-1">

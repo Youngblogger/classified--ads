@@ -187,13 +187,6 @@ export default function FavoritesPage() {
                   );
                 })()}
                 <PremiumBadge boostType={(item.ad as any).boost_type} size="sm" />
-                <button
-                  onClick={() => handleRemoveFavorite(item.ad.id)}
-                  className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md text-red-500 hover:bg-red-50 transition-colors"
-                  title="Remove from favorites"
-                >
-                  <HeartIcon className="w-5 h-5 fill-current" />
-                </button>
               </div>
 
               {/* Content */}
@@ -210,9 +203,18 @@ export default function FavoritesPage() {
                   </p>
                 )}
                 
-                <p className="text-xl font-bold text-primary-600 mb-3">
-                  {formatPrice(item.ad.price, item.ad.currency)}
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xl font-bold text-primary-600">
+                    {formatPrice(item.ad.price, item.ad.currency)}
+                  </p>
+                  <button
+                    onClick={() => handleRemoveFavorite(item.ad.id)}
+                    className="p-2 bg-white rounded-full shadow-md text-red-500 hover:bg-red-50 transition-colors ml-2 flex-shrink-0"
+                    title="Remove from favorites"
+                  >
+                    <HeartIcon className="w-5 h-5 fill-current" />
+                  </button>
+                </div>
 
                 {/* Details */}
                 <div className="space-y-1 text-sm text-gray-500 mb-4">
