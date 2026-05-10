@@ -108,7 +108,6 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   optimizeFonts: true,
   swcMinify: true,
-  output: 'standalone',
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts'],
     scrollRestoration: true,
