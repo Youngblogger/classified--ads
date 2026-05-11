@@ -267,6 +267,9 @@ export const adsApi = {
   deleteById: (id: number) => api.delete(`/ads/${id}`),
   incrementViews: (id: number) => api.post(`/ads/${id}/views`),
   getMyAds: (params?: Record<string, any>) => api.get('/my-ads', { params }),
+  pause: (id: number) => api.post(`/ads/${id}/pause`),
+  reactivate: (id: number) => api.post(`/ads/${id}/reactivate`),
+  sold: (id: number) => api.post(`/ads/${id}/sold`),
 };
 
 // Favorites API

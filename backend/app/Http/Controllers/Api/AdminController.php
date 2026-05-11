@@ -14,6 +14,7 @@ use App\Models\PaymentIntent;
 use App\Models\BoostedAd;
 use App\Services\NotificationService;
 use App\Services\AdminEmailNotificationService;
+use App\Services\CacheService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -199,6 +200,30 @@ class AdminController extends Controller
         $ad = Ad::findOrFail($id);
         $ad->delete();
         return response()->json(['success' => true, 'message' => 'Ad deleted']);
+    }
+
+    public function deactivateAd($id)
+    {
+        $ad = Ad::findOrFail($id);
+        $ad->update(['status' => 'paused']);
+        CacheService::invalidateAdCache($ad->id, $ad->category?->slug);
+        return response()->json(['success' => true, 'message' => 'Ad deactivated', 'status' => 'paused']);
+    }
+
+    public function suspendAd($id)
+    {
+        $ad = Ad::findOrFail($id);
+        $ad->update(['status' => 'suspended']);
+        CacheService::invalidateAdCache($ad->id, $ad->category?->slug);
+        return response()->json(['success' => true, 'message' => 'Ad suspended', 'status' => 'suspended']);
+    }
+
+    public function removeAd($id)
+    {
+        $ad = Ad::findOrFail($id);
+        $ad->update(['status' => 'suspended']);
+        CacheService::invalidateAdCache($ad->id, $ad->category?->slug);
+        return response()->json(['success' => true, 'message' => 'Ad removed from listings', 'status' => 'suspended']);
     }
 
     public function getAd($id)

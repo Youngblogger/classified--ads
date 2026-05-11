@@ -535,6 +535,50 @@ class AdController extends Controller
         ]);
     }
 
+    public function pauseAd(Request $request, int $id)
+    {
+        $user = $request->user();
+        $ad = Ad::where('id', $id)->where('user_id', $user->id)->first();
+
+        if (!$ad) {
+            return response()->json(['error' => 'Ad not found or unauthorized'], 404);
+        }
+        if ($ad->status !== 'active') {
+            return response()->json(['error' => 'Only active ads can be paused', 'current_status' => $ad->status], 400);
+        }
+
+        $ad->update(['status' => 'paused']);
+        CacheService::invalidateAdCache($ad->id, $ad->category?->slug);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ad paused successfully',
+            'data' => ['status' => 'paused'],
+        ]);
+    }
+
+    public function reactivateAd(Request $request, int $id)
+    {
+        $user = $request->user();
+        $ad = Ad::where('id', $id)->where('user_id', $user->id)->first();
+
+        if (!$ad) {
+            return response()->json(['error' => 'Ad not found or unauthorized'], 404);
+        }
+        if ($ad->status !== 'paused') {
+            return response()->json(['error' => 'Only paused ads can be reactivated', 'current_status' => $ad->status], 400);
+        }
+
+        $ad->update(['status' => 'active']);
+        CacheService::invalidateAdCache($ad->id, $ad->category?->slug);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ad reactivated successfully',
+            'data' => ['status' => 'active'],
+        ]);
+    }
+
     private function resolveLocationId($locationId): ?int
     {
         if (!$locationId) return null;

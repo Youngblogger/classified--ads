@@ -94,6 +94,9 @@ Route::prefix('secure-control-9ja')->middleware([\App\Http\Middleware\SecureAdmi
     Route::post('/ads/{id}/feature', [AdminController::class, 'featureAd']);
     Route::post('/ads/{id}/promote', [AdminController::class, 'promoteAd']);
     Route::post('/ads/{id}/reprocess', [AdminController::class, 'reprocessAd']);
+    Route::post('/ads/{id}/deactivate', [AdminController::class, 'deactivateAd']);
+    Route::post('/ads/{id}/suspend', [AdminController::class, 'suspendAd']);
+    Route::post('/ads/{id}/remove', [AdminController::class, 'removeAd']);
     Route::delete('/ads/{id}', [AdminController::class, 'deleteAd']);
     Route::post('/ads/bulk-delete', [AdminController::class, 'bulkDeleteAds']);
     
@@ -333,6 +336,9 @@ Route::middleware('auth.api')->group(function () {
     Route::delete('/ads/{slug}', [AdController::class, 'destroy']);
     Route::get('/my-ads', [AdController::class, 'myAds']);
     Route::post('/ads/{id}/close', [AdController::class, 'closeAd']);
+    Route::post('/ads/{id}/sold', [AdController::class, 'closeAd']);
+    Route::post('/ads/{id}/pause', [AdController::class, 'pauseAd']);
+    Route::post('/ads/{id}/reactivate', [AdController::class, 'reactivateAd']);
     Route::post('/ads/{id}/renew', [AdController::class, 'renewAd']);
 
     Route::post('/ads/{adId}/images', [AdImageController::class, 'store']);

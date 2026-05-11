@@ -14,7 +14,7 @@ import ReportAdModal from '@/components/ui/ReportAdModal';
 import BoostPlansModal from '@/components/ui/BoostPlansModal';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard, ImageIcon, Zap } from 'lucide-react';
+import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard, ImageIcon, Zap, Ban } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatPrice, formatRelativeTime, BACKEND_URL, FALLBACK_IMAGE, getCategoryFallback, getAdImage, getAdImages, getAdImageUrl } from '@/lib/utils';
 import { getAuthToken } from '@/lib/cookies';
@@ -413,39 +413,61 @@ export default function AdDetailPage() {
                     </div>
                   )}
                   
-                  {/* Badges - Single Combined Badge */}
-                  {ad.condition && (
-                    <div className="absolute top-2 left-2">
-                      {(() => {
-                        const condition = String(ad.condition).toLowerCase();
-                        let badgeClass = '';
-                        let label = '';
-                        
-                        if (condition === 'new' || condition === 'brand_new' || condition === 'brand new') {
-                          badgeClass = 'bg-green-50 text-green-700';
-                          label = 'Brand New';
-                        } else if (condition === 'like_new' || condition === 'like new') {
-                          badgeClass = 'bg-blue-50 text-blue-700';
-                          label = 'Like New';
-                        } else if (condition === 'good') {
-                          badgeClass = 'bg-amber-50 text-amber-700';
-                          label = 'Used';
-                        } else if (condition === 'fair') {
-                          badgeClass = 'bg-purple-50 text-purple-700';
-                          label = 'Refurbished';
-                        } else {
-                          badgeClass = 'bg-gray-50 text-gray-600';
-                          label = condition.charAt(0).toUpperCase() + condition.slice(1);
-                        }
-                        
-                        return (
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
-                            {label}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  )}
+                  {/* Badges */}
+                  <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+                    {ad.condition && (
+                      <div>
+                        {(() => {
+                          const condition = String(ad.condition).toLowerCase();
+                          let badgeClass = '';
+                          let label = '';
+                          
+                          if (condition === 'new' || condition === 'brand_new' || condition === 'brand new') {
+                            badgeClass = 'bg-green-50 text-green-700';
+                            label = 'Brand New';
+                          } else if (condition === 'like_new' || condition === 'like new') {
+                            badgeClass = 'bg-blue-50 text-blue-700';
+                            label = 'Like New';
+                          } else if (condition === 'good') {
+                            badgeClass = 'bg-amber-50 text-amber-700';
+                            label = 'Used';
+                          } else if (condition === 'fair') {
+                            badgeClass = 'bg-purple-50 text-purple-700';
+                            label = 'Refurbished';
+                          } else {
+                            badgeClass = 'bg-gray-50 text-gray-600';
+                            label = condition.charAt(0).toUpperCase() + condition.slice(1);
+                          }
+                          
+                          return (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
+                              {label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
+                    {ad.status && !['active', 'pending'].includes(ad.status) && (
+                      <div>
+                        {(() => {
+                          const statusMap: Record<string, { label: string; class: string }> = {
+                            sold: { label: 'Sold', class: 'bg-gray-900/80 text-white' },
+                            paused: { label: 'Paused', class: 'bg-amber-500/90 text-white' },
+                            expired: { label: 'Expired', class: 'bg-red-500/90 text-white' },
+                            rejected: { label: 'Rejected', class: 'bg-red-500/90 text-white' },
+                            suspended: { label: 'Suspended', class: 'bg-red-600/90 text-white' },
+                            draft: { label: 'Draft', class: 'bg-gray-500/90 text-white' },
+                          };
+                          const cfg = statusMap[ad.status] || { label: ad.status, class: 'bg-gray-500/90 text-white' };
+                          return (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.class}`}>
+                              {cfg.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Navigation Arrows */}
                   {showArrows && (
@@ -653,51 +675,68 @@ export default function AdDetailPage() {
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Contact Seller</h2>
                 
-                {(() => {
-                  const contactPhone = ad.user?.phone || ad.phone || ad.sellerPhone;
-                  if (!contactPhone) {
-                    return <p className="text-sm text-gray-500 mb-3 text-center">No phone number available</p>;
-                  }
-                  
-                  return (
-                    <>
-                      {showPhone ? (
-                        <a href={`tel:${contactPhone}`} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3">
-                          <Phone className="w-5 h-5" />{contactPhone}
-                        </a>
+                {ad.status && !['active', 'pending'].includes(ad.status) ? (
+                  <div className="text-center py-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Ban className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      {ad.status === 'sold' ? 'This item has been sold' : 
+                       ad.status === 'paused' ? 'This ad is paused' : 
+                       ad.status === 'suspended' ? 'This ad is suspended' : 
+                       'This ad is no longer active'}
+                    </p>
+                    <p className="text-xs text-gray-500">Contact is disabled for this listing</p>
+                  </div>
+                ) : (
+                  <>
+                    {(() => {
+                      const contactPhone = ad.user?.phone || ad.phone || ad.sellerPhone;
+                      if (!contactPhone) {
+                        return <p className="text-sm text-gray-500 mb-3 text-center">No phone number available</p>;
+                      }
+                      
+                      return (
+                        <>
+                          {showPhone ? (
+                            <a href={`tel:${contactPhone}`} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3">
+                              <Phone className="w-5 h-5" />{contactPhone}
+                            </a>
+                          ) : (
+                            <button 
+                              onClick={() => {
+                                if (!isAuthenticated) {
+                                  toast.error('Please login to view phone number');
+                                  toggleLoginModal();
+                                  return;
+                                }
+                                setShowPhone(true);
+                              }} 
+                              className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3"
+                            >
+                              <Phone className="w-5 h-5" />Show Phone Number
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      {(ad.user?.phone || ad.whatsapp || ad.phone || ad.sellerPhone) ? (
+                        <button onClick={handleWhatsApp} className="py-2 px-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                          <WhatsAppIcon className="w-4 h-4" />WhatsApp
+                        </button>
                       ) : (
-                        <button 
-                          onClick={() => {
-                            if (!isAuthenticated) {
-                              toast.error('Please login to view phone number');
-                              toggleLoginModal();
-                              return;
-                            }
-                            setShowPhone(true);
-                          }} 
-                          className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3"
-                        >
-                          <Phone className="w-5 h-5" />Show Phone Number
+                        <button disabled className="py-2 px-2 bg-gray-300 text-gray-500 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center gap-1">
+                          <WhatsAppIcon className="w-4 h-4" />WhatsApp
                         </button>
                       )}
-                    </>
-                  );
-                })()}
-                
-                <div className="grid grid-cols-2 gap-2">
-                  {(ad.user?.phone || ad.whatsapp || ad.phone || ad.sellerPhone) ? (
-                    <button onClick={handleWhatsApp} className="py-2 px-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-1">
-                      <WhatsAppIcon className="w-4 h-4" />WhatsApp
-                    </button>
-                  ) : (
-                    <button disabled className="py-2 px-2 bg-gray-300 text-gray-500 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center gap-1">
-                      <WhatsAppIcon className="w-4 h-4" />WhatsApp
-                    </button>
-                  )}
-                  <button onClick={handleChat} className="py-2 px-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-1">
-                    <MessageCircle className="w-4 h-4" />Chat Seller
-                  </button>
-                </div>
+                      <button onClick={handleChat} className="py-2 px-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                        <MessageCircle className="w-4 h-4" />Chat Seller
+                      </button>
+                    </div>
+                  </>
+                )}
 
               </div>
 

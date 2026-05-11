@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ImageIcon, MapPin, Eye, Zap, X, Ban, RefreshCw, Pencil, Trash2, ExternalLink, Search } from 'lucide-react';
+import { ImageIcon, MapPin, Eye, Zap, X, Ban, RefreshCw, Pencil, Trash2, ExternalLink, Search, Play, PauseCircle } from 'lucide-react';
 import { adsApi } from '@/lib/api';
 import { getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -13,14 +13,16 @@ import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getAuthToken } from '@/lib/cookies';
 import { getBoostCardClasses } from '@/lib/boost-config';
 
-type StatusFilter = 'all' | 'active' | 'pending' | 'sold' | 'expired';
+type StatusFilter = 'all' | 'active' | 'paused' | 'pending' | 'sold' | 'expired';
 
 const statusConfig: Record<string, { label: string; class: string }> = {
   active: { label: 'Active', class: 'bg-green-100 text-green-800' },
+  paused: { label: 'Paused', class: 'bg-amber-100 text-amber-800' },
   pending: { label: 'Pending', class: 'bg-yellow-100 text-yellow-800' },
-  sold: { label: 'Closed', class: 'bg-gray-100 text-gray-800' },
+  sold: { label: 'Sold', class: 'bg-gray-100 text-gray-800' },
   expired: { label: 'Expired', class: 'bg-red-100 text-red-800' },
   rejected: { label: 'Rejected', class: 'bg-red-100 text-red-800' },
+  suspended: { label: 'Suspended', class: 'bg-red-100 text-red-800' },
 };
 
 const formatPrice = (price: number | string): string => {
@@ -91,6 +93,18 @@ export default function MyAdsPage() {
     adTitle: null
   });
   const [renewing, setRenewing] = useState(false);
+  const [pauseModal, setPauseModal] = useState<{ show: boolean; adId: number | null; adTitle: string | null }>({
+    show: false,
+    adId: null,
+    adTitle: null
+  });
+  const [pausing, setPausing] = useState(false);
+  const [reactivateModal, setReactivateModal] = useState<{ show: boolean; adId: number | null; adTitle: string | null }>({
+    show: false,
+    adId: null,
+    adTitle: null
+  });
+  const [reactivating, setReactivating] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchAds = useCallback(async () => {
@@ -174,6 +188,46 @@ export default function MyAdsPage() {
       fetchAds();
     } finally {
       setClosing(false);
+    }
+  };
+
+  const handlePauseClick = (adId: number, adTitle: string) => {
+    setPauseModal({ show: true, adId, adTitle });
+  };
+
+  const confirmPause = async () => {
+    if (!pauseModal.adId) return;
+    setPausing(true);
+    setPauseModal({ show: false, adId: null, adTitle: null });
+    try {
+      await adsApi.pause(pauseModal.adId);
+      toast.success('Ad paused successfully');
+      fetchAds();
+    } catch {
+      toast.error('Failed to pause ad');
+      fetchAds();
+    } finally {
+      setPausing(false);
+    }
+  };
+
+  const handleReactivateClick = (adId: number, adTitle: string) => {
+    setReactivateModal({ show: true, adId, adTitle });
+  };
+
+  const confirmReactivate = async () => {
+    if (!reactivateModal.adId) return;
+    setReactivating(true);
+    setReactivateModal({ show: false, adId: null, adTitle: null });
+    try {
+      await adsApi.reactivate(reactivateModal.adId);
+      toast.success('Ad reactivated successfully');
+      fetchAds();
+    } catch {
+      toast.error('Failed to reactivate ad');
+      fetchAds();
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -265,7 +319,7 @@ export default function MyAdsPage() {
 
           {/* Status Filter Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0">
-            {(['all', 'active', 'pending', 'sold', 'expired'] as StatusFilter[]).map((status) => (
+            {(['all', 'active', 'paused', 'pending', 'sold', 'expired'] as StatusFilter[]).map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -425,11 +479,18 @@ export default function MyAdsPage() {
                         <span>Boost</span>
                       </button>
                       <button
+                        onClick={() => handlePauseClick(ad.id, ad.title)}
+                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600 transition-all"
+                      >
+                        <PauseCircle className="w-3.5 h-3.5" />
+                        <span>Pause</span>
+                      </button>
+                      <button
                         onClick={() => handleCloseClick(ad.id, ad.title)}
                         className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600 transition-all"
                       >
                         <Ban className="w-3.5 h-3.5" />
-                        <span>Close</span>
+                        <span>Sold</span>
                       </button>
                     </div>
                   )}
@@ -442,6 +503,38 @@ export default function MyAdsPage() {
                         <Pencil className="w-3.5 h-3.5" />
                         <span>Edit</span>
                       </Link>
+                      <button
+                        onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
+                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-red-500 hover:border-red-300 hover:bg-red-50 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  )}
+                  {ad.status === 'paused' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleReactivateClick(ad.id, ad.title)}
+                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg text-xs font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-sm"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        <span>Reactivate</span>
+                      </button>
+                      <Link
+                        href={`/ad/edit/${ad.id}`}
+                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 transition-all"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </Link>
+                      <button
+                        onClick={() => handleCloseClick(ad.id, ad.title)}
+                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600 transition-all"
+                      >
+                        <Ban className="w-3.5 h-3.5" />
+                        <span>Sold</span>
+                      </button>
                       <button
                         onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
                         className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-red-500 hover:border-red-300 hover:bg-red-50 transition-all"
@@ -643,6 +736,82 @@ export default function MyAdsPage() {
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all disabled:opacity-50"
               >
                 {renewing ? 'Renewing...' : 'Renew Ad'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pause Confirmation Modal */}
+      {pauseModal.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Pause Ad</h3>
+              <button 
+                onClick={() => setPauseModal({ show: false, adId: null, adTitle: null })}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Pause <span className="font-semibold">&quot;{pauseModal.adTitle}&quot;</span>?
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              The ad will be hidden from search results. You can reactivate it anytime.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPauseModal({ show: false, adId: null, adTitle: null })}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmPause}
+                disabled={pausing}
+                className="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl font-medium hover:bg-amber-700 transition-colors disabled:opacity-50"
+              >
+                {pausing ? 'Pausing...' : 'Pause Ad'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reactivate Confirmation Modal */}
+      {reactivateModal.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Reactivate Ad</h3>
+              <button 
+                onClick={() => setReactivateModal({ show: false, adId: null, adTitle: null })}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Reactivate <span className="font-semibold">&quot;{reactivateModal.adTitle}&quot;</span>?
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              The ad will become visible to buyers again immediately.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setReactivateModal({ show: false, adId: null, adTitle: null })}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReactivate}
+                disabled={reactivating}
+                className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {reactivating ? 'Reactivating...' : 'Reactivate Ad'}
               </button>
             </div>
           </div>

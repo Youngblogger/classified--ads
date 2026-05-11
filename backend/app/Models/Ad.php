@@ -98,6 +98,21 @@ class Ad extends Model
         return $query->where('status', 'active');
     }
 
+    public function scopePaused($query)
+    {
+        return $query->where('status', 'paused');
+    }
+
+    public function scopeSold($query)
+    {
+        return $query->where('status', 'sold');
+    }
+
+    public function scopeAvailable($query)
+    {
+        return $query->whereIn('status', ['active', 'paused']);
+    }
+
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true);
