@@ -80,7 +80,7 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     animation: 'animate-silver-glow',
     priority: 1,
     accentColor: '#f59e0b',
-    cardClasses: 'ring-1 ring-amber-300 shadow-md shadow-amber-200/40 bg-gradient-to-b from-amber-50/20 to-transparent',
+    cardClasses: 'ring-2 ring-amber-300 shadow-md shadow-amber-200/40 bg-gradient-to-b from-amber-50/20 to-transparent',
     cardHoverClasses: 'hover:ring-amber-400 hover:shadow-lg hover:shadow-amber-300/30 hover:-translate-y-0.5',
     badgeAnimation: 'animate-silver-glow',
   },
