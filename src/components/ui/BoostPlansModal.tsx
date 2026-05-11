@@ -48,11 +48,11 @@ const TIER_COLORS: Record<string, { bg: string; border: string; badge: string; b
     shadow: 'shadow-slate-400/20',
   },
   diamond: {
-    bg: 'from-blue-50 to-sky-50',
-    border: 'border-blue-300',
-    badge: 'from-blue-500 via-blue-400 to-cyan-400',
-    btn: 'from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800',
-    shadow: 'shadow-blue-500/20',
+    bg: 'from-violet-50 to-purple-50',
+    border: 'border-violet-300',
+    badge: 'from-violet-500 via-purple-400 to-fuchsia-400',
+    btn: 'from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800',
+    shadow: 'shadow-violet-500/20',
   },
 };
 
@@ -390,7 +390,7 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCate
                       const c = TIER_COLORS[planTierKey] || TIER_COLORS.gold;
                       const recommendedKey = adCategory ? recommendBoostPlan({ category: adCategory, price: adPrice }) : null;
                       const isRecommended = !!recommendedKey && PLAN_TO_TIER[plan.type] === recommendedKey;
-                      const impactInfo = BOOST_IMPACT[recommendedKey];
+                      const impactInfo = BOOST_IMPACT[planTierKey];
                       return (
                         <button
                           key={plan.type}
