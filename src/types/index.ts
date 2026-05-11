@@ -81,7 +81,10 @@ export interface Ad {
   featured?: boolean;
   is_featured?: boolean;
   is_boosted?: boolean;
-  boost_type?: 'top' | 'featured' | 'highlight' | null;
+  boost_type?: 'silver' | 'gold' | 'platinum' | 'top' | 'featured' | 'highlight' | null;
+  boost_plan?: string | null;
+  boost_status?: string | null;
+  boost_expires_at?: string | null;
   boost_end_time?: string | null;
   boost_priority_score?: number;
 }

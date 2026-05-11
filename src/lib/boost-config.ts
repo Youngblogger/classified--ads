@@ -163,17 +163,78 @@ export function getBoostBadgeAnimation(boostType: string | null | undefined): st
   return config?.badgeAnimation ?? '';
 }
 
-export function sortAdsByBoostPriority<T extends { is_boosted?: boolean; boost_type?: string | null; boost_priority_score?: number }>(ads: T[]): T[] {
+/** Boost plan display name → weight mapping */
+const BOOST_WEIGHT: Record<string, number> = {
+  diamond: 3,
+  platinum: 2,
+  gold: 1,
+};
+
+/** Internal boost_type → display plan mapping (matches what PremiumBadge uses) */
+const PLAN_FROM_TYPE: Record<string, string> = {
+  platinum: 'diamond',
+  gold: 'platinum',
+  silver: 'gold',
+  top: 'gold',
+  featured: 'platinum',
+  highlight: 'gold',
+};
+
+/** Randomness factor per plan to prevent stuck-ads feel */
+const BOOST_RANDOM_FACTOR: Record<string, number> = {
+  diamond: 1.0,
+  platinum: 0.8,
+  gold: 0.6,
+};
+
+export function getBoostWeight(boostType: string | null | undefined): number {
+  const plan = PLAN_FROM_TYPE[(boostType || '').toLowerCase()];
+  return BOOST_WEIGHT[plan] || 0;
+}
+
+export function getBoostPlan(boostType: string | null | undefined): string | null {
+  return PLAN_FROM_TYPE[(boostType || '').toLowerCase()] || null;
+}
+
+export function isBoostExpired(ad: { boost_expires_at?: string | null; boost_status?: string | null }): boolean {
+  if (ad.boost_status && ad.boost_status !== 'active') return true;
+  if (ad.boost_expires_at) {
+    return new Date(ad.boost_expires_at) < new Date();
+  }
+  return false;
+}
+
+export function sortAdsByBoostPriority<T extends {
+  is_boosted?: boolean;
+  boost_type?: string | null;
+  boost_plan?: string | null;
+  boost_status?: string | null;
+  boost_expires_at?: string | null;
+  boost_priority_score?: number;
+  created_at?: string;
+}>(ads: T[]): T[] {
   return [...ads].sort((a, b) => {
-    if (a.boost_priority_score !== undefined && b.boost_priority_score !== undefined) {
-      return b.boost_priority_score - a.boost_priority_score;
+    const expiredA = isBoostExpired(a);
+    const expiredB = isBoostExpired(b);
+    const weightA = expiredA ? 0 : getBoostWeight(a.boost_type);
+    const weightB = expiredB ? 0 : getBoostWeight(b.boost_type);
+
+    if (weightA === 0 && weightB === 0) {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
     }
-    const configA = getBoostConfig(a.boost_type);
-    const configB = getBoostConfig(b.boost_type);
-    if (!configA && !configB) return 0;
-    if (!configA) return 1;
-    if (!configB) return -1;
-    return configB.priority - configA.priority;
+
+    const rankA = weightA + (weightA > 0 ? Math.random() * (BOOST_RANDOM_FACTOR[PLAN_FROM_TYPE[(a.boost_type || '').toLowerCase()]] || 0.5) : 0);
+    const rankB = weightB + (weightB > 0 ? Math.random() * (BOOST_RANDOM_FACTOR[PLAN_FROM_TYPE[(b.boost_type || '').toLowerCase()]] || 0.5) : 0);
+
+    if (Math.abs(rankA - rankB) < 0.01) {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
+    }
+
+    return rankB - rankA;
   });
 }
 

@@ -33,6 +33,7 @@ interface BoostedAd {
   is_boosted?: boolean;
   boost_status?: string | null;
   boost_type?: BoostType | string | null;
+  boost_expires_at?: string | null;
   created_at?: string;
 }
 

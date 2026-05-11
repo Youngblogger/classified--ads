@@ -15,7 +15,7 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import BoostedAdsCarousel from '@/components/ui/BoostedAdsCarousel';
-import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
+import { getBoostCardClasses, getBoostConfig, getBoostPlan, isBoostExpired } from '@/lib/boost-config';
 import { API_URL } from '@/lib/config';
 
 function LazyImage({ src, alt, className, style, onError }: { src: string; alt: string; className?: string; style?: React.CSSProperties; onError?: () => void }) {
@@ -164,7 +164,7 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
         )}
         
         {getConditionBadge()}
-        <PremiumBadge boostType={ad.boost_type} size="sm" />
+        <PremiumBadge boostType={ad.boost_type} size="md" />
         
         {imageCount > 1 && (
           <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 bg-black/70 text-white text-[10px] sm:text-xs font-medium px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded flex items-center gap-0.5 sm:gap-1">
@@ -363,7 +363,60 @@ export default function HomePage() {
         {/* Boosted Ads Carousel */}
         <BoostedAdsCarousel />
 
-        {/* Latest Ads - jiji.ng style */}
+        {/* Diamond Top Boosted */}
+        {!isLoading && !adsError && recentAds.filter((ad: any) => {
+          const plan = getBoostPlan(ad.boost_type);
+          return plan === 'diamond' && ad.boost_status === 'active' && !isBoostExpired(ad);
+        }).length > 0 && (
+          <section className="py-3 sm:py-4 bg-gradient-to-b from-indigo-50/40 to-transparent">
+            <div className="px-2 sm:px-4 md:px-6 lg:px-8">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <span className="text-lg sm:text-xl">💎</span>
+                <h2 className="text-base sm:text-lg font-bold text-gray-900">Top Boosted Ads</h2>
+                <span className="text-[10px] sm:text-xs font-medium text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">Premium</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
+                {recentAds
+                  .filter((ad: any) => {
+                    const plan = getBoostPlan(ad.boost_type);
+                    return plan === 'diamond' && ad.boost_status === 'active' && !isBoostExpired(ad);
+                  })
+                  .slice(0, 4)
+                  .map((ad: any, index: number) => (
+                    <AdCardWithImage key={`diamond-${ad.id}`} ad={ad} index={index} />
+                  ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Platinum + Gold Featured */}
+        {!isLoading && !adsError && recentAds.filter((ad: any) => {
+          const plan = getBoostPlan(ad.boost_type);
+          return (plan === 'platinum' || plan === 'gold') && ad.boost_status === 'active' && !isBoostExpired(ad);
+        }).length > 0 && (
+          <section className="py-3 sm:py-4 bg-white">
+            <div className="px-2 sm:px-4 md:px-6 lg:px-8">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <span className="text-lg sm:text-xl">⭐</span>
+                <h2 className="text-base sm:text-lg font-bold text-gray-900">Featured Boost</h2>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
+                {recentAds
+                  .filter((ad: any) => {
+                    const plan = getBoostPlan(ad.boost_type);
+                    return (plan === 'platinum' || plan === 'gold') && ad.boost_status === 'active' && !isBoostExpired(ad);
+                  })
+                  .slice(0, 4)
+                  .map((ad: any, index: number) => (
+                    <AdCardWithImage key={`featured-${ad.id}`} ad={ad} index={index} />
+                  ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Latest Ads */}
         <section className="py-4 bg-white">
           <div className="px-2 sm:px-4 md:px-6 lg:px-8">
             <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
@@ -398,9 +451,15 @@ export default function HomePage() {
             ) : recentAds.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
-                  {recentAds.map((ad: any, index: number) => (
-                    <AdCardWithImage key={`${ad.id}-${index}`} ad={ad} index={index} />
-                  ))}
+                  {recentAds
+                    .filter((ad: any) => {
+                      const plan = getBoostPlan(ad.boost_type);
+                      const isActiveBoost = plan && ad.boost_status === 'active' && !isBoostExpired(ad);
+                      return !isActiveBoost;
+                    })
+                    .map((ad: any, index: number) => (
+                      <AdCardWithImage key={`${ad.id}-${index}`} ad={ad} index={index} />
+                    ))}
                 </div>
                 {hasMore && (
                   <LoadMoreButton 

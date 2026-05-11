@@ -22,8 +22,8 @@ export default function PremiumBadge({ boostType, size = 'sm', className = '', v
   const config = getBoostConfig(boostType);
   if (!config) return null;
 
-  const pillSize = size === 'sm' ? 'text-[10px] px-1.5 py-0.5 gap-0.5' : 'text-xs px-2 py-1 gap-1';
-  const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
+  const pillSize = size === 'sm' ? 'text-[10px] px-1.5 py-0.5 gap-0.5' : 'text-xs sm:text-sm px-2 sm:px-2.5 py-1 sm:py-1.5 gap-1 sm:gap-1.5';
+  const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 sm:w-4 h-3.5 sm:h-4';
   const tier = boostType?.toLowerCase() || '';
   const glowClass = GLOW_CLASS[tier] || 'boost-pill--gold';
 
