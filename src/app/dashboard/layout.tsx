@@ -362,10 +362,27 @@ export default function DashboardLayout({
               {/* Post Ad Button */}
               <Link 
                 href="/dashboard/post-ad"
-                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white text-primary-600 rounded-full font-semibold text-sm hover:bg-primary-50 transition-colors shadow-md"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-accent-600 text-white rounded-[7px] font-semibold text-sm hover:bg-accent-700 transition-colors shadow-sm mr-2"
               >
                 <PlusIcon className="w-4 h-4" />
                 <span>SELL</span>
+              </Link>
+              {/* User Profile */}
+              <Link href="/dashboard/profile" className="flex-shrink-0">
+                <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center shadow-md">
+                  {user?.full_avatar_url || user?.avatar_url || user?.google_avatar ? (
+                    <img
+                      src={user?.full_avatar_url || user?.avatar_url || user?.google_avatar || ''}
+                      alt={user?.name || 'User'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <span className="text-primary-600 font-bold text-sm">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  )}
+                </div>
               </Link>
             </div>
           </div>

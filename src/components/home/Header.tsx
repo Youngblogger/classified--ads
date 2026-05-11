@@ -958,7 +958,7 @@ export default function Header() {
                     <div className="relative" ref={notificationRef}>
                       <button 
                         onClick={() => setNotificationOpen(!notificationOpen)}
-                        className="p-2.5 hover:bg-primary-700 rounded-xl transition-colors relative"
+                        className="p-2.5 rounded-xl relative"
                       >
                         <Bell className="w-5 h-5 text-white" />
                         {unreadCount > 0 && (
@@ -1144,7 +1144,7 @@ export default function Header() {
                       )}
                     </div>
                     
-                    <Link href="/dashboard/favorites" className="p-2.5 hover:bg-primary-700 rounded-xl transition-colors">
+                    <Link href="/dashboard/favorites" className="p-2.5 rounded-xl">
                       <Heart className="w-5 h-5 text-white" />
                     </Link>
                     
@@ -1152,7 +1152,7 @@ export default function Header() {
                     <div className="relative ml-1" ref={userMenuRef}>
                       <button
                         onClick={() => setShowUserMenu(!showUserMenu)}
-                        className="flex items-center gap-2 p-1.5 hover:bg-primary-700 rounded-xl transition-colors"
+                        className="flex items-center gap-2 p-1.5 rounded-xl"
                       >
                         <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
                           {(() => {
@@ -1446,13 +1446,13 @@ export default function Header() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-                className="p-2.5 hover:bg-primary-700 rounded-xl transition-colors"
+                className="p-2.5 rounded-xl"
               >
                 <Search className="w-5 h-5 text-white" />
               </button>
               <button
                 onClick={() => setShowMobileMenu(false)}
-                className="p-2.5 hover:bg-primary-700 rounded-xl transition-colors"
+                className="p-2.5 rounded-xl"
               >
                 <X className="w-6 h-6 text-white" />
               </button>

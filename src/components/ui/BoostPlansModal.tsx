@@ -317,7 +317,7 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCate
       className="fixed inset-0 bg-black/60 flex items-start sm:items-center justify-center z-[99999] p-0 sm:p-4 pt-[5vh] sm:pt-0"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[98vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -466,7 +466,7 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCate
                 <div className="flex gap-3">
                   <button
                     onClick={onClose}
-                    className="flex-1 px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors text-sm"
+                    className="flex-1 px-5 py-3 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors text-sm"
                   >
                     Cancel
                   </button>
@@ -476,7 +476,7 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCate
                     className={`
                       flex-1 px-5 py-3 text-white rounded-xl font-semibold transition-all text-sm
                       flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
-                      bg-gradient-to-r ${colors.btn} shadow-lg ${colors.shadow}
+                      bg-violet-600 hover:bg-violet-700
                     `}
                   >
                     {boostStatus?.can_renew ? (
