@@ -873,6 +873,8 @@ export default function AdDetailPage() {
         adTitle={ad.title}
         isOpen={showBoostModal}
         onClose={() => setShowBoostModal(false)}
+        adCategory={ad.category}
+        adPrice={ad.price}
       />
     </div>
   );

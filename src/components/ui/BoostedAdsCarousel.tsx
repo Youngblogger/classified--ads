@@ -4,12 +4,13 @@ import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Image as ImageIcon, Bookmark } from 'lucide-react';
 import PremiumBadge from '@/components/ui/PremiumBadge';
-import { getBoostCardClasses, getBoostConfig, BoostType, sortAdsByBoostPriority } from '@/lib/boost-config';
+import { getBoostCardClasses, getBoostConfig, BoostType } from '@/lib/boost-config';
 import { formatPrice, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useBoostedAds } from '@/hooks/useAds';
 import { useAuthStore } from '@/lib/store';
+import { useAdRanking } from '@/hooks/useAdRanking';
 
 import { API_URL } from '@/lib/config';
 
@@ -187,7 +188,7 @@ export default function BoostedAdsCarousel() {
   const { boostedAds: rawBoostedAds, isLoading: loading } = useBoostedAds();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const boostedAds = sortAdsByBoostPriority(
+  const boostedAds = useAdRanking(
     (rawBoostedAds as BoostedAd[]).filter((ad) => ad.is_boosted && ad.boost_type)
   ).slice(0, 20);
 

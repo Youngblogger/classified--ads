@@ -180,62 +180,123 @@ const PLAN_FROM_TYPE: Record<string, string> = {
   highlight: 'gold',
 };
 
-/** Randomness factor per plan to prevent stuck-ads feel */
-const BOOST_RANDOM_FACTOR: Record<string, number> = {
-  diamond: 1.0,
-  platinum: 0.8,
-  gold: 0.6,
-};
-
-export function getBoostWeight(boostType: string | null | undefined): number {
-  const plan = PLAN_FROM_TYPE[(boostType || '').toLowerCase()];
-  return BOOST_WEIGHT[plan] || 0;
-}
-
-export function getBoostPlan(boostType: string | null | undefined): string | null {
-  return PLAN_FROM_TYPE[(boostType || '').toLowerCase()] || null;
-}
-
-export function isBoostExpired(ad: { boost_expires_at?: string | null; boost_status?: string | null }): boolean {
-  if (ad.boost_status && ad.boost_status !== 'active') return true;
-  if (ad.boost_expires_at) {
-    return new Date(ad.boost_expires_at) < new Date();
-  }
-  return false;
-}
-
-export function sortAdsByBoostPriority<T extends {
+/** Scorable ad interface for dynamic ranking */
+interface ScorableAd {
   is_boosted?: boolean;
   boost_type?: string | null;
   boost_plan?: string | null;
   boost_status?: string | null;
   boost_expires_at?: string | null;
-  boost_priority_score?: number;
+  boost_views_today?: number;
+  max_daily_boost_views?: number;
+  views?: number;
   created_at?: string;
-}>(ads: T[]): T[] {
-  return [...ads].sort((a, b) => {
-    const expiredA = isBoostExpired(a);
-    const expiredB = isBoostExpired(b);
-    const weightA = expiredA ? 0 : getBoostWeight(a.boost_type);
-    const weightB = expiredB ? 0 : getBoostWeight(b.boost_type);
+  category?: string | { name?: string; slug?: string } | null;
+  price?: number | string | null;
+  age_hours?: number;
+}
 
-    if (weightA === 0 && weightB === 0) {
-      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return dateB - dateA;
-    }
+/**
+ * Recommended Boost Plan Engine
+ * Suggests the best plan based on ad category and price
+ */
+export function recommendBoostPlan(ad: ScorableAd): string {
+  const price = typeof ad.price === 'string' ? parseFloat(ad.price) : (ad.price || 0);
+  const cat = ad.category
+    ? (typeof ad.category === 'string' ? ad.category.toLowerCase() : (ad.category.name || ad.category.slug || '').toLowerCase())
+    : '';
 
-    const rankA = weightA + (weightA > 0 ? Math.random() * (BOOST_RANDOM_FACTOR[PLAN_FROM_TYPE[(a.boost_type || '').toLowerCase()]] || 0.5) : 0);
-    const rankB = weightB + (weightB > 0 ? Math.random() * (BOOST_RANDOM_FACTOR[PLAN_FROM_TYPE[(b.boost_type || '').toLowerCase()]] || 0.5) : 0);
+  if (cat.includes('property') || cat.includes('land') || cat.includes('house') || cat.includes('real') || price > 1000000) {
+    return 'diamond';
+  }
+  if (cat.includes('vehicle') || cat.includes('car') || cat.includes('auto') || cat.includes('bike')) {
+    return 'platinum';
+  }
+  return 'gold';
+}
 
-    if (Math.abs(rankA - rankB) < 0.01) {
-      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return dateB - dateA;
-    }
+/**
+ * Boost Impact Preview
+ */
+export const BOOST_IMPACT: Record<string, { views: string; badge: string; description: string }> = {
+  gold: {
+    views: 'Up to 3x more views',
+    badge: 'Gold Boost',
+    description: 'Appear above normal listings and get noticed faster',
+  },
+  platinum: {
+    views: 'Up to 6x more views',
+    badge: 'Platinum VIP',
+    description: 'Homepage exposure with premium card styling',
+  },
+  diamond: {
+    views: 'Up to 10x more visibility',
+    badge: 'Diamond VIP',
+    description: 'Top homepage placement and highest search priority',
+  },
+};
 
-    return rankB - rankA;
-  });
+/**
+ * Smart Upsell Trigger
+ * Suggests boosting when ad has low views and is older than 24h
+ */
+export function shouldShowBoostSuggestion(ad: ScorableAd): boolean {
+  if (ad.is_boosted || ad.boost_status === 'active') return false;
+  const ageMs = ad.created_at ? Date.now() - new Date(ad.created_at).getTime() : 0;
+  const ageHours = ageMs / 3600000;
+  return (ad.views || 0) < 10 && ageHours > 24;
+}
+
+export function getBoostPlan(boostType: string | null | undefined): string {
+  if (!boostType) return 'gold';
+  return PLAN_FROM_TYPE[boostType.toLowerCase()] || 'gold';
+}
+
+export function isBoostExpired(ad: { boost_status?: string | null; boost_expires_at?: string | null; boost_end_time?: string | null }): boolean {
+  if (ad.boost_status !== 'active') return true;
+  const expiresAt = ad.boost_expires_at || ad.boost_end_time;
+  if (!expiresAt) return false;
+  return new Date(expiresAt).getTime() < Date.now();
+}
+
+/**
+ * Dynamic Boost Score Formula
+ *
+ * score = (weight * 10 * timeFactor) + freshness + (engagement * exposurePenalty)
+ */
+export function calculateBoostScore(ad: ScorableAd): number {
+  const expired = isBoostExpired(ad);
+  const weight = expired ? 0 : getBoostWeight(ad.boost_type);
+
+  const hour = new Date().getHours();
+  const timeFactor = hour >= 18 && hour <= 23 ? 1.3 : hour >= 9 ? 1.0 : 0.8;
+
+  const ageMs = ad.created_at ? Date.now() - new Date(ad.created_at).getTime() : 0;
+  const ageHours = ageMs / 3600000;
+  const freshness = Math.max(0, 10 / (1 + ageHours));
+
+  const engagement = (ad.views || 0) * 0.01;
+
+  const viewsToday = ad.boost_views_today || 0;
+  const maxViews = ad.max_daily_boost_views || 100;
+  const exposurePenalty = viewsToday > maxViews ? 0.5 : 1.0;
+
+  return weight * 10 * timeFactor + freshness + engagement * exposurePenalty;
+}
+
+/**
+ * Conversion-Based Ranking Boost
+ * Higher plans get a revenue multiplier for more visibility stability
+ */
+export function revenuePriorityBoost(ad: ScorableAd): number {
+  const base = calculateBoostScore(ad);
+  const plan = getBoostPlan(ad.boost_type);
+  const revenueFactor = plan === 'diamond' ? 1.5 : plan === 'platinum' ? 1.2 : 1;
+  return base * revenueFactor;
+}
+
+export function sortAdsByBoostPriority<T extends ScorableAd>(ads: T[]): T[] {
+  return [...ads].sort((a, b) => revenuePriorityBoost(b) - revenuePriorityBoost(a));
 }
 
 export function getPromotedLabelClasses(boostType: string | null | undefined): string {

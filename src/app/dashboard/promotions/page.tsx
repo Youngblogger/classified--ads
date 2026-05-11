@@ -78,7 +78,7 @@ export default function BoostManagerPage() {
   const [data, setData] = useState<BoostApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [boostModal, setBoostModal] = useState<{ show: boolean; adId: number; adTitle: string }>({
+  const [boostModal, setBoostModal] = useState<{ show: boolean; adId: number; adTitle: string; adCategory?: any; adPrice?: any }>({
     show: false, adId: 0, adTitle: '',
   });
 
@@ -101,11 +101,11 @@ export default function BoostManagerPage() {
   }, [fetchData]);
 
   const handleRenew = (item: BoostItem) => {
-    setBoostModal({ show: true, adId: item.ad.id, adTitle: item.ad.title });
+    setBoostModal({ show: true, adId: item.ad.id, adTitle: item.ad.title, adCategory: item.ad.category, adPrice: item.ad.price });
   };
 
-  const handleBoostAgain = (adId: number, adTitle: string) => {
-    setBoostModal({ show: true, adId, adTitle });
+  const handleBoostAgain = (adId: number, adTitle: string, adCategory?: any, adPrice?: any) => {
+    setBoostModal({ show: true, adId, adTitle, adCategory, adPrice });
   };
 
   const hasBoosts = data && data.boosts && data.boosts.length > 0;
@@ -229,6 +229,8 @@ export default function BoostManagerPage() {
         adTitle={boostModal.adTitle}
         isOpen={boostModal.show}
         onClose={() => setBoostModal({ show: false, adId: 0, adTitle: '' })}
+        adCategory={boostModal.adCategory}
+        adPrice={boostModal.adPrice}
       />
     </div>
   );

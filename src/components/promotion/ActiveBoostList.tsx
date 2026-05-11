@@ -55,7 +55,7 @@ const formatDuration = (days: number): string => {
 };
 
 export default function ActiveBoostList({ items, onRenew }: ActiveBoostListProps) {
-  const [extendModal, setExtendModal] = useState<{ show: boolean; adId: number; adTitle: string } | null>(null);
+  const [extendModal, setExtendModal] = useState<{ show: boolean; adId: number; adTitle: string; adCategory?: any; adPrice?: any } | null>(null);
 
   if (items.length === 0) return null;
 
@@ -151,7 +151,7 @@ export default function ActiveBoostList({ items, onRenew }: ActiveBoostListProps
                       Renew Boost
                     </button>
                     <button
-                      onClick={() => setExtendModal({ show: true, adId: item.ad.id, adTitle: item.ad.title })}
+                      onClick={() => setExtendModal({ show: true, adId: item.ad.id, adTitle: item.ad.title, adCategory: item.ad.category, adPrice: item.ad.price })}
                       className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-50 transition-all"
                     >
                       <Zap className="w-3.5 h-3.5" />
@@ -177,6 +177,8 @@ export default function ActiveBoostList({ items, onRenew }: ActiveBoostListProps
           adTitle={extendModal.adTitle}
           isOpen={extendModal.show}
           onClose={() => setExtendModal(null)}
+          adCategory={extendModal.adCategory}
+          adPrice={extendModal.adPrice}
         />
       )}
     </section>

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Check, Loader2, ArrowRight, Clock, RotateCcw, Sparkles, Wallet, CreditCard } from 'lucide-react';
+import { X, Check, Loader2, ArrowRight, Clock, RotateCcw, Sparkles, Wallet, CreditCard, Star } from 'lucide-react';
 import { getAuthToken } from '@/lib/cookies';
+import { recommendBoostPlan, BOOST_IMPACT } from '@/lib/boost-config';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
@@ -27,6 +28,8 @@ interface BoostPlansModalProps {
   adTitle: string;
   isOpen: boolean;
   onClose: () => void;
+  adCategory?: string | { name?: string; slug?: string } | null;
+  adPrice?: number | string | null;
 }
 
 const TIER_COLORS: Record<string, { bg: string; border: string; badge: string; btn: string; shadow: string }> = {
@@ -71,7 +74,7 @@ const TIER_SVG_ICONS: Record<string, string> = {
   platinum: '/icons/prism-diamond.svg',
 };
 
-export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: BoostPlansModalProps) {
+export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCategory, adPrice }: BoostPlansModalProps) {
   const [plans, setPlans] = useState<BoostPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -365,18 +368,39 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
                 </div>
               ) : (
                 <>
+                  {/* Recommended plan notice */}
+                  {adCategory && (() => {
+                    const recommended = recommendBoostPlan({ category: adCategory, price: adPrice });
+                    const tierKey = PLAN_TO_TIER[Object.entries({ silver: 'silver', gold: 'gold', platinum: 'platinum' }).find(([, v]) => PLAN_TO_TIER[v] === recommended)?.[0] || 'silver'] || 'gold';
+                    const rColors = TIER_COLORS[tierKey] || TIER_COLORS.gold;
+                    return (
+                      <div className={`mb-4 px-4 py-3 rounded-xl bg-gradient-to-r ${rColors.bg} border ${rColors.border} ${rColors.shadow} flex items-center gap-3`}>
+                        <Star className="w-5 h-5 text-amber-500 fill-amber-500 flex-shrink-0" />
+                        <div className="text-sm">
+                          <span className="font-semibold text-gray-900">Recommended: </span>
+                          <span className="font-bold">{recommended.charAt(0).toUpperCase() + recommended.slice(1)} Plan</span>
+                          <span className="text-gray-600 ml-1">— {BOOST_IMPACT[recommended]?.views}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Plan cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
                     {plans.map((plan) => {
                       const isSelected = selectedPlan === plan.type;
                       const planTierKey = PLAN_TO_TIER[plan.type] || 'gold';
                       const c = TIER_COLORS[planTierKey] || TIER_COLORS.gold;
+                      const recommendedKey = adCategory ? recommendBoostPlan({ category: adCategory, price: adPrice }) : null;
+                      const isRecommended = !!recommendedKey && PLAN_TO_TIER[plan.type] === recommendedKey;
+                      const impactInfo = BOOST_IMPACT[recommendedKey];
                       return (
                         <button
                           key={plan.type}
                           onClick={() => setSelectedPlan(plan.type)}
                           className={`
                             relative flex flex-col items-center text-center px-4 py-5 rounded-2xl border-2 transition-all duration-200
+                            ${isRecommended && !isSelected ? 'ring-2 ring-amber-400' : ''}
                             ${isSelected
                               ? `${c.border} bg-gradient-to-b ${c.bg} ${c.shadow} shadow-lg scale-[1.02]`
                               : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
@@ -388,14 +412,25 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
                               <Check className="w-3.5 h-3.5 text-white" />
                             </div>
                           )}
+                          {isRecommended && !isSelected && (
+                            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md">
+                              ★ Best Match
+                            </div>
+                          )}
                           <img src={TIER_SVG_ICONS[plan.type] || '/icons/crown.svg'} alt="" className="w-10 h-10 mb-3 animate-premium-spin" />
                           <h3 className="text-base font-bold text-gray-900 mb-1">{TIER_DISPLAY_NAMES[plan.type] || plan.name}</h3>
                           <div className="text-2xl font-extrabold text-gray-900 mb-1">
                             ₦{Number(plan.price).toLocaleString()}
                           </div>
-                          <div className="text-xs font-medium text-gray-500 mb-3">
+                          <div className="text-xs font-medium text-gray-500 mb-1">
                             {plan.duration_days} day{plan.duration_days > 1 ? 's' : ''}
                           </div>
+                          {/* Impact preview */}
+                          {impactInfo && (
+                            <div className={`text-xs font-semibold mb-3 px-2 py-1 rounded-full ${isRecommended ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
+                              {impactInfo.views}
+                            </div>
+                          )}
                           <div className="w-full space-y-1.5 text-left">
                             {(plan.features || []).map((feature, i) => (
                               <div key={i} className="flex items-start gap-1.5 text-xs text-gray-600">

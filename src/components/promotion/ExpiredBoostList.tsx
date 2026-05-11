@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Eye, MousePointerClick, MessageCircle, Heart, Clock, RotateCcw, ChevronRight, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, MousePointerClick, MessageCircle, Heart, Clock, RotateCcw, ChevronRight, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import Image from 'next/image';
 import { getBoostConfig } from '@/lib/boost-config';
 import { getAdImageUrl } from '@/lib/utils';
+import BoostPerformanceFeedback from './BoostPerformanceFeedback';
 
 interface AdImage {
   id?: number;
@@ -38,13 +40,15 @@ interface BoostItem {
 
 interface ExpiredBoostListProps {
   items: BoostItem[];
-  onBoostAgain: (adId: number, adTitle: string) => void;
+  onBoostAgain: (adId: number, adTitle: string, adCategory?: any, adPrice?: any) => void;
 }
 
 const formatPrice = (price: number) =>
   `₦${price.toLocaleString('en-US')}`;
 
 export default function ExpiredBoostList({ items, onBoostAgain }: ExpiredBoostListProps) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
   if (items.length === 0) return null;
 
   return (
@@ -61,6 +65,7 @@ export default function ExpiredBoostList({ items, onBoostAgain }: ExpiredBoostLi
           const boostConfig = getBoostConfig(item.boost_type);
           const primaryImage = item.ad.images?.find(img => img?.is_primary) || item.ad.images?.[0];
           const imageUrl = primaryImage ? getAdImageUrl(primaryImage) : null;
+          const isExpanded = expandedId === item.boost_id;
 
           return (
             <div
@@ -112,11 +117,18 @@ export default function ExpiredBoostList({ items, onBoostAgain }: ExpiredBoostLi
 
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-100 mt-2">
                     <button
-                      onClick={() => onBoostAgain(item.ad.id, item.ad.title)}
+                      onClick={() => onBoostAgain(item.ad.id, item.ad.title, item.ad.category, item.ad.price)}
                       className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-xs font-semibold hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       Boost Again
+                    </button>
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : item.boost_id)}
+                      className="flex items-center gap-1 px-3 py-2 text-gray-500 hover:text-gray-700 text-xs font-medium transition-colors"
+                    >
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      Performance
                     </button>
                     <Link
                       href={`/ad/${item.ad.slug}`}
@@ -127,6 +139,22 @@ export default function ExpiredBoostList({ items, onBoostAgain }: ExpiredBoostLi
                   </div>
                 </div>
               </div>
+
+              {isExpanded && (
+                <div className="px-4 pb-4">
+                  <BoostPerformanceFeedback
+                    boostType={item.boost_type}
+                    viewsCount={item.views_count}
+                    clicksCount={item.clicks_count}
+                    whatsappClicks={item.whatsapp_clicks}
+                    savesCount={item.saves_count}
+                    ctr={item.ctr}
+                    boostStart={item.boost_start_time}
+                    boostEnd={item.boost_end_time}
+                    ad={item.ad}
+                  />
+                </div>
+              )}
             </div>
           );
         })}

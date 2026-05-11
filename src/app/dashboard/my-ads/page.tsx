@@ -72,10 +72,12 @@ export default function MyAdsPage() {
     adTitle: null
   });
   const [deleting, setDeleting] = useState(false);
-  const [boostModal, setBoostModal] = useState<{ show: boolean; adId: number | null; adTitle: string | null }>({
+  const [boostModal, setBoostModal] = useState<{ show: boolean; adId: number | null; adTitle: string | null; adCategory?: any; adPrice?: any }>({
     show: false,
     adId: null,
-    adTitle: null
+    adTitle: null,
+    adCategory: null,
+    adPrice: null,
   });
   const [closeModal, setCloseModal] = useState<{ show: boolean; adId: number | null; adTitle: string | null }>({
     show: false,
@@ -143,8 +145,8 @@ export default function MyAdsPage() {
     }
   };
 
-  const handlePromote = (adId: number, adTitle: string) => {
-    setBoostModal({ show: true, adId, adTitle });
+  const handlePromote = (adId: number, adTitle: string, adCategory?: any, adPrice?: any) => {
+    setBoostModal({ show: true, adId, adTitle, adCategory, adPrice });
   };
 
   const handleCloseClick = (adId: number, adTitle: string) => {
@@ -416,7 +418,7 @@ export default function MyAdsPage() {
                         <span>Edit</span>
                       </Link>
                       <button
-                        onClick={() => handlePromote(ad.id, ad.title)}
+                        onClick={() => handlePromote(ad.id, ad.title, ad.category, ad.price)}
                         className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-xs font-semibold hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
                       >
                         <Zap className="w-3.5 h-3.5" />
@@ -651,7 +653,9 @@ export default function MyAdsPage() {
         adId={boostModal.adId ?? 0}
         adTitle={boostModal.adTitle ?? ''}
         isOpen={boostModal.show}
-        onClose={() => setBoostModal({ show: false, adId: null, adTitle: null })}
+        onClose={() => setBoostModal({ show: false, adId: null, adTitle: null, adCategory: null, adPrice: null })}
+        adCategory={boostModal.adCategory}
+        adPrice={boostModal.adPrice}
       />
     </div>
   );

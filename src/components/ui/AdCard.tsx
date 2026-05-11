@@ -7,7 +7,7 @@ import { Ad } from '@/types';
 import { formatPrice, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
 import { useState, memo, useCallback } from 'react';
 import PremiumBadge from './PremiumBadge';
-import { getBoostConfig, getBoostCardClasses } from '@/lib/boost-config';
+import { getBoostConfig, getBoostCardClasses, shouldShowBoostSuggestion } from '@/lib/boost-config';
 
 interface AdCardProps {
   ad: Ad;
@@ -247,6 +247,11 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
         )}
         {getConditionBadge('absolute top-2 right-2')}
         <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
+        {shouldShowBoostSuggestion(ad as any) && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-r from-amber-500/90 to-orange-500/90 text-white text-[10px] font-medium px-2 py-1 text-center backdrop-blur-sm">
+            Boost to reach more buyers
+          </div>
+        )}
       </div>
       <div className="p-4">
         <div className="flex items-center gap-2 mb-1">
