@@ -96,6 +96,7 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
       });
 
       if (isInitial) {
+        loadedIdsRef.current = new Set(uniqueAds.map((ad: Ad) => ad.id));
         setAds(uniqueAds);
       } else {
         setAds((prev) => [...prev, ...uniqueAds]);

@@ -755,7 +755,7 @@ export default function Header() {
                       }}
                       onFocus={() => setShowSearchDropdown(true)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="w-full pl-12 pr-14 md:py-3 lg:py-4 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm shadow-sm transition-all duration-300"
+                      className="w-full pl-12 pr-14 py-2 md:py-2.5 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm shadow-sm transition-all duration-300"
                       autoComplete="off"
                       autoCorrect="off"
                       spellCheck="false"
