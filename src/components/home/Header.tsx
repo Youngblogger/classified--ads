@@ -499,13 +499,20 @@ export default function Header() {
     } catch (error) {
     }
     
-    localStorage.removeItem('auth-storage');
-    document.cookie.split(';').forEach((cookie) => {
-      const name = cookie.trim().split('=')[0];
-      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-    });
-    
     logout();
+    useAuthStore.persist.clearStorage();
+    
+    if (typeof window !== 'undefined') {
+      ['token', 'admin_token'].forEach((name) => {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      });
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      sessionStorage.clear();
+    }
+    
     setShowUserMenu(false);
     setShowMobileMenu(false);
     window.location.href = '/';

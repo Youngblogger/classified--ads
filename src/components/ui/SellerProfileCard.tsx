@@ -59,10 +59,10 @@ function formatFollowers(count?: number): string {
 
 function getProfileImage(seller: SellerProfileCardProps['seller']): string | null {
   const sellerAny = seller as any;
-  // Try all possible avatar sources - match header order
   const imageSources = [
     sellerAny.full_avatar_url,
     sellerAny.avatar_url,
+    sellerAny.profile_image,
     sellerAny.avatar,
     sellerAny.google_avatar,
     sellerAny.facebook_avatar,
@@ -77,7 +77,6 @@ function getProfileImage(seller: SellerProfileCardProps['seller']): string | nul
   if (image.startsWith('/storage/')) {
     return `${BACKEND_URL}${image}`;
   }
-  // Handle case where it's just a filename like "avatars/xxx.jpg"
   return `${BACKEND_URL}/storage/${image}`;
 }
 

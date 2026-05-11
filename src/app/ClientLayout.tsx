@@ -32,10 +32,10 @@ export default function ClientLayout({ children, fontFamily }: ClientLayoutProps
   return (
     <div className="min-h-screen flex flex-col" style={{ fontFamily }}>
       <AuthProvider>
-        <GoogleOneTap />
         <Preloader />
         {children}
         <BottomNav />
+        <GoogleOneTap />
         <LoginModal />
         <RegisterModal />
         <LocationModal />

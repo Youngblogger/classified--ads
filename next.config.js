@@ -9,7 +9,7 @@ const backendOrigin = `${new URL(apiUrl).protocol}//${backendHost}${backendPort 
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://connect.facebook.net;
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
   img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://source.unsplash.com https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com ${backendOrigin} http://127.0.0.1:8000;
   font-src 'self' data: https://fonts.gstatic.com;
   connect-src 'self' ${backendOrigin} http://localhost:8000 http://localhost:3006 ws://localhost:3006 https://accounts.google.com;

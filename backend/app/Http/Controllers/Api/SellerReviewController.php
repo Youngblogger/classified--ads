@@ -41,7 +41,9 @@ class SellerReviewController extends Controller
         $reviews->getCollection()->transform(function ($review) use ($currentUserId) {
             if ($review->user) {
                 $review->user->avatar_url = $review->user->avatar;
-                $review->user->full_avatar_url = $review->user->avatar ? url('storage/' . $review->user->avatar) : null;
+                $review->user->full_avatar_url = $review->user->avatar
+                    ? (str_starts_with($review->user->avatar, 'http') ? $review->user->avatar : url('storage/' . $review->user->avatar))
+                    : null;
             }
             $review->reviewer = $review->user;
             $review->like_count = $review->likeCount();
@@ -72,7 +74,9 @@ class SellerReviewController extends Controller
         $reviews = $reviews->map(function ($review) use ($currentUserId) {
             if ($review->user) {
                 $review->user->avatar_url = $review->user->avatar;
-                $review->user->full_avatar_url = $review->user->avatar ? url('storage/' . $review->user->avatar) : null;
+                $review->user->full_avatar_url = $review->user->avatar
+                    ? (str_starts_with($review->user->avatar, 'http') ? $review->user->avatar : url('storage/' . $review->user->avatar))
+                    : null;
             }
             $review->reviewer = $review->user;
             $review->like_count = $review->likeCount();

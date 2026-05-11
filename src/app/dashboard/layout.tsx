@@ -247,20 +247,20 @@ export default function DashboardLayout({
     } catch (error) {
     }
     
-    // Clear local storage
-    localStorage.removeItem('auth-storage');
-    sessionStorage.clear();
-    
-    // Clear cookies
-    document.cookie.split(';').forEach((cookie) => {
-      const name = cookie.trim().split('=')[0];
-      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
-    });
-    
-    // Clear store state
     logout();
+    useAuthStore.persist.clearStorage();
     
-    // Full page reload
+    if (typeof window !== 'undefined') {
+      ['token', 'admin_token'].forEach((name) => {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+      });
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      sessionStorage.clear();
+    }
+    
     window.location.href = '/';
   };
 

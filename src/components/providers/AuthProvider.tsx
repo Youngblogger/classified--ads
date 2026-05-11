@@ -74,18 +74,18 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     setMounted(true);
     
     try {
-      if (typeof window !== 'undefined' && window.self === window.top && window.location?.search) {
+      if (typeof window !== 'undefined' && window.self === window.top) {
         const urlParams = new URLSearchParams(window.location.search);
         const refCode = urlParams.get('ref');
         if (refCode && !getCookie('referrer')) {
           setCookie('referrer', refCode, 30);
         }
+      }
 
-        const justLoggedOut = sessionStorage.getItem('just_logged_out');
-        if (justLoggedOut === 'true') {
-          sessionStorage.removeItem('just_logged_out');
-          return;
-        }
+      const justLoggedOut = sessionStorage.getItem('just_logged_out');
+      if (justLoggedOut === 'true') {
+        sessionStorage.removeItem('just_logged_out');
+        return;
       }
       
       const authStorage = localStorage.getItem('auth-storage');
@@ -98,18 +98,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         }
       }
 
-      const storedToken = localStorage.getItem('authToken');
-      const storedUser = localStorage.getItem('user');
-      
       let tokenToRestore = null;
       let userToRestore = null;
       
       if (zustandAuth?.state?.token && zustandAuth?.state?.user) {
         tokenToRestore = zustandAuth.state.token;
         userToRestore = zustandAuth.state.user;
-      } else if (storedToken && storedUser) {
-        tokenToRestore = storedToken;
-        userToRestore = JSON.parse(storedUser);
       }
 
       if (tokenToRestore && userToRestore) {

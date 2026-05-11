@@ -1,101 +1,124 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useUIStore, useAuthStore } from '@/lib/store';
+import { useAuthStore } from '@/lib/store';
+import toast from 'react-hot-toast';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '190991791068-p65o95kslmp106ohlbdafsdthg702tn3.apps.googleusercontent.com';
-const ONE_TAP_DELAY = 2000;
-const SCRIPT_KEY = 'google_gsi_one_tap';
 
-interface GoogleWindow {
-  google?: {
-    accounts?: {
-      id?: {
-        initialize: (config: { client_id: string; auto_select: boolean; callback: (response: { credential: string }) => void; ux_mode?: string }) => void;
-        prompt: (momentListener?: (res: { isNotDisplayed: boolean; isSkippedMoment: boolean; isDismissedMoment: boolean }) => void) => void;
-        disableAutoSelect: () => void;
-        storeCredential: (credentials: { id: string; password: string }) => void;
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential: string }) => void;
+            auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
+            context?: string;
+            use_fedcm_for_prompt?: boolean;
+          }) => void;
+          prompt: (momentListener?: (res: { isNotDisplayed?: boolean; isSkippedMoment?: boolean; isDismissedMoment?: boolean }) => void) => void;
+          cancel: () => void;
+          disableAutoSelect: () => void;
+        };
       };
     };
-  };
+  }
 }
 
-const handleCredential = async (response: { credential: string }) => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-  const res = await fetch(`${apiUrl}/auth/google`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ credential: response.credential }),
+const SCRIPT_ID = 'google-gsi-script';
+const SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
+
+function loadGsiScript(): Promise<void> {
+  return new Promise((resolve) => {
+    if (window.google?.accounts?.id) {
+      resolve();
+      return;
+    }
+    const existing = document.getElementById(SCRIPT_ID);
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => resolve());
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = SCRIPT_ID;
+    script.src = SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
+    document.head.appendChild(script);
   });
-  const data = await res.json();
-  if (res.ok && data.token) {
-    useAuthStore.getState().login(data.user, data.token);
-    useUIStore.getState().closeAllModals();
-  }
-};
-
-const loadGoogleScript = (onLoad: () => void) => {
-  if (document.getElementById(SCRIPT_KEY)) { onLoad(); return; }
-  const script = document.createElement('script');
-  script.id = SCRIPT_KEY;
-  script.src = 'https://accounts.google.com/gsi/client';
-  script.async = true;
-  script.defer = true;
-  script.onload = () => onLoad();
-  document.head.appendChild(script);
-};
-
-function hasStoredToken(): boolean {
-  if (typeof window === 'undefined') return false;
-  const hasAuthStorage = !!localStorage.getItem('auth-storage');
-  const hasAuthToken = !!localStorage.getItem('authToken');
-  const hasCookie = document.cookie.includes('token=');
-  return hasAuthStorage || hasAuthToken || hasCookie;
 }
 
 export default function GoogleOneTap() {
-  const { isAuthenticated } = useAuthStore();
-  const hasShownRef = useRef(false);
+  const { isAuthenticated, login } = useAuthStore();
+  const initializedRef = useRef(false);
+  const promptCalledRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (isAuthenticated || hasStoredToken()) {
-      hasShownRef.current = false;
-      return;
-    }
+    if (isAuthenticated) return;
+    if (initializedRef.current) return;
 
-    loadGoogleScript(() => {
-      const win = window as unknown as GoogleWindow;
-      if (!win.google?.accounts?.id) return;
-      try {
-        document.cookie.split(';').forEach((c) => {
-          if (c.trim().startsWith('g_state=')) {
-            document.cookie = 'g_state=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-            document.cookie = 'g_state=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + window.location.hostname;
+    let cancelled = false;
+
+    const init = async () => {
+      await loadGsiScript();
+
+      if (cancelled || initializedRef.current) return;
+      initializedRef.current = true;
+
+      const gw = window.google?.accounts?.id;
+      if (!gw) return;
+
+      const handleCredential = async (response: { credential: string }) => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+          const res = await fetch(`${apiUrl}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ credential: response.credential }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.message || 'Google login failed');
           }
-        });
 
-        win.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          auto_select: true,
-          callback: handleCredential,
-          ux_mode: 'popup',
-        });
-        setTimeout(() => {
-          if (hasShownRef.current || isAuthenticated || hasStoredToken()) return;
-          try {
-            win.google?.accounts?.id?.prompt((notification: any) => {
-              if (notification && (notification.isNotDisplayed || notification.isSkippedMoment || notification.isDismissedMoment)) {
-                hasShownRef.current = false;
-              } else {
-                hasShownRef.current = true;
-              }
-            });
-          } catch (e) { /* silent */ }
-        }, ONE_TAP_DELAY);
-      } catch (e) { /* silent */ }
-    });
-  }, [isAuthenticated]);
+          login(data.user, data.token);
+          toast.success(`Welcome, ${data.user?.name || 'User'}!`);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Google login failed';
+          toast.error(msg);
+          console.error('Google One Tap error:', msg);
+        }
+      };
+
+      gw.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleCredential,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        use_fedcm_for_prompt: true,
+      });
+
+      if (!promptCalledRef.current) {
+        promptCalledRef.current = true;
+        gw.prompt(() => {});
+      }
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, login]);
 
   return null;
 }

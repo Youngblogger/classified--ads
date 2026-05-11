@@ -170,6 +170,13 @@ const BOOST_WEIGHT: Record<string, number> = {
   gold: 1,
 };
 
+/** Convert internal boost_type to numeric weight */
+function getBoostWeight(boostType: string | null | undefined): number {
+  if (!boostType) return BOOST_WEIGHT.gold;
+  const plan = PLAN_FROM_TYPE[boostType.toLowerCase()] || 'gold';
+  return BOOST_WEIGHT[plan] || BOOST_WEIGHT.gold;
+}
+
 /** Internal boost_type → display plan mapping (matches what PremiumBadge uses) */
 const PLAN_FROM_TYPE: Record<string, string> = {
   platinum: 'diamond',

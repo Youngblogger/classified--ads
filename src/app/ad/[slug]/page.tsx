@@ -610,7 +610,7 @@ export default function AdDetailPage() {
                     id: ad.user?.id || ad.id || 0,
                     name: ad.user?.name || ad.sellerName || 'Unknown Seller',
                     avatar: ad.user?.avatar,
-                    full_avatar_url: ad.user?.full_avatar_url || (ad.user?.avatar ? `${BACKEND_URL}/storage/${ad.user.avatar}` : null),
+                    full_avatar_url: ad.user?.full_avatar_url,
                     google_avatar: ad.user?.google_avatar,
                     facebook_avatar: ad.user?.facebook_avatar,
                     verified: ad.user?.verified || ad.is_verified || false,
