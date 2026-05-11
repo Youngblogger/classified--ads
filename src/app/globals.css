@@ -458,129 +458,46 @@ html {
     padding-top: env(safe-area-inset-top);
   }
 
-  .animate-silver-glow {
-    animation: silver-glow 3s ease-in-out infinite;
-  }
-
-  @keyframes silver-glow {
-    0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(148, 163, 184, 0.3); }
-    50% { opacity: 0.85; box-shadow: 0 0 12px rgba(148, 163, 184, 0.5); }
-  }
-
-  .animate-gold-shimmer {
-    animation: gold-shimmer 3s ease-in-out infinite;
-    background-size: 200% 100% !important;
-  }
-
-  @keyframes gold-shimmer {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-  }
-
-  .animate-diamond-glow {
-    animation: diamond-glow 2.5s ease-in-out infinite;
-    background-size: 200% 200% !important;
-  }
-
-  @keyframes diamond-glow {
-    0%, 100% {
-      background-position: 0% 50%;
-      box-shadow: 0 0 6px rgba(139, 92, 246, 0.3);
-    }
-    50% {
-      background-position: 100% 50%;
-      box-shadow: 0 0 16px rgba(139, 92, 246, 0.6);
-    }
-  }
-
-  .animate-premium-pulse {
-    animation: premium-pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes premium-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-  }
-
-  .animate-premium-shimmer {
-    animation: gold-shimmer 3s ease-in-out infinite;
-    background-size: 200% 100% !important;
-  }
-
-  .animate-premium-sparkle {
-    animation: diamond-glow 2.5s ease-in-out infinite;
-    background-size: 200% 200% !important;
-  }
-
-  /* ===== Premium Boost Pill Badge ===== */
+  /* ===== Jiji/OLX-Style Boost Pill Badge ===== */
 
   .boost-pill {
-    border-radius: 9999px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #f5f5f5;
+    color: #333;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    line-height: 1;
   }
 
-  .boost-pill:hover {
-    transform: scale(1.05);
+  .boost-pill.gold {
+    background: #fff8e1;
+    color: #b8860b;
+    border-color: rgba(184, 134, 11, 0.25);
   }
 
-  /* --- Gold Pill --- */
-
-  .boost-pill--gold {
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    color: #92400e;
-    box-shadow: 0 1px 6px rgba(251, 191, 36, 0.35);
-    border: 1px solid rgba(251, 191, 36, 0.5);
+  .boost-pill.platinum {
+    background: #f4f6f8;
+    color: #6b7280;
+    border-color: rgba(107, 114, 128, 0.25);
   }
 
-  .boost-pill--gold:hover {
-    box-shadow: 0 2px 12px rgba(251, 191, 36, 0.55);
+  .boost-pill.diamond {
+    background: #eef6ff;
+    color: #2563eb;
+    border-color: rgba(37, 99, 235, 0.25);
   }
 
-  /* --- Platinum Pill --- */
-
-  .boost-pill--platinum {
-    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-    color: #334155;
-    box-shadow: 0 1px 6px rgba(148, 163, 184, 0.35);
-    border: 1px solid rgba(148, 163, 184, 0.5);
+  .boost-icon {
+    display: flex;
+    align-items: center;
+    line-height: 0;
   }
 
-  .boost-pill--platinum:hover {
-    box-shadow: 0 2px 12px rgba(148, 163, 184, 0.55);
-  }
-
-  /* --- Diamond Pill --- */
-
-  .boost-pill--diamond {
-    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-    color: #1e40af;
-    box-shadow: 0 1px 6px rgba(59, 130, 246, 0.4);
-    border: 1px solid rgba(59, 130, 246, 0.5);
-  }
-
-  .boost-pill--diamond:hover {
-    box-shadow: 0 2px 14px rgba(59, 130, 246, 0.65);
-  }
-
-  /* ===== Premium Badge Icon Animations ===== */
-
-  .boost-pill .boost-pill__icon {
-    animation: boost-icon-pulse 3s ease-in-out infinite;
-  }
-
-  @keyframes boost-icon-pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.08); opacity: 0.85; }
-  }
-
-  .boost-pill--diamond .boost-pill__icon {
-    animation-name: boost-icon-float;
-    animation-duration: 3.5s;
-  }
-
-  @keyframes boost-icon-float {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-0.5px) scale(1.05); }
+  .boost-icon svg {
+    width: 14px;
+    height: 14px;
+    display: block;
   }
 
   /* ===== Boost Plan Tag (bottom-right of card) ===== */
@@ -612,14 +529,4 @@ html {
     color: #1d4ed8;
   }
 
-  /* ===== Premium Boost Badge Animation ===== */
-
-  .animate-premium-spin {
-    animation: premium-glow 2.5s ease-in-out infinite;
-  }
-
-  @keyframes premium-glow {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.08); opacity: 0.85; }
-  }
 }

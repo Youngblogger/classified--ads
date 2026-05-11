@@ -68,10 +68,10 @@ const TIER_DISPLAY_NAMES: Record<string, string> = {
   platinum: 'Diamond',
 };
 
-const TIER_SVG_ICONS: Record<string, string> = {
-  silver: '/icons/crown.svg',
-  gold: '/icons/shield.svg',
-  platinum: '/icons/prism-diamond.svg',
+const TIER_EMOJI: Record<string, string> = {
+  silver: '👑',
+  gold: '⚜️',
+  platinum: '💎',
 };
 
 export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCategory, adPrice }: BoostPlansModalProps) {
@@ -317,7 +317,7 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCate
       className="fixed inset-0 bg-black/60 flex items-start sm:items-center justify-center z-[99999] p-0 sm:p-4 pt-[5vh] sm:pt-0"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -417,7 +417,7 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCate
                               ★ Best Match
                             </div>
                           )}
-                          <img src={TIER_SVG_ICONS[plan.type] || '/icons/crown.svg'} alt="" className="w-10 h-10 mb-3 animate-premium-spin" />
+                          <span className="text-3xl mb-3 leading-none">{TIER_EMOJI[plan.type] || '👑'}</span>
                           <h3 className="text-base font-bold text-gray-900 mb-1">{TIER_DISPLAY_NAMES[plan.type] || plan.name}</h3>
                           <div className="text-2xl font-extrabold text-gray-900 mb-1">
                             ₦{Number(plan.price).toLocaleString()}

@@ -1,6 +1,50 @@
 'use client';
 
-import { getBoostConfig } from '@/lib/boost-config';
+import { getBoostPlan } from '@/lib/boost-config';
+
+function CrownIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 19l1-11 4 3 3-6 3 6 4-3 1 11z"/>
+      <path d="M4 19h16"/>
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3l8 4v6c0 4-3.5 7-8 9-4.5-2-8-5-8-9V7z"/>
+      <path d="M9 12l2 2 4-4"/>
+    </svg>
+  );
+}
+
+function DiamondIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2l8 8-8 12-8-12z"/>
+      <path d="M2 10h20"/>
+      <path d="M12 2v20"/>
+    </svg>
+  );
+}
+
+const ICONS: Record<string, React.FC> = {
+  gold: CrownIcon,
+  platinum: ShieldIcon,
+  diamond: DiamondIcon,
+};
+
+function BoostIcon({ type }: { type: string }) {
+  const Icon = ICONS[type];
+  if (!Icon) return null;
+  return (
+    <span className="boost-icon">
+      <Icon />
+    </span>
+  );
+}
 
 interface PremiumBadgeProps {
   boostType: string | null | undefined;
@@ -9,43 +53,23 @@ interface PremiumBadgeProps {
   variant?: 'absolute' | 'inline';
 }
 
-const GLOW_CLASS: Record<string, string> = {
-  platinum: 'boost-pill--diamond',
-  gold: 'boost-pill--platinum',
-  silver: 'boost-pill--gold',
-  top: 'boost-pill--gold',
-  featured: 'boost-pill--platinum',
-  highlight: 'boost-pill--gold',
+const SIZE_CLASSES: Record<string, string> = {
+  sm: 'text-[11px] px-[7px] py-[2px] gap-[4px]',
+  md: 'text-xs px-2 py-[3px] gap-[5px]',
 };
 
 export default function PremiumBadge({ boostType, size = 'sm', className = '', variant = 'absolute' }: PremiumBadgeProps) {
-  const config = getBoostConfig(boostType);
-  if (!config) return null;
+  const plan = getBoostPlan(boostType);
+  if (!plan) return null;
 
-  const pillSize = size === 'sm' ? 'text-[10px] px-1.5 py-0.5 gap-0.5' : 'text-xs sm:text-sm px-2 sm:px-2.5 py-1 sm:py-1.5 gap-1 sm:gap-1.5';
-  const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 sm:w-4 h-3.5 sm:h-4';
-  const tier = boostType?.toLowerCase() || '';
-  const glowClass = GLOW_CLASS[tier] || 'boost-pill--gold';
-
-  const badge = (
-    <div className={`boost-pill inline-flex items-center ${pillSize} ${glowClass} ${className}`}>
-      <img
-        src={config.svgIcon}
-        alt=""
-        className={`${iconSize} boost-pill__icon`}
-        style={{ pointerEvents: 'none' }}
-      />
-      <span className="font-semibold whitespace-nowrap leading-none">{config.displayName}</span>
+  const pill = (
+    <div className={`boost-pill ${plan} ${SIZE_CLASSES[size]} ${className}`}>
+      <BoostIcon type={plan} />
+      <span className="font-medium leading-none whitespace-nowrap">{plan.charAt(0).toUpperCase() + plan.slice(1)}</span>
     </div>
   );
 
-  if (variant === 'inline') {
-    return badge;
-  }
+  if (variant === 'inline') return pill;
 
-  return (
-    <div className="absolute top-2 left-2 z-10">
-      {badge}
-    </div>
-  );
+  return <div className="absolute top-2 left-2 z-10">{pill}</div>;
 }
