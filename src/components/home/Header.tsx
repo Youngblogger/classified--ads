@@ -263,20 +263,20 @@ export default function Header() {
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
   const [placeholderKey, setPlaceholderKey] = useState(0);
   const placeholderWords = [
-    '"Cars"',
-    '"Mobile Phones"',
-    '"Properties"',
-    '"Laptops"',
-    '"Furnitures"',
-    '"Vehicles"',
-    '"Sports"',
-    '"Health & Beauty"',
-    '"Tech Skills"',
-    '"Educational"',
-    '"Baby & Kids"',
-    '"Jobs"',
-    '"Fashions"',
-    '"Electronics"',
+    'Cars',
+    'Mobile Phones',
+    'Properties',
+    'Laptops',
+    'Furniture',
+    'Vehicles',
+    'Sports',
+    'Health & Beauty',
+    'Tech Skills',
+    'Educational',
+    'Baby & Kids',
+    'Jobs',
+    'Fashion',
+    'Electronics',
   ];
 
   useEffect(() => {
@@ -755,16 +755,16 @@ export default function Header() {
                       }}
                       onFocus={() => setShowSearchDropdown(true)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="w-full pl-12 pr-14 py-2 md:py-2.5 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm shadow-sm transition-all duration-300"
+                      className="w-full pl-12 pr-14 py-2.5 md:py-3 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-[15px] shadow-sm transition-all duration-300"
                       autoComplete="off"
                       autoCorrect="off"
                       spellCheck="false"
                     />
                     {!searchQuery && (
                       <span 
-                        className="absolute left-12 top-1/2 -translate-y-1/2 text-lg text-slate-600 font-medium pointer-events-none"
+                        className="absolute left-12 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none"
                       >
-                        Search for{' '}
+                        Search{' '}
                         {isMounted ? (
                           <span 
                             key={placeholderKey}
@@ -1238,7 +1238,7 @@ export default function Header() {
               {/* Post Ad Button */}
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center md:px-4 lg:px-6 md:py-2 lg:py-2.5 mr-2 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-full font-bold md:text-sm lg:text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-accent-400"
+                className="hidden md:flex items-center md:px-4 lg:px-6 md:py-2 lg:py-2.5 mr-2 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-[7px] font-bold md:text-sm lg:text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-accent-400"
               >
                 SELL
               </Link>
@@ -1418,7 +1418,7 @@ export default function Header() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search for cars, phones, properties..."
+              placeholder="Search cars, phones, properties..."
               className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
               autoFocus
             />
@@ -1468,7 +1468,7 @@ export default function Header() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Search for anything..."
+                placeholder="Search anything..."
                 className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
               />
             </div>

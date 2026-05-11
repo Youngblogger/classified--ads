@@ -222,7 +222,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
       
       login(data.user, data.token);
       
-      toast.success(`Welcome back, ${userName}!`);
       setOtpVerified(true);
       closeAllModals();
       resetForm();
@@ -324,7 +323,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
           localStorage.removeItem('remember-email');
         }
       }
-      toast.success(`Welcome back, ${userName}!`);
       closeAllModals();
       resetForm();
       
@@ -423,7 +421,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
       }
 
       login(data.user, data.token);
-      toast.success(`Welcome, ${data.user?.name || 'User'}!`);
       closeAllModals();
       
       if (redirectUrl) {
@@ -452,7 +449,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
       const data = await res.json();
       if (res.ok && data.token) {
         login(data.user, data.token);
-        toast.success(`Welcome, ${data.user?.name || 'User'}!`);
         closeAllModals();
       }
     } catch (err) {

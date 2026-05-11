@@ -146,7 +146,7 @@ export default function RegisterModal() {
         localStorage.removeItem('authRedirect');
         sessionStorage.removeItem('authRedirect');
         
-        toast.success(`Account created successfully! Welcome, ${userName}!`);
+        toast.success('Account created successfully!');
         closeAllModals();
         resetForm();
         window.location.href = targetUrl;

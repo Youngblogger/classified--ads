@@ -91,7 +91,7 @@ export default function GoogleOneTap() {
           }
 
           login(data.user, data.token);
-          toast.success(`Welcome, ${data.user?.name || 'User'}!`);
+
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : 'Google login failed';
           toast.error(msg);
