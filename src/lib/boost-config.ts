@@ -254,8 +254,8 @@ export function shouldShowBoostSuggestion(ad: ScorableAd): boolean {
   return (ad.views || 0) < 10 && ageHours > 24;
 }
 
-export function getBoostPlan(boostType: string | null | undefined): string {
-  if (!boostType) return 'gold';
+export function getBoostPlan(boostType: string | null | undefined): string | null {
+  if (!boostType) return null;
   return PLAN_FROM_TYPE[boostType.toLowerCase()] || 'gold';
 }
 
