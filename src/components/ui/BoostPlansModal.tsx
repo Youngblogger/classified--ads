@@ -320,13 +320,21 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCate
       <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-violet-500" />
-            <h2 className="text-lg font-bold text-gray-900">Boost Your Ad</h2>
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-5 h-5 text-violet-500 flex-shrink-0" />
+            <h2 className="text-lg font-bold text-gray-900 truncate">Boost Your Ad</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {walletBalance !== null && (
+              <div className="flex items-center gap-1.5 text-sm bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
+                <Wallet className="w-4 h-4 text-emerald-600" />
+                <span className="font-semibold text-emerald-700">₦{walletBalance.toLocaleString()}</span>
+              </div>
+            )}
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
         </div>
 
         {step === 'select' && (
@@ -337,17 +345,6 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose, adCate
               <p className="text-sm text-gray-600 mb-4 truncate">
                 Boosting: <span className="font-semibold text-gray-900">{adTitle}</span>
               </p>
-
-              {/* Wallet Balance Banner */}
-              {walletBalance !== null && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4 flex items-center gap-3">
-                  <Wallet className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                  <div className="text-sm">
-                    <span className="font-semibold text-emerald-900">Wallet Balance</span>
-                    <span className="text-emerald-700 ml-2">₦{walletBalance.toLocaleString()}</span>
-                  </div>
-                </div>
-              )}
 
               {/* Active/Expired boost banner */}
               {boostStatus?.has_active_boost && boostStatus.active_boost && (
