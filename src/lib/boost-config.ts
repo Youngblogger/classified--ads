@@ -23,10 +23,24 @@ export interface BoostUIConfig {
   badgeAnimation: string;
 }
 
+const BOOST_PRICES: Record<string, number> = {
+  platinum: 10000,
+  gold: 5000,
+  silver: 2000,
+  top: 2000,
+  featured: 5000,
+  highlight: 2000,
+};
+
+export function getBoostPrice(boostType: string | null | undefined): number {
+  if (!boostType) return 0;
+  return BOOST_PRICES[boostType.toLowerCase()] || 0;
+}
+
 const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
   platinum: {
-    label: 'VIP',
-    badgeLabel: 'VIP',
+    label: 'Diamond',
+    badgeLabel: 'Diamond',
     displayName: 'Diamond',
     icon: Diamond,
     svgIcon: '/icons/prism-diamond.svg',
@@ -45,8 +59,8 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     badgeAnimation: 'animate-diamond-glow',
   },
   gold: {
-    label: 'FEATURED',
-    badgeLabel: 'Featured',
+    label: 'Platinum',
+    badgeLabel: 'Platinum',
     displayName: 'Platinum',
     icon: Crown,
     svgIcon: '/icons/shield.svg',
@@ -65,8 +79,8 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     badgeAnimation: 'animate-gold-shimmer',
   },
   silver: {
-    label: 'BOOSTED',
-    badgeLabel: 'Boosted',
+    label: 'Gold',
+    badgeLabel: 'Gold',
     displayName: 'Gold',
     icon: Zap,
     svgIcon: '/icons/crown.svg',
@@ -85,8 +99,8 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     badgeAnimation: 'animate-silver-glow',
   },
   top: {
-    label: 'TOP DEAL',
-    badgeLabel: 'Boosted',
+    label: 'Gold',
+    badgeLabel: 'Gold',
     displayName: 'Gold',
     icon: Zap,
     svgIcon: '/icons/crown.svg',
@@ -105,8 +119,8 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     badgeAnimation: 'animate-gold-shimmer',
   },
   featured: {
-    label: 'FEATURED',
-    badgeLabel: 'Featured',
+    label: 'Platinum',
+    badgeLabel: 'Platinum',
     displayName: 'Platinum',
     icon: Crown,
     svgIcon: '/icons/shield.svg',
@@ -125,8 +139,8 @@ const BOOST_UI_CONFIG: Record<string, BoostUIConfig> = {
     badgeAnimation: 'animate-gold-shimmer',
   },
   highlight: {
-    label: 'HIGHLIGHTED',
-    badgeLabel: 'Highlighted',
+    label: 'Gold',
+    badgeLabel: 'Gold',
     displayName: 'Gold',
     icon: Crown,
     svgIcon: '/icons/crown.svg',

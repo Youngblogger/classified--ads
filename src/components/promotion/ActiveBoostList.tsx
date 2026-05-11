@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, MousePointerClick, MessageCircle, Heart, Clock, Zap, ChevronRight, RotateCcw, Timer } from 'lucide-react';
-import { getBoostConfig } from '@/lib/boost-config';
+import { Eye, MousePointerClick, MessageCircle, Heart, Clock, Zap, ChevronRight, RotateCcw, Timer, ImageIcon } from 'lucide-react';
+import { getBoostConfig, getBoostPrice } from '@/lib/boost-config';
 import { getAdImageUrl } from '@/lib/utils';
 import Image from 'next/image';
 import BoostPlansModal from '@/components/ui/BoostPlansModal';
@@ -48,6 +48,9 @@ interface ActiveBoostListProps {
 const formatPrice = (price: number) =>
   `₦${price.toLocaleString('en-US')}`;
 
+const formatBoostPrice = (boostType: string) =>
+  `₦${getBoostPrice(boostType).toLocaleString('en-US')}`;
+
 const formatDuration = (days: number): string => {
   if (days <= 0) return 'Less than a day';
   if (days === 1) return '1 day';
@@ -90,8 +93,8 @@ export default function ActiveBoostList({ items, onRenew }: ActiveBoostListProps
                       className="object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <Eye className="w-8 h-8" />
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                      <ImageIcon className="w-8 h-8 text-gray-400" />
                     </div>
                   )}
                   {boostConfig && (
@@ -109,7 +112,7 @@ export default function ActiveBoostList({ items, onRenew }: ActiveBoostListProps
                         {item.ad.title}
                       </Link>
                       <span className="text-sm font-bold text-primary-600 flex-shrink-0">
-                        {formatPrice(item.ad.price)}
+                        {formatBoostPrice(item.boost_type)}
                       </span>
                     </div>
 

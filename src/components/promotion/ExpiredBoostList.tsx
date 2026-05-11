@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Eye, MousePointerClick, MessageCircle, Heart, Clock, RotateCcw, ChevronRight, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Eye, MousePointerClick, MessageCircle, Heart, Clock, RotateCcw, ChevronRight, AlertCircle, ChevronDown, ChevronUp, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { getBoostConfig } from '@/lib/boost-config';
+import { getBoostConfig, getBoostPrice } from '@/lib/boost-config';
 import { getAdImageUrl } from '@/lib/utils';
 import BoostPerformanceFeedback from './BoostPerformanceFeedback';
 
@@ -43,8 +43,8 @@ interface ExpiredBoostListProps {
   onBoostAgain: (adId: number, adTitle: string, adCategory?: any, adPrice?: any) => void;
 }
 
-const formatPrice = (price: number) =>
-  `₦${price.toLocaleString('en-US')}`;
+const formatBoostPrice = (boostType: string) =>
+  `₦${getBoostPrice(boostType).toLocaleString('en-US')}`;
 
 export default function ExpiredBoostList({ items, onBoostAgain }: ExpiredBoostListProps) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -83,8 +83,8 @@ export default function ExpiredBoostList({ items, onBoostAgain }: ExpiredBoostLi
                       unoptimized
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <Eye className="w-8 h-8" />
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                      <ImageIcon className="w-8 h-8 text-gray-400" />
                     </div>
                   )}
                   <div className="absolute top-2 left-2 bg-gray-500/80 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
@@ -98,7 +98,7 @@ export default function ExpiredBoostList({ items, onBoostAgain }: ExpiredBoostLi
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h3 className="text-sm font-semibold text-gray-700 truncate">{item.ad.title}</h3>
                       <span className="text-sm font-bold text-primary-600 flex-shrink-0">
-                        {formatPrice(item.ad.price)}
+                        {formatBoostPrice(item.boost_type)}
                       </span>
                     </div>
 
