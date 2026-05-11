@@ -4,11 +4,12 @@ import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Image as ImageIcon, Bookmark } from 'lucide-react';
 import PremiumBadge from '@/components/ui/PremiumBadge';
-import { getBoostCardClasses, BoostType, sortAdsByBoostPriority } from '@/lib/boost-config';
+import { getBoostCardClasses, getBoostConfig, BoostType, sortAdsByBoostPriority } from '@/lib/boost-config';
 import { formatPrice, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useBoostedAds } from '@/hooks/useAds';
+import { useAuthStore } from '@/lib/store';
 
 import { API_URL } from '@/lib/config';
 
@@ -30,6 +31,7 @@ interface BoostedAd {
   excerpt?: string;
   summary?: string;
   is_boosted?: boolean;
+  boost_status?: string | null;
   boost_type?: BoostType | string | null;
   created_at?: string;
 }
@@ -65,9 +67,16 @@ function AdCard({ ad }: { ad: BoostedAd }) {
     e.preventDefault();
     e.stopPropagation();
     if (favoriteLoading) return;
+    
+    const { isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      toast.error('Please login to save ads');
+      return;
+    }
+    
     setFavoriteLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = useAuthStore.getState().token;
       if (!token) {
         toast.error('Please login to save ads');
         return;
@@ -85,6 +94,9 @@ function AdCard({ ad }: { ad: BoostedAd }) {
         });
       }
       setIsFavorited(!isFavorited);
+      if (!isFavorited) {
+        toast.success('Ad saved to favorites');
+      }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
     } finally {
@@ -154,9 +166,16 @@ function AdCard({ ad }: { ad: BoostedAd }) {
         <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-gray-700 transition-colors text-sm sm:text-base leading-snug mt-1">
           {ad.title}
         </h3>
-        <div className="flex items-center gap-1 sm:gap-2 mt-2 text-gray-500 text-xs sm:text-sm">
-          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-          <span className="truncate">{getLocationDisplay(ad)}</span>
+        <div className="flex items-center justify-between gap-1 sm:gap-2 mt-2 text-gray-500 text-xs sm:text-sm">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+            <span className="truncate">{getLocationDisplay(ad)}</span>
+          </div>
+          {(ad.boost_status === 'active' || ad.is_boosted) && (
+            <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig(ad.boost_type)?.displayName || 'Gold').toLowerCase()}`}>
+              {getBoostConfig(ad.boost_type)?.displayName || 'Gold'} Plan
+            </span>
+          )}
         </div>
       </div>
     </div>

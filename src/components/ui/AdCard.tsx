@@ -148,9 +148,16 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           {((ad as any).short_description || ad.description) && (
             <p className="text-sm text-gray-500 mt-2 line-clamp-2">{(ad as any).short_description || ad.description}</p>
           )}
-          <div className="flex items-center gap-2 mt-2 text-gray-500 text-sm">
-            <MapPin className="w-4 h-4" />
-            <span>{getLocationDisplay()}</span>
+          <div className="flex items-center justify-between gap-2 mt-2 text-gray-500 text-sm">
+            <div className="flex items-center gap-2 min-w-0">
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{getLocationDisplay()}</span>
+            </div>
+            {((ad as any).boost_status === 'active' || (ad as any).is_boosted) && (
+              <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig((ad as any).boost_type)?.displayName || 'Gold').toLowerCase()}`}>
+                {getBoostConfig((ad as any).boost_type)?.displayName || 'Gold'} Plan
+              </span>
+            )}
           </div>
         </div>
       </Link>
@@ -199,9 +206,16 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               {(ad as any).short_description || ad.description || (ad as any).excerpt || (ad as any).summary}
             </p>
           )}
-          <div className="flex items-center gap-1 mt-2 text-gray-400 text-xs">
-            <MapPin className="w-3 h-3" />
-            <span className="truncate">{getLocationDisplay()}</span>
+          <div className="flex items-center justify-between gap-1 mt-2 text-gray-400 text-xs">
+            <div className="flex items-center gap-1 min-w-0">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{getLocationDisplay()}</span>
+            </div>
+            {((ad as any).boost_status === 'active' || (ad as any).is_boosted) && (
+              <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig((ad as any).boost_type)?.displayName || 'Gold').toLowerCase()}`}>
+                {getBoostConfig((ad as any).boost_type)?.displayName || 'Gold'} Plan
+              </span>
+            )}
           </div>
         </div>
       </Link>
@@ -252,11 +266,18 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           </p>
         )}
         <div className="flex items-center justify-between gap-2 mt-3 text-gray-500 text-sm flex-wrap">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 min-w-0">
             <MapPin className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">{getLocationDisplay()}</span>
           </div>
-          {getConditionBadge()}
+          <div className="flex items-center gap-2">
+            {((ad as any).boost_status === 'active' || (ad as any).is_boosted) && (
+              <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig((ad as any).boost_type)?.displayName || 'Gold').toLowerCase()}`}>
+                {getBoostConfig((ad as any).boost_type)?.displayName || 'Gold'} Plan
+              </span>
+            )}
+            {getConditionBadge()}
+          </div>
         </div>
       </div>
     </Link>

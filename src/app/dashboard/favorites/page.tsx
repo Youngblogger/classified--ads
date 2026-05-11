@@ -7,7 +7,7 @@ import { MapPin, ImageIcon } from 'lucide-react';
 import { favoritesApi } from '@/lib/api';
 import { formatPrice, getAdImageUrl } from '@/lib/utils';
 import PremiumBadge from '@/components/ui/PremiumBadge';
-import { getBoostCardClasses } from '@/lib/boost-config';
+import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
 import toast from 'react-hot-toast';
 
 // Icons
@@ -218,19 +218,28 @@ export default function FavoritesPage() {
 
                 {/* Details */}
                 <div className="space-y-1 text-sm text-gray-500 mb-4">
-                  {(item.ad.location?.name || (item.ad as any).state || (item.ad as any).lga) && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      <span>
-                        {(() => {
-                          const adAny = item.ad as any;
-                          const state = adAny.state || item.ad.location?.name || '';
-                          const lga = adAny.lga || '';
-                          return state && lga ? `${state}, ${lga}` : (state || lga || 'N/A');
-                        })()}
-                      </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 min-w-0 flex-1">
+                      {(item.ad.location?.name || (item.ad as any).state || (item.ad as any).lga) && (
+                        <>
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">
+                            {(() => {
+                              const adAny = item.ad as any;
+                              const state = adAny.state || item.ad.location?.name || '';
+                              const lga = adAny.lga || '';
+                              return state && lga ? `${state}, ${lga}` : (state || lga || 'N/A');
+                            })()}
+                          </span>
+                        </>
+                      )}
                     </div>
-                  )}
+                    {((item.ad as any).boost_status === 'active' || (item.ad as any).is_boosted) && (
+                      <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig((item.ad as any).boost_type)?.displayName || 'Gold').toLowerCase()}`}>
+                        {getBoostConfig((item.ad as any).boost_type)?.displayName || 'Gold'} Plan
+                      </span>
+                    )}
+                  </div>
                   {item.ad.user && (
                     <div className="flex items-center gap-1">
                       <span>By {item.ad.user.name}</span>

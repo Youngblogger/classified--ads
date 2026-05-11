@@ -15,7 +15,7 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import BoostedAdsCarousel from '@/components/ui/BoostedAdsCarousel';
-import { getBoostCardClasses } from '@/lib/boost-config';
+import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
 import { API_URL } from '@/lib/config';
 
 function LazyImage({ src, alt, className, style, onError }: { src: string; alt: string; className?: string; style?: React.CSSProperties; onError?: () => void }) {
@@ -79,9 +79,15 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
     
     if (favoriteLoading) return;
     
+    const { isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      toast.error('Please login to save ads');
+      return;
+    }
+    
     setFavoriteLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = useAuthStore.getState().token;
       if (!token) {
         toast.error('Please login to save ads');
         return;
@@ -100,6 +106,9 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
         });
       }
       setIsFavorited(!isFavorited);
+      if (!isFavorited) {
+        toast.success('Ad saved to favorites');
+      }
     } catch {
     } finally {
       setFavoriteLoading(false);
@@ -195,9 +204,16 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
           </p>
         )}
         
-<div className="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 text-gray-500 text-xs sm:text-sm">
-          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-          <span className="truncate">{getLocationDisplay()}</span>
+<div className="flex items-center justify-between gap-1 sm:gap-2 mt-2 sm:mt-3 text-gray-500 text-xs sm:text-sm">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+            <span className="truncate">{getLocationDisplay()}</span>
+          </div>
+          {(ad.boost_status === 'active' || ad.is_boosted) && (
+            <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig(ad.boost_type)?.displayName || 'Gold').toLowerCase()}`}>
+              {getBoostConfig(ad.boost_type)?.displayName || 'Gold'} Plan
+            </span>
+          )}
         </div>
       </div>
     </div>

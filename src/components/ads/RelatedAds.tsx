@@ -7,7 +7,7 @@ import { MapPin, Loader2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
 import { formatPrice, getAdImage, getAdImageUrl, getAdImages, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
 import PremiumBadge from '@/components/ui/PremiumBadge';
-import { getBoostCardClasses } from '@/lib/boost-config';
+import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
 
 interface AdImage {
   url?: string;
@@ -35,6 +35,7 @@ interface Ad {
   created_at: string;
   category?: { name?: string; slug?: string } | string;
   is_boosted?: boolean;
+  boost_status?: string | null;
   boost_type?: string | null;
 }
 
@@ -291,9 +292,16 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
                   <p className="text-sm sm:text-lg font-bold text-primary-600 mt-0.5 sm:mt-1">
                     {formatPrice(ad.price, ad.currency)}
                   </p>
-                  <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500 mt-1 sm:mt-2">
-                    <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
-                    <span className="truncate">{getLocationDisplay(ad)}</span>
+                  <div className="flex items-center justify-between gap-1 text-[10px] sm:text-xs text-gray-500 mt-1 sm:mt-2">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
+                      <span className="truncate">{getLocationDisplay(ad)}</span>
+                    </div>
+                    {(ad.boost_status === 'active' || (ad as any).is_boosted) && (
+                      <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig(ad.boost_type)?.displayName || 'Gold').toLowerCase()}`}>
+                        {getBoostConfig(ad.boost_type)?.displayName || 'Gold'} Plan
+                      </span>
+                    )}
                   </div>
                 </div>
               </Link>
