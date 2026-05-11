@@ -32,7 +32,7 @@ export default function PremiumBadge({ boostType, size = 'sm', className = '', v
       <img
         src={config.svgIcon}
         alt=""
-        className={iconSize}
+        className={`${iconSize} boost-pill__icon`}
         style={{ pointerEvents: 'none' }}
       />
       <span className="font-semibold whitespace-nowrap leading-none">{config.displayName}</span>

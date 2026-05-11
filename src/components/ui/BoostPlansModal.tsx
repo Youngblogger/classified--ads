@@ -66,9 +66,9 @@ const TIER_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const TIER_SVG_ICONS: Record<string, string> = {
-  silver: '/icons/gold.svg',
-  gold: '/icons/platinum.svg',
-  platinum: '/icons/diamond.svg',
+  silver: '/icons/crown.svg',
+  gold: '/icons/shield.svg',
+  platinum: '/icons/prism-diamond.svg',
 };
 
 export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: BoostPlansModalProps) {
@@ -388,7 +388,7 @@ export default function BoostPlansModal({ adId, adTitle, isOpen, onClose }: Boos
                               <Check className="w-3.5 h-3.5 text-white" />
                             </div>
                           )}
-                          <img src={TIER_SVG_ICONS[plan.type] || '/icons/gold.svg'} alt="" className="w-10 h-10 mb-3 animate-premium-spin" />
+                          <img src={TIER_SVG_ICONS[plan.type] || '/icons/crown.svg'} alt="" className="w-10 h-10 mb-3 animate-premium-spin" />
                           <h3 className="text-base font-bold text-gray-900 mb-1">{TIER_DISPLAY_NAMES[plan.type] || plan.name}</h3>
                           <div className="text-2xl font-extrabold text-gray-900 mb-1">
                             ₦{Number(plan.price).toLocaleString()}
