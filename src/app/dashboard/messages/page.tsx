@@ -243,6 +243,28 @@ export default function MessagesPage() {
     }
   };
 
+  // Fetch conversations on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchConversations();
+    }
+  }, [isAuthenticated]);
+
+  // Fetch messages when a conversation is selected
+  useEffect(() => {
+    if (selectedConversation) {
+      fetchMessages(selectedConversation.id);
+      markAsRead(selectedConversation.id);
+      joinConversation(String(selectedConversation.id));
+      
+      return () => {
+        leaveConversation(String(selectedConversation.id));
+      };
+    } else {
+      setMessages([]);
+    }
+  }, [selectedConversation, joinConversation, leaveConversation]);
+
   // WhatsApp-style Voice Recording Functions
   const startRecording = async () => {
     try {

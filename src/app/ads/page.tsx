@@ -224,7 +224,7 @@ function AdsPageContent() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <ResponsiveHeader />
       
-      <main className="flex-1 w-full px-4 pt-40 pb-6 md:px-6 md:pt-48 lg:px-8">
+      <main className="flex-1 w-full px-4 pt-0 pb-6 md:px-6 md:pt-48 lg:px-8">
         {/* Search Header */}
         <div className="max-w-7xl mx-auto bg-white rounded-xl p-4 sm:p-6 lg:p-8 mb-6 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-3">

@@ -62,9 +62,18 @@ export default function GoogleOneTap() {
   const [showFallback, setShowFallback] = useState(false);
   const fallbackContainerRef = useRef<HTMLDivElement>(null);
   const fallbackRenderedRef = useRef(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!isMobile) return;
     if (isAuthenticated) return;
     if (initializedRef.current) return;
 
@@ -125,10 +134,11 @@ export default function GoogleOneTap() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, login]);
+  }, [isAuthenticated, login, isMobile]);
 
   useEffect(() => {
     if (!showFallback) return;
+    if (!isMobile) return;
     if (!fallbackContainerRef.current) return;
     if (fallbackRenderedRef.current) return;
 
@@ -150,15 +160,16 @@ export default function GoogleOneTap() {
         logo_alignment: 'center',
       });
     });
-  }, [showFallback]);
+  }, [showFallback, isMobile]);
 
   if (isAuthenticated) return null;
+  if (!isMobile) return null;
 
   return (
     <>
       {showFallback && (
-        <div className="fixed bottom-0 left-0 right-0 z-[300] sm:bottom-4 sm:left-auto sm:right-4 sm:w-auto">
-          <div className="bg-white border-t border-gray-200 px-4 py-3 sm:rounded-xl sm:border shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 z-[300]">
+          <div className="bg-white border-t border-gray-200 px-4 py-3 shadow-lg">
             <div ref={fallbackContainerRef} className="w-full" />
           </div>
         </div>

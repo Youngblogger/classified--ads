@@ -1145,34 +1145,62 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                     
                     {/* User Menu */}
                     <div className="relative ml-1">
-                      <Link
-                        href="/dashboard"
-                        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition-colors"
-                      >
-                        <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
-                          {(() => {
-                            const avatarUrl = getFullAvatarUrl(user);
-                            return avatarUrl ? (
-                              <Image 
-                                src={avatarUrl} 
-                                alt={user?.name || 'User'} 
-                                fill
-                                sizes="36px"
-                                className="object-cover"
-                                referrerPolicy="no-referrer"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <span className="text-primary-600 font-semibold text-sm">
-                                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                              </span>
-                            );
-                          })()}
+                      {variant === 'dashboard' ? (
+                        <div className="flex items-center gap-2 p-1.5 rounded-xl cursor-default">
+                          <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
+                            {(() => {
+                              const avatarUrl = getFullAvatarUrl(user);
+                              return avatarUrl ? (
+                                <Image 
+                                  src={avatarUrl} 
+                                  alt={user?.name || 'User'} 
+                                  fill
+                                  sizes="36px"
+                                  className="object-cover"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-primary-600 font-semibold text-sm">
+                                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </div>
-                      </Link>
+                      ) : (
+                        <Link
+                          href="/dashboard"
+                          className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition-colors"
+                        >
+                          <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
+                            {(() => {
+                              const avatarUrl = getFullAvatarUrl(user);
+                              return avatarUrl ? (
+                                <Image 
+                                  src={avatarUrl} 
+                                  alt={user?.name || 'User'} 
+                                  fill
+                                  sizes="36px"
+                                  className="object-cover"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-primary-600 font-semibold text-sm">
+                                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </Link>
+                      )}
                     </div>
                   </>
                 ) : (
