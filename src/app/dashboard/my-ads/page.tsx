@@ -287,7 +287,7 @@ export default function MyAdsPage() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {[1, 2, 3, 4].map((i) => (
             <AdSkeleton key={i} />
           ))}
@@ -344,13 +344,13 @@ export default function MyAdsPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {[1, 2, 3, 4].map((i) => (
             <AdSkeleton key={i} />
           ))}
         </div>
       ) : filteredAds.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredAds.map((ad) => {
             const boostCardClasses = getBoostCardClasses((ad as any).boost_type);
             return (
