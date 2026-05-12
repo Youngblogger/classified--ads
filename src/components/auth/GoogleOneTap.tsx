@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
@@ -22,6 +22,7 @@ declare global {
           prompt: (momentListener?: (res: { isNotDisplayed?: boolean; isSkippedMoment?: boolean; isDismissedMoment?: boolean }) => void) => void;
           cancel: () => void;
           disableAutoSelect: () => void;
+          renderButton: (container: HTMLElement, config: object) => void;
         };
       };
     };
@@ -31,16 +32,16 @@ declare global {
 const SCRIPT_ID = 'google-gsi-script';
 const SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 
-function loadGsiScript(): Promise<void> {
+function loadGsiScript(): Promise<boolean> {
   return new Promise((resolve) => {
     if (window.google?.accounts?.id) {
-      resolve();
+      resolve(true);
       return;
     }
     const existing = document.getElementById(SCRIPT_ID);
     if (existing) {
-      existing.addEventListener('load', () => resolve());
-      existing.addEventListener('error', () => resolve());
+      existing.addEventListener('load', () => resolve(true));
+      existing.addEventListener('error', () => resolve(false));
       return;
     }
     const script = document.createElement('script');
@@ -48,8 +49,8 @@ function loadGsiScript(): Promise<void> {
     script.src = SCRIPT_SRC;
     script.async = true;
     script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => resolve();
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
     document.head.appendChild(script);
   });
 }
@@ -58,6 +59,9 @@ export default function GoogleOneTap() {
   const { isAuthenticated, login } = useAuthStore();
   const initializedRef = useRef(false);
   const promptCalledRef = useRef(false);
+  const [showFallback, setShowFallback] = useState(false);
+  const fallbackContainerRef = useRef<HTMLDivElement>(null);
+  const fallbackRenderedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -67,13 +71,16 @@ export default function GoogleOneTap() {
     let cancelled = false;
 
     const init = async () => {
-      await loadGsiScript();
-
+      const loaded = await loadGsiScript();
       if (cancelled || initializedRef.current) return;
       initializedRef.current = true;
 
-      const gw = window.google?.accounts?.id;
-      if (!gw) return;
+      if (!loaded || !window.google?.accounts?.id) {
+        setShowFallback(true);
+        return;
+      }
+
+      const gw = window.google.accounts.id;
 
       const handleCredential = async (response: { credential: string }) => {
         try {
@@ -85,13 +92,8 @@ export default function GoogleOneTap() {
           });
 
           const data = await res.json();
-
-          if (!res.ok) {
-            throw new Error(data.message || 'Google login failed');
-          }
-
+          if (!res.ok) throw new Error(data.message || 'Google login failed');
           login(data.user, data.token);
-
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : 'Google login failed';
           toast.error(msg);
@@ -103,13 +105,18 @@ export default function GoogleOneTap() {
         client_id: GOOGLE_CLIENT_ID,
         callback: handleCredential,
         auto_select: false,
-        cancel_on_tap_outside: true,
-        use_fedcm_for_prompt: true,
+        cancel_on_tap_outside: false,
+        context: 'signin',
+        use_fedcm_for_prompt: false,
       });
 
       if (!promptCalledRef.current) {
         promptCalledRef.current = true;
-        gw.prompt(() => {});
+        gw.prompt((res) => {
+          if (res?.isNotDisplayed || res?.isSkippedMoment) {
+            setShowFallback(true);
+          }
+        });
       }
     };
 
@@ -120,5 +127,42 @@ export default function GoogleOneTap() {
     };
   }, [isAuthenticated, login]);
 
-  return null;
+  useEffect(() => {
+    if (!showFallback) return;
+    if (!fallbackContainerRef.current) return;
+    if (fallbackRenderedRef.current) return;
+
+    const gw = window.google?.accounts?.id;
+    if (!gw) return;
+
+    fallbackRenderedRef.current = true;
+
+    const container = fallbackContainerRef.current;
+
+    requestAnimationFrame(() => {
+      const width = Math.min(container.clientWidth || 360, 400);
+      gw.renderButton(container, {
+        theme: 'outline',
+        size: 'large',
+        width: width.toString(),
+        text: 'signin_with',
+        shape: 'rectangular',
+        logo_alignment: 'center',
+      });
+    });
+  }, [showFallback]);
+
+  if (isAuthenticated) return null;
+
+  return (
+    <>
+      {showFallback && (
+        <div className="fixed bottom-0 left-0 right-0 z-[300] sm:bottom-4 sm:left-auto sm:right-4 sm:w-auto">
+          <div className="bg-white border-t border-gray-200 px-4 py-3 sm:rounded-xl sm:border shadow-lg">
+            <div ref={fallbackContainerRef} className="w-full" />
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

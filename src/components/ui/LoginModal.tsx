@@ -502,7 +502,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
               client_id: GOOGLE_CLIENT_ID,
               callback: handleGoogleCredential,
               auto_select: false,
-        use_fedcm_for_prompt: true,
+        use_fedcm_for_prompt: false,
       });
         }
           renderButton(gw2);
@@ -517,7 +517,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredential,
         auto_select: false,
-        use_fedcm_for_prompt: true,
+        use_fedcm_for_prompt: false,
       });
     }
     renderButton(gw);
