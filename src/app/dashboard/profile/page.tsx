@@ -199,7 +199,7 @@ export default function ProfilePage() {
                   key={tab.id}
                   onClick={() => { setActiveTab(tab.id); setMobileMenuOpen(false); }}
                   className={`flex items-center gap-3 w-full px-4 py-3 text-sm transition-colors ${
-                    activeTab === tab.id ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
+                    activeTab === tab.id ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-50'
                   }`}
                   role="menuitem"
                   aria-label={tab.ariaLabel}
@@ -235,13 +235,13 @@ export default function ProfilePage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm transition-all ${
-                    isActive ? 'bg-primary-50 text-primary-700 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    isActive ? 'bg-gray-100 text-gray-900 font-medium border-l-2 border-primary-500' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                   role="tab"
                   aria-selected={isActive}
                   aria-label={tab.ariaLabel}
                 >
-                  <TabIcon className={`w-5 h-5 ${isActive ? 'text-primary-600' : 'text-gray-400'}`} />
+                  <TabIcon className={`w-5 h-5 ${isActive ? 'text-gray-700' : 'text-gray-400'}`} />
                   {tab.label}
                 </button>
               );
@@ -310,17 +310,17 @@ function OverviewTab({ user, setUser }: { user: any; setUser: any }) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Profile header">
-        <div className="flex flex-row items-start gap-6">
-          <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center overflow-hidden ring-4 ring-primary-50 flex-shrink-0">
+        <div className="flex flex-row items-start gap-4 sm:gap-6">
+          <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center overflow-hidden ring-4 ring-primary-50 flex-shrink-0">
             {avatarUrl ? (
-              <Image src={avatarUrl} alt={`${user?.name || 'User'}'s profile photo`} fill className="object-cover" sizes="96px" />
+              <Image src={avatarUrl} alt={`${user?.name || 'User'}'s profile photo`} fill className="object-cover" sizes="(max-width: 640px) 64px, (max-width: 1024px) 80px, 96px" />
             ) : (
-              <span className="text-3xl font-bold text-primary-600">{getInitials(user?.name || '')}</span>
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary-600">{getInitials(user?.name || '')}</span>
             )}
           </div>
-          <div className="flex-1 text-left">
-            <h1 className="text-2xl font-bold text-gray-900">{user?.name || 'User'}</h1>
-            <p className="text-gray-500">{user?.email}</p>
+          <div className="flex-1 min-w-0 text-left">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{user?.name || 'User'}</h1>
+            <p className="text-sm sm:text-base text-gray-500 truncate">{user?.email}</p>
             <div className="flex flex-wrap items-center justify-start gap-2 mt-3">
               {isVerified && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
