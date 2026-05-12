@@ -48,7 +48,7 @@ class AutoFixService
             'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
         ],
         'jobs' => [
-            'https://images.unsplash.com/photo-1521737711867-e3ab973e98bb?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&h=600&fit=crop',
             'https://images.unsplash.com/photo-1556745757-8d76bdb6984b?w=800&h=600&fit=crop',
             'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&h=600&fit=crop',
             'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=800&h=600&fit=crop',

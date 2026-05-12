@@ -502,9 +502,9 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
               client_id: GOOGLE_CLIENT_ID,
               callback: handleGoogleCredential,
               auto_select: false,
-              use_fedcm_for_prompt: true,
-            });
-          }
+        use_fedcm_for_prompt: true,
+      });
+        }
           renderButton(gw2);
         }
       }, 1000);
