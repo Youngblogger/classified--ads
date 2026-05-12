@@ -34,6 +34,7 @@ export default function ClientLayout({ children, fontFamily }: ClientLayoutProps
       <AuthProvider>
         <Preloader />
         {children}
+        <div className="md:hidden h-16" />
         <BottomNav />
         <GoogleOneTap />
         <LoginModal />

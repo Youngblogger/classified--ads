@@ -1424,7 +1424,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
 
       {/* MOBILE MENU */}
       {showMobileMenu && (
-        <div className="fixed inset-0 z-[60] bg-white overflow-y-auto lg:hidden">
+        <div className="fixed inset-0 z-[70] bg-white overflow-y-auto lg:hidden pb-16">
           {/* Mobile Header */}
           <div className="flex items-center justify-between px-4 h-16 border-b border-slate-200 bg-primary-600">
             <Link href="/" className="flex items-center gap-2" onClick={() => setShowMobileMenu(false)}>

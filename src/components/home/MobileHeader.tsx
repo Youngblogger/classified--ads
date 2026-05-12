@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin } from 'lucide-react';
-import { useGlobalStore, useUIStore } from '@/lib/store';
+import { useGlobalStore, useUIStore, useAuthStore } from '@/lib/store';
 
 const iconEmojis: Record<string, string> = {
   'smartphone': '📱', 'phone': '📱', 'mobile': '📱',
@@ -60,6 +60,7 @@ export default function MobileHeader() {
   const router = useRouter();
   const { selectedLocation } = useGlobalStore();
   const { toggleLocationModal } = useUIStore();
+  const { isAuthenticated, user } = useAuthStore();
   
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
@@ -121,6 +122,31 @@ export default function MobileHeader() {
               className="h-8 w-auto"
             />
           </Link>
+
+          {/* Profile Image */}
+          {isAuthenticated && (
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 p-1 rounded-xl hover:bg-white/10 transition-colors"
+            >
+              <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center ring-2 ring-white/30">
+                {(() => {
+                  const avatarUrl = user?.full_avatar_url || user?.avatar_url || user?.avatar || user?.google_avatar || user?.facebook_avatar;
+                  return avatarUrl ? (
+                    <img
+                      src={avatarUrl.startsWith('http') ? avatarUrl : `http://127.0.0.1:8000${avatarUrl.startsWith('/') ? '' : '/storage/'}${avatarUrl}`}
+                      alt={user?.name || 'User'}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <span className="text-primary-600 font-semibold text-sm">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  );
+                })()}
+              </div>
+            </Link>
+          )}
         </div>
 
         {/* Search Bar Below Header */}
