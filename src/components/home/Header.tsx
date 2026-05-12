@@ -999,25 +999,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                                   )}
                                 </div>
                               </button>
-                              <button
-                                onClick={() => setActiveTab('messages')}
-                                className={cn(
-                                  "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors",
-                                  activeTab === 'messages' 
-                                    ? "bg-primary-100 text-primary-700" 
-                                    : "text-slate-500 hover:bg-slate-50"
-                                )}
-                              >
-                                <div className="flex items-center justify-center gap-2">
-                                  <MessageSquare className="w-4 h-4" />
-                                  <span>Messages</span>
-                                  {unreadMessagesCount > 0 && (
-                                    <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                                      {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
-                                    </span>
-                                  )}
-                                </div>
-                              </button>
+
                             </div>
                           </div>
 
@@ -1089,73 +1071,20 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                             </>
                           )}
 
-                          {activeTab === 'messages' && (
-                            <>
-                              <div className="max-h-80 overflow-y-auto">
-                                {recentMessages.length === 0 ? (
-                                  <div className="px-4 py-8 text-center text-slate-500">
-                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                    No messages
-                                  </div>
-                                ) : (
-                                  recentMessages.slice(0, 5).map((conversation: any) => (
-                                    <div 
-                                      key={conversation.id}
-                                      onClick={() => {
-                                        setNotificationOpen(false);
-                                        router.push(`/dashboard/messages?conversation=${conversation.id}`);
-                                      }}
-                                      className="px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer transition-colors"
-                                    >
-                                      <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                          <User className="w-5 h-5 text-primary-600" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <div className="flex items-center justify-between">
-                                            <p className="text-sm font-medium text-slate-900">
-                                              {conversation.sender?.name || conversation.receiver?.name || 'User'}
-                                            </p>
-                                            {conversation.unread_count > 0 && (
-                                              <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
-                                                {conversation.unread_count}
-                                              </span>
-                                            )}
-                                          </div>
-                                          {conversation.ad && (
-                                            <p className="text-xs text-primary-600 truncate">
-                                              Re: {conversation.ad.title}
-                                            </p>
-                                          )}
-                                          <p className="text-xs text-slate-500 mt-0.5 truncate">
-                                            {conversation.last_message?.content || conversation.last_message?.substring(0, 50) || 'No messages yet'}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
 
-                              <div className="px-4 py-3 border-t border-slate-100">
-                                <Link 
-                                  href="/dashboard/messages"
-                                  className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
-                                  onClick={() => setNotificationOpen(false)}
-                                >
-                                  View all messages
-                                </Link>
-                              </div>
-                            </>
-                          )}
                         </div>
                       )}
                     </div>
                     )}
                     
                     {variant === 'home' && (
-                    <Link href="/dashboard/favorites" className="p-2.5 rounded-xl">
-                      <Heart className="w-5 h-5 text-white" />
+                    <Link href="/dashboard/messages" className="p-2.5 rounded-xl relative">
+                      <MessageSquare className="w-5 h-5 text-white" />
+                      {unreadMessagesCount > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-medium">
+                          {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                        </span>
+                      )}
                     </Link>
                     )}
                     
@@ -1674,20 +1603,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                               <span>Alerts</span>
                             </div>
                           </button>
-                          <button
-                            onClick={() => setActiveTab('messages')}
-                            className={cn(
-                              "flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors",
-                              activeTab === 'messages' 
-                                ? "bg-primary-100 text-primary-700" 
-                                : "text-slate-500 hover:bg-slate-50"
-                            )}
-                          >
-                            <div className="flex items-center justify-center gap-1">
-                              <MessageSquare className="w-3 h-3" />
-                              <span>Chat</span>
-                            </div>
-                          </button>
+
                         </div>
                       </div>
 
@@ -1741,59 +1657,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                         </>
                       )}
 
-                      {activeTab === 'messages' && (
-                        <>
-                          <div className="max-h-64 overflow-y-auto">
-                            {recentMessages.length === 0 ? (
-                              <div className="px-4 py-6 text-center text-slate-500">
-                                <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                <p className="text-sm">No messages</p>
-                              </div>
-                            ) : (
-                              recentMessages.slice(0, 5).map((conversation: any) => (
-                                <div 
-                                  key={conversation.id}
-                                  onClick={() => {
-                                    setMobileNotificationsOpen(false);
-                                    router.push(`/dashboard/messages?conversation=${conversation.id}`);
-                                  }}
-                                  className="px-3 py-2 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer"
-                                >
-                                  <div className="flex items-start gap-2">
-                                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                      <User className="w-4 h-4 text-primary-600" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium text-slate-900 truncate">
-                                          {conversation.sender?.name || conversation.receiver?.name || 'User'}
-                                        </p>
-                                        {conversation.unread_count > 0 && (
-                                          <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
-                                            {conversation.unread_count}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <p className="text-xs text-slate-500 truncate">
-                                        {conversation.last_message?.content || 'No messages yet'}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                          <div className="px-3 py-2 border-t border-slate-100">
-                            <Link 
-                              href="/dashboard/messages"
-                              onClick={() => setMobileNotificationsOpen(false)}
-                              className="block text-center text-xs text-primary-600 hover:text-primary-700"
-                            >
-                              View all
-                            </Link>
-                          </div>
-                        </>
-                      )}
+
                     </div>
                   )}
                 </div>
