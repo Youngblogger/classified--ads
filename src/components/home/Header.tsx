@@ -236,7 +236,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     }
   }, [selectedLocation]);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showMegaMenu, setShowMegaMenu] = useState(false);
   const [searchResults, setSearchResults] = useState<any>(null);
@@ -350,7 +349,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   
   const searchRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
-  const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -399,9 +397,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowSearchDropdown(false);
-      }
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setShowUserMenu(false);
       }
       if (notificationRef.current && !notificationRef.current.contains(e.target as Node)) {
         setNotificationOpen(false);
@@ -513,7 +508,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
       sessionStorage.clear();
     }
     
-    setShowUserMenu(false);
     setShowMobileMenu(false);
     window.location.href = '/';
     setIsLoggingOut(false);
@@ -1166,100 +1160,35 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                     )}
                     
                     {/* User Menu */}
-                    <div className="relative ml-1" ref={userMenuRef}>
-                      {variant === 'home' ? (
-                        <button
-                          onClick={() => setShowUserMenu(!showUserMenu)}
-                          className="flex items-center gap-2 p-1.5 rounded-xl"
-                        >
-                          <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
-                            {(() => {
-                              const avatarUrl = getFullAvatarUrl(user);
-                              return avatarUrl ? (
-                                <Image 
-                                  src={avatarUrl} 
-                                  alt={user?.name || 'User'} 
-                                  fill
-                                  sizes="36px"
-                                  className="object-cover"
-                                  referrerPolicy="no-referrer"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-primary-600 font-semibold text-sm">
-                                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-2 p-1.5 rounded-xl">
-                          <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
-                            {(() => {
-                              const avatarUrl = getFullAvatarUrl(user);
-                              return avatarUrl ? (
-                                <Image 
-                                  src={avatarUrl} 
-                                  alt={user?.name || 'User'} 
-                                  fill
-                                  sizes="36px"
-                                  className="object-cover"
-                                  referrerPolicy="no-referrer"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-primary-600 font-semibold text-sm">
-                                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {showUserMenu && variant === 'home' && (
-                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-slate-100 py-2 z-[9999]">
-                          <div className="px-4 py-3 border-b border-slate-100">
-                            <p className="font-semibold text-slate-900 truncate">{user?.name}</p>
-                            <p className="text-xs text-slate-500 truncate" title={user?.email}>{truncateEmail(user?.email)}</p>
-                          </div>
-                          <Link href="/dashboard" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
-                            <LayoutDashboard className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm text-slate-700">Dashboard</span>
-                          </Link>
-                          <Link href="/dashboard/my-ads" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
-                            <Package className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm text-slate-700">My Ads</span>
-                          </Link>
-                          <Link href="/dashboard/favorites" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
-                            <Heart className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm text-slate-700">Favorites</span>
-                          </Link>
-                          <Link href="/dashboard/messages" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
-                            <MessageSquare className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm text-slate-700">Messages</span>
-                          </Link>
-                          <div className="border-t border-slate-100 mt-2 pt-2">
-                            <button
-                              onClick={handleLogout}
-                              disabled={isLoggingOut}
-                              className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors w-full text-left"
-                            >
-                              <LogOut className="w-4 h-4 text-slate-500" />
-                              <span className="text-sm text-red-600">
-                                {isLoggingOut ? 'Logging out...' : 'Logout'}
+                    <div className="relative ml-1">
+                      <Link
+                        href="/dashboard"
+                        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition-colors"
+                      >
+                        <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
+                          {(() => {
+                            const avatarUrl = getFullAvatarUrl(user);
+                            return avatarUrl ? (
+                              <Image 
+                                src={avatarUrl} 
+                                alt={user?.name || 'User'} 
+                                fill
+                                sizes="36px"
+                                className="object-cover"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <span className="text-primary-600 font-semibold text-sm">
+                                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                               </span>
-                            </button>
-                          </div>
+                            );
+                          })()}
                         </div>
-                      )}
+                      </Link>
                     </div>
                   </>
                 ) : (
