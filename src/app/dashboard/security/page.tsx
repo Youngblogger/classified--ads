@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { DeviceSessions, AuditLogs, FingerprintInfo } from '@/components/profile/DeviceSecurity';
+import TwoFactorAuth from '@/components/profile/TwoFactorAuth';
 
 const LockIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -257,6 +259,18 @@ export default function SecuritySettingsPage() {
           </button>
         </form>
       </div>
+
+      {/* Two-Factor Authentication */}
+      <TwoFactorAuth />
+
+      {/* Active Sessions */}
+      <DeviceSessions />
+
+      {/* Audit Log */}
+      <AuditLogs />
+
+      {/* Device Fingerprinting */}
+      <FingerprintInfo />
 
       {/* Delete Account */}
       <div className="bg-white rounded-2xl p-6 shadow-card border border-red-100">
