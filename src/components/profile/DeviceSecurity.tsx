@@ -73,7 +73,7 @@ export function DeviceSessions() {
   const [showLogoutAll, setShowLogoutAll] = useState(false);
 
   return (
-    <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Active sessions and devices">
+    <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Active sessions and devices">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2.5 bg-purple-100 rounded-xl">
           <Smartphone className="w-5 h-5 text-purple-600" />
@@ -149,7 +149,7 @@ export function AuditLogs() {
   const filtered = filter === 'all' ? logs : logs.filter(l => l.type === filter);
 
   return (
-    <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Security audit logs">
+    <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Security audit logs">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2.5 bg-amber-100 rounded-xl">
           <Shield className="w-5 h-5 text-amber-600" />
@@ -212,7 +212,7 @@ export function AuditLogs() {
 
 export function FingerprintInfo() {
   return (
-    <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Device fingerprinting information">
+    <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Device fingerprinting information">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2.5 bg-indigo-100 rounded-xl">
           <Globe className="w-5 h-5 text-indigo-600" />

@@ -88,7 +88,7 @@ export default function SellerMetrics({ stats }: SellerMetricsProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           {metrics.map((m) => (
             <MetricCard key={m.label} {...m} />
           ))}

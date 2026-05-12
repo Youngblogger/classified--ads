@@ -77,7 +77,7 @@ export default function TrustReputation({ user, stats }: TrustReputationProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {metrics.map((m) => {
             const Icon = m.icon;
             return (

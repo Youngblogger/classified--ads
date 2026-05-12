@@ -153,7 +153,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto p-6">
         <ProfileSkeleton />
       </div>
     );
@@ -309,8 +309,8 @@ function OverviewTab({ user, setUser }: { user: any; setUser: any }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Profile header">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+      <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Profile header">
+        <div className="flex flex-row items-start gap-6">
           <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center overflow-hidden ring-4 ring-primary-50 flex-shrink-0">
             {avatarUrl ? (
               <Image src={avatarUrl} alt={`${user?.name || 'User'}'s profile photo`} fill className="object-cover" sizes="96px" />
@@ -318,10 +318,10 @@ function OverviewTab({ user, setUser }: { user: any; setUser: any }) {
               <span className="text-3xl font-bold text-primary-600">{getInitials(user?.name || '')}</span>
             )}
           </div>
-          <div className="flex-1 text-center sm:text-left">
+          <div className="flex-1 text-left">
             <h1 className="text-2xl font-bold text-gray-900">{user?.name || 'User'}</h1>
             <p className="text-gray-500">{user?.email}</p>
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-3">
+            <div className="flex flex-wrap items-center justify-start gap-2 mt-3">
               {isVerified && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
                   <CheckCircle className="w-3.5 h-3.5" /> Email Verified
@@ -341,7 +341,7 @@ function OverviewTab({ user, setUser }: { user: any; setUser: any }) {
       </div>
 
       {statsLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
           ))}
@@ -355,7 +355,7 @@ function OverviewTab({ user, setUser }: { user: any; setUser: any }) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           {statCards.map((s, i) => {
             const Icon = s.icon;
             return (
@@ -451,7 +451,7 @@ function InfoTab({ user, setUser, token }: { user: any; setUser: any; token: str
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card p-6 sm:p-8 space-y-6" aria-label="Profile information form" noValidate>
+    <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card p-8 space-y-6" aria-label="Profile information form" noValidate>
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
         {draftRestored && (
@@ -614,7 +614,7 @@ function PhotoTab({ user, setUser, token }: { user: any; setUser: any; token: st
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Profile photo management">
+      <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Profile photo management">
         <h3 className="text-lg font-semibold text-gray-900 mb-6">Profile Photo</h3>
         <div className="flex flex-col items-center gap-6">
           <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center overflow-hidden ring-4 ring-primary-50">
@@ -717,7 +717,7 @@ function SecurityTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Change password">
+      <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Change password">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2.5 bg-primary-100 rounded-xl"><Lock className="w-5 h-5 text-primary-600" /></div>
           <div><h3 className="text-lg font-semibold text-gray-900">Change Password</h3><p className="text-sm text-gray-500">Update your password regularly</p></div>
@@ -765,7 +765,7 @@ function SecurityTab() {
       <AuditLogs />
       <FingerprintInfo />
 
-      <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8 border border-red-100" role="region" aria-label="Delete account">
+      <div className="bg-white rounded-2xl shadow-card p-8 border border-red-100" role="region" aria-label="Delete account">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 bg-red-100 rounded-xl"><Trash2 className="w-5 h-5 text-red-600" /></div>
           <div><h3 className="text-lg font-semibold text-gray-900">Delete Account</h3><p className="text-sm text-gray-500">Permanently delete your account</p></div>
@@ -858,7 +858,7 @@ function WalletTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl shadow-card p-6 sm:p-8 text-white" role="region" aria-label="Wallet balance">
+      <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl shadow-card p-8 text-white" role="region" aria-label="Wallet balance">
         <p className="text-sm font-medium text-primary-100">Available Balance</p>
         <p className="text-4xl font-bold mt-1">{formatNaira(wallet?.balance || 0)}</p>
         <p className="text-sm text-primary-200 mt-1">Pending: {formatNaira(wallet?.pending || 0)}</p>
@@ -886,7 +886,7 @@ function WalletTab() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Transaction history">
+      <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Transaction history">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Transaction History</h3>
         {txns.length === 0 ? (
           <EmptyState icon={CreditCard} title="No transactions yet" message="Fund your wallet to get started" action={() => setShowFund(true)} actionLabel="Fund Wallet" />
@@ -951,7 +951,7 @@ function ActivityTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Saved ads">
+      <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Saved ads">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 bg-red-50 rounded-xl"><Heart className="w-5 h-5 text-red-500" /></div>
           <h3 className="text-lg font-semibold text-gray-900">Saved Ads</h3>
@@ -961,7 +961,7 @@ function ActivityTab() {
         ) : savedAds.length === 0 ? (
           <EmptyState icon={Heart} title="No saved ads yet" message="Ads you save will appear here" />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {savedAds.slice(0, 4).map((ad: any) => (
               <div key={ad.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                 <div className="w-14 h-14 bg-gray-200 rounded-xl flex-shrink-0 overflow-hidden">
@@ -977,7 +977,7 @@ function ActivityTab() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Recently viewed">
+      <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Recently viewed">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 bg-blue-50 rounded-xl"><Eye className="w-5 h-5 text-blue-500" /></div>
           <h3 className="text-lg font-semibold text-gray-900">Recently Viewed</h3>
@@ -987,7 +987,7 @@ function ActivityTab() {
         ) : recentAds.length === 0 ? (
           <EmptyState icon={Eye} title="No recently viewed ads" message="Ads you view will appear here" />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {recentAds.slice(0, 4).map((ad: any) => (
               <div key={ad.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                 <div className="w-14 h-14 bg-gray-200 rounded-xl flex-shrink-0 overflow-hidden">
@@ -1010,7 +1010,7 @@ function ActivityTab() {
 function AccountTab({ user }: { user: any }) {
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Account details">
+      <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Account details">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Details</h3>
         <div className="space-y-3">
           <div className="flex justify-between py-2 border-b border-gray-100">
@@ -1044,7 +1044,7 @@ function AccountTab({ user }: { user: any }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-card p-6 sm:p-8" role="region" aria-label="Download data">
+      <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Download data">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 bg-gray-100 rounded-xl"><Download className="w-5 h-5 text-gray-600" /></div>
           <div><h3 className="text-lg font-semibold text-gray-900">Download Your Data</h3><p className="text-sm text-gray-500">Get a copy of your account data</p></div>

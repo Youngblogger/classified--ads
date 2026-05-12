@@ -249,6 +249,7 @@ export default function DashboardLayout({
                 <Link
                   key={item.name}
                   href={item.href}
+                  onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
                       ? 'bg-primary-50 text-primary-700'
@@ -263,7 +264,7 @@ export default function DashboardLayout({
 
             {/* Logout */}
             <button 
-              onClick={handleLogout}
+              onClick={() => { handleLogout(); setSidebarOpen(false); }}
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 w-full mt-4"
             >
               <LogoutIcon className="w-5 h-5" />
