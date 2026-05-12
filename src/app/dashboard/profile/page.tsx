@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { api, authApi, walletApi } from '@/lib/api';
+import { api, authApi } from '@/lib/api';
 import { nigeriaLocations } from '@/lib/nigeriaLocations';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
@@ -16,7 +16,7 @@ import { ErrorBoundary } from '@/components/profile/ErrorBoundary';
 import { useAutoSave } from '@/components/profile/AutoSaveForm';
 import {
   User, Mail, Phone, MapPin, Camera, Shield, Lock, Eye, EyeOff,
-  Wallet, CreditCard, TrendingUp, Clock, CheckCircle, XCircle,
+  TrendingUp, Clock, CheckCircle, XCircle,
   AlertCircle, ChevronDown, LogOut, Download, Trash2, Bell,
   Settings, BarChart3, Heart, Star, Award, Upload, RefreshCw,
   Key, Smartphone, Loader2, Info, Gift, Activity, Globe, Wifi, WifiOff
@@ -25,7 +25,7 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 const BACKEND_URL = API_URL.replace('/api', '');
 
-type TabId = 'overview' | 'info' | 'photo' | 'security' | 'wallet' | 'activity' | 'account';
+type TabId = 'overview' | 'info' | 'photo' | 'security' | 'activity' | 'account';
 
 interface Tab {
   id: TabId;
@@ -39,7 +39,6 @@ const tabs: Tab[] = [
   { id: 'info', label: 'Profile Info', icon: Settings, ariaLabel: 'Edit profile information' },
   { id: 'photo', label: 'Photo', icon: Camera, ariaLabel: 'Manage profile photo' },
   { id: 'security', label: 'Security', icon: Shield, ariaLabel: 'Security and session settings' },
-  { id: 'wallet', label: 'Wallet', icon: Wallet, ariaLabel: 'Wallet and transactions' },
   { id: 'activity', label: 'Activity', icon: Activity, ariaLabel: 'Recent activity' },
   { id: 'account', label: 'Account', icon: Info, ariaLabel: 'Account details and data' },
 ];
@@ -255,7 +254,6 @@ export default function ProfilePage() {
             {activeTab === 'info' && <InfoTab user={user} setUser={setUser} token={token} />}
             {activeTab === 'photo' && <PhotoTab user={user} setUser={setUser} token={token} />}
             {activeTab === 'security' && <SecurityTab />}
-            {activeTab === 'wallet' && <WalletTab />}
             {activeTab === 'activity' && <ActivityTab />}
             {activeTab === 'account' && <AccountTab user={user} />}
           </ErrorBoundary>
@@ -396,7 +394,6 @@ function InfoTab({ user, setUser, token }: { user: any; setUser: any; token: str
       if (restored && !draftRestored) {
         setForm(restored);
         setDraftRestored(true);
-        toast.success('Draft restored');
       } else {
         setForm({
           name: user.name || '',
@@ -454,9 +451,6 @@ function InfoTab({ user, setUser, token }: { user: any; setUser: any; token: str
     <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card p-8 space-y-6" aria-label="Profile information form" noValidate>
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
-        {draftRestored && (
-          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">Draft restored</span>
-        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
@@ -797,124 +791,6 @@ function SecurityTab() {
 }
 
 /* ─── WALLET TAB ─── */
-function WalletTab() {
-  const [wallet, setWallet] = useState<{ balance: number; pending: number } | null>(null);
-  const [txns, setTxns] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [fundAmount, setFundAmount] = useState('');
-  const [funding, setFunding] = useState(false);
-  const [showFund, setShowFund] = useState(false);
-
-  const fetchWallet = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-    try {
-      const [wRes, tRes] = await Promise.all([
-        walletApi.getBalance().catch(() => ({ data: { balance: 0, pending_balance: 0 } })),
-        walletApi.getTransactions().catch(() => ({ data: { data: [] } })),
-      ]);
-      setWallet({ balance: wRes.data?.balance ?? 0, pending: wRes.data?.pending_balance ?? 0 });
-      setTxns(tRes.data?.data || tRes.data || []);
-    } catch {
-      setError(true);
-      setWallet({ balance: 0, pending: 0 });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchWallet(); }, [fetchWallet]);
-
-  const handleFund = async () => {
-    const amt = parseInt(fundAmount);
-    if (!amt || amt < 100) { toast.error('Minimum ₦100'); return; }
-    setFunding(true);
-    try {
-      const res = await walletApi.fundWallet(amt, 'paystack');
-      if (res.data?.authorization_url) window.location.href = res.data.authorization_url;
-      else if (res.data?.reference) {
-        const verify = await walletApi.verifyPayment(res.data.reference);
-        if (verify.data?.success) { toast.success('Wallet funded!'); fetchWallet(); setShowFund(false); setFundAmount(''); }
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Funding failed');
-    } finally {
-      setFunding(false);
-    }
-  };
-
-  if (loading) return <div className="bg-white rounded-2xl shadow-card p-8"><ProfileSkeleton /></div>;
-
-  if (error) return (
-    <div className="bg-white rounded-2xl shadow-card p-8 text-center">
-      <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-      <p className="text-sm text-gray-500 mb-3">Failed to load wallet</p>
-      <button onClick={fetchWallet} className="px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 flex items-center gap-2 mx-auto">
-        <RefreshCw className="w-4 h-4" /> Retry
-      </button>
-    </div>
-  );
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl shadow-card p-8 text-white" role="region" aria-label="Wallet balance">
-        <p className="text-sm font-medium text-primary-100">Available Balance</p>
-        <p className="text-4xl font-bold mt-1">{formatNaira(wallet?.balance || 0)}</p>
-        <p className="text-sm text-primary-200 mt-1">Pending: {formatNaira(wallet?.pending || 0)}</p>
-        <div className="flex gap-3 mt-6">
-          <button onClick={() => setShowFund(true)} className="px-6 py-2.5 bg-white text-primary-700 rounded-xl font-medium hover:bg-primary-50 transition-colors flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" /> Fund Wallet
-          </button>
-          <button className="px-6 py-2.5 bg-white/20 text-white rounded-xl font-medium hover:bg-white/30 transition-colors flex items-center gap-2">
-            <CreditCard className="w-4 h-4" /> Withdraw
-          </button>
-        </div>
-      </div>
-
-      {showFund && (
-        <div className="bg-white rounded-2xl shadow-card p-6" role="dialog" aria-label="Fund wallet">
-          <h3 className="font-semibold text-gray-900 mb-4">Fund Wallet</h3>
-          <div className="flex items-center gap-3 max-w-sm">
-            <input type="number" value={fundAmount} onChange={e => setFundAmount(e.target.value)} placeholder="Amount (min ₦100)" className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500" aria-label="Amount to fund" />
-            <button onClick={handleFund} disabled={funding} className="px-6 py-2.5 bg-primary-600 text-white rounded-xl font-medium disabled:opacity-50 flex items-center gap-2">
-              {funding && <Loader2 className="w-4 h-4 animate-spin" />}
-              {funding ? 'Processing...' : 'Fund'}
-            </button>
-            <button onClick={() => setShowFund(false)} className="p-2.5 text-gray-400 hover:text-gray-600" aria-label="Close fund wallet"><XCircle className="w-5 h-5" /></button>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white rounded-2xl shadow-card p-8" role="region" aria-label="Transaction history">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Transaction History</h3>
-        {txns.length === 0 ? (
-          <EmptyState icon={CreditCard} title="No transactions yet" message="Fund your wallet to get started" action={() => setShowFund(true)} actionLabel="Fund Wallet" />
-        ) : (
-          <div className="space-y-3">
-            {txns.slice(0, 10).map((t: any, i: number) => (
-              <div key={t.id || i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl" role="listitem">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${t.type === 'credit' ? 'bg-green-100' : 'bg-red-100'}`}>
-                    {t.type === 'credit' ? <TrendingUp className="w-4 h-4 text-green-600" /> : <CreditCard className="w-4 h-4 text-red-600" />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{t.description || t.type}</p>
-                    <p className="text-xs text-gray-500">{t.created_at ? timeAgo(t.created_at) : ''}</p>
-                  </div>
-                </div>
-                <span className={`font-semibold text-sm ${t.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                  {t.type === 'credit' ? '+' : '-'}{formatNaira(t.amount)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ─── ACTIVITY TAB ─── */
 function ActivityTab() {
   const [savedAds, setSavedAds] = useState<any[]>([]);
