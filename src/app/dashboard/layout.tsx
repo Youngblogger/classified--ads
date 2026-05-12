@@ -281,7 +281,7 @@ export default function DashboardLayout({
         <div className="h-16" />
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="p-4 sm:p-6 lg:p-8 pb-20 md:pb-0">
           {children}
         </main>
       </div>
