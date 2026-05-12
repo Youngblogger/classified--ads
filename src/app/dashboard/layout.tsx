@@ -8,20 +8,6 @@ import Header from '@/components/home/Header';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
-function getAvatarUrl(url: string | null | undefined): string {
-  if (!url) return '';
-  let avatarUrl = url;
-  if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
-    return avatarUrl;
-  }
-  if (avatarUrl.startsWith('/storage/')) {
-    avatarUrl = `${API_URL}${avatarUrl}`;
-  } else {
-    avatarUrl = `${API_URL}/storage/${avatarUrl}`;
-  }
-  return avatarUrl;
-}
-
 // Icons as SVG components
 const DashboardIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -101,27 +87,9 @@ const LogoutIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const MenuIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-  </svg>
-);
-
 const CloseIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-  </svg>
-);
-
-const NotificationIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-  </svg>
-);
-
-const ChevronDownIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
   </svg>
 );
 
@@ -156,20 +124,6 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
   
   // Get auth functions from store
   const { user: authUser, logout, isAuthenticated, token } = useAuthStore();
@@ -230,9 +184,6 @@ export default function DashboardLayout({
     }
   }, [authUser, router]);
 
-  // Use auth user
-  const user = authUser;
-
   // Handle logout
   const handleLogout = async () => {
     try {
@@ -276,9 +227,9 @@ export default function DashboardLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:top-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } top-16`}
       >
         <div className="flex flex-col h-full">
           {/* Home Button */}
@@ -331,62 +282,9 @@ export default function DashboardLayout({
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Header - Match homepage style */}
-        <header className="sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-700 shadow-lg">
-          <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-            {/* Mobile menu button */}
-            <button
-              className="lg:hidden p-2 rounded-xl text-white hover:bg-primary-500 transition-colors"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <MenuIcon className="w-6 h-6" />
-            </button>
-
-            {/* Logo - visible on mobile */}
-            <Link href="/" className="lg:hidden flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-primary-600 font-bold text-sm">i</span>
-              </div>
-              <span className="text-white font-bold text-lg">iList</span>
-            </Link>
-
-            {/* Page Title */}
-            <div className="flex-1 lg:flex-none hidden lg:block">
-              <h1 className="text-lg font-semibold text-white">
-                {navigation.find(item => item.href === pathname)?.name || 'My Account'}
-              </h1>
-            </div>
-
-            {/* Right side actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Post Ad Button */}
-              <Link 
-                href="/dashboard/post-ad"
-                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-accent-600 text-white rounded-[7px] font-semibold text-sm hover:bg-accent-700 transition-colors shadow-sm mr-2"
-              >
-                <PlusIcon className="w-4 h-4" />
-                <span>SELL</span>
-              </Link>
-              {/* User Profile */}
-              <Link href="/dashboard/profile" className="flex-shrink-0">
-                <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center shadow-md">
-                  {user?.full_avatar_url || user?.avatar_url || user?.google_avatar ? (
-                    <img
-                      src={user?.full_avatar_url || user?.avatar_url || user?.google_avatar || ''}
-                      alt={user?.name || 'User'}
-                      className="w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  ) : (
-                    <span className="text-primary-600 font-bold text-sm">
-                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            </div>
-          </div>
-        </header>
+        <Header variant="dashboard" onMenuToggle={() => setSidebarOpen(true)} />
+        {/* Spacer for fixed header */}
+        <div className="h-16" />
 
         {/* Page content */}
         <main className="p-4 sm:p-6 lg:p-8">

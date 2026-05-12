@@ -8,10 +8,12 @@ import { adsApi } from '@/lib/api';
 import { getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store';
 import BoostPlansModal from '@/components/ui/BoostPlansModal';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getAuthToken } from '@/lib/cookies';
 import { getBoostCardClasses } from '@/lib/boost-config';
+import { Clock, ShieldCheck } from 'lucide-react';
 
 type StatusFilter = 'all' | 'active' | 'paused' | 'pending' | 'sold' | 'expired';
 
@@ -63,6 +65,8 @@ function AdSkeleton() {
 
 export default function MyAdsPage() {
   const router = useRouter();
+  const { user: authUser, hasHydrated } = useAuthStore();
+  const currentUserId = authUser?.id;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [ads, setAds] = useState<any[]>([]);
@@ -108,11 +112,21 @@ export default function MyAdsPage() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchAds = useCallback(async () => {
+    if (!hasHydrated || currentUserId === undefined) return;
     try {
       setLoading(true);
       const params = statusFilter === 'all' ? {} : { status: statusFilter };
       const res = await adsApi.getMyAds(params);
-      setAds(res.data.data || res.data || []);
+      const fetchedAds = res.data.data || res.data || [];
+      const ownedAds = fetchedAds.filter((ad: any) => {
+        const adUserId = ad.user_id ?? ad.user?.id ?? null;
+        if (adUserId === null) return false;
+        return Number(adUserId) === Number(currentUserId);
+      });
+      if (ownedAds.length !== fetchedAds.length) {
+        console.warn(`Filtered out ${fetchedAds.length - ownedAds.length} ad(s) not owned by current user`);
+      }
+      setAds(ownedAds);
     } catch (error) {
       console.error('Failed to fetch ads:', error);
       setAds([]);
@@ -120,7 +134,7 @@ export default function MyAdsPage() {
       setLoading(false);
       setIsInitialLoad(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, currentUserId, hasHydrated]);
 
   useEffect(() => {
     fetchAds();
@@ -171,19 +185,14 @@ export default function MyAdsPage() {
     if (!closeModal.adId) return;
     setClosing(true);
     setCloseModal({ show: false, adId: null, adTitle: null });
+    const previousAds = [...ads];
+    setAds(prev => prev.map(ad => ad.id === closeModal.adId ? { ...ad, status: 'sold' } : ad));
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/ads/${closeModal.adId}/close`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
-      if (!response.ok) throw new Error('Failed to close ad');
-      toast.success('Ad closed successfully');
+      await adsApi.sold(closeModal.adId);
+      toast.success('Ad marked as sold');
       fetchAds();
     } catch {
+      setAds(previousAds);
       toast.error('Failed to close ad');
       fetchAds();
     } finally {
@@ -264,7 +273,7 @@ export default function MyAdsPage() {
     return ads.filter(ad => ad.status === status).length;
   };
 
-  if (isInitialLoad) {
+  if (isInitialLoad || !hasHydrated) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -453,154 +462,180 @@ export default function MyAdsPage() {
                   <span>{formatDate(ad.created_at)}</span>
                 </div>
 
+                {/* Lifecycle / Boost Status */}
+                {ad.is_boosted && ad.boost_status === 'active' && (
+                  <div className="mb-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-600" />
+                        <span className="text-xs font-semibold text-amber-700">
+                          {ad.plan_name || 'Boosted'} • Active
+                        </span>
+                      </div>
+                      {ad.boost_end_time && (
+                        <div className="flex items-center gap-1 text-[10px] text-amber-600">
+                          <Clock className="w-3 h-3" />
+                          <span>Expires {formatDate(ad.boost_end_time)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions - Jiji/OLX style */}
                 <div className="border-t border-gray-100 pt-3">
                   {ad.status === 'active' && (
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <button
                         onClick={() => router.push(`/ad/${ad.slug || `ad-${ad.id}`}`)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl text-xs font-semibold text-blue-700 hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 hover:shadow-md hover:shadow-blue-100 active:scale-95 transition-all duration-200"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform" />
                         <span>View</span>
                       </button>
                       <Link
                         href={`/ad/edit/${ad.id}`}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-200 rounded-xl text-xs font-semibold text-sky-700 hover:from-sky-100 hover:to-cyan-100 hover:border-sky-300 hover:shadow-md hover:shadow-sky-100 active:scale-95 transition-all duration-200"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <Pencil className="w-3.5 h-3.5 shrink-0 group-hover:rotate-12 transition-transform duration-200" />
                         <span>Edit</span>
                       </Link>
-                      <button
-                        onClick={() => handlePromote(ad.id, ad.title, ad.category, ad.price)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-xs font-semibold hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
-                      >
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>Boost</span>
-                      </button>
+                      <div className="col-span-2 grid grid-cols-2 gap-1.5">
+                        <button
+                          onClick={() => handlePromote(ad.id, ad.title, ad.category, ad.price)}
+                          className={`group col-span-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold tracking-wide active:scale-95 transition-all duration-200 shadow-sm ${
+                            ad.is_boosted
+                              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 hover:shadow-lg hover:shadow-purple-200'
+                              : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700 hover:shadow-lg hover:shadow-amber-200'
+                          }`}
+                        >
+                          <Zap className="w-4 h-4 shrink-0 group-hover:scale-110 group-hover:animate-pulse transition-transform" />
+                          <span>{ad.is_boosted ? 'Manage Boost' : 'Boost Ad'}</span>
+                        </button>
+                      </div>
                       <button
                         onClick={() => handlePauseClick(ad.id, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-700 hover:from-amber-100 hover:to-yellow-100 hover:border-amber-300 hover:shadow-md hover:shadow-amber-100 active:scale-95 transition-all duration-200"
                       >
-                        <PauseCircle className="w-3.5 h-3.5" />
+                        <PauseCircle className="w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform" />
                         <span>Pause</span>
                       </button>
                       <button
                         onClick={() => handleCloseClick(ad.id, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-gray-50 to-slate-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:from-gray-100 hover:to-slate-200 hover:border-gray-300 hover:shadow-md hover:shadow-gray-100 active:scale-95 transition-all duration-200"
                       >
-                        <Ban className="w-3.5 h-3.5" />
+                        <Ban className="w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform" />
                         <span>Sold</span>
                       </button>
                     </div>
                   )}
                   {ad.status === 'pending' && (
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <Link
                         href={`/ad/edit/${ad.id}`}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-200 rounded-xl text-xs font-semibold text-sky-700 hover:from-sky-100 hover:to-cyan-100 hover:border-sky-300 hover:shadow-md hover:shadow-sky-100 active:scale-95 transition-all duration-200"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <Pencil className="w-3.5 h-3.5 shrink-0 group-hover:rotate-12 transition-transform" />
                         <span>Edit</span>
                       </Link>
                       <button
                         onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-red-500 hover:border-red-300 hover:bg-red-50 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600 hover:from-red-100 hover:to-rose-100 hover:border-red-300 hover:shadow-md hover:shadow-red-100 active:scale-95 transition-all duration-200"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform" />
                         <span>Delete</span>
                       </button>
                     </div>
                   )}
                   {ad.status === 'paused' && (
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <button
                         onClick={() => handleReactivateClick(ad.id, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg text-xs font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-sm"
+                        className="group col-span-2 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl text-xs font-bold tracking-wide hover:from-emerald-600 hover:to-green-700 hover:shadow-lg hover:shadow-emerald-200 active:scale-95 transition-all duration-200 shadow-sm"
                       >
-                        <Play className="w-3.5 h-3.5" />
+                        <Play className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" />
                         <span>Reactivate</span>
                       </button>
                       <Link
                         href={`/ad/edit/${ad.id}`}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-200 rounded-xl text-xs font-semibold text-sky-700 hover:from-sky-100 hover:to-cyan-100 hover:border-sky-300 hover:shadow-md hover:shadow-sky-100 active:scale-95 transition-all duration-200"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <Pencil className="w-3.5 h-3.5 shrink-0 group-hover:rotate-12 transition-transform" />
                         <span>Edit</span>
                       </Link>
                       <button
-                        onClick={() => handleCloseClick(ad.id, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600 transition-all"
+                        onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600 hover:from-red-100 hover:to-rose-100 hover:border-red-300 hover:shadow-md hover:shadow-red-100 active:scale-95 transition-all duration-200"
                       >
-                        <Ban className="w-3.5 h-3.5" />
-                        <span>Sold</span>
+                        <Trash2 className="w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform" />
+                        <span>Delete</span>
                       </button>
                       <button
-                        onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-red-500 hover:border-red-300 hover:bg-red-50 transition-all"
+                        onClick={() => handleCloseClick(ad.id, ad.title)}
+                        className="group col-span-2 flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-gray-50 to-slate-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:from-gray-100 hover:to-slate-200 hover:border-gray-300 hover:shadow-md hover:shadow-gray-100 active:scale-95 transition-all duration-200"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Delete</span>
+                        <Ban className="w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform" />
+                        <span>Mark as Sold</span>
                       </button>
                     </div>
                   )}
                   {ad.status === 'sold' && (
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        onClick={() => handleRenewClick(ad.id, ad.title)}
+                        className="group col-span-2 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl text-xs font-bold tracking-wide hover:from-emerald-600 hover:to-teal-700 hover:shadow-lg hover:shadow-emerald-200 active:scale-95 transition-all duration-200 shadow-sm"
+                      >
+                        <RefreshCw className="w-4 h-4 shrink-0 group-hover:rotate-180 transition-transform duration-500" />
+                        <span>Renew Ad</span>
+                      </button>
                       <Link
                         href={`/ad/edit/${ad.id}`}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-200 rounded-xl text-xs font-semibold text-sky-700 hover:from-sky-100 hover:to-cyan-100 hover:border-sky-300 hover:shadow-md hover:shadow-sky-100 active:scale-95 transition-all duration-200"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <Pencil className="w-3.5 h-3.5 shrink-0 group-hover:rotate-12 transition-transform" />
                         <span>Edit</span>
                       </Link>
                       <button
-                        onClick={() => handleRenewClick(ad.id, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600 transition-all"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Renew</span>
-                      </button>
-                      <button
                         onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-red-500 hover:border-red-300 hover:bg-red-50 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600 hover:from-red-100 hover:to-rose-100 hover:border-red-300 hover:shadow-md hover:shadow-red-100 active:scale-95 transition-all duration-200"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform" />
                         <span>Delete</span>
                       </button>
                     </div>
                   )}
                   {ad.status === 'rejected' && (
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <Link
                         href={`/ad/edit/${ad.id}`}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-200 rounded-xl text-xs font-semibold text-sky-700 hover:from-sky-100 hover:to-cyan-100 hover:border-sky-300 hover:shadow-md hover:shadow-sky-100 active:scale-95 transition-all duration-200"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
-                        <span>Edit</span>
+                        <Pencil className="w-3.5 h-3.5 shrink-0 group-hover:rotate-12 transition-transform" />
+                        <span>Edit & Resubmit</span>
                       </Link>
                       <button
                         onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-red-500 hover:border-red-300 hover:bg-red-50 transition-all"
+                        className="group flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600 hover:from-red-100 hover:to-rose-100 hover:border-red-300 hover:shadow-md hover:shadow-red-100 active:scale-95 transition-all duration-200"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform" />
                         <span>Delete</span>
                       </button>
                     </div>
                   )}
                   {ad.status === 'expired' && (
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <button
                         onClick={() => handleRenewClick(ad.id, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg text-xs font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-sm"
+                        className="group col-span-2 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl text-xs font-bold tracking-wide hover:from-emerald-600 hover:to-teal-700 hover:shadow-lg hover:shadow-emerald-200 active:scale-95 transition-all duration-200 shadow-sm"
                       >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Renew</span>
+                        <RefreshCw className="w-4 h-4 shrink-0 group-hover:rotate-180 transition-transform duration-500" />
+                        <span>Renew Ad</span>
                       </button>
                       <button
                         onClick={() => handleDeleteClick(ad.id, ad.slug || `ad-${ad.id}`, ad.title)}
-                        className="flex items-center gap-1.5 flex-1 justify-center px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-red-500 hover:border-red-300 hover:bg-red-50 transition-all"
+                        className="group col-span-2 flex items-center justify-center gap-1.5 px-2.5 py-2 bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600 hover:from-red-100 hover:to-rose-100 hover:border-red-300 hover:shadow-md hover:shadow-red-100 active:scale-95 transition-all duration-200"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform" />
                         <span>Delete</span>
                       </button>
                     </div>
@@ -650,14 +685,14 @@ export default function MyAdsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteModal({ show: false, adId: null, adSlug: null, adTitle: null })}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 rounded-xl font-medium hover:from-gray-200 hover:to-gray-300 hover:shadow-md active:scale-95 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl font-medium hover:from-red-700 hover:to-rose-700 hover:shadow-lg hover:shadow-red-200 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? 'Deleting...' : 'Delete'}
               </button>
@@ -688,14 +723,14 @@ export default function MyAdsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setCloseModal({ show: false, adId: null, adTitle: null })}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 rounded-xl font-medium hover:from-gray-200 hover:to-gray-300 hover:shadow-md active:scale-95 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmClose}
                 disabled={closing}
-                className="flex-1 px-4 py-2.5 bg-gray-700 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-gray-700 to-slate-800 text-white rounded-xl font-medium hover:from-gray-800 hover:to-slate-900 hover:shadow-lg hover:shadow-gray-200 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {closing ? 'Closing...' : 'Close Ad'}
               </button>
@@ -726,14 +761,14 @@ export default function MyAdsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setRenewModal({ show: false, adId: null, adTitle: null })}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 rounded-xl font-medium hover:from-gray-200 hover:to-gray-300 hover:shadow-md active:scale-95 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmRenew}
                 disabled={renewing}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-medium hover:from-emerald-600 hover:to-teal-700 hover:shadow-lg hover:shadow-emerald-200 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {renewing ? 'Renewing...' : 'Renew Ad'}
               </button>
@@ -764,14 +799,14 @@ export default function MyAdsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setPauseModal({ show: false, adId: null, adTitle: null })}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 rounded-xl font-medium hover:from-gray-200 hover:to-gray-300 hover:shadow-md active:scale-95 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmPause}
                 disabled={pausing}
-                className="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl font-medium hover:bg-amber-700 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-medium hover:from-amber-600 hover:to-orange-700 hover:shadow-lg hover:shadow-amber-200 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {pausing ? 'Pausing...' : 'Pause Ad'}
               </button>
@@ -802,14 +837,14 @@ export default function MyAdsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setReactivateModal({ show: false, adId: null, adTitle: null })}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 rounded-xl font-medium hover:from-gray-200 hover:to-gray-300 hover:shadow-md active:scale-95 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmReactivate}
                 disabled={reactivating}
-                className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-medium hover:from-emerald-600 hover:to-green-700 hover:shadow-lg hover:shadow-emerald-200 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {reactivating ? 'Reactivating...' : 'Reactivate Ad'}
               </button>

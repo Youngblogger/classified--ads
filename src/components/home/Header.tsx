@@ -209,7 +209,7 @@ function formatNotificationTime(dateString: string): string {
   return date.toLocaleDateString();
 }
 
-export default function Header() {
+export default function Header({ variant = 'home', onMenuToggle }: { variant?: 'home' | 'dashboard'; onMenuToggle?: () => void }) {
   const router = useRouter();
   const { isAuthenticated, user, logout, hasHydrated } = useAuthStore();
   const { toggleLoginModal, toggleRegisterModal, toggleLocationModal } = useUIStore();
@@ -702,26 +702,28 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-primary-600">
       {/* TOP BAR */}
-      <div className="bg-primary-600">
-        <div className="container-app">
-          <div className="flex items-center justify-between h-10 text-sm">
-            {/* Left - Location */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={openLocationModal}
-                className="flex items-center gap-1.5 text-white hover:text-primary-100 transition-colors"
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline capitalize">{selectedLocationState.toLowerCase()}</span>
-              </button>
-            </div>
+      {variant === 'home' && (
+        <div className="bg-primary-600">
+          <div className="container-app">
+            <div className="flex items-center justify-between h-10 text-sm">
+              {/* Left - Location */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={openLocationModal}
+                  className="flex items-center gap-1.5 text-white hover:text-primary-100 transition-colors"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline capitalize">{selectedLocationState.toLowerCase()}</span>
+                </button>
+              </div>
 
-            {/* Right - Links */}
-            <div className="flex items-center gap-4">
+              {/* Right - Links */}
+              <div className="flex items-center gap-4">
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* MAIN HEADER */}
       <div className="bg-primary-600 shadow-header h-16">
@@ -739,6 +741,7 @@ export default function Header() {
             </Link>
 
             {/* Desktop Search Bar */}
+            {variant === 'home' && (
             <div className="hidden md:flex flex-1 max-w-2xl">
               <div className="relative flex w-full items-center" ref={searchRef}>
                 <div className="relative group w-full">
@@ -947,14 +950,25 @@ export default function Header() {
                 )}
               </div>
             </div>
+            )}
 
             {/* Right Side Actions */}
             <div className="flex items-center gap-2">
+              {/* Mobile hamburger for dashboard */}
+              {variant === 'dashboard' && (
+                <button
+                  onClick={() => onMenuToggle?.()}
+                  className="lg:hidden p-2 rounded-xl text-white"
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
+              )}
               {/* Desktop Actions */}
               <div className="hidden md:flex items-center gap-1">
                 {isAuthenticated ? (
                   <>
                     {/* Notifications Bell with Tabs */}
+                    {variant === 'home' && (
                     <div className="relative" ref={notificationRef}>
                       <button 
                         onClick={() => setNotificationOpen(!notificationOpen)}
@@ -1143,10 +1157,13 @@ export default function Header() {
                         </div>
                       )}
                     </div>
+                    )}
                     
+                    {variant === 'home' && (
                     <Link href="/dashboard/favorites" className="p-2.5 rounded-xl">
                       <Heart className="w-5 h-5 text-white" />
                     </Link>
+                    )}
                     
                     {/* User Menu */}
                     <div className="relative ml-1" ref={userMenuRef}>
@@ -1187,7 +1204,7 @@ export default function Header() {
                           </div>
                           <Link href="/dashboard" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
                             <LayoutDashboard className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm text-slate-700">My Account</span>
+                            <span className="text-sm text-slate-700">Dashboard</span>
                           </Link>
                           <Link href="/dashboard/my-ads" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
                             <Package className="w-4 h-4 text-slate-500" />
@@ -1236,18 +1253,21 @@ export default function Header() {
               </div>
 
               {/* Post Ad Button */}
+              {variant === 'home' && (
               <Link
                 href="/post-ad"
                 className="hidden md:flex items-center md:px-4 lg:px-6 md:py-2 lg:py-2.5 mr-2 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-[7px] font-bold md:text-sm lg:text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-accent-400"
               >
                 SELL
               </Link>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* CATEGORY NAVIGATION BAR */}
+      {variant === 'home' && (
       <div className="bg-white border-b border-slate-200 relative z-10">
         <div className="container-app">
           <div className="flex items-center gap-2 py-3">
@@ -1407,9 +1427,10 @@ export default function Header() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Mobile Search Bar */}
-      {mobileSearchOpen && (
+      {variant === 'home' && mobileSearchOpen && (
         <div className="lg:hidden bg-white border-b border-slate-200 p-4">
           <div className="relative flex items-center">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />

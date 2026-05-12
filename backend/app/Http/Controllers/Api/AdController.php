@@ -334,12 +334,14 @@ class AdController extends Controller
     {
         try {
             $user = $request->user();
+            if (!$user) {
+                return response()->json(['error' => 'Unauthenticated'], 401);
+            }
             $limit = min((int) $request->input('limit', 20), 50);
             $page = max((int) $request->input('page', 1), 1);
 
-            $query = Ad::with(['images', 'category', 'location', 'activeBoost.plan'])
-                ->where('user_id', $user->id)
-                ->orderBy('created_at', 'desc');
+            $query = Ad::with(['images', 'category', 'location', 'activeBoost.plan', 'user'])
+                ->where('user_id', $user->id);
 
             if ($request->input('status')) {
                 $query->where('status', $request->input('status'));
