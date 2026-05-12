@@ -100,6 +100,7 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
+  { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
   { name: 'My Ads', href: '/dashboard/my-ads', icon: AdIcon },
   { name: 'Favorite Ads', href: '/dashboard/favorites', icon: HeartIcon },
   { name: 'Messages', href: '/dashboard/messages', icon: MessageIcon },
