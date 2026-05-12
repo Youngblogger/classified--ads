@@ -299,11 +299,11 @@ export default function ProfileSettingsPage() {
                 localStorage.setItem('user', JSON.stringify(updatedUser));
                 
                 // Update auth-storage as well
-                const authStorage = localStorage.getItem('auth-storage');
+                const authStorage = localStorage.getItem('user-auth-storage');
                 if (authStorage) {
                   const parsed = JSON.parse(authStorage);
                   parsed.state.user = updatedUser;
-                  localStorage.setItem('auth-storage', JSON.stringify(parsed));
+                  localStorage.setItem('user-auth-storage', JSON.stringify(parsed));
                 }
               } catch (e) {
                 console.error('Failed to update localStorage user:', e);
@@ -373,11 +373,11 @@ export default function ProfileSettingsPage() {
           const updatedUserStr = JSON.stringify(updatedUser);
           localStorage.setItem('user', updatedUserStr);
           
-          const authStorage = localStorage.getItem('auth-storage');
+          const authStorage = localStorage.getItem('user-auth-storage');
           if (authStorage) {
             const parsed = JSON.parse(authStorage);
             parsed.state.user = updatedUser;
-            localStorage.setItem('auth-storage', JSON.stringify(parsed));
+            localStorage.setItem('user-auth-storage', JSON.stringify(parsed));
           }
           
           // Save phone number for post-ad form auto-fill

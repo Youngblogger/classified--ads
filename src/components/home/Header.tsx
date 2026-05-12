@@ -1167,36 +1167,64 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                     
                     {/* User Menu */}
                     <div className="relative ml-1" ref={userMenuRef}>
-                      <button
-                        onClick={() => setShowUserMenu(!showUserMenu)}
-                        className="flex items-center gap-2 p-1.5 rounded-xl"
-                      >
-                        <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
-                          {(() => {
-                            const avatarUrl = getFullAvatarUrl(user);
-                            return avatarUrl ? (
-                              <Image 
-                                src={avatarUrl} 
-                                alt={user?.name || 'User'} 
-                                fill
-                                sizes="36px"
-                                className="object-cover"
-                                referrerPolicy="no-referrer"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <span className="text-primary-600 font-semibold text-sm">
-                                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                              </span>
-                            );
-                          })()}
+                      {variant === 'home' ? (
+                        <button
+                          onClick={() => setShowUserMenu(!showUserMenu)}
+                          className="flex items-center gap-2 p-1.5 rounded-xl"
+                        >
+                          <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
+                            {(() => {
+                              const avatarUrl = getFullAvatarUrl(user);
+                              return avatarUrl ? (
+                                <Image 
+                                  src={avatarUrl} 
+                                  alt={user?.name || 'User'} 
+                                  fill
+                                  sizes="36px"
+                                  className="object-cover"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-primary-600 font-semibold text-sm">
+                                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2 p-1.5 rounded-xl">
+                          <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
+                            {(() => {
+                              const avatarUrl = getFullAvatarUrl(user);
+                              return avatarUrl ? (
+                                <Image 
+                                  src={avatarUrl} 
+                                  alt={user?.name || 'User'} 
+                                  fill
+                                  sizes="36px"
+                                  className="object-cover"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-primary-600 font-semibold text-sm">
+                                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </div>
-                      </button>
+                      )}
                       
-                      {showUserMenu && (
+                      {showUserMenu && variant === 'home' && (
                         <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-slate-100 py-2 z-[9999]">
                           <div className="px-4 py-3 border-b border-slate-100">
                             <p className="font-semibold text-slate-900 truncate">{user?.name}</p>

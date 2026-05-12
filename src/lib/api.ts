@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { getCookie, setCookie, deleteCookie, getAuthToken } from '@/lib/cookies';
+import { getCookie, setCookie, deleteCookie, getUserToken, getAdminToken, getAuthToken } from '@/lib/cookies';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -28,23 +28,12 @@ class ApiClient {
 
       // Setup request interceptor
       this.client.interceptors.request.use((config) => {
-        // Try multiple ways to get the token
-        let token = getAuthToken();
-        
-        if (!token) {
-          // Try direct cookie access
-          token = getCookie('token');
-        }
-        
-        if (!token && typeof window !== 'undefined') {
-          token = localStorage.getItem('authToken');
-        }
+        const token = getUserToken();
         
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
-        // Only prevent caching for authenticated POST/PUT/PATCH/DELETE requests
         if (token && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
           config.headers['Cache-Control'] = 'no-cache';
         }
@@ -94,26 +83,15 @@ class ApiClient {
           }
           
           if (axiosError.response?.status === 401) {
-            const url = axiosError.config?.url || '';
+            deleteCookie('token');
             
-            const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
-            const isAdminEndpoint = url.includes('/admin/') || url.includes('/secure-control-9ja/');
-            
-            if (!isAuthEndpoint && !isAdminEndpoint) {
-              // Don't delete token immediately
-            } else if (isAdminEndpoint && !isAuthEndpoint) {
-              deleteCookie('token');
-              
-              if (typeof window !== 'undefined') {
-                const isAlreadyRedirecting = (window as any).__adminAuthRedirecting;
-                  
-                if (!isAlreadyRedirecting) {
-                  (window as any).__adminAuthRedirecting = true;
-                  
-                  setTimeout(() => {
-                    window.location.href = '/session-expired?admin=true';
-                  }, 500);
-                }
+            if (typeof window !== 'undefined') {
+              const isAlreadyRedirecting = (window as any).__userAuthRedirecting;
+              if (!isAlreadyRedirecting) {
+                (window as any).__userAuthRedirecting = true;
+                setTimeout(() => {
+                  window.location.href = '/login';
+                }, 500);
               }
             }
           }
@@ -177,7 +155,7 @@ class ApiClient {
     formData: FormData,
     onProgress?: (progress: number) => void
   ): Promise<AxiosResponse<T>> {
-    const token = getAuthToken() || getCookie('token');
+    const token = getUserToken();
     return this.client.post<T>(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -194,6 +172,150 @@ class ApiClient {
 }
 
 export const api = new ApiClient();
+
+// Admin API Client - completely separate from user ApiClient
+// Uses admin_token cookie instead of user token
+class AdminApiClient {
+    private client: AxiosInstance;
+
+    constructor() {
+      this.client = axios.create({
+        baseURL: API_BASE_URL,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+        withCredentials: true,
+      });
+
+      this.client.interceptors.request.use((config) => {
+        const token = getAdminToken();
+        
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        
+        if (token && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+          config.headers['Cache-Control'] = 'no-cache';
+        }
+        return config;
+      });
+
+      this.client.interceptors.response.use(
+        (response) => response,
+        async (error: AxiosError) => {
+          const axiosError = error as AxiosError<{ message?: string; success?: boolean; errors?: any }>;
+          
+          if (axiosError.response?.status === 429) {
+            const data = axiosError.response?.data as any;
+            const msg = data?.message || 'Too many requests. Please slow down.';
+            toast.error(msg);
+            return Promise.reject(error);
+          }
+
+          const config = axiosError.config as any;
+          if (
+            axiosError.response?.status &&
+            axiosError.response.status >= 500 &&
+            axiosError.response.status < 600 &&
+            config &&
+            !config._retryCount
+          ) {
+            config._retryCount = (config._retryCount || 0) + 1;
+            const maxRetries = 2;
+            if (config._retryCount <= maxRetries) {
+              const delay = config._retryCount * 1000;
+              await new Promise(resolve => setTimeout(resolve, delay));
+              return this.client(config);
+            }
+          }
+
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[Admin API Error]', {
+              url: axiosError.config?.url,
+              method: axiosError.config?.method,
+              status: axiosError.response?.status,
+              data: axiosError.response?.data,
+              message: axiosError.message,
+            });
+          }
+
+          if (axiosError.response?.status === 401) {
+            deleteCookie('admin_token');
+
+            if (typeof window !== 'undefined') {
+              const isAlreadyRedirecting = (window as any).__adminAuthRedirecting;
+              if (!isAlreadyRedirecting) {
+                (window as any).__adminAuthRedirecting = true;
+                setTimeout(() => {
+                  window.location.href = '/session-expired?admin=true';
+                }, 500);
+              }
+            }
+          }
+
+          if (axiosError.code === 'ECONNABORTED') {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('[Admin API] Request timeout');
+            }
+            toast.error('Request timed out. Please try again.');
+          }
+
+          if (axiosError.code === 'ERR_NETWORK' || axiosError.message === 'Network Error') {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('[Admin API] Network error - backend may not be running');
+            }
+            toast.error('Cannot connect to server. Please ensure the backend is running.');
+          }
+
+          return Promise.reject(error);
+        }
+      );
+    }
+
+  async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.get<T>(url, config);
+  }
+
+  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.post<T>(url, data, config);
+  }
+
+  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.put<T>(url, data, config);
+  }
+
+  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.patch<T>(url, data, config);
+  }
+
+  async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.delete<T>(url, config);
+  }
+
+  async upload<T = any>(
+    url: string,
+    formData: FormData,
+    onProgress?: (progress: number) => void
+  ): Promise<AxiosResponse<T>> {
+    const token = getAdminToken();
+    return this.client.post<T>(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(progress);
+        }
+      },
+    });
+  }
+}
+
+export const adminApiClient = new AdminApiClient();
 
 // Auth API
 export const authApi = {
@@ -409,149 +531,149 @@ const STEALTH_PREFIX = '/secure-control-9ja';
 
 export const adminApi = {
   // Dashboard
-  getDashboard: () => api.get(`${STEALTH_PREFIX}/dashboard`),
-  getPaymentStats: () => api.get(`${STEALTH_PREFIX}/payments/stats`),
-  getPayments: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/payments`, { params }),
-  getFinancialSummary: () => api.get(`${STEALTH_PREFIX}/payments/summary`),
-  approvePayment: (id: number) => api.post(`${STEALTH_PREFIX}/payments/${id}/approve`),
-  rejectPayment: (id: number) => api.post(`${STEALTH_PREFIX}/payments/${id}/reject`),
+  getDashboard: () => adminApiClient.get(`${STEALTH_PREFIX}/dashboard`),
+  getPaymentStats: () => adminApiClient.get(`${STEALTH_PREFIX}/payments/stats`),
+  getPayments: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/payments`, { params }),
+  getFinancialSummary: () => adminApiClient.get(`${STEALTH_PREFIX}/payments/summary`),
+  approvePayment: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/payments/${id}/approve`),
+  rejectPayment: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/payments/${id}/reject`),
 
   // Boosts
-  getBoosts: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/boosts`, { params }),
-  getBoostActiveAds: () => api.get(`${STEALTH_PREFIX}/boosts/active-ads`),
-  deactivateBoost: (id: number) => api.post(`${STEALTH_PREFIX}/boosts/${id}/deactivate`),
-  extendBoost: (id: number, days: number) => api.post(`${STEALTH_PREFIX}/boosts/${id}/extend`, { days }),
+  getBoosts: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/boosts`, { params }),
+  getBoostActiveAds: () => adminApiClient.get(`${STEALTH_PREFIX}/boosts/active-ads`),
+  deactivateBoost: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/boosts/${id}/deactivate`),
+  extendBoost: (id: number, days: number) => adminApiClient.post(`${STEALTH_PREFIX}/boosts/${id}/extend`, { days }),
 
   // Users
-  getUsers: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/users`, { params }),
-  suspendUser: (id: number) => api.post(`${STEALTH_PREFIX}/users/${id}/suspend`),
-  banUser: (id: number, reason: string) => api.post(`${STEALTH_PREFIX}/users/${id}/ban`, { reason }),
-  activateUser: (id: number) => api.post(`${STEALTH_PREFIX}/users/${id}/activate`),
-  deleteUser: (id: number) => api.delete(`${STEALTH_PREFIX}/users/${id}`),
+  getUsers: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/users`, { params }),
+  suspendUser: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/users/${id}/suspend`),
+  banUser: (id: number, reason: string) => adminApiClient.post(`${STEALTH_PREFIX}/users/${id}/ban`, { reason }),
+  activateUser: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/users/${id}/activate`),
+  deleteUser: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/users/${id}`),
 
   // Ads
-  getAds: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/ads`, { params }),
+  getAds: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/ads`, { params }),
 
   // Public ads
-  getPublicAds: (params?: Record<string, any>) => api.get('/ads', { params }),
-  approveAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/approve`),
-  rejectAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/reject`),
-  verifyAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/verify`),
-  featureAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/feature`),
-  promoteAd: (id: number) => api.post(`${STEALTH_PREFIX}/ads/${id}/promote`),
-  deleteAd: (id: number) => api.delete(`${STEALTH_PREFIX}/ads/${id}`),
-  bulkDeleteAds: (ids: number[]) => api.post(`${STEALTH_PREFIX}/ads/bulk-delete`, { ids }),
-  updateAd: (id: number, data: any) => api.put(`${STEALTH_PREFIX}/ads/${id}`, data),
+  getPublicAds: (params?: Record<string, any>) => adminApiClient.get('/ads', { params }),
+  approveAd: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/ads/${id}/approve`),
+  rejectAd: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/ads/${id}/reject`),
+  verifyAd: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/ads/${id}/verify`),
+  featureAd: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/ads/${id}/feature`),
+  promoteAd: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/ads/${id}/promote`),
+  deleteAd: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/ads/${id}`),
+  bulkDeleteAds: (ids: number[]) => adminApiClient.post(`${STEALTH_PREFIX}/ads/bulk-delete`, { ids }),
+  updateAd: (id: number, data: any) => adminApiClient.put(`${STEALTH_PREFIX}/ads/${id}`, data),
 
   // Categories
-  getCategories: () => api.get(`${STEALTH_PREFIX}/categories`),
-  createCategory: (data: any) => api.post(`${STEALTH_PREFIX}/categories`, data),
-  updateCategory: (id: number, data: any) => api.put(`${STEALTH_PREFIX}/categories/${id}`, data),
-  deleteCategory: (id: number) => api.delete(`${STEALTH_PREFIX}/categories/${id}`),
+  getCategories: () => adminApiClient.get(`${STEALTH_PREFIX}/categories`),
+  createCategory: (data: any) => adminApiClient.post(`${STEALTH_PREFIX}/categories`, data),
+  updateCategory: (id: number, data: any) => adminApiClient.put(`${STEALTH_PREFIX}/categories/${id}`, data),
+  deleteCategory: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/categories/${id}`),
 
   // Reports
-  getReports: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/reports`, { params }),
-  resolveReport: (id: number) => api.post(`${STEALTH_PREFIX}/reports/${id}/resolve`),
-  dismissReport: (id: number) => api.post(`${STEALTH_PREFIX}/reports/${id}/dismiss`),
+  getReports: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/reports`, { params }),
+  resolveReport: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/reports/${id}/resolve`),
+  dismissReport: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/reports/${id}/dismiss`),
 
   // Admin Wallet
-  getAdminWallet: () => api.get(`${STEALTH_PREFIX}/wallet`),
+  getAdminWallet: () => adminApiClient.get(`${STEALTH_PREFIX}/wallet`),
   creditUser: (userId: number, amount: number, description: string) =>
-    api.post(`${STEALTH_PREFIX}/wallets/credit`, { user_id: userId, amount, description }),
+    adminApiClient.post(`${STEALTH_PREFIX}/wallets/credit`, { user_id: userId, amount, description }),
   debitUser: (userId: number, amount: number, description: string) =>
-    api.post(`${STEALTH_PREFIX}/wallets/debit`, { user_id: userId, amount, description }),
+    adminApiClient.post(`${STEALTH_PREFIX}/wallets/debit`, { user_id: userId, amount, description }),
   adminWithdraw: (amount: number, bankName: string, accountNumber: string, accountName: string, description?: string) =>
-    api.post(`${STEALTH_PREFIX}/withdraw`, { amount, bank_name: bankName, account_number: accountNumber, account_name: accountName, description }),
-  getTransactions: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/transactions`, { params }),
+    adminApiClient.post(`${STEALTH_PREFIX}/withdraw`, { amount, bank_name: bankName, account_number: accountNumber, account_name: accountName, description }),
+  getTransactions: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/transactions`, { params }),
 
   // Wallets
-  getWallets: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/wallets`, { params }),
+  getWallets: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/wallets`, { params }),
   creditWallet: (id: number, amount: number, description: string) => 
-    api.post(`${STEALTH_PREFIX}/wallets/${id}/credit`, { amount, description }),
+    adminApiClient.post(`${STEALTH_PREFIX}/wallets/${id}/credit`, { amount, description }),
   debitWallet: (id: number, amount: number, description: string) => 
-    api.post(`${STEALTH_PREFIX}/wallets/${id}/debit`, { amount, description }),
+    adminApiClient.post(`${STEALTH_PREFIX}/wallets/${id}/debit`, { amount, description }),
 
   // Promotions
-  getPromotions: () => api.get(`${STEALTH_PREFIX}/promotions`),
-  createPromotion: (data: any) => api.post(`${STEALTH_PREFIX}/promotions`, data),
-  updatePromotion: (id: number, data: any) => api.put(`${STEALTH_PREFIX}/promotions/${id}`, data),
-  deletePromotion: (id: number) => api.delete(`${STEALTH_PREFIX}/promotions/${id}`),
+  getPromotions: () => adminApiClient.get(`${STEALTH_PREFIX}/promotions`),
+  createPromotion: (data: any) => adminApiClient.post(`${STEALTH_PREFIX}/promotions`, data),
+  updatePromotion: (id: number, data: any) => adminApiClient.put(`${STEALTH_PREFIX}/promotions/${id}`, data),
+  deletePromotion: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/promotions/${id}`),
 
   // Promotion Plans
-  getPromotionPlans: () => api.get(`${STEALTH_PREFIX}/promotion-plans`),
-  createPromotionPlan: (data: any) => api.post(`${STEALTH_PREFIX}/promotion-plans`, data),
-  updatePromotionPlan: (id: number, data: any) => api.put(`${STEALTH_PREFIX}/promotion-plans/${id}`, data),
-  deletePromotionPlan: (id: number) => api.delete(`${STEALTH_PREFIX}/promotion-plans/${id}`),
+  getPromotionPlans: () => adminApiClient.get(`${STEALTH_PREFIX}/promotion-plans`),
+  createPromotionPlan: (data: any) => adminApiClient.post(`${STEALTH_PREFIX}/promotion-plans`, data),
+  updatePromotionPlan: (id: number, data: any) => adminApiClient.put(`${STEALTH_PREFIX}/promotion-plans/${id}`, data),
+  deletePromotionPlan: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/promotion-plans/${id}`),
 
   // Banners
-  getBanners: () => api.get(`${STEALTH_PREFIX}/banners`),
-  createBanner: (data: FormData) => api.upload(`${STEALTH_PREFIX}/banners`, data),
-  updateBanner: (id: number, data: FormData) => api.post(`${STEALTH_PREFIX}/banners/${id}`, data),
-  deleteBanner: (id: number) => api.delete(`${STEALTH_PREFIX}/banners/${id}`),
+  getBanners: () => adminApiClient.get(`${STEALTH_PREFIX}/banners`),
+  createBanner: (data: FormData) => adminApiClient.upload(`${STEALTH_PREFIX}/banners`, data),
+  updateBanner: (id: number, data: FormData) => adminApiClient.post(`${STEALTH_PREFIX}/banners/${id}`, data),
+  deleteBanner: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/banners/${id}`),
 
   // Broadcasts
-  getBroadcasts: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/broadcasts`, { params }),
-  getBroadcast: (id: number) => api.get(`${STEALTH_PREFIX}/broadcasts/${id}`),
+  getBroadcasts: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/broadcasts`, { params }),
+  getBroadcast: (id: number) => adminApiClient.get(`${STEALTH_PREFIX}/broadcasts/${id}`),
   createBroadcast: (data: { title: string; message: string; recipient_type: string }) => 
-    api.post(`${STEALTH_PREFIX}/broadcast`, data),
-  resendBroadcast: (id: number) => api.post(`${STEALTH_PREFIX}/broadcasts/${id}/resend`),
-  deleteBroadcast: (id: number) => api.delete(`${STEALTH_PREFIX}/broadcasts/${id}`),
+    adminApiClient.post(`${STEALTH_PREFIX}/broadcast`, data),
+  resendBroadcast: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/broadcasts/${id}/resend`),
+  deleteBroadcast: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/broadcasts/${id}`),
 
   // Settings
-  getSettings: () => api.get(`${STEALTH_PREFIX}/settings`),
-  updateSettings: (data: any) => api.put(`${STEALTH_PREFIX}/settings`, data),
+  getSettings: () => adminApiClient.get(`${STEALTH_PREFIX}/settings`),
+  updateSettings: (data: any) => adminApiClient.put(`${STEALTH_PREFIX}/settings`, data),
 
   // Watermark
-  getWatermarkSettings: () => api.get(`${STEALTH_PREFIX}/watermark`),
-  updateWatermarkSettings: (data: any) => api.put(`${STEALTH_PREFIX}/watermark`, data),
+  getWatermarkSettings: () => adminApiClient.get(`${STEALTH_PREFIX}/watermark`),
+  updateWatermarkSettings: (data: any) => adminApiClient.put(`${STEALTH_PREFIX}/watermark`, data),
   uploadWatermarkLogo: (file: File) => {
     const formData = new FormData();
     formData.append('logo', file);
-    return api.upload(`${STEALTH_PREFIX}/watermark/logo`, formData);
+    return adminApiClient.upload(`${STEALTH_PREFIX}/watermark/logo`, formData);
   },
 
   // Category Fields
-  getCategoryFields: (params?: Record<string, any>) => api.get('/category-fields', { params }),
-  createCategoryField: (categoryId: number, data: any) => api.post('/category-fields', { ...data, category_id: categoryId }),
-  updateCategoryField: (id: number, data: any) => api.put(`/category-fields/${id}`, data),
-  deleteCategoryField: (id: number) => api.delete(`/category-fields/${id}`),
+  getCategoryFields: (params?: Record<string, any>) => adminApiClient.get('/category-fields', { params }),
+  createCategoryField: (categoryId: number, data: any) => adminApiClient.post('/category-fields', { ...data, category_id: categoryId }),
+  updateCategoryField: (id: number, data: any) => adminApiClient.put(`/category-fields/${id}`, data),
+  deleteCategoryField: (id: number) => adminApiClient.delete(`/category-fields/${id}`),
 
   // Fonts
-  getFonts: () => api.get(`${STEALTH_PREFIX}/fonts`),
+  getFonts: () => adminApiClient.get(`${STEALTH_PREFIX}/fonts`),
   uploadFont: (file: File, name: string) => {
     const formData = new FormData();
     formData.append('font', file);
     formData.append('name', name);
-    return api.post(`${STEALTH_PREFIX}/fonts`, formData);
+    return adminApiClient.post(`${STEALTH_PREFIX}/fonts`, formData);
   },
-  deleteFont: (id: number) => api.delete(`${STEALTH_PREFIX}/fonts/${id}`),
-  setDefaultFont: (id: number) => api.post(`${STEALTH_PREFIX}/fonts/${id}/default`),
+  deleteFont: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/fonts/${id}`),
+  setDefaultFont: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/fonts/${id}/default`),
 
   // Ad Images
   addAdImages: (adId: number, files: File[]) => {
     const formData = new FormData();
     files.forEach((file) => formData.append('images[]', file));
-    return api.upload(`${STEALTH_PREFIX}/ad/${adId}/images`, formData);
+    return adminApiClient.upload(`${STEALTH_PREFIX}/ad/${adId}/images`, formData);
   },
   updateAdImage: (adId: number, imageId: number, data: { is_primary?: boolean; sort_order?: number }) =>
-    api.put(`${STEALTH_PREFIX}/ad/${adId}/images/${imageId}`, data),
-  deleteAdImage: (adId: number, imageId: number) => api.delete(`${STEALTH_PREFIX}/ad/${adId}/images/${imageId}`),
+    adminApiClient.put(`${STEALTH_PREFIX}/ad/${adId}/images/${imageId}`, data),
+  deleteAdImage: (adId: number, imageId: number) => adminApiClient.delete(`${STEALTH_PREFIX}/ad/${adId}/images/${imageId}`),
 
   // Analytics
-  getAnalytics: (params?: Record<string, any>) => api.get(`${STEALTH_PREFIX}/analytics`, { params }),
-  getStatesAnalytics: (params?: Record<string, any>) => api.get('/admin/analytics/states', { params }),
+  getAnalytics: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/analytics`, { params }),
+  getStatesAnalytics: (params?: Record<string, any>) => adminApiClient.get('/admin/analytics/states', { params }),
 
   // Reviews
-  getReviewSummary: (adId: number) => api.get(`/ads/${adId}/reviews/summary`),
-  getLatestReviews: (adId: number) => api.get(`/ads/${adId}/reviews/latest`),
-  getReviews: (adId: number, params?: Record<string, any>) => api.get(`/ads/${adId}/reviews`, { params }),
+  getReviewSummary: (adId: number) => adminApiClient.get(`/ads/${adId}/reviews/summary`),
+  getLatestReviews: (adId: number) => adminApiClient.get(`/ads/${adId}/reviews/latest`),
+  getReviews: (adId: number, params?: Record<string, any>) => adminApiClient.get(`/ads/${adId}/reviews`, { params }),
   createReview: (adId: number, data: { rating: number; comment?: string }) => 
-    api.post(`/ads/${adId}/reviews`, data),
+    adminApiClient.post(`/ads/${adId}/reviews`, data),
   updateReview: (id: number, data: { rating?: number; comment?: string }) => 
-    api.put(`/reviews/${id}`, data),
-  deleteReview: (id: number) => api.delete(`/reviews/${id}`),
-  markReviewHelpful: (id: number) => api.post(`/reviews/${id}/helpful`),
-  reportReview: (id: number, reason: string) => api.post(`/reviews/${id}/report`, { reason }),
+    adminApiClient.put(`/reviews/${id}`, data),
+  deleteReview: (id: number) => adminApiClient.delete(`/reviews/${id}`),
+  markReviewHelpful: (id: number) => adminApiClient.post(`/reviews/${id}/helpful`),
+  reportReview: (id: number, reason: string) => adminApiClient.post(`/reviews/${id}/report`, { reason }),
 };
 
 // Promotions API

@@ -187,7 +187,7 @@ export default function SellerProfileCard({
         if (localToken) return localToken;
         
         // Try auth-storage
-        const authData = localStorage.getItem('auth-storage');
+        const authData = localStorage.getItem('user-auth-storage');
         if (authData) {
           try {
             const parsed = JSON.parse(authData);
@@ -252,7 +252,7 @@ export default function SellerProfileCard({
         const localToken = localStorage.getItem('authToken');
         if (localToken) return localToken;
         
-        const authData = localStorage.getItem('auth-storage');
+        const authData = localStorage.getItem('user-auth-storage');
         if (authData) {
           try {
             const parsed = JSON.parse(authData);

@@ -35,17 +35,11 @@ export const useAuthStore = create<AuthStore>()(
       
       logout: () => {
         if (typeof window !== 'undefined') {
-          // Only clear auth-specific cookies, not all cookies
-          ['token', 'admin_token'].forEach((name) => {
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          });
+          // Only clear USER auth cookies — NEVER touch admin tokens
+          document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
           
-          localStorage.removeItem('auth-storage');
-          localStorage.removeItem('admin_token');
-          localStorage.removeItem('admin_user');
-          localStorage.removeItem('admin-auth-storage');
-          sessionStorage.clear();
-          
+          localStorage.removeItem('user-auth-storage');
+          localStorage.removeItem('authToken');
           sessionStorage.setItem('just_logged_out', 'true');
         }
         
@@ -61,7 +55,7 @@ export const useAuthStore = create<AuthStore>()(
       updateAuth: (data) => set(data),
     }),
     {
-      name: 'auth-storage',
+      name: 'user-auth-storage',
       partialize: (state) => ({ 
         token: state.token, 
         user: state.user,

@@ -100,9 +100,7 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  { name: 'My Account', href: '/dashboard', icon: DashboardIcon },
   { name: 'My Ads', href: '/dashboard/my-ads', icon: AdIcon },
-  { name: 'Post New Ad', href: '/dashboard/post-ad', icon: PlusIcon },
   { name: 'Favorite Ads', href: '/dashboard/favorites', icon: HeartIcon },
   { name: 'Messages', href: '/dashboard/messages', icon: MessageIcon },
   { name: 'Wallet', href: '/dashboard/wallet', icon: WalletIcon },
@@ -112,8 +110,6 @@ const navigation: NavItem[] = [
   { name: 'Reviews', href: '/dashboard/reviews', icon: StarIcon },
   { name: 'Premium Plans', href: '/premium-plans', icon: StarIcon },
   { name: 'Business Accounts', href: '/business-accounts', icon: UserIcon },
-  { name: 'Profile Settings', href: '/dashboard/profile', icon: UserIcon },
-  { name: 'Security Settings', href: '/dashboard/security', icon: ShieldIcon },
 ];
 
 export default function DashboardLayout({
@@ -133,7 +129,7 @@ export default function DashboardLayout({
     if (typeof window !== 'undefined') {
       // Check zustand persist storage
       try {
-        const stored = localStorage.getItem('auth-storage');
+        const stored = localStorage.getItem('user-auth-storage');
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed.state && parsed.state.user && parsed.state.token) {
@@ -178,7 +174,7 @@ export default function DashboardLayout({
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    const hasAuth = authUser || localStorage.getItem('authToken') || localStorage.getItem('auth-storage');
+    const hasAuth = authUser || localStorage.getItem('authToken') || localStorage.getItem('user-auth-storage');
     if (!hasAuth) {
       router.push('/login');
     }
@@ -202,13 +198,9 @@ export default function DashboardLayout({
     useAuthStore.persist.clearStorage();
     
     if (typeof window !== 'undefined') {
-      ['token', 'admin_token'].forEach((name) => {
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
-      });
+      document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict';
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_user');
       sessionStorage.clear();
     }
     

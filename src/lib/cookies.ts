@@ -53,34 +53,47 @@ export function removeStorage(key: string): void {
   localStorage.removeItem(key);
 }
 
-// Get auth token - checks both cookie and localStorage
-export function getAuthToken(): string | null {
-  // First try cookie (check both token and admin_token)
+// Get user auth token - ONLY checks user token sources
+export function getUserToken(): string | null {
   const token = getCookie('token');
   if (token) return token;
-  
-  // Check admin_token cookie (set by admin login)
-  const adminToken = getCookie('admin_token');
-  if (adminToken) return adminToken;
-  
-  // Fall back to localStorage - check auth-storage (zustand persist)
+
   if (typeof localStorage !== 'undefined') {
-    const authData = localStorage.getItem('auth-storage');
+    const authData = localStorage.getItem('user-auth-storage');
     if (authData) {
       try {
         const parsed = JSON.parse(authData);
         if (parsed.state?.token) return parsed.state.token;
       } catch {}
     }
-    
-    // Also check admin_token key (set by admin login page)
-    const adminLocalToken = localStorage.getItem('admin_token');
-    if (adminLocalToken) return adminLocalToken;
-    
-    // Also check manual authToken key
     const manualToken = localStorage.getItem('authToken');
     if (manualToken) return manualToken;
   }
-  
+
   return null;
+}
+
+// Get admin auth token - ONLY checks admin token sources
+export function getAdminToken(): string | null {
+  const adminToken = getCookie('admin_token');
+  if (adminToken) return adminToken;
+
+  if (typeof localStorage !== 'undefined') {
+    const adminData = localStorage.getItem('admin-auth-storage');
+    if (adminData) {
+      try {
+        const parsed = JSON.parse(adminData);
+        if (parsed.state?.token) return parsed.state.token;
+      } catch {}
+    }
+    const adminLocalToken = localStorage.getItem('admin_token');
+    if (adminLocalToken) return adminLocalToken;
+  }
+
+  return null;
+}
+
+// User-only token: never falls back to admin_token
+export function getAuthToken(): string | null {
+  return getUserToken();
 }

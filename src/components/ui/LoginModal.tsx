@@ -39,7 +39,7 @@ const isValidPhone = (phone: string): boolean => {
 function hasStoredToken(): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    const authStorage = localStorage.getItem('auth-storage');
+    const authStorage = localStorage.getItem('user-auth-storage');
     if (authStorage) {
       const parsed = JSON.parse(authStorage);
       if (parsed?.state?.token) return true;

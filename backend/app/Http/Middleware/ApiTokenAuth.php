@@ -47,6 +47,14 @@ class ApiTokenAuth
                 'message' => 'User not found.',
             ], 401);
         }
+
+        // Reject admin tokens on user API routes
+        if ($user->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin tokens are not valid for user API endpoints. Use admin-specific routes.',
+            ], 403);
+        }
         
         if ($user->banned_at || $user->suspended_at) {
             return response()->json([

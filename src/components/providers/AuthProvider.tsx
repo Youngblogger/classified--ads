@@ -88,13 +88,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         return;
       }
       
-      const authStorage = localStorage.getItem('auth-storage');
+      const authStorage = localStorage.getItem('user-auth-storage');
       let zustandAuth = null;
       if (authStorage) {
         try {
           zustandAuth = JSON.parse(authStorage);
         } catch (e) {
-          console.error('Failed to parse auth-storage:', e);
+          console.error('Failed to parse user-auth-storage:', e);
         }
       }
 

@@ -359,7 +359,7 @@ export default function RegisterPage() {
       localStorage.setItem('user', JSON.stringify(data.user));
       
       // Also store in zustand persist format for compatibility
-      localStorage.setItem('auth-storage', JSON.stringify({
+      localStorage.setItem('user-auth-storage', JSON.stringify({
         state: {
           token: data.token,
           user: data.user,

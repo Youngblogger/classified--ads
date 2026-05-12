@@ -33,8 +33,8 @@ import {
   Mail,
   Zap,
 } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
-import { api, notificationsApi } from '@/lib/api';
+import { useAdminAuthStore } from '@/lib/admin-store';
+import { api } from '@/lib/api';
 import { getCookie, deleteCookie, setCookie } from '@/lib/cookies';
 
 interface NavItem {
@@ -85,7 +85,7 @@ interface Notification {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout, user: storeUser, token, isAuthenticated, setUser, login } = useAuthStore();
+  const { logout: adminLogout, user: storeUser, token, setUser: setAdminUser, login: adminLogin } = useAdminAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -113,11 +113,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
 
     try {
-      const adminToken = localStorage.getItem('admin_token');
       await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/secure-control-9ja/auth/logout`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${adminToken || token}`,
+          'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
         },
       });
@@ -125,24 +124,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       console.log('Logout API error:', e);
     }
 
-    deleteCookie('admin_token');
-
-    localStorage.removeItem('admin-auth-storage');
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_user');
-    localStorage.removeItem('admin_last_activity');
-
-    document.cookie.split(';').forEach((cookie) => {
-      const name = cookie.trim().split('=')[0];
-      if (name === 'admin_token') {
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
-      }
-    });
-
-    logout();
+    adminLogout();
 
     window.location.href = '/admin/login';
-  }, [token, logout]);
+  }, [token, adminLogout]);
 
   const resetInactivityTimer = useCallback(() => {
     if (!isVerified) return;
@@ -203,19 +188,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       });
 
       if (response.data.success) {
-        const token = response.data.token;
+        const adminToken = response.data.token;
         const user = response.data.user;
         
-        localStorage.setItem('admin_token', token);
+        localStorage.setItem('admin_token', adminToken);
         localStorage.setItem('admin_user', JSON.stringify(user));
-        localStorage.setItem('admin-auth-storage', JSON.stringify({
-          state: { user, token, isAuthenticated: true, isLoading: false, hasHydrated: true },
-          version: 0
-        }));
         
-        setCookie('admin_token', token, 7);
+        setCookie('admin_token', adminToken, 7);
         
-        login(user, token);
+        adminLogin(user, adminToken);
         setIsVerified(true);
         setVerifiedUser(user);
         
@@ -266,19 +247,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Skip auth check for login page - render without auth verification
   const isLoginPage = pathname === '/admin/login';
 
-  // Get token from cookie (not localStorage)
-  const getTokenFromCookie = () => {
-    if (typeof window === 'undefined') return null;
-    const cookies = document.cookie.split(';');
-    for (const cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === 'token') {
-        return decodeURIComponent(value || '');
-      }
-    }
-    return null;
-  };
-
   // Verify auth with backend on mount
   useEffect(() => {
     // Skip auth check for login page - always show login form
@@ -300,14 +268,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       try {
         const user = JSON.parse(adminUserData);
         setVerifiedUser(user);
-        setUser(user);
+        setAdminUser(user);
         setIsVerified(true);
         setInitialTokenChecked(true);
         setAuthChecked(true);
         
         api.get('/secure-control-9ja/auth/me').then(response => {
           if (response.data?.user?.role !== 'admin') {
-            logout();
+            adminLogout();
             setIsVerified(false);
           }
         }).catch(() => {});
@@ -318,7 +286,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     
     setInitialTokenChecked(true);
     setAuthChecked(true);
-  }, [pathname, logout, setUser, isLoginPage]);
+  }, [pathname, adminLogout, setAdminUser, isLoginPage]);
 
   // Fetch admin notifications
   useEffect(() => {
