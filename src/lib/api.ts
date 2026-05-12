@@ -270,6 +270,7 @@ export const adsApi = {
   pause: (id: number) => api.post(`/ads/${id}/pause`),
   reactivate: (id: number) => api.post(`/ads/${id}/reactivate`),
   sold: (id: number) => api.post(`/ads/${id}/sold`),
+  renew: (id: number) => api.post(`/ads/${id}/renew`),
 };
 
 // Favorites API

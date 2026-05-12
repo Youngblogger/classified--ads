@@ -11,8 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import BoostPlansModal from '@/components/ui/BoostPlansModal';
 import PremiumBadge from '@/components/ui/PremiumBadge';
-import { getAuthToken } from '@/lib/cookies';
-import { getBoostCardClasses } from '@/lib/boost-config';
+import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
 import { Clock, ShieldCheck } from 'lucide-react';
 
 type StatusFilter = 'all' | 'active' | 'paused' | 'pending' | 'sold' | 'expired';
@@ -191,9 +190,10 @@ export default function MyAdsPage() {
       await adsApi.sold(closeModal.adId);
       toast.success('Ad marked as sold');
       fetchAds();
-    } catch {
+    } catch (err: any) {
       setAds(previousAds);
-      toast.error('Failed to close ad');
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to close ad';
+      toast.error(msg);
       fetchAds();
     } finally {
       setClosing(false);
@@ -212,8 +212,9 @@ export default function MyAdsPage() {
       await adsApi.pause(pauseModal.adId);
       toast.success('Ad paused successfully');
       fetchAds();
-    } catch {
-      toast.error('Failed to pause ad');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to pause ad';
+      toast.error(msg);
       fetchAds();
     } finally {
       setPausing(false);
@@ -232,8 +233,9 @@ export default function MyAdsPage() {
       await adsApi.reactivate(reactivateModal.adId);
       toast.success('Ad reactivated successfully');
       fetchAds();
-    } catch {
-      toast.error('Failed to reactivate ad');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to reactivate ad';
+      toast.error(msg);
       fetchAds();
     } finally {
       setReactivating(false);
@@ -249,19 +251,12 @@ export default function MyAdsPage() {
     setRenewing(true);
     setRenewModal({ show: false, adId: null, adTitle: null });
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/ads/${renewModal.adId}/renew`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
-      if (!response.ok) throw new Error('Failed to renew ad');
+      await adsApi.renew(renewModal.adId);
       toast.success('Ad submitted for re-approval');
       fetchAds();
-    } catch {
-      toast.error('Failed to renew ad');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to renew ad';
+      toast.error(msg);
       fetchAds();
     } finally {
       setRenewing(false);
@@ -464,12 +459,12 @@ export default function MyAdsPage() {
 
                 {/* Lifecycle / Boost Status */}
                 {ad.is_boosted && ad.boost_status === 'active' && (
-                  <div className="mb-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+                  <div className={`mb-3 px-3 py-2 rounded-lg border ${ad.boost_type === 'platinum' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200' : ad.boost_type === 'gold' ? 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200' : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5 text-amber-600" />
-                        <span className="text-xs font-semibold text-amber-700">
-                          {ad.plan_name || 'Boosted'} • Active
+                        <Zap className={`w-3.5 h-3.5 ${ad.boost_type === 'platinum' ? 'text-blue-600' : ad.boost_type === 'gold' ? 'text-slate-500' : 'text-amber-600'}`} />
+                        <span className={`text-xs font-semibold ${ad.boost_type === 'platinum' ? 'text-blue-800' : ad.boost_type === 'gold' ? 'text-slate-800' : 'text-amber-800'}`}>
+                          {getBoostConfig(ad.boost_type)?.displayName || ad.plan_name || 'Boosted'} • Active
                         </span>
                       </div>
                       {ad.boost_end_time && (
