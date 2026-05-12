@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    "rangav.vscode-thunder-client",
+    "lkrms.laravel-extension-pack",
+    "dsznajder.es7-react-js-snippets",
+    "formulahendry.auto-rename-tag",
+    "naumovs.color-highlight",
+    "christian-kohler.path-intellisense",
+    "streetsidesoftware.code-spell-checker"
+  ]
+}

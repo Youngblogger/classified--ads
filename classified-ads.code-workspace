@@ -1,0 +1,42 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "Root"
+    },
+    {
+      "path": "backend",
+      "name": "Backend (Laravel)"
+    },
+    {
+      "path": "src",
+      "name": "Frontend (Next.js)"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/vendor": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/vendor": true
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "eamodio.gitlens",
+      "mhutchie.git-graph",
+      "rangav.vscode-thunder-client"
+    ]
+  }
+}
