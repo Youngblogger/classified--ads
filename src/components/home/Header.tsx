@@ -499,7 +499,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     }
     
     logout();
-    useAuthStore.persist.clearStorage();
     
     if (typeof window !== 'undefined') {
       ['token', 'admin_token'].forEach((name) => {
@@ -513,8 +512,8 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     }
     
     setShowMobileMenu(false);
-    window.location.href = '/';
     setIsLoggingOut(false);
+    router.push('/');
   };
 
   const handleRecentSearchClick = (term: string) => {

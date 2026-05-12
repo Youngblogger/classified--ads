@@ -205,7 +205,7 @@ export default function DashboardLayout({
       sessionStorage.clear();
     }
     
-    window.location.href = '/';
+    router.push('/');
   };
 
   return (
