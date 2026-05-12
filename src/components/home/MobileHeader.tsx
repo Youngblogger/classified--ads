@@ -3,9 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, MapPin, User } from 'lucide-react';
-import { useGlobalStore, useAuthStore, useUIStore } from '@/lib/store';
-import Image from 'next/image';
+import { Search, MapPin } from 'lucide-react';
+import { useGlobalStore, useUIStore } from '@/lib/store';
 
 const iconEmojis: Record<string, string> = {
   'smartphone': '📱', 'phone': '📱', 'mobile': '📱',
@@ -59,9 +58,8 @@ const CATEGORIES = [
 
 export default function MobileHeader() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
   const { selectedLocation } = useGlobalStore();
-  const { toggleLocationModal, toggleLoginModal } = useUIStore();
+  const { toggleLocationModal } = useUIStore();
   
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
@@ -107,7 +105,8 @@ export default function MobileHeader() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-gradient-to-r from-primary-600 to-primary-700 shadow-md">
+      <div className="fixed top-0 left-0 right-0 z-[100] bg-gradient-to-r from-primary-600 to-primary-700 shadow-md">
+        {/* Logo Bar */}
         <div className="flex items-center justify-between h-14 px-3">
           {/* Logo */}
           <Link 
@@ -122,87 +121,62 @@ export default function MobileHeader() {
               className="h-8 w-auto"
             />
           </Link>
-
-          {/* Profile / Login */}
-          {isAuthenticated ? (
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition-colors"
-            >
-              <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center">
-                {(() => {
-                  const avatarUrl = user?.full_avatar_url || user?.avatar_url || user?.avatar || user?.google_avatar || user?.facebook_avatar;
-                  return avatarUrl ? (
-                    <img
-                      src={avatarUrl.startsWith('http') ? avatarUrl : `http://127.0.0.1:8000${avatarUrl.startsWith('/') ? '' : '/storage/'}${avatarUrl}`}
-                      alt={user?.name || 'User'}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <span className="text-primary-600 font-semibold text-sm">
-                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
-                  );
-                })()}
-              </div>
-            </Link>
-          ) : (
-            <button
-              onClick={() => toggleLoginModal()}
-              className="flex items-center gap-1.5 p-2 rounded-xl hover:bg-white/10 transition-colors text-white"
-            >
-              <User className="w-5 h-5" />
-              <span className="text-sm font-medium">Login</span>
-            </button>
-          )}
         </div>
-      </header>
 
-      {/* Search Bar Below Header */}
-      <div className="fixed top-14 left-0 right-0 z-[99] bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">
-        <div className="flex items-center gap-2 px-3 py-2.5">
-          {/* Location Selector */}
-          <button
-            onClick={openLocationModal}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex-shrink-0"
-          >
-            <MapPin className="w-3.5 h-3.5 text-white" />
-            <span className="text-xs text-white font-medium max-w-[70px] truncate capitalize">
-              {locationDisplay.toLowerCase()}
-            </span>
-          </button>
+        {/* Search Bar Below Header */}
+        <div className="px-4 pt-2.5 pb-2">
+          <div className="text-center mb-2">
+            <p className="text-white text-sm sm:text-base font-bold tracking-wide">
+              What are you looking for today?
+            </p>
+            <p className="text-primary-200 text-[10px] sm:text-xs font-medium mt-0.5">
+              Search from thousands of ads near you
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {/* Location Selector */}
+            <button
+              onClick={openLocationModal}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex-shrink-0"
+            >
+              <MapPin className="w-3 h-3 text-white" />
+              <span className="text-[10px] text-white font-medium max-w-[60px] truncate capitalize">
+                {locationDisplay.toLowerCase()}
+              </span>
+            </button>
 
-          {/* Search Bar */}
-          <div ref={searchRef} className="flex-1 min-w-0">
-            <div className="relative flex items-center">
-              <Search className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-9 pr-3 py-2 bg-white rounded-full text-[13px] border-0 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-gray-400"
-              />
+            {/* Search Bar */}
+            <div ref={searchRef} className="flex-1 min-w-0">
+              <div className="relative flex items-center">
+                <Search className="absolute left-2.5 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search for anything..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="w-full pl-8 pr-3 py-1.5 bg-white rounded-full text-[12px] border-0 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-gray-400"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Spacer for fixed header + search */}
-      <div className="h-[6.5rem]" />
+      <div className="h-[9.5rem]" />
 
-      {/* Category Section */}
+      {/* Category Section - OLX/Jiji Style */}
       <div className="bg-white border-b border-gray-200">
-        <div className="flex flex-wrap gap-2 px-3 py-3">
+        <div className="grid grid-cols-4 gap-y-1">
           {CATEGORIES.map((category) => (
             <button
               key={category.slug}
               onClick={() => handleCategoryClick(category.slug)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors"
+              className="flex flex-col items-center gap-0.5 py-2.5 px-1 hover:bg-gray-50 transition-colors"
             >
-              <span className="text-sm leading-none">{getCategoryEmoji(category.slug, category.name)}</span>
-              <span className="text-xs text-gray-700 font-medium whitespace-nowrap">
+              <span className="text-xl leading-none">{getCategoryEmoji(category.slug, category.name)}</span>
+              <span className="text-[10px] text-gray-700 font-medium text-center leading-tight">
                 {category.name}
               </span>
             </button>

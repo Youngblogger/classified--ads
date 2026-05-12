@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
-import toast from 'react-hot-toast';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '190991791068-p65o95kslmp106ohlbdafsdthg702tn3.apps.googleusercontent.com';
 
@@ -22,7 +21,6 @@ declare global {
           prompt: (momentListener?: (res: { isNotDisplayed?: boolean; isSkippedMoment?: boolean; isDismissedMoment?: boolean }) => void) => void;
           cancel: () => void;
           disableAutoSelect: () => void;
-          renderButton: (container: HTMLElement, config: object) => void;
         };
       };
     };
@@ -59,9 +57,6 @@ export default function GoogleOneTap() {
   const { isAuthenticated, login } = useAuthStore();
   const initializedRef = useRef(false);
   const promptCalledRef = useRef(false);
-  const [showFallback, setShowFallback] = useState(false);
-  const fallbackContainerRef = useRef<HTMLDivElement>(null);
-  const fallbackRenderedRef = useRef(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -84,10 +79,7 @@ export default function GoogleOneTap() {
       if (cancelled || initializedRef.current) return;
       initializedRef.current = true;
 
-      if (!loaded || !window.google?.accounts?.id) {
-        setShowFallback(true);
-        return;
-      }
+      if (!loaded || !window.google?.accounts?.id) return;
 
       const gw = window.google.accounts.id;
 
@@ -105,7 +97,6 @@ export default function GoogleOneTap() {
           login(data.user, data.token);
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : 'Google login failed';
-          toast.error(msg);
           console.error('Google One Tap error:', msg);
         }
       };
@@ -121,11 +112,7 @@ export default function GoogleOneTap() {
 
       if (!promptCalledRef.current) {
         promptCalledRef.current = true;
-        gw.prompt((res) => {
-          if (res?.isNotDisplayed || res?.isSkippedMoment) {
-            setShowFallback(true);
-          }
-        });
+        gw.prompt();
       }
     };
 
@@ -136,44 +123,5 @@ export default function GoogleOneTap() {
     };
   }, [isAuthenticated, login, isMobile]);
 
-  useEffect(() => {
-    if (!showFallback) return;
-    if (!isMobile) return;
-    if (!fallbackContainerRef.current) return;
-    if (fallbackRenderedRef.current) return;
-
-    const gw = window.google?.accounts?.id;
-    if (!gw) return;
-
-    fallbackRenderedRef.current = true;
-
-    const container = fallbackContainerRef.current;
-
-    requestAnimationFrame(() => {
-      const width = Math.min(container.clientWidth || 360, 400);
-      gw.renderButton(container, {
-        theme: 'outline',
-        size: 'large',
-        width: width.toString(),
-        text: 'signin_with',
-        shape: 'rectangular',
-        logo_alignment: 'center',
-      });
-    });
-  }, [showFallback, isMobile]);
-
-  if (isAuthenticated) return null;
-  if (!isMobile) return null;
-
-  return (
-    <>
-      {showFallback && (
-        <div className="fixed bottom-0 left-0 right-0 z-[300]">
-          <div className="bg-white border-t border-gray-200 px-4 py-3 shadow-lg">
-            <div ref={fallbackContainerRef} className="w-full" />
-          </div>
-        </div>
-      )}
-    </>
-  );
+  return null;
 }

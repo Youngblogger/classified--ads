@@ -14,7 +14,7 @@ import {
   Bookmark as BookmarkOutline,
   User as UserOutline
 } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 
 interface BottomNavProps {
   onPostAdClick?: () => void;
@@ -25,6 +25,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const { isAuthenticated, user } = useAuthStore();
+  const { toggleLoginModal } = useUIStore();
 
   useEffect(() => {
     setMounted(true);
@@ -38,21 +39,21 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
   const handleProfileClick = (e: React.MouseEvent) => {
     if (!isAuthenticated) {
       e.preventDefault();
-      router.push('/login');
+      toggleLoginModal();
     }
   };
 
   const handleChatsClick = (e: React.MouseEvent) => {
     if (!isAuthenticated) {
       e.preventDefault();
-      router.push('/login');
+      toggleLoginModal();
     }
   };
 
   const handleSavedClick = (e: React.MouseEvent) => {
     if (!isAuthenticated) {
       e.preventDefault();
-      router.push('/login');
+      toggleLoginModal();
     }
   };
 
