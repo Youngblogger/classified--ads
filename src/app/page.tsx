@@ -251,7 +251,7 @@ export default function HomePage() {
       <CategoryNav />
       <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-6">
         <CategorySidebar />
-        <main className="flex-1 min-w-0 relative pt-0 md:pt-[130px] lg:pl-[284px]" suppressHydrationWarning>
+        <main className="flex-1 min-w-0 relative pt-0 md:pt-[130px]" suppressHydrationWarning>
           {/* Hero Section - Hidden on mobile */}
           <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-xl">
           {/* Background Pattern */}

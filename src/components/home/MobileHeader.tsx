@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Search, MapPin, Bell, User, LogOut, ChevronDown, Menu } from 'lucide-react';
 import { useGlobalStore, useUIStore, useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
+import { getUserAvatarUrl } from '@/lib/utils';
 
 export default function MobileHeader() {
   const router = useRouter();
@@ -101,9 +102,9 @@ export default function MobileHeader() {
                 >
                   <div className="w-7 h-7 rounded-full overflow-hidden bg-primary-600 flex items-center justify-center">
                     {(() => {
-                      const avatarUrl = user?.full_avatar_url || user?.avatar_url || user?.avatar || user?.google_avatar || user?.facebook_avatar;
+                      const avatarUrl = getUserAvatarUrl(user);
                       return avatarUrl ? (
-                        <img src={avatarUrl.startsWith('http') ? avatarUrl : `http://127.0.0.1:8000${avatarUrl.startsWith('/') ? '' : '/storage/'}${avatarUrl}`} alt="" className="object-cover w-full h-full" />
+                        <img src={avatarUrl} alt="" className="object-cover w-full h-full" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : (
                         <span className="text-white font-semibold text-xs">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                       );
