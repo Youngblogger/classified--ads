@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, X, Clock, TrendingUp, ArrowRight, Loader2 } from 'lucide-react';
+import { Search, X, Clock, TrendingUp, ArrowRight, Loader2, ArrowLeft } from 'lucide-react';
 import { useGlobalStore } from '@/lib/store';
 import { api } from '@/lib/api';
 
@@ -105,14 +105,21 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
       {/* Full page */}
       <div
         className={`absolute inset-0 bg-white transition-all duration-300 ease-out ${
-          isOpen ? 'translate-y-0' : '-translate-y-full'
+          isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Search Input */}
-        <div className="px-4 pt-12 pb-3 border-b border-gray-100">
-          <div className="flex items-center gap-2">
+        {/* Search Header */}
+        <div
+          className="px-4 pt-12 pb-3"
+          style={{
+            background: 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #2563eb 100%)',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <button onClick={handleBack} className="p-1 -ml-1 active:bg-white/10 rounded-full transition-colors">
+              <ArrowLeft className="w-6 h-6 text-white" />
+            </button>
             <div className="flex-1 relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 pointer-events-none" />
               <input
                 ref={inputRef}
                 type="text"
@@ -120,7 +127,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmit(query)}
                 placeholder="Search phones, cars, properties..."
-                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                className="w-full pl-4 pr-10 py-2.5 bg-white/15 backdrop-blur-sm text-white placeholder-white/60 rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent text-sm"
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
@@ -128,18 +135,12 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
               {query && (
                 <button
                   onClick={() => { setQuery(''); setSearchResults(null); inputRef.current?.focus(); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5"
                 >
-                  <X className="w-4 h-4 text-gray-400" />
+                  <X className="w-4 h-4 text-white/70" />
                 </button>
               )}
             </div>
-            <button
-              onClick={handleBack}
-              className="px-3 py-3 text-sm font-medium text-gray-600 active:text-gray-900 transition-colors"
-            >
-              Cancel
-            </button>
           </div>
         </div>
 
