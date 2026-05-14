@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Home, Search, Plus, MessageSquare, User,
-  Home as HomeFill, MessageSquare as MessageSquareFill, User as UserFill
+  Home, Bookmark, Plus, MessageSquare, User,
+  Home as HomeFill, Bookmark as BookmarkFill, MessageSquare as MessageSquareFill, User as UserFill
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
@@ -24,12 +24,12 @@ const tabs = [
     requiresAuth: false,
   },
   {
-    key: 'search',
-    label: 'Search',
-    href: '/ads',
-    icon: Search,
-    activeIcon: Search,
-    requiresAuth: false,
+    key: 'saved',
+    label: 'Saved',
+    href: '/dashboard/favorites',
+    icon: Bookmark,
+    activeIcon: BookmarkFill,
+    requiresAuth: true,
   },
   {
     key: 'sell',
@@ -92,7 +92,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
 
   const isActive = (tab: typeof tabs[0]) => {
     if (tab.key === 'home') return pathname === '/';
-    if (tab.key === 'search') return pathname === '/ads' || pathname.startsWith('/ad/');
+    if (tab.key === 'saved') return pathname === '/dashboard/favorites';
     if (tab.key === 'chats') return pathname.startsWith('/dashboard/messages');
     if (tab.key === 'account') return pathname === '/dashboard' || pathname.startsWith('/dashboard/');
     return false;
@@ -132,11 +132,11 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
                 <button
                   key={tab.key}
                   onClick={(e) => handleTabPress(tab, e)}
-                  className="relative flex flex-col items-center justify-center -mt-3"
+                  className="relative flex flex-col items-center justify-center"
                   aria-label={tab.label}
                 >
-                  <div className="w-11 h-11 rounded-full bg-primary-600 flex items-center justify-center shadow-lg active:scale-95 transition-transform duration-150" style={{ boxShadow: '0 2px 12px rgba(37, 99, 235, 0.35)' }}>
-                    <Icon size={22} className="text-white" strokeWidth={2.5} />
+                  <div className="flex items-center justify-center w-11 h-11 rounded-[10px] bg-primary-500 active:scale-90 transition-transform duration-150">
+                    <Icon size={22} className="text-white" strokeWidth={3} />
                   </div>
                   <span className="text-[10px] font-semibold text-primary-600 mt-1">Sell</span>
                 </button>
@@ -148,7 +148,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
                 key={tab.key}
                 href={tab.href}
                 onClick={(e) => handleTabPress(tab, e)}
-                className="flex flex-col items-center justify-center px-2 py-1 min-w-[56px] active:scale-95 transition-transform duration-150"
+                className="flex flex-col items-center justify-center px-2 py-1 min-w-[56px] active:scale-90 transition-transform duration-150"
               >
                 <div className={`relative p-1 rounded-lg transition-colors duration-150 ${active ? 'text-primary-600' : 'text-gray-400'}`}>
                   <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />
