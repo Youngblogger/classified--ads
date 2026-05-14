@@ -122,7 +122,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
       }}
     >
       <div className="bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-around h-12 max-w-lg mx-auto px-1">
+        <div className="flex items-center justify-around h-14 max-w-lg mx-auto px-1">
           {tabs.map((tab) => {
             const active = isActive(tab);
             const Icon = active && tab.activeIcon ? tab.activeIcon : tab.icon;
@@ -135,7 +135,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
                   className="relative flex flex-col items-center justify-center"
                   aria-label={tab.label}
                 >
-                  <div className="flex items-center justify-center active:scale-90 transition-transform duration-150">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl border-2 border-gray-900 active:scale-90 transition-transform duration-150">
                     <Icon size={22} className="text-gray-900" strokeWidth={3} />
                   </div>
                   <span className="text-[10px] font-medium text-gray-900 mt-0.5">Sell</span>
@@ -151,7 +151,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
                 className="flex flex-col items-center justify-center py-1 min-w-[48px] active:scale-90 transition-transform duration-150"
               >
                 <div className={`relative rounded-lg transition-colors duration-150 ${active ? 'text-gray-900' : 'text-gray-900'}`}>
-                  <Icon size={22} strokeWidth={active ? 3 : 2} />
+                  <Icon size={26} strokeWidth={active ? 3 : 2} />
                   {active && (
                     <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-900" />
                   )}
