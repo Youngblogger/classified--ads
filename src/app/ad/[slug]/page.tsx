@@ -377,11 +377,11 @@ export default function AdDetailPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <ResponsiveHeader />
-      <CategoryNav />
-      <main className="flex-1 container mx-auto px-[5px] pt-[180px] md:pt-[240px] pb-6">
+      <CategoryNav className="hidden md:block" />
+      <main className="flex-1 container mx-auto px-[5px] pt-2 md:pt-[220px] pb-6">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
-          <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
+          <div className="mb-1 sm:mb-4 flex items-center gap-2 text-sm text-gray-500">
             <Link href="/" className="hover:text-primary-600 flex items-center gap-1"><Home className="w-4 h-4" />Home</Link>
             <ChevronRight className="w-4 h-4" />
             <Link href={`/ads?category=${ad.category?.slug || ad.category}`} className="hover:text-primary-600">{ad.category?.name || ad.category || 'Category'}</Link>
@@ -513,11 +513,53 @@ export default function AdDetailPage() {
               </div>
 
               {/* Price, Title, Description - All in One Card */}
-              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 space-y-[2px]">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 -mt-1 sm:mt-0 space-y-[2px]">
                 {/* Price */}
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+                <div className="flex flex-row justify-between items-center gap-2 sm:gap-4">
                   <span className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
-                  <div className="flex items-center gap-2">
+
+                  {/* Mobile buttons - on the right side on mobile, hidden on desktop */}
+                  <div className="flex sm:hidden items-center gap-1">
+                    <button 
+                      onClick={() => setShowReportModal(true)}
+                      className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="Report this ad"
+                    >
+                      <Flag className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={toggleFavorite} 
+                      className={`relative p-2 rounded-lg transition-all duration-300 ${
+                        isFavorited 
+                          ? 'text-red-500' 
+                          : 'text-gray-500 hover:text-red-500 hover:bg-red-50'
+                      } ${favoriteAnimating ? 'scale-125' : 'scale-100'}`}
+                    >
+                      <Heart 
+                        className={`w-5 h-5 transition-all duration-300 ${
+                          isFavorited ? 'fill-current' : ''
+                        } ${favoriteAnimating ? 'animate-heartbeat' : ''}`} 
+                      />
+                      {favoriteAnimating && (
+                        <>
+                          <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75"></span>
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-bounce"></span>
+                          <span className="absolute -bottom-1 -left-1 w-2 h-2 bg-pink-400 rounded-full animate-bounce delay-75"></span>
+                        </>
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => setShowSharePopup(!showSharePopup)} 
+                      className="p-2 rounded-lg text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Desktop buttons - hidden on mobile */}
+                  <div className="hidden sm:flex items-center gap-2">
                     <button 
                       onClick={() => setShowReportModal(true)}
                       className="p-2 sm:p-3 rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors"
