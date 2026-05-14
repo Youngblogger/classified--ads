@@ -19,6 +19,7 @@ import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
 import { cn, BACKEND_URL } from '@/lib/utils';
 import CategoryNav from '@/components/ui/CategoryNav';
+import CategoryModal from '@/components/ui/CategoryModal';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useSocket } from '@/hooks/useSocket';
@@ -254,6 +255,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   const [recentMessages, setRecentMessages] = useState<any[]>([]);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [showCategoryPillsModal, setShowCategoryPillsModal] = useState(false);
   const [apiCategories, setApiCategories] = useState<ApiCategory[]>([]);
   const [apiLocations, setApiLocations] = useState<ApiLocation[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -1177,7 +1179,51 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
       </div>
 
       {/* CATEGORY NAVIGATION BAR */}
-      {variant === 'home' && <CategoryNav />}
+      {variant === 'home' && (
+      <div className="bg-white border-b border-slate-200">
+        <div className="container-app">
+          <div className="flex items-center gap-2 py-2.5 overflow-x-auto scrollbar-thin">
+            <button
+              onClick={() => setShowCategoryPillsModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-primary-50 text-slate-700 hover:text-primary-700 transition-colors whitespace-nowrap flex-shrink-0 text-sm font-medium border border-transparent hover:border-primary-200"
+            >
+              <span>📑</span>
+              <span>All Categories</span>
+            </button>
+            {[
+              { slug: 'vehicles', name: 'Vehicles', emoji: '🚗' },
+              { slug: 'mobile-phones-tablets', name: 'Phones & Tablets', emoji: '📱' },
+              { slug: 'property', name: 'Property', emoji: '🏠' },
+              { slug: 'electronics', name: 'Electronics', emoji: '💻' },
+              { slug: 'fashion', name: 'Fashion', emoji: '👗' },
+              { slug: 'home-furniture', name: 'Furniture', emoji: '🛋️' },
+              { slug: 'health-beauty', name: 'Health & Beauty', emoji: '🧴' },
+              { slug: 'babies-kids', name: 'Babies & Kids', emoji: '👶' },
+              { slug: 'services', name: 'Services', emoji: '🧰' },
+              { slug: 'repair-services', name: 'Repairs', emoji: '🔧' },
+              { slug: 'jobs', name: 'Jobs', emoji: '💼' },
+              { slug: 'agriculture-farming', name: 'Agriculture', emoji: '🐄' },
+              { slug: 'sports-fitness', name: 'Sports', emoji: '⚽' },
+              { slug: 'pets-animals', name: 'Pets', emoji: '🐾' },
+            ].map((category) => (
+              <Link
+                key={category.slug}
+                href={`/ads?category=${category.slug}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-primary-50 text-slate-700 hover:text-primary-700 transition-colors whitespace-nowrap flex-shrink-0 text-sm font-medium border border-transparent hover:border-primary-200"
+              >
+                <span className="text-base">{category.emoji}</span>
+                <span>{category.name}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+      )}
+
+      <CategoryModal
+        isOpen={showCategoryPillsModal}
+        onClose={() => setShowCategoryPillsModal(false)}
+      />
 
       {/* Mobile Search Bar */}
       {variant === 'home' && mobileSearchOpen && (
