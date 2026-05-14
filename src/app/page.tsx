@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus, Bookmark } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import CategoryNav from '@/components/ui/CategoryNav';
+import CategorySidebar from '@/components/home/CategorySidebar';
 import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { AdCardSkeleton } from '@/components/ui/Skeleton';
@@ -248,9 +249,11 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#f5f6f7' }} suppressHydrationWarning>
       <ResponsiveHeader />
       <CategoryNav />
-      <main className="flex-1 relative pt-0 md:pt-[210px]" suppressHydrationWarning>
-        {/* Hero Section - Hidden on mobile */}
-        <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
+      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-6">
+        <CategorySidebar />
+        <main className="flex-1 min-w-0 relative pt-0 md:pt-[130px]" suppressHydrationWarning>
+          {/* Hero Section - Hidden on mobile */}
+          <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-xl">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
@@ -497,6 +500,7 @@ export default function HomePage() {
 
 
       </main>
+      </div>
 
       <Footer />
     </div>
