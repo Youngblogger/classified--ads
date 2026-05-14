@@ -13,8 +13,8 @@ import MobileSearchPage from '@/components/ui/MobileSearchPage';
 export default function MobileHeader() {
   const router = useRouter();
   const { selectedLocation } = useGlobalStore();
-  const { toggleLocationModal, toggleLoginModal } = useUIStore();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { toggleLocationModal } = useUIStore();
+  const { isAuthenticated, user, isLoading: authLoading, hasHydrated, logout } = useAuthStore();
   const { isAtTop, scrollY } = useScrollDirection({ threshold: 5, throttleMs: 50 });
 
   const [searchOpen, setSearchOpen] = useState(false);
@@ -92,8 +92,8 @@ export default function MobileHeader() {
               <Bell className="w-5 h-5 text-white" />
             </button>
 
-            {isAuthenticated ? (
-              <div className="relative" ref={profileRef}>
+            {hasHydrated && isAuthenticated && (
+              <div className="relative animate-fade-in" ref={profileRef}>
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
                   className="p-1 rounded-lg active:bg-white/10 transition-colors"
@@ -129,10 +129,6 @@ export default function MobileHeader() {
                   </div>
                 )}
               </div>
-            ) : (
-              <button onClick={toggleLoginModal} className="p-1.5 rounded-lg active:bg-white/10 transition-colors">
-                <User className="w-5 h-5 text-white" />
-              </button>
             )}
           </div>
         </div>
@@ -145,10 +141,6 @@ export default function MobileHeader() {
           >
             <Search className="w-4 h-4 text-white/70 flex-shrink-0" />
             <span className="text-[13px] text-white/60 flex-1">Search phones, cars, properties...</span>
-            <div className="flex items-center gap-1 px-2 py-0.5 bg-white/10 rounded-md">
-              <MapPin className="w-3 h-3 text-white/60" />
-              <span className="text-[10px] font-medium text-white/70 capitalize">{locationDisplay.toLowerCase()}</span>
-            </div>
           </button>
         </div>
       </header>

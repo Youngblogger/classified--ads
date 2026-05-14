@@ -135,10 +135,10 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
                   className="relative flex flex-col items-center justify-center"
                   aria-label={tab.label}
                 >
-                  <div className="flex items-center justify-center w-11 h-11 rounded-[10px] bg-primary-500 active:scale-90 transition-transform duration-150">
-                    <Icon size={22} className="text-white" strokeWidth={3} />
+                  <div className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-primary-500 active:scale-90 transition-transform duration-150">
+                    <Icon size={20} className="text-white" strokeWidth={3} />
                   </div>
-                  <span className="text-[10px] font-semibold text-primary-600 mt-1">Sell</span>
+                  <span className="text-[10px] font-semibold text-primary-600 mt-0.5 tracking-tight">Sell</span>
                 </button>
               );
             }
