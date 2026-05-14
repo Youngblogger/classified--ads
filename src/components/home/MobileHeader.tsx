@@ -64,7 +64,7 @@ export default function MobileHeader() {
       <header
         className="fixed top-0 left-0 right-0 z-[100] transition-shadow duration-300"
         style={{
-          background: 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #2563eb 100%)',
+          background: 'linear-gradient(135deg, #00B53F 0%, #009E38 50%, #008C31 100%)',
           boxShadow: hasShadow ? '0 4px 20px rgba(0, 0, 0, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.08)',
         }}
       >

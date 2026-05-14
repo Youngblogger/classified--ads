@@ -246,7 +246,7 @@ export default function HomePage() {
   } = useInfiniteAds({}, ITEMS_PER_PAGE);
 
   return (
-    <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#f5f6f7' }} suppressHydrationWarning>
+    <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
       <ResponsiveHeader />
       <CategoryNav />
       <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-6">

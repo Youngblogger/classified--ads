@@ -112,7 +112,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
         <div
           className="px-4 pt-12 pb-3"
           style={{
-            background: 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #2563eb 100%)',
+            background: 'linear-gradient(135deg, #00B53F 0%, #009E38 50%, #008C31 100%)',
           }}
         >
           <div className="flex items-center gap-3">
