@@ -296,6 +296,8 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     return () => clearInterval(interval);
   }, [placeholderWords.length]);
 
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -343,6 +345,9 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+      }
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowSearchDropdown(false);
       }
@@ -456,6 +461,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     }
     
     setShowMobileMenu(false);
+    setProfileMenuOpen(false);
     setIsLoggingOut(false);
     router.push('/');
   };
@@ -1087,62 +1093,61 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                     )}
                     
                     {/* User Menu */}
-                    <div className="relative ml-1">
-                      {variant === 'dashboard' ? (
-                        <div className="flex items-center gap-2 p-1.5 rounded-xl cursor-default">
-                          <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
-                            {(() => {
-                              const avatarUrl = getFullAvatarUrl(user);
-                              return avatarUrl ? (
-                                <Image 
-                                  src={avatarUrl} 
-                                  alt={user?.name || 'User'} 
-                                  fill
-                                  sizes="36px"
-                                  className="object-cover"
-                                  referrerPolicy="no-referrer"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-primary-600 font-semibold text-sm">
-                                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                                </span>
-                              );
-                            })()}
+                    <div className="relative ml-1" ref={profileRef}>
+                      <button
+                        onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition-colors"
+                      >
+                        <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
+                          {(() => {
+                            const avatarUrl = getFullAvatarUrl(user);
+                            return avatarUrl ? (
+                              <Image 
+                                src={avatarUrl} 
+                                alt={user?.name || 'User'} 
+                                fill
+                                sizes="36px"
+                                className="object-cover"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <span className="text-primary-600 font-semibold text-sm">
+                                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </button>
+
+                      {profileMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-dropdown border border-slate-100 animate-fade-in z-[9999] overflow-hidden">
+                          <div className="px-4 py-3 border-b border-slate-50">
+                            <p className="text-sm font-semibold text-slate-900 truncate">{user?.name || 'User'}</p>
+                            <p className="text-xs text-slate-500 truncate">{user?.email || ''}</p>
+                          </div>
+                          <div className="py-1">
+                            <Link
+                              href="/dashboard"
+                              onClick={() => setProfileMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                            >
+                              <LayoutDashboard className="w-4 h-4 text-slate-400" />
+                              Dashboard
+                            </Link>
+                            <button
+                              onClick={handleLogout}
+                              disabled={isLoggingOut}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
+                            >
+                              <LogOut className="w-4 h-4" />
+                              {isLoggingOut ? 'Logging out...' : 'Logout'}
+                            </button>
                           </div>
                         </div>
-                      ) : (
-                        <Link
-                          href="/dashboard"
-                          className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition-colors"
-                        >
-                          <div className="relative w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
-                            {(() => {
-                              const avatarUrl = getFullAvatarUrl(user);
-                              return avatarUrl ? (
-                                <Image 
-                                  src={avatarUrl} 
-                                  alt={user?.name || 'User'} 
-                                  fill
-                                  sizes="36px"
-                                  className="object-cover"
-                                  referrerPolicy="no-referrer"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-primary-600 font-semibold text-sm">
-                                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        </Link>
                       )}
                     </div>
                   </>
