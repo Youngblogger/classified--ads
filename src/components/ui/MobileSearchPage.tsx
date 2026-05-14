@@ -110,20 +110,14 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
         onClick={handleBack}
       />
 
-      {/* Sheet */}
+      {/* Sheet from top */}
       <div
-        className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl transition-all duration-300 ease-out ${
-          isOpen ? 'translate-y-0' : 'translate-y-full'
+        className={`absolute top-0 left-0 right-0 bg-white shadow-xl transition-all duration-300 ease-out ${
+          isOpen ? 'translate-y-0' : '-translate-y-full'
         }`}
-        style={{ maxHeight: '90vh' }}
       >
-        {/* Handle */}
-        <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-300" />
-        </div>
-
         {/* Search Input */}
-        <div className="px-4 pb-3">
+        <div className="px-4 pt-3 pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 pointer-events-none" />
@@ -158,7 +152,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
         </div>
 
         {/* Results */}
-        <div className="overflow-y-auto px-4 pb-6" style={{ maxHeight: 'calc(90vh - 100px)' }}>
+        <div className="overflow-y-auto px-4 pb-6" style={{ maxHeight: 'calc(100vh - 140px)' }}>
           {isSearching ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
