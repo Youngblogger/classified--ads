@@ -122,7 +122,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
       }}
     >
       <div className="bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-around h-14 max-w-lg mx-auto px-2">
+        <div className="flex items-center justify-around h-12 max-w-lg mx-auto px-1">
           {tabs.map((tab) => {
             const active = isActive(tab);
             const Icon = active && tab.activeIcon ? tab.activeIcon : tab.icon;
@@ -135,10 +135,10 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
                   className="relative flex flex-col items-center justify-center"
                   aria-label={tab.label}
                 >
-                  <div className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-primary-500 active:scale-90 transition-transform duration-150">
-                    <Icon size={20} className="text-white" strokeWidth={3} />
+                  <div className="flex items-center justify-center active:scale-90 transition-transform duration-150">
+                    <Icon size={22} className="text-gray-900" strokeWidth={3} />
                   </div>
-                  <span className="text-[10px] font-semibold text-primary-600 mt-0.5 tracking-tight">Sell</span>
+                  <span className="text-[10px] font-medium text-gray-900 mt-0.5">Sell</span>
                 </button>
               );
             }
@@ -148,15 +148,15 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
                 key={tab.key}
                 href={tab.href}
                 onClick={(e) => handleTabPress(tab, e)}
-                className="flex flex-col items-center justify-center px-2 py-1 min-w-[56px] active:scale-90 transition-transform duration-150"
+                className="flex flex-col items-center justify-center py-1 min-w-[48px] active:scale-90 transition-transform duration-150"
               >
-                <div className={`relative p-1 rounded-lg transition-colors duration-150 ${active ? 'text-primary-600' : 'text-gray-400'}`}>
-                  <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />
+                <div className={`relative rounded-lg transition-colors duration-150 ${active ? 'text-gray-900' : 'text-gray-900'}`}>
+                  <Icon size={22} strokeWidth={active ? 3 : 2} />
                   {active && (
-                    <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary-600" />
+                    <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-900" />
                   )}
                 </div>
-                <span className={`text-[10px] font-medium mt-0.5 transition-colors duration-150 ${active ? 'text-primary-600' : 'text-gray-400'}`}>
+                <span className={`text-[10px] font-medium mt-0.5 transition-colors duration-150 ${active ? 'text-gray-900' : 'text-gray-900'}`}>
                   {tab.label}
                 </span>
               </Link>
