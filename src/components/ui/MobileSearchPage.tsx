@@ -102,22 +102,14 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
         isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
-      {/* Backdrop */}
+      {/* Full page */}
       <div
-        className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0'
-        }`}
-        onClick={handleBack}
-      />
-
-      {/* Sheet from top */}
-      <div
-        className={`absolute top-0 left-0 right-0 bg-white shadow-xl transition-all duration-300 ease-out ${
+        className={`absolute inset-0 bg-white transition-all duration-300 ease-out ${
           isOpen ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
         {/* Search Input */}
-        <div className="px-4 pt-3 pb-3 border-b border-gray-100">
+        <div className="px-4 pt-12 pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 pointer-events-none" />
@@ -152,7 +144,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
         </div>
 
         {/* Results */}
-        <div className="overflow-y-auto px-4 pb-6" style={{ maxHeight: 'calc(100vh - 140px)' }}>
+        <div className="overflow-y-auto px-4 pb-6" style={{ height: 'calc(100vh - 60px)' }}>
           {isSearching ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
