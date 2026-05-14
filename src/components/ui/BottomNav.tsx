@@ -42,7 +42,7 @@ const tabs = [
   },
   {
     key: 'chats',
-    label: 'Chats',
+    label: 'Message',
     href: '/dashboard/messages',
     icon: MessageSquare,
     activeIcon: MessageSquareFill,
@@ -135,8 +135,8 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
                   className="relative flex flex-col items-center justify-center"
                   aria-label={tab.label}
                 >
-                  <div className="flex items-center justify-center w-10 h-10 rounded-xl border-2 border-gray-900 active:scale-90 transition-transform duration-150">
-                    <Icon size={22} className="text-gray-900" strokeWidth={3} />
+                  <div className="flex items-center justify-center w-7 h-7 rounded border-2 border-gray-900 active:scale-90 transition-transform duration-150">
+                    <Icon size={16} className="text-gray-900" strokeWidth={3} />
                   </div>
                   <span className="text-[10px] font-medium text-gray-900 mt-0.5">Sell</span>
                 </button>
