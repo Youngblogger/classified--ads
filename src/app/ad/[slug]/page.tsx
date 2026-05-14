@@ -378,7 +378,7 @@ export default function AdDetailPage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <ResponsiveHeader />
       <CategoryNav className="hidden md:block" />
-      <main className="flex-1 container mx-auto px-[5px] pt-2 md:pt-[220px] pb-6">
+      <main className="flex-1 container mx-auto px-[5px] pt-2 md:pt-[80px] pb-6">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
           <div className="mb-1 sm:mb-4 flex items-center gap-2 text-sm text-gray-500">
@@ -513,7 +513,7 @@ export default function AdDetailPage() {
               </div>
 
               {/* Price, Title, Description - All in One Card */}
-              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 -mt-1 sm:mt-0 space-y-[2px]">
+              <div className="bg-white rounded-2xl shadow-sm px-4 sm:px-6 pt-1 pb-3 -mt-2 space-y-[2px]">
                 {/* Price */}
                 <div className="flex flex-row justify-between items-center gap-2 sm:gap-4">
                   <span className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
