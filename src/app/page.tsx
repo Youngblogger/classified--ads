@@ -10,7 +10,7 @@ import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { AdCardSkeleton } from '@/components/ui/Skeleton';
 
-import { formatPrice, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
+import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import { useInfiniteAds } from '@/hooks/useAds';
 import Image from 'next/image';
@@ -19,30 +19,6 @@ import PremiumBadge from '@/components/ui/PremiumBadge';
 import BoostedAdsCarousel from '@/components/ui/BoostedAdsCarousel';
 import { getBoostCardClasses, getBoostConfig, getBoostPlan, isBoostExpired } from '@/lib/boost-config';
 import { API_URL } from '@/lib/config';
-
-function LazyImage({ src, alt, className, style, onError }: { src: string; alt: string; className?: string; style?: React.CSSProperties; onError?: () => void }) {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  return (
-    <div className="relative w-full h-full">
-      {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
-          <div className="w-full h-full animate-pulse" />
-        </div>
-      )}
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-        className={`${className} object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
-        style={style}
-        onLoad={() => setIsLoaded(true)}
-        onError={onError}
-      />
-    </div>
-  );
-}
 
 function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const [imgError, setImgError] = useState(false);
@@ -62,13 +38,10 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   
   const imageUrl = getImageUrl();
   const imageCount = ad.images ? (Array.isArray(ad.images) ? ad.images.length : 0) : 0;
-  const sellerName = ad.seller?.name || ad.sellerName || 'Unknown Seller';
-  const verified = ad.seller?.verified || ad.is_verified || false;
 
   const getLocationDisplay = () => {
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
     const lgaName = ad.lga || '';
-    
     if (stateName && lgaName && stateName !== lgaName) {
       return `${lgaName}, ${stateName}`;
     }
@@ -78,43 +51,21 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
     if (favoriteLoading) return;
-    
     const { isAuthenticated } = useAuthStore.getState();
-    if (!isAuthenticated) {
-      toast.error('Please login to save ads');
-      return;
-    }
-    
+    if (!isAuthenticated) { toast.error('Please login to save ads'); return; }
     setFavoriteLoading(true);
     try {
       const token = useAuthStore.getState().token;
-      if (!token) {
-        toast.error('Please login to save ads');
-        return;
-      }
-      
+      if (!token) { toast.error('Please login to save ads'); return; }
       if (isFavorited) {
-        await fetch(`${API_URL}/favorites/${ad.id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-        });
+        await fetch(`${API_URL}/favorites/${ad.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } });
       } else {
-        await fetch(`${API_URL}/favorites`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ad_id: ad.id })
-        });
+        await fetch(`${API_URL}/favorites`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ ad_id: ad.id }) });
       }
       setIsFavorited(!isFavorited);
-      if (!isFavorited) {
-        toast.success('Ad saved to favorites');
-      }
-    } catch {
-    } finally {
-      setFavoriteLoading(false);
-    }
+      if (!isFavorited) toast.success('Ad saved to favorites');
+    } catch { } finally { setFavoriteLoading(false); }
   };
 
   const handleAdClick = (e: React.MouseEvent) => {
@@ -131,74 +82,51 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   };
 
   return (
-    <div onClick={handleAdClick} className={`group bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer ${boostCardClasses}`}>
-      <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
+    <div onClick={handleAdClick} className={`group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 cursor-pointer ${boostCardClasses}`}>
+      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
-          <LazyImage
+          <Image
             src={imageUrl}
             alt={ad.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <Image
-            src={FALLBACK_IMAGE}
-            alt="No image"
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={() => setImgError(true)}
+            loading="lazy"
           />
+        ) : (
+          <Image src={FALLBACK_IMAGE} alt="No image" fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover" />
         )}
-        
-        <PremiumBadge boostType={ad.boost_type} size="md" />
-        
+        <PremiumBadge boostType={ad.boost_type} size="sm" />
+        <button
+          onClick={handleFavoriteClick}
+          disabled={favoriteLoading}
+          className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-white rounded-full shadow-sm transition-all duration-150 disabled:opacity-50 active:scale-90"
+        >
+          <Bookmark className={`w-3.5 h-3.5 ${isFavorited ? 'text-primary-600 fill-primary-600' : 'text-gray-500'}`} />
+        </button>
         {imageCount > 1 && (
-          <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 bg-black/70 text-white text-[10px] sm:text-xs font-medium px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded flex items-center gap-0.5 sm:gap-1">
-            <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+            <ImageIcon className="w-3 h-3" />
             {imageCount}
           </div>
         )}
       </div>
-      
-      <div className="p-2 sm:p-3">
-        <div className="flex items-center justify-between">
-          <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600">
-            {formatPrice(ad.price, ad.currency)}
-          </p>
-          <button 
-            onClick={handleFavoriteClick}
-            disabled={favoriteLoading}
-            className="p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 disabled:opacity-50 border border-gray-200 ml-2 flex-shrink-0"
-          >
-            <Bookmark 
-              className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors ${
-                isFavorited 
-                  ? 'text-primary-600 fill-primary-600' 
-                  : 'text-gray-600 hover:text-primary-600'
-              }`} 
-            />
-          </button>
-        </div>
-        
-        <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-gray-700 transition-colors text-sm sm:text-base md:text-lg leading-snug mt-1">
+      <div className="p-2">
+        <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
+          {formatPrice(ad.price, ad.currency)}
+        </p>
+        <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5">
           {ad.title}
         </h3>
-        
-        {(ad.short_description || ad.description || ad.excerpt || ad.summary) && (
-          <p className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2 line-clamp-1 sm:line-clamp-2">
-            {ad.short_description || ad.description || ad.excerpt || ad.summary}
-          </p>
-        )}
-        
-<div className="flex items-center justify-between gap-1 sm:gap-2 mt-2 sm:mt-3 text-gray-500 text-xs sm:text-sm">
-          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="truncate">{getLocationDisplay()}</span>
-          </div>
-          {(ad.boost_status === 'active' || ad.is_boosted) && (
-            <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig(ad.boost_type)?.displayName || 'Gold').toLowerCase()}`}>
-              {getBoostConfig(ad.boost_type)?.displayName || 'Gold'} Plan
-            </span>
+        <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
+          <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+          <span className="truncate">{getLocationDisplay()}</span>
+          {ad.created_at && (
+            <>
+              <span className="text-gray-300">·</span>
+              <span className="whitespace-nowrap">{formatRelativeTime(ad.created_at)}</span>
+            </>
           )}
         </div>
       </div>

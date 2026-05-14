@@ -2,17 +2,13 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Image as ImageIcon, Bookmark } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Image as ImageIcon } from 'lucide-react';
 import PremiumBadge from '@/components/ui/PremiumBadge';
-import { getBoostCardClasses, getBoostConfig, BoostType } from '@/lib/boost-config';
-import { formatPrice, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
+import { getBoostCardClasses, BoostType } from '@/lib/boost-config';
+import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
 import Image from 'next/image';
-import toast from 'react-hot-toast';
 import { useBoostedAds } from '@/hooks/useAds';
-import { useAuthStore } from '@/lib/store';
 import { useAdRanking } from '@/hooks/useAdRanking';
-
-import { API_URL } from '@/lib/config';
 
 interface BoostedAd {
   id: number | string;
@@ -59,67 +55,9 @@ function getLocationDisplay(ad: BoostedAd): string {
 
 function AdCard({ ad }: { ad: BoostedAd }) {
   const [imgError, setImgError] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const imageUrl = getImageUrl(ad);
   const imageCount = ad.images ? (Array.isArray(ad.images) ? ad.images.length : 0) : 0;
   const boostCardClasses = getBoostCardClasses(ad.boost_type);
-
-  const toggleFavorite = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (favoriteLoading) return;
-    
-    const { isAuthenticated } = useAuthStore.getState();
-    if (!isAuthenticated) {
-      toast.error('Please login to save ads');
-      return;
-    }
-    
-    setFavoriteLoading(true);
-    try {
-      const token = useAuthStore.getState().token;
-      if (!token) {
-        toast.error('Please login to save ads');
-        return;
-      }
-      if (isFavorited) {
-        await fetch(`${API_URL}/favorites/${ad.id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-        });
-      } else {
-        await fetch(`${API_URL}/favorites`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ad_id: ad.id })
-        });
-      }
-      setIsFavorited(!isFavorited);
-      if (!isFavorited) {
-        toast.success('Ad saved to favorites');
-      }
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-    } finally {
-      setFavoriteLoading(false);
-    }
-  };
-
-  const getConditionBadge = () => {
-    if (!ad.condition) return null;
-    const condition = ad.condition.toLowerCase();
-    const badgeClasses = condition === 'new' || condition === 'brand_new' || condition === 'brand new' ? 'bg-green-50 text-green-700' :
-                        condition === 'like_new' || condition === 'like new' ? 'bg-blue-50 text-blue-700' :
-                        condition === 'good' ? 'bg-amber-50 text-amber-700' :
-                        condition === 'fair' ? 'bg-orange-50 text-orange-700' :
-                        'bg-gray-50 text-gray-600';
-    const label = condition === 'new' || condition === 'brand_new' || condition === 'brand new' ? 'Brand New' :
-                  condition === 'like_new' || condition === 'like new' ? 'Like New' :
-                  condition === 'good' ? 'Good' :
-                  condition === 'fair' ? 'Fair' : condition.charAt(0).toUpperCase() + condition.slice(1);
-    return <span className={`absolute top-1.5 sm:top-2 right-1.5 sm:right-2 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full ${badgeClasses}`}>{label}</span>;
-  };
 
   const handleAdClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -129,54 +67,39 @@ function AdCard({ ad }: { ad: BoostedAd }) {
   };
 
   return (
-    <div onClick={handleAdClick} className={`group min-w-[220px] sm:min-w-[260px] md:min-w-[280px] max-w-[280px] bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer flex-shrink-0 ${boostCardClasses}`}>
-      <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
+    <div onClick={handleAdClick} className={`group min-w-[200px] sm:min-w-[220px] max-w-[240px] bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 cursor-pointer flex-shrink-0 ${boostCardClasses}`}>
+      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         <Image
           src={imgError ? FALLBACK_IMAGE : imageUrl}
           alt={ad.title}
           fill
-          sizes="(max-width: 640px) 220px, (max-width: 768px) 260px, 280px"
+          sizes="(max-width: 640px) 200px, 220px"
           className="object-cover group-hover:scale-105 transition-transform duration-300"
           onError={() => setImgError(true)}
         />
-        {getConditionBadge()}
         <PremiumBadge boostType={ad.boost_type} size="sm" />
         {imageCount > 1 && (
-          <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 bg-black/70 text-white text-[10px] sm:text-xs font-medium px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded flex items-center gap-0.5 sm:gap-1">
-            <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+            <ImageIcon className="w-3 h-3" />
             {imageCount}
           </div>
         )}
       </div>
-      <div className="p-2 sm:p-3">
-        <div className="flex items-center justify-between">
-          <p className="text-lg sm:text-xl font-bold text-primary-600">
-            {formatPrice(ad.price, ad.currency)}
-          </p>
-          <button 
-            onClick={toggleFavorite}
-            disabled={favoriteLoading}
-            className="p-1.5 sm:p-2 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 disabled:opacity-50 border border-gray-200 ml-2 flex-shrink-0"
-          >
-            <Bookmark 
-              className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors ${
-                isFavorited ? 'text-primary-600 fill-primary-600' : 'text-gray-600 hover:text-primary-600'
-              }`} 
-            />
-          </button>
-        </div>
-        <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-gray-700 transition-colors text-sm sm:text-base leading-snug mt-1">
+      <div className="p-2">
+        <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
+          {formatPrice(ad.price, ad.currency)}
+        </p>
+        <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5">
           {ad.title}
         </h3>
-        <div className="flex items-center justify-between gap-1 sm:gap-2 mt-2 text-gray-500 text-xs sm:text-sm">
-          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="truncate">{getLocationDisplay(ad)}</span>
-          </div>
-          {(ad.boost_status === 'active' || ad.is_boosted) && (
-            <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig(ad.boost_type)?.displayName || 'Gold').toLowerCase()}`}>
-              {getBoostConfig(ad.boost_type)?.displayName || 'Gold'} Plan
-            </span>
+        <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
+          <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+          <span className="truncate">{getLocationDisplay(ad)}</span>
+          {ad.created_at && (
+            <>
+              <span className="text-gray-300">·</span>
+              <span className="whitespace-nowrap">{formatRelativeTime(ad.created_at)}</span>
+            </>
           )}
         </div>
       </div>

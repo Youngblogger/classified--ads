@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Loader2, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { MapPin, Loader2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
-import { formatPrice, getAdImage, getAdImageUrl, getAdImages, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
+import { formatPrice, formatRelativeTime, getAdImageUrl, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
 import PremiumBadge from '@/components/ui/PremiumBadge';
-import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
+import { getBoostCardClasses } from '@/lib/boost-config';
 
 interface AdImage {
   url?: string;
@@ -149,36 +149,6 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
     };
   }, [hasMore, loadingMore, loading, page, fetchAds]);
 
-  const getConditionBadge = (condition: string) => {
-    const isNew = condition === 'new' || condition === 'brand_new' || condition === 'brand new';
-    const isLikeNew = condition === 'like_new' || condition === 'like new';
-    const isGood = condition === 'good';
-    const isFair = condition === 'fair';
-    
-    let badgeClass = 'bg-gray-50 text-gray-600';
-    let label = condition.charAt(0).toUpperCase() + condition.slice(1);
-    
-    if (isNew) {
-      badgeClass = 'bg-green-50 text-green-700';
-      label = 'Brand New';
-    } else if (isLikeNew) {
-      badgeClass = 'bg-blue-50 text-blue-700';
-      label = 'Like New';
-    } else if (isGood) {
-      badgeClass = 'bg-amber-50 text-amber-700';
-      label = 'Used';
-    } else if (isFair) {
-      badgeClass = 'bg-purple-50 text-purple-700';
-      label = 'Refurbished';
-    }
-    
-    return (
-      <span className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[10px] sm:text-xs font-medium rounded-full ${badgeClass}`}>
-        {label}
-      </span>
-    );
-  };
-
   const getLocationDisplay = (ad: Ad) => {
     if (!ad.location?.name && !ad.state && !ad.lga) return 'N/A';
     
@@ -249,59 +219,41 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
               <Link
                 key={ad.id}
                 href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`}
-                className={`group block bg-white rounded-lg sm:rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 sm:hover:-translate-y-1 ${boostCardCls}`}
+                className={`group block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-200 ${boostCardCls}`}
               >
                 <div className="relative aspect-[4/3] bg-gray-100">
                   {(() => {
                     const primaryImage = ad.images?.find(img => img?.is_primary) || ad.images?.[0];
-                    const imageUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
+                    const imgUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
                     const fallbackImage = getCategoryFallback(ad.category);
-                    
-                    if (imageUrl) {
-                      return (
-                        <Image
-                          src={imageUrl}
-                          alt={ad.title}
-                          fill
-                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                          className="object-cover"
-                          unoptimized
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = fallbackImage;
-                          }}
-                        />
-                      );
-                    }
                     return (
                       <Image
-                        src={fallbackImage}
+                        src={imgUrl || fallbackImage}
                         alt={ad.title}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                        className="object-cover"
-                        unoptimized
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => { if (imgUrl) (e.target as HTMLImageElement).src = fallbackImage; }}
                       />
                     );
                   })()}
-                  {getConditionBadge(ad.condition)}
                   <PremiumBadge boostType={ad.boost_type} size="sm" />
                 </div>
-                <div className="p-2 sm:p-3">
-                  <h4 className="font-medium text-dark text-xs sm:text-sm line-clamp-2 group-hover:text-primary-600 transition-colors">
-                    {ad.title}
-                  </h4>
-                  <p className="text-sm sm:text-lg font-bold text-primary-600 mt-0.5 sm:mt-1">
+                <div className="p-2">
+                  <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
                     {formatPrice(ad.price, ad.currency)}
                   </p>
-                  <div className="flex items-center justify-between gap-1 text-[10px] sm:text-xs text-gray-500 mt-1 sm:mt-2">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
-                      <span className="truncate">{getLocationDisplay(ad)}</span>
-                    </div>
-                    {(ad.boost_status === 'active' || (ad as any).is_boosted) && (
-                      <span className={`boost-plan-tag boost-plan-tag--${(getBoostConfig(ad.boost_type)?.displayName || 'Gold').toLowerCase()}`}>
-                        {getBoostConfig(ad.boost_type)?.displayName || 'Gold'} Plan
-                      </span>
+                  <h4 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5">
+                    {ad.title}
+                  </h4>
+                  <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
+                    <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                    <span className="truncate">{getLocationDisplay(ad)}</span>
+                    {ad.created_at && (
+                      <>
+                        <span className="text-gray-300">·</span>
+                        <span className="whitespace-nowrap">{formatRelativeTime(ad.created_at)}</span>
+                      </>
                     )}
                   </div>
                 </div>
