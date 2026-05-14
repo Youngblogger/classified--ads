@@ -4,12 +4,12 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { 
-  Smartphone, Car, Home, Laptop, Shirt, Briefcase, 
-  Sofa, Wrench, Heart, Baby, Dumbbell, BookOpen, 
+import {
+  Smartphone, Car, Home, Laptop, Shirt, Briefcase,
+  Sofa, Wrench, Heart, Baby, Dumbbell, BookOpen,
   Dog, TreePine, Gamepad2, GraduationCap,
   ShoppingBag, UtensilsCrossed, Music, Plane,
-  Hammer, Palette, Truck, Stethoscope, ChevronRight, MoreHorizontal, Loader2
+  Hammer, Palette, Truck, Stethoscope, MoreHorizontal, Loader2
 } from 'lucide-react';
 import CategoryModal from './CategoryModal';
 
@@ -29,39 +29,81 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-const iconComponents: Record<string, any> = {
-  'smartphone': Smartphone, 'phone': Smartphone, 'mobile': Smartphone,
-  'telecommunications': Smartphone, 'phones-tablets': Smartphone, 'mobile-phones-tablets': Smartphone,
-  'car': Car, 'vehicle': Car, 'vehicles': Car, 'automotive': Car, 'cars-vehicles': Car,
-  'property': Home, 'home': Home, 'real-estate': Home, 'properties': Home,
-  'electronics': Laptop, 'laptop': Laptop, 'computer': Laptop, 'computers-laptops': Laptop,
-  'fashion': Shirt, 'clothing': Shirt, 'apparel': Shirt, 'fashion-style': Shirt,
-  'services': Briefcase, 'service': Briefcase, 'consulting-professional': Briefcase, 'jobs': Briefcase,
-  'furniture': Sofa, 'home-furniture': Sofa, 'home-furniture-appliances': Sofa,
-  'repair': Wrench, 'repairs': Wrench, 'tools': Wrench, 'tools-equipment': Wrench, 'repair-services': Wrench,
-  'beauty': Heart, 'health': Heart, 'wellness-spa': Heart, 'hair-beauty': Heart,
-  'baby': Baby, 'babies-kids': Baby, 'kids': Baby,
-  'sports': Dumbbell, 'fitness': Dumbbell, 'sports-fitness': Dumbbell,
-  'books': BookOpen, 'books-media': BookOpen, 'education': GraduationCap,
-  'pets': Dog, 'animals': Dog, 'pets-animals': Dog,
-  'garden': TreePine, 'outdoor': TreePine, 'agriculture': TreePine, 'agriculture-farming': TreePine,
-  'gaming': Gamepad2,
-  'shopping': ShoppingBag,
-  'food': UtensilsCrossed, 'catering': UtensilsCrossed,
-  'music': Music, 'entertainment': Music,
-  'travel': Plane,
-  'construction': Hammer, 'art': Palette, 'art-collectibles': Palette,
-  'transport': Truck, 'logistics': Truck,
-  'medical': Stethoscope, 'healthcare': Stethoscope,
+const iconMap: Record<string, any> = {
+  smartphone: Smartphone, phone: Smartphone, mobile: Smartphone,
+  telecommunications: Smartphone, 'phones-tablets': Smartphone, 'mobile-phones-tablets': Smartphone,
+  car: Car, vehicle: Car, vehicles: Car, automotive: Car, 'cars-vehicles': Car,
+  property: Home, 'real-estate': Home, properties: Home,
+  electronics: Laptop, laptop: Laptop, computer: Laptop, 'computers-laptops': Laptop,
+  fashion: Shirt, clothing: Shirt, apparel: Shirt, 'fashion-style': Shirt,
+  services: Briefcase, service: Briefcase, 'consulting-professional': Briefcase, jobs: Briefcase,
+  furniture: Sofa, 'home-furniture': Sofa, 'home-furniture-appliances': Sofa,
+  repair: Wrench, repairs: Wrench, tools: Wrench, 'tools-equipment': Wrench, 'repair-services': Wrench,
+  beauty: Heart, health: Heart, 'wellness-spa': Heart, 'hair-beauty': Heart,
+  baby: Baby, 'babies-kids': Baby, kids: Baby,
+  sports: Dumbbell, fitness: Dumbbell, 'sports-fitness': Dumbbell,
+  books: BookOpen, 'books-media': BookOpen, education: GraduationCap,
+  pets: Dog, animals: Dog, 'pets-animals': Dog,
+  garden: TreePine, outdoor: TreePine, agriculture: TreePine, 'agriculture-farming': TreePine,
+  gaming: Gamepad2,
+  shopping: ShoppingBag,
+  food: UtensilsCrossed, catering: UtensilsCrossed,
+  music: Music, entertainment: Music,
+  travel: Plane,
+  construction: Hammer, art: Palette, 'art-collectibles': Palette,
+  transport: Truck, logistics: Truck,
+  medical: Stethoscope, healthcare: Stethoscope,
 };
 
-function getCategoryIcon(slug?: string, name?: string) {
+function getIcon(slug?: string, name?: string) {
   if (!slug && !name) return Briefcase;
-  const slugKey = slug?.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  if (slugKey && iconComponents[slugKey]) return iconComponents[slugKey];
+  const key = slug?.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  if (key && iconMap[key]) return iconMap[key];
   const nameKey = name?.toLowerCase().split(' ')[0];
-  if (nameKey && iconComponents[nameKey]) return iconComponents[nameKey];
+  if (nameKey && iconMap[nameKey]) return iconMap[nameKey];
   return Briefcase;
+}
+
+const fallbackCategories = [
+  { name: 'Phones & Tablets', slug: 'mobile-phones-tablets' },
+  { name: 'Vehicles', slug: 'vehicles' },
+  { name: 'Property', slug: 'property' },
+  { name: 'Electronics', slug: 'electronics' },
+  { name: 'Fashion', slug: 'fashion' },
+  { name: 'Services', slug: 'services' },
+  { name: 'Furniture', slug: 'home-furniture' },
+  { name: 'Repairs', slug: 'repair-services' },
+  { name: 'Health & Beauty', slug: 'health-beauty' },
+  { name: 'Sports', slug: 'sports-fitness' },
+  { name: 'Babies & Kids', slug: 'babies-kids' },
+  { name: 'Jobs', slug: 'jobs' },
+];
+
+const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
+  phone: { bg: 'bg-blue-50', text: 'text-blue-600', ring: 'ring-blue-200' },
+  vehicle: { bg: 'bg-emerald-50', text: 'text-emerald-600', ring: 'ring-emerald-200' },
+  property: { bg: 'bg-purple-50', text: 'text-purple-600', ring: 'ring-purple-200' },
+  electronic: { bg: 'bg-amber-50', text: 'text-amber-600', ring: 'ring-amber-200' },
+  fashion: { bg: 'bg-pink-50', text: 'text-pink-600', ring: 'ring-pink-200' },
+  service: { bg: 'bg-cyan-50', text: 'text-cyan-600', ring: 'ring-cyan-200' },
+  furniture: { bg: 'bg-orange-50', text: 'text-orange-600', ring: 'ring-orange-200' },
+  repair: { bg: 'bg-indigo-50', text: 'text-indigo-600', ring: 'ring-indigo-200' },
+  baby: { bg: 'bg-yellow-50', text: 'text-yellow-600', ring: 'ring-yellow-200' },
+  sport: { bg: 'bg-green-50', text: 'text-green-600', ring: 'ring-green-200' },
+  pet: { bg: 'bg-teal-50', text: 'text-teal-600', ring: 'ring-teal-200' },
+  health: { bg: 'bg-rose-50', text: 'text-rose-600', ring: 'ring-rose-200' },
+  book: { bg: 'bg-violet-50', text: 'text-violet-600', ring: 'ring-violet-200' },
+  food: { bg: 'bg-red-50', text: 'text-red-600', ring: 'ring-red-200' },
+  music: { bg: 'bg-fuchsia-50', text: 'text-fuchsia-600', ring: 'ring-fuchsia-200' },
+  agriculture: { bg: 'bg-lime-50', text: 'text-lime-600', ring: 'ring-lime-200' },
+};
+
+function getColors(name: string) {
+  const lower = name.toLowerCase();
+  for (const [key, colors] of Object.entries(colorMap)) {
+    if (lower.includes(key)) return colors;
+  }
+  return { bg: 'bg-gray-100', text: 'text-gray-600', ring: 'ring-gray-200' };
 }
 
 interface CategoryNavProps {
@@ -74,7 +116,8 @@ export default function CategoryNav({ selectedCategory, onCategorySelect, classN
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  
+  const [isScrolled, setIsScrolled] = useState(false);
+
   const { data, error, isLoading } = useSWR(
     `${API_URL}/categories`,
     fetcher,
@@ -82,6 +125,15 @@ export default function CategoryNav({ selectedCategory, onCategorySelect, classN
   );
 
   const categories: Category[] = data?.data || [];
+  const source = categories.length > 0 ? categories : fallbackCategories;
+  const processed = (Array.isArray(source) ? source : [])
+    .filter((c: any) => !c.parent_id || !('parent_id' in c))
+    .slice(0, 12)
+    .map((cat: any) => ({
+      name: cat.name,
+      slug: cat.slug,
+      colors: getColors(cat.name),
+    }));
 
   const handleCategoryClick = (slug: string) => {
     if (onCategorySelect) {
@@ -91,247 +143,116 @@ export default function CategoryNav({ selectedCategory, onCategorySelect, classN
     }
   };
 
-  const handleSeeAll = () => {
-    setShowCategoryModal(true);
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      setIsScrolled(scrollRef.current.scrollLeft > 0);
+    }
   };
 
-  // Categories to hide on desktop
-  const hideOnDesktop = ['pets-animals', 'pets', 'animals', 'garden', 'agriculture', 'agriculture-farming', 'food-catering', 'food', 'catering'];
-  
-  // Fallback categories using getEmojiForCategory (same as mobile view)
-  const fallbackCategories = [
-    { name: 'Phones & Tablets', slug: 'mobile-phones-tablets' },
-    { name: 'Vehicles', slug: 'vehicles' },
-    { name: 'Property', slug: 'property' },
-    { name: 'Fashion', slug: 'fashion' },
-    { name: 'Electronics', slug: 'electronics' },
-    { name: 'Services', slug: 'services' },
-    { name: 'Furniture', slug: 'home-furniture' },
-    { name: 'Repairs', slug: 'repair-services' },
-    { name: 'Health & Beauty', slug: 'health-beauty' },
-    { name: 'Sports', slug: 'sports-fitness' },
-    { name: 'Babies & Kids', slug: 'babies-kids' },
-    { name: 'Jobs', slug: 'jobs' },
-  ];
-  
-  // Process categories from API with emoji from mobile view, or use fallback
-  const categorySource = categories.length > 0 ? categories : fallbackCategories;
-  const processedCategories = (Array.isArray(categorySource) ? categorySource : [])
-    .filter((c: any) => !c.parent_id || !('parent_id' in c))
-    .slice(0, 12)
-    .map((cat: any) => {
-      const emoji = getEmojiForCategory(cat.name);
-      return {
-        name: cat.name,
-        slug: cat.slug,
-        emoji: emoji,
-        color: getColorForCategory(cat.name).bg,
-        iconColor: getColorForCategory(cat.name).text,
-        hideOnDesktop: hideOnDesktop.includes(String(cat.slug).toLowerCase()),
-      };
-    });
-
   return (
-    <div 
-      className={`bg-white border-b border-gray-100 relative z-[50] ${className}`}
-    >
+    <div className={`bg-white border-b border-gray-100 shadow-sm ${className}`}>
       <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6 xl:container xl:mx-auto">
         <div className="relative">
-          {/* Scrollable Container */}
-          <div 
-            ref={scrollRef}
-            className="flex gap-1 sm:gap-2 py-2 sm:py-3 overflow-x-auto scrollbar-visible"
-            style={{ WebkitOverflowScrolling: 'touch' }}
-          >
-            {/* Loading State */}
-            {isLoading && (
-              <div className="flex items-center gap-2 px-2">
-                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                <span className="text-sm text-gray-400">Loading...</span>
-              </div>
-            )}
-
-            {/* All Button with Globe Emoji */}
-            {!isLoading && (
-              <button
-                onClick={() => handleCategoryClick('')}
-                className={`
-                  flex flex-col items-center gap-1 flex-shrink-0
-                  px-2 sm:px-3 py-2 rounded-lg sm:rounded-xl
-                  transition-all duration-200
-                  ${!selectedCategory 
-                    ? 'bg-primary-50 ring-2 ring-primary-200' 
-                    : 'hover:bg-gray-50 active:scale-95'
-                  }
-                `}
-              >
-                <div className={`
-                  w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center
-                  transition-all duration-200 shadow-sm
-                  ${!selectedCategory ? 'bg-primary-100' : 'bg-gray-100'}
-                `}>
-                  <span style={{ fontSize: '24px', lineHeight: 1 }}>🌐</span>
+          {isLoading ? (
+            <div className="flex items-center gap-4 py-3 px-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 animate-pulse" />
+                  <div className="w-14 h-2.5 rounded bg-gray-100 animate-pulse" />
                 </div>
-                <span className={`
-                  text-[10px] sm:text-xs font-medium text-center leading-tight
-                  ${!selectedCategory ? 'text-primary-600' : 'text-gray-700'}
-                  max-w-[50px] sm:max-w-[70px] truncate
-                `}>
-                  All
-                </span>
-              </button>
-            )}
-
-            {/* Category Items */}
-            {!isLoading && processedCategories.map((category, index) => {
-              const IconComponent = getCategoryIcon(category.slug, category.name);
-              const isSelected = selectedCategory === category.slug;
-
-              return (
+              ))}
+            </div>
+          ) : (
+            <>
+              <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="flex items-center gap-1 sm:gap-2 py-2.5 sm:py-3 overflow-x-auto scrollbar-hide scroll-smooth"
+                style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}
+              >
                 <button
-                  key={`${category.slug}-${index}`}
-                  onClick={() => handleCategoryClick(category.slug)}
-                  className={`
-                    flex flex-col items-center gap-1 flex-shrink-0
-                    px-2 sm:px-3 py-2 rounded-lg sm:rounded-xl
-                    transition-all duration-200
-                    ${category.hideOnDesktop ? 'lg:hidden' : ''}
-                    ${isSelected 
-                      ? 'bg-primary-50 ring-2 ring-primary-200' 
-                      : 'hover:bg-gray-50 active:scale-95'
-                    }
-                  `}
+                  onClick={() => handleCategoryClick('')}
+                  className={`flex flex-col items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-xl transition-all duration-200 group ${
+                    !selectedCategory ? 'scale-105' : 'hover:scale-105'
+                  }`}
                 >
-                  {/* Icon Container */}
-                  <div className={`
-                    w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center
-                    transition-all duration-200 shadow-sm
-                    ${isSelected 
-                      ? 'bg-primary-100' 
-                      : category.color
-                    }
-                  `}>
-                    {category.emoji ? (
-                      <span style={{ fontSize: '24px', lineHeight: 1 }}>
-                        {category.emoji}
-                      </span>
-                    ) : (
-                      <IconComponent 
-                        className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                          isSelected ? 'text-primary-600' : category.iconColor
-                        }`} 
-                      />
-                    )}
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ring-1 ${
+                    !selectedCategory
+                      ? 'bg-primary-600 text-white ring-primary-600 shadow-md scale-105'
+                      : 'bg-gray-100 text-gray-500 ring-gray-100 group-hover:bg-gray-200 group-hover:ring-gray-200 group-hover:shadow-md'
+                  }`}>
+                    <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="6" r="4" />
+                      <path d="M20 21a8 8 0 1 0-16 0" />
+                    </svg>
                   </div>
-                  
-                  {/* Label */}
-                  <span className={`
-                    text-[10px] sm:text-xs font-medium text-center leading-tight
-                    ${isSelected ? 'text-primary-600' : 'text-gray-700'}
-                    max-w-[50px] sm:max-w-[70px] truncate
-                  `}>
-                    {category.name}
+                  <span className={`text-[11px] sm:text-xs font-semibold text-center leading-tight transition-colors duration-200 ${
+                    !selectedCategory ? 'text-primary-600' : 'text-gray-600 group-hover:text-gray-900'
+                  }`}>
+                    All
                   </span>
                 </button>
-              );
-            })}
 
-            {/* See All Button - Hidden on Desktop */}
-            {!isLoading && (
-              <button
-                onClick={handleSeeAll}
-                className="hidden max-md:flex flex-col items-center gap-1 flex-shrink-0 px-2 sm:px-3 py-2 rounded-lg sm:rounded-xl hover:bg-gray-50 active:scale-95 transition-all duration-200"
-              >
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gray-100 flex items-center justify-center shadow-sm">
-                  <MoreHorizontal className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
-                </div>
-                <span className="text-[10px] sm:text-xs font-medium text-gray-600 text-center leading-tight max-w-[50px] sm:max-w-[70px]">
-                  See All
-                </span>
-              </button>
-            )}
-          </div>
+                {processed.map((category, index) => {
+                  const IconComponent = getIcon(category.slug, category.name);
+                  const isSelected = selectedCategory === category.slug;
 
-          {/* Fade Gradient (Right Edge) */}
-          <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-10 bg-gradient-to-r from-transparent to-white pointer-events-none" />
+                  return (
+                    <button
+                      key={`${category.slug}-${index}`}
+                      onClick={() => handleCategoryClick(category.slug)}
+                      className={`flex flex-col items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-xl transition-all duration-200 group ${
+                        isSelected ? 'scale-105' : 'hover:scale-105'
+                      }`}
+                    >
+                      <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ring-1 ${
+                        isSelected
+                          ? `${category.colors.bg} ${category.colors.text} ring-2 ${category.colors.ring} shadow-md`
+                          : `${category.colors.bg} ${category.colors.text} ring-transparent group-hover:ring-1 ${category.colors.ring} group-hover:shadow-md`
+                      }`}>
+                        <IconComponent className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={isSelected ? 2.5 : 1.8} />
+                      </div>
+                      <span className={`text-[11px] sm:text-xs font-semibold text-center leading-tight transition-colors duration-200 max-w-[56px] sm:max-w-[72px] truncate ${
+                        isSelected ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-900'
+                      }`}>
+                        {category.name}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => setShowCategoryModal(true)}
+                  className="flex flex-col items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-xl transition-all duration-200 group hover:scale-105"
+                >
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center transition-all duration-200 shadow-sm ring-1 ring-gray-100 group-hover:bg-gray-100 group-hover:ring-gray-200 group-hover:shadow-md">
+                    <MoreHorizontal className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                  <span className="text-[11px] sm:text-xs font-semibold text-gray-500 text-center leading-tight group-hover:text-gray-700 transition-colors duration-200">
+                    More
+                  </span>
+                </button>
+              </div>
+
+              {isScrolled && (
+                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
+              )}
+            </>
+          )}
         </div>
       </div>
 
-      {/* Scrollbar CSS */}
       <style jsx global>{`
-        .scrollbar-visible::-webkit-scrollbar {
-          height: 4px;
-        }
-        .scrollbar-visible::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 4px;
-        }
-        .scrollbar-visible::-webkit-scrollbar-thumb {
-          background: #d1d5db;
-          border-radius: 4px;
-        }
-        .scrollbar-visible::-webkit-scrollbar-thumb:hover {
-          background: #9ca3af;
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
 
-      {/* Category Modal */}
-      <CategoryModal 
-        isOpen={showCategoryModal} 
-        onClose={() => setShowCategoryModal(false)} 
+      <CategoryModal
+        isOpen={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
         selectedCategory={selectedCategory}
       />
     </div>
   );
-}
-
-// Helper function to get emoji for category
-function getEmojiForCategory(name: string): string | undefined {
-  if (!name) return undefined;
-  const nameLower = name.toLowerCase();
-  
-  if (nameLower.includes('phone') || nameLower.includes('mobile') || nameLower.includes('tablet')) return '📱';
-  if (nameLower.includes('vehicle') || nameLower.includes('car') || nameLower.includes('automotive') || nameLower.includes('bicycle')) return '🚗';
-  if (nameLower.includes('property') || nameLower.includes('estate') || nameLower.includes('real estate') || nameLower.includes('land') || nameLower.includes('house')) return '🏠';
-  if (nameLower.includes('electronic') || nameLower.includes('computer') || nameLower.includes('laptop') || nameLower.includes('tv') || nameLower.includes('camera')) return '💻';
-  if (nameLower.includes('fashion') || nameLower.includes('clothing') || nameLower.includes('apparel') || nameLower.includes('shoe') || nameLower.includes('bag')) return '👕';
-  if (nameLower.includes('service') || nameLower.includes('professional')) return '🛠️';
-  if (nameLower.includes('furniture') || nameLower.includes('home')) return '🛋️';
-  if (nameLower.includes('repair') || nameLower.includes('maintenance')) return '🔧';
-  if (nameLower.includes('health') || nameLower.includes('beauty') || nameLower.includes('spa')) return '💄';
-  if (nameLower.includes('sport') || nameLower.includes('fitness') || nameLower.includes('gym')) return '⚽';
-  if (nameLower.includes('baby') || nameLower.includes('kid') || nameLower.includes('children')) return '👶';
-  if (nameLower.includes('job') || nameLower.includes('employment')) return '💼';
-  if (nameLower.includes('agriculture') || nameLower.includes('farm') || nameLower.includes('garden')) return '🌾';
-  if (nameLower.includes('shop') || nameLower.includes('store')) return '🛒';
-  if (nameLower.includes('food') || nameLower.includes('catering') || nameLower.includes('restaurant')) return '🍔';
-  if (nameLower.includes('music') || nameLower.includes('instrument')) return '🎵';
-  
-  return undefined;
-}
-
-// Helper function to assign colors
-function getColorForCategory(name: string): { bg: string; text: string } {
-  const nameLower = name.toLowerCase();
-  
-  if (nameLower.includes('phone') || nameLower.includes('mobile')) return { bg: 'bg-blue-50', text: 'text-blue-600' };
-  if (nameLower.includes('vehicle') || nameLower.includes('car')) return { bg: 'bg-emerald-50', text: 'text-emerald-600' };
-  if (nameLower.includes('property') || nameLower.includes('estate')) return { bg: 'bg-purple-50', text: 'text-purple-600' };
-  if (nameLower.includes('electronic') || nameLower.includes('computer')) return { bg: 'bg-amber-50', text: 'text-amber-600' };
-  if (nameLower.includes('fashion') || nameLower.includes('clothing')) return { bg: 'bg-pink-50', text: 'text-pink-600' };
-  if (nameLower.includes('service')) return { bg: 'bg-cyan-50', text: 'text-cyan-600' };
-  if (nameLower.includes('furniture')) return { bg: 'bg-orange-50', text: 'text-orange-600' };
-  if (nameLower.includes('repair')) return { bg: 'bg-indigo-50', text: 'text-indigo-600' };
-  if (nameLower.includes('baby') || nameLower.includes('kid')) return { bg: 'bg-yellow-50', text: 'text-yellow-600' };
-  if (nameLower.includes('sport') || nameLower.includes('fitness')) return { bg: 'bg-green-50', text: 'text-green-600' };
-  if (nameLower.includes('pet')) return { bg: 'bg-teal-50', text: 'text-teal-600' };
-  if (nameLower.includes('health') || nameLower.includes('beauty')) return { bg: 'bg-rose-50', text: 'text-rose-600' };
-  if (nameLower.includes('book') || nameLower.includes('education')) return { bg: 'bg-violet-50', text: 'text-violet-600' };
-  if (nameLower.includes('food') || nameLower.includes('catering')) return { bg: 'bg-red-50', text: 'text-red-600' };
-  if (nameLower.includes('music') || nameLower.includes('art')) return { bg: 'bg-fuchsia-50', text: 'text-fuchsia-600' };
-  if (nameLower.includes('job')) return { bg: 'bg-slate-100', text: 'text-slate-600' };
-  if (nameLower.includes('agriculture')) return { bg: 'bg-lime-50', text: 'text-lime-600' };
-  if (nameLower.includes('shop')) return { bg: 'bg-violet-50', text: 'text-violet-600' };
-  
-  return { bg: 'bg-gray-100', text: 'text-gray-600' };
 }

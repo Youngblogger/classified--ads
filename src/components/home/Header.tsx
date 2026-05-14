@@ -18,6 +18,7 @@ import {
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
 import { cn, BACKEND_URL } from '@/lib/utils';
+import CategoryNav from '@/components/ui/CategoryNav';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useSocket } from '@/hooks/useSocket';
@@ -237,7 +238,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   }, [selectedLocation]);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [showMegaMenu, setShowMegaMenu] = useState(false);
   const [searchResults, setSearchResults] = useState<any>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -257,7 +257,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   const [apiCategories, setApiCategories] = useState<ApiCategory[]>([]);
   const [apiLocations, setApiLocations] = useState<ApiLocation[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [megaMenuSearch, setMegaMenuSearch] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
@@ -295,63 +294,9 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     return () => clearInterval(interval);
   }, [placeholderWords.length]);
 
-  const filteredMegaMenuCategories = megaMenuSearch.trim() === '' 
-    ? apiCategories 
-    : apiCategories.filter(cat => 
-        cat.name.toLowerCase().includes(megaMenuSearch.toLowerCase()) ||
-        cat.slug.toLowerCase().includes(megaMenuSearch.toLowerCase()) ||
-        cat.children?.some(child => 
-          child.name.toLowerCase().includes(megaMenuSearch.toLowerCase())
-        )
-      );
-
-  interface MegaMenuSearchItem {
-    type: 'category' | 'subcategory';
-    categorySlug: string;
-    categoryName: string;
-    categoryIcon?: string;
-    slug: string;
-    name: string;
-  }
-
-  const megaMenuSearchResults: MegaMenuSearchItem[] = megaMenuSearch.trim() === '' 
-    ? []
-    : apiCategories.flatMap(cat => {
-        const results: MegaMenuSearchItem[] = [];
-        
-        if (cat.name.toLowerCase().includes(megaMenuSearch.toLowerCase()) || 
-            cat.slug.toLowerCase().includes(megaMenuSearch.toLowerCase())) {
-          results.push({
-            type: 'category',
-            categorySlug: cat.slug,
-            categoryName: cat.name,
-            categoryIcon: cat.icon,
-            slug: cat.slug,
-            name: cat.name,
-          });
-        }
-        
-        cat.children?.forEach(child => {
-          if (child.name.toLowerCase().includes(megaMenuSearch.toLowerCase()) ||
-              child.slug.toLowerCase().includes(megaMenuSearch.toLowerCase())) {
-            results.push({
-              type: 'subcategory',
-              categorySlug: cat.slug,
-              categoryName: cat.name,
-              categoryIcon: cat.icon,
-              slug: child.slug,
-              name: child.name,
-            });
-          }
-        });
-        
-        return results;
-      });
-  
   const searchRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
-  const megaMenuRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -410,9 +355,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
       }
       if (mobileNotificationsRef.current && !mobileNotificationsRef.current.contains(e.target as Node)) {
         setMobileNotificationsOpen(false);
-      }
-      if (megaMenuRef.current && !megaMenuRef.current.contains(e.target as Node)) {
-        setShowMegaMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -1235,167 +1177,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
       </div>
 
       {/* CATEGORY NAVIGATION BAR */}
-      {variant === 'home' && (
-      <div className="bg-white border-b border-slate-200 relative z-10">
-        <div className="container-app">
-          <div className="flex items-center gap-2 py-3">
-            {/* All Categories Button with emoji */}
-            <div className="relative" ref={megaMenuRef}>
-              <button
-                onClick={() => setShowMegaMenu(!showMegaMenu)}
-                className={cn(
-                  "flex items-center gap-1 px-3 py-2 rounded-xl font-medium transition-all duration-200",
-                  showMegaMenu 
-                    ? "bg-accent-600 text-white shadow-md" 
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                )}
-              >
-                <span>📑</span>
-                <span>All Categories</span>
-                <ChevronDown className={cn("w-3 h-3 transition-transform", showMegaMenu && "rotate-180")} />
-              </button>
-
-              {/* Mega Menu */}
-              {showMegaMenu && (
-                <div className="absolute top-full left-0 mt-2 w-[800px] max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200 z-[9999] animate-fade-in">
-                  <div className="p-4 border-b border-slate-100 sticky top-0 bg-white">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        type="text"
-                        value={megaMenuSearch}
-                        onChange={(e) => setMegaMenuSearch(e.target.value)}
-                        placeholder="Search categories..."
-                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm text-slate-900 placeholder-slate-400 transition-all"
-                      />
-                      {megaMenuSearch && (
-                        <button
-                          onClick={() => setMegaMenuSearch('')}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 rounded-full"
-                        >
-                          <X className="w-3 h-3 text-slate-400" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-4 gap-4 p-4">
-                    {megaMenuSearch ? (
-                      megaMenuSearchResults.length > 0 ? (
-                        <>
-                          {megaMenuSearchResults.map((item) => {
-                            const IconComponent = getIconComponent(item.categoryIcon);
-                            return (
-                              <Link
-                                key={`${item.type}-${item.slug}`}
-                                href={item.type === 'category' 
-                                  ? `/ads?category=${item.slug}` 
-                                  : `/ads?category=${item.categorySlug}&sub=${item.slug}`
-                                }
-                                onClick={() => { setShowMegaMenu(false); setMegaMenuSearch(''); }}
-                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors group"
-                              >
-                                <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition-colors">
-                                  <IconComponent className="w-5 h-5 text-primary-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <span className="font-semibold text-slate-900 block truncate">{item.name}</span>
-                                  <span className="text-xs text-slate-500">
-                                    {item.type === 'category' ? 'Category' : `in ${item.categoryName}`}
-                                  </span>
-                                </div>
-                              </Link>
-                            );
-                          })}
-                        </>
-                      ) : (
-                        <div className="col-span-4 text-center py-8 text-slate-500">
-                          No results found for &quot;{megaMenuSearch}&quot;
-                        </div>
-                      )
-                    ) : (
-                      apiCategories.map((category) => {
-                        const IconComponent = getIconComponent(category.icon);
-                        return (
-                          <div key={category.slug} className="space-y-2">
-                            <Link
-                              href={`/ads?category=${category.slug}`}
-                              onClick={() => setShowMegaMenu(false)}
-                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors group"
-                            >
-                              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition-colors">
-                                <IconComponent className="w-5 h-5 text-primary-600" />
-                              </div>
-                              <span className="font-semibold text-slate-900">{category.name}</span>
-                            </Link>
-                            <div className="pl-12 space-y-1">
-                              {category.children?.slice(0, 4).map((item) => (
-                                <Link
-                                  key={item.slug}
-                                  href={`/ads?category=${category.slug}&sub=${item.slug}`}
-                                  onClick={() => setShowMegaMenu(false)}
-                                  className="block py-1 text-sm text-slate-600 hover:text-primary-600 transition-colors"
-                                >
-                                  {item.name}
-                                </Link>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                  <div className="px-4 py-3 bg-slate-50 rounded-b-2xl border-t border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-slate-500">Trending:</span>
-                      {['iPhone 15', 'Toyota Camry', 'MacBook Pro', 'Duplex'].map((term) => (
-                        <Link
-                          key={term}
-                          href={`/ads?q=${encodeURIComponent(term)}`}
-                          onClick={() => setShowMegaMenu(false)}
-                          className="px-2.5 py-1 bg-white rounded-full text-xs text-slate-600 hover:text-primary-600 hover:bg-primary-50 transition-colors border border-slate-200"
-                        >
-                          {term}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Category Pills with emojis */}
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin flex-1 pb-1">
-              {[
-                { slug: 'vehicles', name: 'Vehicles', emoji: '🚗' },
-                { slug: 'mobile-phones-tablets', name: 'Phones & Tablets', emoji: '📱' },
-                { slug: 'property', name: 'Property', emoji: '🏠' },
-                { slug: 'electronics', name: 'Electronics', emoji: '💻' },
-                { slug: 'fashion', name: 'Fashion', emoji: '👗' },
-                { slug: 'home-furniture', name: 'Furniture', emoji: '🛋️' },
-                { slug: 'health-beauty', name: 'Health & Beauty', emoji: '🧴' },
-                { slug: 'babies-kids', name: 'Babies & Kids', emoji: '👶' },
-                { slug: 'services', name: 'Services', emoji: '🧰' },
-                { slug: 'repair-services', name: 'Repairs', emoji: '🔧' },
-                { slug: 'jobs', name: 'Jobs', emoji: '💼' },
-                { slug: 'agriculture-farming', name: 'Agriculture', emoji: '🐄' },
-                { slug: 'sports-fitness', name: 'Sports', emoji: '⚽' },
-                { slug: 'pets-animals', name: 'Pets', emoji: '🐾' },
-              ].map((category) => (
-                <Link
-                  key={category.slug}
-                  href={`/ads?category=${category.slug}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-primary-50 text-slate-700 hover:text-primary-700 transition-colors whitespace-nowrap flex-shrink-0 text-sm font-medium border border-transparent hover:border-primary-200"
-                >
-                  <span className="hidden md:inline text-base">{category.emoji}</span>
-                  <span className="md:hidden text-base">📁</span>
-                  <span>{category.name}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      )}
+      {variant === 'home' && <CategoryNav />}
 
       {/* Mobile Search Bar */}
       {variant === 'home' && mobileSearchOpen && (

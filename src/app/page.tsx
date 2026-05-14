@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus, Bookmark } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
+import CategoryNav from '@/components/ui/CategoryNav';
 import Footer from '@/components/layout/Footer';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { AdCardSkeleton } from '@/components/ui/Skeleton';
@@ -246,8 +247,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#f5f6f7' }} suppressHydrationWarning>
       <ResponsiveHeader />
-      
-      <main className="flex-1 relative pt-0 md:pt-[170px]" suppressHydrationWarning>
+      <CategoryNav />
+      <main className="flex-1 relative pt-0 md:pt-[210px]" suppressHydrationWarning>
         {/* Hero Section - Hidden on mobile */}
         <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
           {/* Background Pattern */}

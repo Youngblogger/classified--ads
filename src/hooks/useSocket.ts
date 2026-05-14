@@ -220,11 +220,9 @@ export function useSocket({
       globalSocketUserId = null;
     }
 
-    const token = getAuthToken();
     const socket = io(SOCKET_URL, {
       ...SOCKET_CONFIG,
-      auth: token ? { token } : undefined,
-      query: token ? { token } : undefined,
+      auth: { token: getAuthToken() },
     });
 
     globalSocket = socket;
