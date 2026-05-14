@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus, Bookmark } from 'lucide-react';
+import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import CategoryNav from '@/components/ui/CategoryNav';
 import CategorySidebar from '@/components/home/CategorySidebar';
@@ -14,7 +14,6 @@ import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdImageUrl, getAdIm
 import { useAuthStore } from '@/lib/store';
 import { useInfiniteAds } from '@/hooks/useAds';
 import Image from 'next/image';
-import toast from 'react-hot-toast';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import BoostedAdsCarousel from '@/components/ui/BoostedAdsCarousel';
 import { getBoostCardClasses, getBoostConfig, getBoostPlan, isBoostExpired } from '@/lib/boost-config';
@@ -22,8 +21,6 @@ import { API_URL } from '@/lib/config';
 
 function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const [imgError, setImgError] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const boostCardClasses = getBoostCardClasses(ad.boost_type);
   
   const getImageUrl = () => {
@@ -48,37 +45,11 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
     return stateName || lgaName || 'No location';
   };
 
-  const toggleFavorite = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (favoriteLoading) return;
-    const { isAuthenticated } = useAuthStore.getState();
-    if (!isAuthenticated) { toast.error('Please login to save ads'); return; }
-    setFavoriteLoading(true);
-    try {
-      const token = useAuthStore.getState().token;
-      if (!token) { toast.error('Please login to save ads'); return; }
-      if (isFavorited) {
-        await fetch(`${API_URL}/favorites/${ad.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } });
-      } else {
-        await fetch(`${API_URL}/favorites`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ ad_id: ad.id }) });
-      }
-      setIsFavorited(!isFavorited);
-      if (!isFavorited) toast.success('Ad saved to favorites');
-    } catch { } finally { setFavoriteLoading(false); }
-  };
-
   const handleAdClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const targetSlug = (ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`;
     window.location.href = `/ad/${targetSlug}`;
-  };
-
-  const handleFavoriteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleFavorite(e);
   };
 
   return (
@@ -98,13 +69,6 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
           <Image src={FALLBACK_IMAGE} alt="No image" fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover" />
         )}
         <PremiumBadge boostType={ad.boost_type} size="sm" />
-        <button
-          onClick={handleFavoriteClick}
-          disabled={favoriteLoading}
-          className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-white rounded-full shadow-sm transition-all duration-150 disabled:opacity-50 active:scale-90"
-        >
-          <Bookmark className={`w-3.5 h-3.5 ${isFavorited ? 'text-primary-600 fill-primary-600' : 'text-gray-500'}`} />
-        </button>
         {imageCount > 1 && (
           <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
             <ImageIcon className="w-3 h-3" />
