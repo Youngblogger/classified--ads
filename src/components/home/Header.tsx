@@ -1422,8 +1422,9 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
       )}
 
       {/* MOBILE MENU */}
-      {showMobileMenu && (
-        <div className="fixed inset-0 z-[70] bg-white overflow-y-auto lg:hidden pb-16">
+      <div className={`fixed inset-0 z-[70] bg-white overflow-y-auto lg:hidden pb-36 transition-all duration-150 ease-in-out ${
+        showMobileMenu ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
+      }`}>
           {/* Mobile Header */}
           <div className="flex items-center justify-between px-4 h-16 border-b border-slate-200 bg-primary-600">
             <Link href="/" className="flex items-center gap-2" onClick={() => setShowMobileMenu(false)}>
@@ -1738,7 +1739,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
             </div>
           </div>
         </div>
-      )}
-    </header>
+      </header>
   );
 }

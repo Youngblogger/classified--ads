@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, MapPin } from 'lucide-react';
+import { Search, MapPin, LogOut, User, ChevronDown } from 'lucide-react';
 import { useGlobalStore, useUIStore, useAuthStore } from '@/lib/store';
+import { api } from '@/lib/api';
 
 const iconEmojis: Record<string, string> = {
   'smartphone': '📱', 'phone': '📱', 'mobile': '📱',
@@ -60,10 +61,13 @@ export default function MobileHeader() {
   const router = useRouter();
   const { selectedLocation } = useGlobalStore();
   const { toggleLocationModal } = useUIStore();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, logout } = useAuthStore();
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   
   const locationDisplay = selectedLocation 
     ? selectedLocation.lga 
@@ -76,10 +80,38 @@ export default function MobileHeader() {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setSearchQuery('');
       }
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+    }
+    
+    logout();
+    
+    if (typeof window !== 'undefined') {
+      ['token', 'admin_token'].forEach((name) => {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      });
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      sessionStorage.clear();
+    }
+    
+    setShowProfileMenu(false);
+    setIsLoggingOut(false);
+    router.push('/');
+  };
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -123,29 +155,59 @@ export default function MobileHeader() {
             />
           </Link>
 
-          {/* Profile Image */}
+          {/* Profile Image with Dropdown */}
           {isAuthenticated && (
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 p-1 rounded-xl hover:bg-white/10 transition-colors"
-            >
-              <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center ring-2 ring-white/30">
-                {(() => {
-                  const avatarUrl = user?.full_avatar_url || user?.avatar_url || user?.avatar || user?.google_avatar || user?.facebook_avatar;
-                  return avatarUrl ? (
-                    <img
-                      src={avatarUrl.startsWith('http') ? avatarUrl : `http://127.0.0.1:8000${avatarUrl.startsWith('/') ? '' : '/storage/'}${avatarUrl}`}
-                      alt={user?.name || 'User'}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <span className="text-primary-600 font-semibold text-sm">
-                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
-                  );
-                })()}
-              </div>
-            </Link>
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-1 p-1 rounded-xl hover:bg-white/10 transition-colors"
+              >
+                <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center ring-2 ring-white/30">
+                  {(() => {
+                    const avatarUrl = user?.full_avatar_url || user?.avatar_url || user?.avatar || user?.google_avatar || user?.facebook_avatar;
+                    return avatarUrl ? (
+                      <img
+                        src={avatarUrl.startsWith('http') ? avatarUrl : `http://127.0.0.1:8000${avatarUrl.startsWith('/') ? '' : '/storage/'}${avatarUrl}`}
+                        alt={user?.name || 'User'}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <span className="text-primary-600 font-semibold text-sm">
+                        {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <ChevronDown className={`w-3 h-3 text-white transition-transform duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showProfileMenu && (
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-dropdown border border-slate-100 animate-fade-in z-[9999] overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{user?.name || 'User'}</p>
+                    <p className="text-xs text-slate-500 truncate">{user?.email || ''}</p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      <User className="w-4 h-4 text-slate-500" />
+                      My Account
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      {isLoggingOut ? 'Logging out...' : 'Logout'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

@@ -16,6 +16,37 @@ interface UseSocketOptions {
   onPromotionActivated?: (notification: any) => void;
 }
 
+const SOCKET_CONFIG = {
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 30000,
+  randomizationFactor: 0.5,
+  timeout: 15000,
+  forceNew: true,
+  autoConnect: true,
+};
+
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem('authToken') || getCookie('token');
+  } catch {
+    return null;
+  }
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? match[2] : null;
+}
+
+let globalSocket: Socket | null = null;
+let globalSocketUserId: number | null = null;
+let globalSocketRefCount = 0;
+
 export function useSocket({
   userId,
   onNewMessage,
@@ -27,6 +58,9 @@ export function useSocket({
   onPromotionActivated,
 }: UseSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
+  const userIdRef = useRef<number | null>(null);
+  const registeredEvents = useRef<Set<string>>(new Set());
+
   const callbacksRef = useRef({
     onNewMessage,
     onMessageRead,
@@ -43,85 +77,177 @@ export function useSocket({
     onPaymentCompleted,
     onPromotionActivated,
   };
+
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
   const [socketError, setSocketError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
+
+  const cleanupEvents = useCallback((socket: Socket) => {
+    const events = [
+      'connect', 'disconnect', 'connect_error', 'reconnect_attempt',
+      'reconnect', 'reconnect_error', 'reconnect_failed',
+      'usersOnline', 'newMessage', 'messageRead',
+      'userTyping', 'userStoppedTyping', 'notification',
+      'paymentCompleted', 'promotionActivated',
+    ];
+    for (const event of events) {
+      socket.removeAllListeners(event);
+    }
+    registeredEvents.current.clear();
+  }, []);
+
+  const registerEvents = useCallback((socket: Socket) => {
+    if (registeredEvents.current.has('connect')) return;
+
+    socket.on('connect', () => {
+      console.log(`[Socket] Connected: ${socket.id}`);
+      setIsConnected(true);
+      setSocketError(null);
+      setReconnecting(false);
+      setReconnectAttempt(0);
+      if (userIdRef.current) {
+        socket.emit('join', userIdRef.current);
+      }
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log(`[Socket] Disconnected: ${reason}`);
+      setIsConnected(false);
+      if (reason === 'io server disconnect' || reason === 'transport close') {
+        setSocketError('Disconnected from server');
+      }
+    });
+
+    socket.on('connect_error', (err) => {
+      console.warn(`[Socket] Connection error: ${err.message}`);
+      setSocketError(err.message);
+      setIsConnected(false);
+    });
+
+    socket.on('reconnect_attempt', (attempt) => {
+      console.log(`[Socket] Reconnect attempt ${attempt}`);
+      setReconnecting(true);
+      setReconnectAttempt(attempt);
+    });
+
+    socket.on('reconnect', (attempt) => {
+      console.log(`[Socket] Reconnected after ${attempt} attempts`);
+      setReconnecting(false);
+      setReconnectAttempt(0);
+      setSocketError(null);
+      setIsConnected(true);
+      if (userIdRef.current) {
+        socket.emit('join', userIdRef.current);
+      }
+    });
+
+    socket.on('reconnect_error', (err) => {
+      console.warn(`[Socket] Reconnect error: ${err.message}`);
+    });
+
+    socket.on('reconnect_failed', () => {
+      console.error(`[Socket] Reconnect failed`);
+      setReconnecting(false);
+      setSocketError('Connection lost');
+    });
+
+    socket.on('usersOnline', (users: number[]) => {
+      setOnlineUsers(users);
+    });
+
+    socket.on('newMessage', (message) => {
+      callbacksRef.current.onNewMessage?.(message);
+    });
+
+    socket.on('messageRead', (data) => {
+      callbacksRef.current.onMessageRead?.(data);
+    });
+
+    socket.on('userTyping', (data) => {
+      callbacksRef.current.onUserTyping?.(data);
+    });
+
+    socket.on('userStoppedTyping', (data) => {
+      callbacksRef.current.onUserTyping?.(data);
+    });
+
+    socket.on('notification', (notification) => {
+      callbacksRef.current.onNotification?.(notification);
+    });
+
+    socket.on('paymentCompleted', (notification) => {
+      callbacksRef.current.onPaymentCompleted?.(notification);
+    });
+
+    socket.on('promotionActivated', (notification) => {
+      callbacksRef.current.onPromotionActivated?.(notification);
+    });
+
+    registeredEvents.current.add('connect');
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
 
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
+    userIdRef.current = userId;
+
+    if (globalSocket && globalSocketUserId === userId) {
+      socketRef.current = globalSocket;
+      registerEvents(globalSocket);
+      setIsConnected(globalSocket.connected);
+      globalSocketRefCount++;
+      return () => {
+        globalSocketRefCount--;
+        if (globalSocketRefCount <= 0) {
+          cleanupEvents(globalSocket!);
+          globalSocket!.disconnect();
+          globalSocket = null;
+          globalSocketUserId = null;
+          socketRef.current = null;
+          setIsConnected(false);
+          setSocketError(null);
+          setReconnecting(false);
+        }
+      };
     }
 
-    try {
-      socketRef.current = io(SOCKET_URL, {
-        transports: ['polling', 'websocket'],
-        timeout: 5000,
-        reconnection: false,
-        forceBase64: false,
-      });
-
-      const socket = socketRef.current;
-
-      socket.on('connect', () => {
-        setIsConnected(true);
-        setSocketError(null);
-        socket.emit('join', userId);
-      });
-
-      socket.on('disconnect', () => {
-        setIsConnected(false);
-      });
-
-      socket.on('connect_error', () => {
-        setSocketError('Socket unavailable');
-        setIsConnected(false);
-      });
-
-      socket.on('usersOnline', (users: number[]) => {
-        setOnlineUsers(users);
-      });
-
-      socket.on('newMessage', (message) => {
-        callbacksRef.current.onNewMessage?.(message);
-      });
-
-      socket.on('messageRead', (data) => {
-        callbacksRef.current.onMessageRead?.(data);
-      });
-
-      socket.on('userTyping', (data) => {
-        callbacksRef.current.onUserTyping?.(data);
-      });
-
-      socket.on('userStoppedTyping', (data) => {
-        callbacksRef.current.onUserTyping?.(data);
-      });
-
-      socket.on('notification', (notification) => {
-        callbacksRef.current.onNotification?.(notification);
-      });
-
-      socket.on('paymentCompleted', (notification) => {
-        callbacksRef.current.onPaymentCompleted?.(notification);
-      });
-
-      socket.on('promotionActivated', (notification) => {
-        callbacksRef.current.onPromotionActivated?.(notification);
-      });
-    } catch {
-      setSocketError('Socket not available');
+    if (globalSocket) {
+      cleanupEvents(globalSocket);
+      globalSocket.disconnect();
+      globalSocket = null;
+      globalSocketUserId = null;
     }
+
+    const token = getAuthToken();
+    const socket = io(SOCKET_URL, {
+      ...SOCKET_CONFIG,
+      auth: token ? { token } : undefined,
+      query: token ? { token } : undefined,
+    });
+
+    globalSocket = socket;
+    globalSocketUserId = userId;
+    globalSocketRefCount = 1;
+    socketRef.current = socket;
+
+    registerEvents(socket);
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
+      globalSocketRefCount--;
+      if (globalSocketRefCount <= 0) {
+        cleanupEvents(socket);
+        socket.disconnect();
+        globalSocket = null;
+        globalSocketUserId = null;
         socketRef.current = null;
+        setIsConnected(false);
+        setSocketError(null);
+        setReconnecting(false);
       }
     };
-  }, [userId]);
+  }, [userId, cleanupEvents, registerEvents]);
 
   const joinConversation = useCallback((conversationId: string) => {
     if (socketRef.current?.connected) {
@@ -191,6 +317,8 @@ export function useSocket({
     isConnected,
     onlineUsers,
     socketError,
+    reconnecting,
+    reconnectAttempt,
     joinConversation,
     leaveConversation,
     sendMessage,
