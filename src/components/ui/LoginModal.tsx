@@ -528,14 +528,14 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
   return (
     <>
       <div 
-        className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4"
+        className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center"
         onClick={handleClose}
       >
       <div 
-        className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[95vh] overflow-hidden flex flex-col z-[201]"
+        className="bg-white w-full h-full md:w-[90%] md:max-w-md md:max-h-[95vh] md:rounded-2xl flex flex-col z-[201] md:shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-          <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-6 py-5">
+          <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-4 py-4 md:px-6 md:py-5">
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold text-white">Welcome Back!</h2>
@@ -547,7 +547,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
             </div>
           </div>
 
-          <div className="p-6 flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6 flex-1 overflow-y-auto">
             <div className="flex gap-2 p-1 bg-gray-100 rounded-xl mb-5">
               <button
                 type="button"

@@ -86,6 +86,34 @@ function getIcon(slug?: string, name?: string): string {
   return '\u{1F4E6}';
 }
 
+const categoryBgColors: Record<string, string> = {
+  phone: 'bg-blue-100', mobile: 'bg-blue-100',
+  vehicle: 'bg-emerald-100', car: 'bg-emerald-100',
+  property: 'bg-purple-100', real: 'bg-purple-100',
+  electronic: 'bg-amber-100', computer: 'bg-amber-100',
+  fashion: 'bg-pink-100',
+  furniture: 'bg-orange-100',
+  service: 'bg-cyan-100', repair: 'bg-indigo-100',
+  job: 'bg-slate-100',
+  health: 'bg-rose-100', beauty: 'bg-rose-100',
+  sport: 'bg-green-100', fitness: 'bg-green-100',
+  baby: 'bg-yellow-100', kid: 'bg-yellow-100',
+  pet: 'bg-lime-100',
+  agriculture: 'bg-lime-100', farm: 'bg-lime-100',
+  book: 'bg-violet-100', education: 'bg-violet-100',
+  food: 'bg-red-100',
+  music: 'bg-fuchsia-100', art: 'bg-fuchsia-100',
+};
+
+function getCategoryBg(name?: string): string {
+  if (!name) return 'bg-gray-100';
+  const lower = name.toLowerCase();
+  for (const [key, bg] of Object.entries(categoryBgColors)) {
+    if (lower.includes(key)) return bg;
+  }
+  return 'bg-gray-100';
+}
+
 function formatCount(count?: number): string {
   if (count == null) return '';
   if (count >= 1000) return `${(count / 1000).toFixed(1).replace(/\.0$/, '')}k`;
@@ -243,22 +271,13 @@ export default function CategorySidebar() {
   const rootCategories = validCategories();
 
   const renderCategoryIcon = (slug?: string, name?: string) => (
-    <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-lg leading-none">
+    <span className={`flex-shrink-0 w-8 h-8 flex items-center justify-center text-base rounded-lg ${getCategoryBg(name)}`}>
       {getIcon(slug, name)}
     </span>
   );
 
   return (
     <>
-      {/* Mobile toggle button */}
-      <button
-        onClick={() => setMobileDrawerOpen(true)}
-        className="lg:hidden fixed left-3 z-40 mt-1 w-10 h-10 bg-white rounded-xl shadow-md border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-        aria-label="Open categories"
-      >
-        <Menu className="w-5 h-5 text-gray-700" />
-      </button>
-
       {/* Mobile drawer overlay */}
       {mobileDrawerOpen && (
         <div
@@ -389,7 +408,7 @@ export default function CategorySidebar() {
       <aside
         ref={sidebarRef}
         onMouseLeave={handleCategoryLeave}
-        className="hidden lg:block w-[260px] flex-shrink-0 sticky top-[130px] max-h-[calc(100vh-145px)] overflow-y-auto rounded-xl bg-white border border-gray-200 shadow-sm transition-shadow duration-200"
+        className="hidden lg:block w-[260px] flex-shrink-0 sticky top-[100px] max-h-[calc(100vh-115px)] overflow-y-auto rounded-xl bg-white border border-gray-200 shadow-sm self-start"
       >
         <nav>
           {isLoading && !categories.length ? (
@@ -410,10 +429,10 @@ export default function CategorySidebar() {
                     onMouseEnter={() => handleCategoryHover(cat, index)}
                     onMouseLeave={handleCategoryLeave}
                     className={cn(
-                      'relative flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all duration-150 text-sm',
+                      'relative flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-all duration-150 text-sm',
                       isActive
-                        ? 'bg-primary-50 text-primary-700 border-l-[3px] border-primary-500'
-                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 border-l-[3px] border-transparent'
+                        ? 'bg-primary-50/70 text-primary-700 font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     )}
                     onClick={() => handleCategoryClick(cat.slug)}
                     role="button"

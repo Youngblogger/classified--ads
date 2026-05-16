@@ -13,7 +13,7 @@ import MobileSearchPage from '@/components/ui/MobileSearchPage';
 export default function MobileHeader() {
   const router = useRouter();
   const { selectedLocation } = useGlobalStore();
-  const { toggleLocationModal } = useUIStore();
+  const { toggleLocationModal, toggleLoginModal } = useUIStore();
   const { isAuthenticated, user, isLoading: authLoading, hasHydrated, logout } = useAuthStore();
   const { isAtTop, scrollY } = useScrollDirection({ threshold: 5, throttleMs: 50 });
 

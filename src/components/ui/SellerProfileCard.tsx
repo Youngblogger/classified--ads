@@ -340,23 +340,25 @@ export default function SellerProfileCard({
         
         {/* Right side - Name and Follow button */}
         <div className="flex-1 min-w-0">
-          {/* Line 1: Name + Verified Badge + Follow Button */}
-          <div className="flex items-center gap-4 sm:gap-3 min-w-0">
+          {/* Line 1: Name + Verified Badge */}
+          <div className="flex items-center gap-3 min-w-0">
             <span
               className="font-bold text-dark truncate"
-              style={{ fontSize: currentSizes.name, maxWidth: '160px' }}
+              style={{ fontSize: currentSizes.name, maxWidth: '120px' }}
             >
               {seller.name || 'Unknown Seller'}
             </span>
             {((seller as any).is_verified || seller.verified) && <VerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
-            <span className="text-xs text-gray-300 flex-shrink-0">|</span>
-            
-            {showFollowButton && seller.id && (
+          </div>
+          
+          {/* Follow Button - right side */}
+          {showFollowButton && seller.id && (
+            <div className="mt-2 flex justify-end">
               <button
                 onClick={handleFollow}
                 disabled={isLoading || isInitializing || isOwnProfile}
                 className={`
-                  flex items-center gap-1 px-2 sm:px-3 py-0.5 rounded-full text-xs font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 flex-shrink-0
+                  flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 flex-shrink-0
                   ${isFollowing 
                     ? 'bg-accent-600 text-white border-2 border-accent-600 cursor-default' 
                     : 'bg-[#E5E7EB] text-gray-800 hover:bg-accent-600 hover:text-white border-2 border-gray-400'
@@ -378,8 +380,8 @@ export default function SellerProfileCard({
                   </>
                 )}
               </button>
-            )}
-          </div>
+            </div>
+          )}
           
           {/* Line 2: Followers count */}
           <div className="flex items-center gap-x-3 gap-y-1 mt-1">

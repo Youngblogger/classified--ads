@@ -383,6 +383,9 @@ export default function AdDetailPage() {
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
           <div className="mb-1 sm:mb-4 flex items-center gap-2 text-sm text-gray-500">
+            <button onClick={() => router.back()} className="md:hidden p-1 -ml-1 rounded-lg active:bg-gray-200 transition-colors" aria-label="Go back">
+              <ArrowLeft className="w-5 h-5 text-gray-700" />
+            </button>
             <Link href="/" className="hover:text-primary-600 flex items-center gap-1"><Home className="w-4 h-4" />Home</Link>
             <ChevronRight className="w-4 h-4" />
             <Link href={`/ads?category=${ad.category?.slug || ad.category}`} className="hover:text-primary-600">{ad.category?.name || ad.category || 'Category'}</Link>
@@ -418,15 +421,6 @@ export default function AdDetailPage() {
                     </div>
                   )}
                   
-                  {/* Back button - mobile only */}
-                  <button
-                    onClick={() => router.back()}
-                    className="md:hidden absolute top-2 left-2 w-8 h-8 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center active:bg-black/60 transition-colors z-10"
-                    aria-label="Go back"
-                  >
-                    <ArrowLeft className="w-5 h-5 text-white" />
-                  </button>
-
                   {/* Badges */}
                   <div className="absolute top-2 left-12 flex flex-col gap-1.5">
                     {ad.condition && (
@@ -680,7 +674,7 @@ export default function AdDetailPage() {
             </div>
 
             {/* Right Column - Seller & Contact */}
-            <div className="space-y-px max-w-sm">
+            <div className="space-y-px lg:max-w-sm">
               {/* Seller Card - handle both API and seeded ads */}
               {(ad.user && ad.user.id) || ad.sellerName ? (
                 <SellerProfileCard
