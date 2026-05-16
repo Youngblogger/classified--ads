@@ -92,25 +92,37 @@ export default function MobileHeader() {
               <Bell className="w-5 h-5 text-white" />
             </button>
 
-            {hasHydrated && isAuthenticated && (
+            {hasHydrated && (
               <div className="relative animate-fade-in" ref={profileRef}>
                 <button
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      toggleLoginModal();
+                    } else {
+                      setShowProfileMenu(!showProfileMenu);
+                    }
+                  }}
                   className="p-1 rounded-lg active:bg-white/10 transition-colors"
                 >
                   <div className="w-7 h-7 rounded-full overflow-hidden bg-white/20 flex items-center justify-center ring-2 ring-white/30">
-                    {(() => {
-                      const avatarUrl = getUserAvatarUrl(user);
-                      return avatarUrl ? (
-                        <img src={avatarUrl} alt="" className="object-cover w-full h-full" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      ) : (
-                        <span className="text-white font-semibold text-xs">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
-                      );
-                    })()}
+                    {isAuthenticated ? (
+                      <>
+                        {(() => {
+                          const avatarUrl = getUserAvatarUrl(user);
+                          return avatarUrl ? (
+                            <img src={avatarUrl} alt="" className="object-cover w-full h-full" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                          ) : (
+                            <span className="text-white font-semibold text-xs">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                          );
+                        })()}
+                      </>
+                    ) : (
+                      <User className="w-4 h-4 text-white" />
+                    )}
                   </div>
                 </button>
 
-                {showProfileMenu && (
+                {isAuthenticated && showProfileMenu && (
                   <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-[9999] overflow-hidden animate-fade-in">
                     <div className="px-3.5 py-2.5 border-b border-gray-50">
                       <p className="text-sm font-semibold text-gray-900 truncate">{user?.name || 'User'}</p>
