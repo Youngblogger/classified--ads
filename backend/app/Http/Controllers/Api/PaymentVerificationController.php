@@ -4,17 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PaymentIntent;
+use App\Models\Transaction;
 use App\Services\PaymentService;
+use App\Services\PendingPaymentExpiryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PaymentVerificationController extends Controller
 {
     protected PaymentService $paymentService;
+    protected PendingPaymentExpiryService $expiryService;
 
-    public function __construct(PaymentService $paymentService)
+    public function __construct(PaymentService $paymentService, PendingPaymentExpiryService $expiryService)
     {
         $this->paymentService = $paymentService;
+        $this->expiryService = $expiryService;
     }
 
     public function verify(Request $request)
@@ -102,9 +106,40 @@ class PaymentVerificationController extends Controller
                 'amount' => $paymentIntent->amount,
                 'currency' => $paymentIntent->currency,
                 'ad_id' => $paymentIntent->ad_id,
+                'expires_at' => $paymentIntent->expires_at?->toIso8601String()
+                    ?? $paymentIntent->created_at->addMinutes($this->expiryService->getExpiryMinutes())->toIso8601String(),
                 'paid_at' => $paymentIntent->paid_at,
             ],
             'boost_status' => $boostStatus,
+        ]);
+    }
+
+    public function pendingPayments(Request $request)
+    {
+        $user = $request->user();
+        $payments = $this->expiryService->getPendingPayments($user->id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $payments,
+        ]);
+    }
+
+    public function cancelPayment(Request $request, int $paymentIntentId)
+    {
+        $user = $request->user();
+        $result = $this->expiryService->cancelPendingPaymentIntent($paymentIntentId, $user->id);
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['error'],
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
         ]);
     }
 }

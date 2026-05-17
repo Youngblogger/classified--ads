@@ -22,6 +22,7 @@ class PaymentIntent extends Model
         'status',
         'metadata',
         'paid_at',
+        'expires_at',
     ];
 
     protected $casts = [
@@ -29,6 +30,7 @@ class PaymentIntent extends Model
         'metadata' => 'array',
         'gateway_response' => 'array',
         'paid_at' => 'datetime',
+        'expires_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -61,6 +63,7 @@ class PaymentIntent extends Model
         $this->update([
             'status' => 'paid',
             'paid_at' => now(),
+            'expires_at' => null,
         ]);
     }
 
@@ -71,6 +74,22 @@ class PaymentIntent extends Model
 
     public function markAsExpired(): void
     {
-        $this->update(['status' => 'expired']);
+        $this->update([
+            'status' => 'expired',
+            'expires_at' => $this->expires_at ?? now(),
+        ]);
+    }
+
+    public function markAsCancelled(): void
+    {
+        $this->update([
+            'status' => 'cancelled',
+            'expires_at' => $this->expires_at ?? now(),
+        ]);
+    }
+
+    public function isExpired(): bool
+    {
+        return in_array($this->status, ['expired', 'failed', 'cancelled']);
     }
 }

@@ -102,7 +102,10 @@ class WalletController extends Controller
             // Track pending balance
             $wallet->increment('pending_balance', $amount);
 
-            // Create pending transaction
+            // Create pending transaction with expiry
+            $expiresAt = now()->addMinutes(
+                (int) env('PENDING_PAYMENT_EXPIRY_MINUTES', 15)
+            );
             Transaction::create([
                 'user_id' => $user->id,
                 'wallet_id' => $wallet->id,
@@ -114,6 +117,7 @@ class WalletController extends Controller
                 'description' => 'Wallet funding - pending',
                 'status' => 'pending',
                 'payment_method' => 'paystack',
+                'expires_at' => $expiresAt,
             ]);
 
             return response()->json([

@@ -1113,7 +1113,7 @@ class AdminController extends Controller
     public function payments(Request $request)
     {
         $validated = $request->validate([
-            'status' => 'nullable|in:pending,paid,failed,expired',
+            'status' => 'nullable|in:pending,paid,failed,expired,cancelled',
             'type' => 'nullable|in:boost,wallet,other',
             'limit' => 'integer|min:1|max:100',
             'page' => 'integer|min:1',

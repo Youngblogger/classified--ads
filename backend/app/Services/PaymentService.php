@@ -70,6 +70,7 @@ class PaymentService
                 'status' => 'pending',
                 'gateway' => self::GATEWAY,
                 'metadata' => $metadata,
+                'expires_at' => now()->addMinutes((int) env('PENDING_PAYMENT_EXPIRY_MINUTES', 15)),
             ]);
 
             $response = Http::withToken($this->getApiKey())

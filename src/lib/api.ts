@@ -732,6 +732,8 @@ export const growthApi = {
 export const paymentApi = {
   verifyPayment: (reference: string) => api.post('/payments/verify', { reference }),
   getPaystackPublicKey: () => api.get('/payments/config'),
+  getPendingPayments: () => api.get('/payments/pending'),
+  cancelPayment: (paymentIntentId: number) => api.post(`/payments/${paymentIntentId}/cancel`),
 };
 
 // Admin Bank Transfers API

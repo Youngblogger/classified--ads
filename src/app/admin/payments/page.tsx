@@ -113,6 +113,10 @@ export default function PaymentsPage() {
         return <Clock className="w-4 h-4 text-amber-500" />;
       case 'failed':
         return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'expired':
+        return <Clock className="w-4 h-4 text-orange-500" />;
+      case 'cancelled':
+        return <XCircle className="w-4 h-4 text-gray-500" />;
       default:
         return <Clock className="w-4 h-4 text-gray-500" />;
     }
@@ -127,6 +131,10 @@ export default function PaymentsPage() {
         return 'bg-amber-100 text-amber-700';
       case 'failed':
         return 'bg-red-100 text-red-700';
+      case 'expired':
+        return 'bg-orange-100 text-orange-700';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -217,6 +225,8 @@ export default function PaymentsPage() {
             <option value="completed">Completed</option>
             <option value="paid">Paid</option>
             <option value="failed">Failed</option>
+            <option value="expired">Expired</option>
+            <option value="cancelled">Cancelled</option>
           </select>
           <select
             value={typeFilter}

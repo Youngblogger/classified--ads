@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Loader2, CreditCard } from 'lucide-react';
+import { Loader2, CreditCard, Clock, AlertTriangle, XCircle, ExternalLink } from 'lucide-react';
+import PendingPaymentTimer from '@/components/ui/PendingPaymentTimer';
 
 interface WalletTransaction {
   id: number;
@@ -15,6 +16,21 @@ interface WalletTransaction {
   status: string;
   payment_method: string;
   created_at: string;
+  expires_at?: string;
+}
+
+interface PendingPayment {
+  id: number;
+  type: string;
+  amount: number;
+  currency: string;
+  reference: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+  remaining_seconds: number;
+  ad_id?: number;
+  wallet_id?: number;
 }
 
 interface Wallet {
@@ -29,24 +45,51 @@ function formatCommas(value: string): string {
   return parts.join('.');
 }
 
+function formatAmount(amount: string | number) {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+  }).format(Number(amount));
+}
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'completed':
+    case 'success':
+      return 'bg-green-100 text-green-700';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-700';
+    case 'failed':
+      return 'bg-red-100 text-red-700';
+    case 'expired':
+      return 'bg-orange-100 text-orange-700';
+    case 'cancelled':
+      return 'bg-gray-100 text-gray-700';
+    default:
+      return 'bg-gray-100 text-gray-700';
+  }
+};
+
 export default function WalletPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [funding, setFunding] = useState(false);
   const [amount, setAmount] = useState('');
 
-  const fetchWallet = async () => {
-    const timeoutId = setTimeout(() => {
-      setLoading(false);
-    }, 10000);
-
+  const fetchWallet = useCallback(async () => {
+    const timeoutId = setTimeout(() => setLoading(false), 10000);
     try {
       setLoading(true);
-      const res = await api.get('/wallet');
+      const [walletRes, paymentsRes] = await Promise.all([
+        api.get('/wallet'),
+        api.get('/payments/pending').catch(() => ({ data: { data: [] } })),
+      ]);
       clearTimeout(timeoutId);
-      setWallet(res.data.wallet);
-      setTransactions(res.data.transactions?.data || res.data.transactions || []);
+      setWallet(walletRes.data.wallet);
+      setTransactions(walletRes.data.transactions?.data || walletRes.data.transactions || []);
+      setPendingPayments(paymentsRes.data?.data || []);
     } catch {
       clearTimeout(timeoutId);
       setWallet({ id: 0, balance: '0.00', pending_balance: '0.00' });
@@ -55,7 +98,7 @@ export default function WalletPage() {
       clearTimeout(timeoutId);
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -75,7 +118,7 @@ export default function WalletPage() {
     } else {
       fetchWallet();
     }
-  }, []);
+  }, [fetchWallet]);
 
   const handleFund = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,13 +145,6 @@ export default function WalletPage() {
     }
   };
 
-  const formatAmount = (amount: string | number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-    }).format(Number(amount));
-  };
-
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'deposit':
@@ -121,21 +157,6 @@ export default function WalletPage() {
         return 'text-blue-600 bg-blue-50';
       default:
         return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-700';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'failed':
-        return 'bg-red-100 text-red-700';
-      case 'processing':
-        return 'bg-blue-100 text-blue-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -179,6 +200,43 @@ export default function WalletPage() {
           <p className="text-gray-400 text-sm mt-2">All time</p>
         </div>
       </div>
+
+      {/* Pending Payments Alert */}
+      {pendingPayments.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2 text-amber-800 font-medium">
+            <Clock className="w-5 h-5" />
+            <span>Pending Payments ({pendingPayments.length})</span>
+          </div>
+          {pendingPayments.map((payment) => (
+            <div key={payment.id} className="flex items-center justify-between bg-white rounded-xl p-3 border border-amber-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                  {payment.type === 'wallet_funding' ? (
+                    <CreditCard className="w-5 h-5 text-amber-600" />
+                  ) : (
+                    <ExternalLink className="w-5 h-5 text-amber-600" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900 capitalize">
+                    {payment.type === 'wallet_funding' ? 'Wallet Funding' : `${payment.type} Payment`}
+                  </p>
+                  <p className="text-sm font-semibold text-primary-600">{formatAmount(payment.amount)}</p>
+                  <PendingPaymentTimer
+                    expiresAt={payment.expires_at}
+                    created_at={payment.created_at}
+                    compact
+                  />
+                </div>
+              </div>
+              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(payment.status)}`}>
+                {payment.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Fund Wallet</h2>
@@ -235,7 +293,14 @@ export default function WalletPage() {
                   <div>
                     <p className="font-medium text-gray-900 capitalize">{tx.type}</p>
                     <p className="text-sm text-gray-500">{tx.description}</p>
-                    <p className="text-xs text-gray-400">{new Date(tx.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-gray-400">
+                        {new Date(tx.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {tx.status === 'expired' && (
+                        <span className="text-[10px] text-orange-500 font-medium">Expired</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">

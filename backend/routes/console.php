@@ -34,6 +34,15 @@ Schedule::command('ads:sync-search --recent')->everyFiveMinutes()
         Log::warning('Search sync failed');
     });
 
+// Cleanup expired pending payments (verify with Paystack, mark as failed/expired)
+Schedule::command('payments:cleanup-expired')->everyFiveMinutes()
+    ->onSuccess(function () {
+        Log::info('Pending payments cleanup completed successfully');
+    })
+    ->onFailure(function () {
+        Log::warning('Pending payments cleanup failed');
+    });
+
 // Aggregate analytics metrics
 Schedule::call(function () {
     Cache::forever('metrics:snapshot:hourly', [

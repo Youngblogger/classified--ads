@@ -440,9 +440,12 @@ Route::middleware('auth.api')->group(function () {
     Route::get('/credits/features', [CreditController::class, 'features']);
     Route::post('/credits/use', [CreditController::class, 'use']);
     Route::post('/credits/check-balance', [CreditController::class, 'checkBalance']);
+
+    // Pending Payment Management
+    Route::get('/payments/pending', [PaymentVerificationController::class, 'pendingPayments']);
+    Route::post('/payments/{paymentIntentId}/cancel', [PaymentVerificationController::class, 'cancelPayment']);
 });
 
-// Webhook routes (no auth required)
 Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'handlePaystackWebhook']);
 
 // Payment verification routes (no auth - callback polling)
