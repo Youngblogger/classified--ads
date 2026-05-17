@@ -463,6 +463,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
                     className="w-full pl-14 pr-14 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
                     style={{ height: '60px' }}
                     required
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"

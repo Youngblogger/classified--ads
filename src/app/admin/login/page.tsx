@@ -144,7 +144,7 @@ export default function AdminLoginPage() {
               <p className="text-gray-400 text-sm mt-1">Secure login required</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
               {error && (
                 <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -162,6 +162,7 @@ export default function AdminLoginPage() {
                   placeholder="Admin email"
                   required
                   disabled={loading}
+                  autoComplete="off"
                 />
               </div>
 
@@ -175,6 +176,7 @@ export default function AdminLoginPage() {
                   placeholder="Password"
                   required
                   disabled={loading}
+                  autoComplete="new-password"
                 />
                 <button 
                   type="button" 
@@ -193,6 +195,7 @@ export default function AdminLoginPage() {
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="Admin Secret Key (optional)"
                 disabled={loading}
+                autoComplete="off"
               />
 
               <button

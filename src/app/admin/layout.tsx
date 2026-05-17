@@ -34,7 +34,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useAdminAuthStore } from '@/lib/admin-store';
-import { api } from '@/lib/api';
+import { api, adminApiClient } from '@/lib/api';
 import { getCookie, deleteCookie, setCookie } from '@/lib/cookies';
 
 interface NavItem {
@@ -273,7 +273,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setInitialTokenChecked(true);
         setAuthChecked(true);
         
-        api.get('/secure-control-9ja/auth/me').then(response => {
+        adminApiClient.get('/secure-control-9ja/auth/me').then(response => {
           if (response.data?.user?.role !== 'admin') {
             adminLogout();
             setIsVerified(false);
@@ -348,7 +348,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
             <p className="text-gray-500 mt-2">Sign in to access the admin dashboard</p>
           </div>
-          <form onSubmit={handleLogin} className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+          <form onSubmit={handleLogin} className="bg-white rounded-2xl shadow-xl p-8 space-y-6" autoComplete="off">
             {loginError && (
               <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600">
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -364,6 +364,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500"
                 placeholder="admin@example.com"
                 required
+                autoComplete="off"
               />
             </div>
             <div>
@@ -376,6 +377,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 pr-10"
                   placeholder="••••••••"
                   required
+                  autoComplete="new-password"
                 />
                 <button type="button" onClick={() => setLoginShowPassword(!loginShowPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                   {loginShowPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
