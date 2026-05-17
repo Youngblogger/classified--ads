@@ -83,7 +83,26 @@ const statusConfig: Record<
 };
 
 function getConfig(status: string) {
-  return statusConfig[status as StatusVariant] || statusConfig.pending;
+  if (statusConfig[status as StatusVariant]) {
+    return statusConfig[status as StatusVariant];
+  }
+  const lower = status.toLowerCase();
+  if (['successful', 'approved', 'confirmed', 'credited'].includes(lower)) {
+    return statusConfig.success;
+  }
+  if (['failed', 'declined', 'rejected'].includes(lower)) {
+    return statusConfig.failed;
+  }
+  if (['cancelled', 'canceled'].includes(lower)) {
+    return statusConfig.cancelled;
+  }
+  return {
+    icon: Clock,
+    bg: 'bg-gray-100 dark:bg-gray-500/10',
+    text: 'text-gray-600 dark:text-gray-400',
+    dot: 'bg-gray-400',
+    label: status.charAt(0).toUpperCase() + status.slice(1),
+  };
 }
 
 export default function StatusBadge({ status, size = 'sm', showIcon = true }: StatusBadgeProps) {

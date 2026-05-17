@@ -82,6 +82,7 @@ export default function WalletPage() {
 
     if (verified === 'true' && reference) {
       window.history.replaceState({}, '', '/dashboard/wallet');
+      setPendingPayments([]);
       api.post('/wallet/verify', { reference })
         .then(() => {
           toast.success('Payment successful! Your wallet has been credited.', { duration: 5000 });
@@ -121,20 +122,17 @@ export default function WalletPage() {
   const balance = parseFloat(wallet?.balance || '0');
   const pendingBalance = parseFloat(wallet?.pending_balance || '0');
 
+  const activePendingPayments = pendingPayments.filter((p) => p.status === 'pending');
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Wallet</h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Manage your wallet and view transactions</p>
-        </div>
-      </div>
-
       <WalletBalanceCard
         balance={balance}
         pendingBalance={pendingBalance}
         totalTransactions={transactions.length}
         loading={loading}
+        title="Wallet"
+        subtitle="Manage your wallet and view transactions"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -160,7 +158,7 @@ export default function WalletPage() {
           <FundWalletCard onFund={handleFund} loading={funding} />
 
           <AnimatePresence>
-            {pendingPayments.length > 0 && (
+            {activePendingPayments.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -172,11 +170,11 @@ export default function WalletPage() {
                     <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">
-                    Pending Payments ({pendingPayments.length})
+                    Pending Payments ({activePendingPayments.length})
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {pendingPayments.map((payment) => (
+                  {activePendingPayments.map((payment) => (
                     <PendingPaymentCard
                       key={payment.id}
                       payment={payment}
