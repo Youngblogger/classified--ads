@@ -136,7 +136,7 @@ export default function WalletPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-2 order-2 lg:order-1 space-y-5">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -154,7 +154,7 @@ export default function WalletPage() {
           </motion.div>
         </div>
 
-        <div className="space-y-5">
+        <div className="order-1 lg:order-2 space-y-5">
           <FundWalletCard onFund={handleFund} loading={funding} />
 
           <AnimatePresence>
