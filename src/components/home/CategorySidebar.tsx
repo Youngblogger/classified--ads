@@ -357,7 +357,13 @@ export default function CategorySidebar() {
       const el = itemRefs.current[index];
       if (el) {
         const rect = el.getBoundingClientRect();
-        setPanelPos({ top: rect.top, left: rect.right - 2 });
+        const vh = window.innerHeight;
+        const maxPanelHeight = vh - 104 - 24;
+        const spaceBelow = vh - rect.top - 8;
+        const top = spaceBelow < maxPanelHeight
+          ? Math.max(104 + 8, vh - maxPanelHeight - 8)
+          : rect.top;
+        setPanelPos({ top, left: rect.right - 2 });
       }
     }, 80);
   }, [cancelCatHide]);
@@ -386,7 +392,13 @@ export default function CategorySidebar() {
       const el = itemRefs.current[idx];
       if (el) {
         const rect = el.getBoundingClientRect();
-        setPanelPos({ top: rect.top, left: rect.right - 2 });
+        const vh = window.innerHeight;
+        const maxPanelHeight = vh - 104 - 24;
+        const spaceBelow = vh - rect.top - 8;
+        const top = spaceBelow < maxPanelHeight
+          ? Math.max(104 + 8, vh - maxPanelHeight - 8)
+          : rect.top;
+        setPanelPos({ top, left: rect.right - 2 });
       }
     }
   }, [activeCat, closeAll, clearAllTimers, getChildren, rootCats]);
