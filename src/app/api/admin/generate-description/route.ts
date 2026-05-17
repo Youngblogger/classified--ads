@@ -26,11 +26,11 @@ Rules:
 - Write like a real Nigerian dealer talking to a customer — natural, not robotic
 - Start with the product name and key condition (e.g. "Sharp clean", "Brand new sealed", "Direct UK used", "Nigerian version")
 - Mention key specs briefly — storage, color, dual SIM, battery health, etc.
-- Keep it short — 3-6 sentences max, no long paragraphs
+- Exactly 3-4 lines (sentences) — no more, no less, no long paragraphs
 - NEVER include scam words: "urgent", "click here", "limited offer", "guaranteed", "100%", "miracle", "magic", "cash now", "wire transfer", "Western Union"
 - End with a natural call-to-action: "DM if interested", "Serious buyers only please", "Call/WhatsApp for more info", "Available for inspection"
 - No markdown, no bullet points structure — just plain conversational text
-- Auto-include the category naturally (e.g. "phone", "shoe", "bag", "car")
+- Detect and include the correct category (e.g. "phone", "shoe", "bag", "car", "laptop") based on the product title
 - Auto-generate relevant specs naturally in the flow`;
 
 async function generateWithAI(prompt: string): Promise<string> {
@@ -110,7 +110,7 @@ function buildPrompt(request: GenerateRequest): string {
   if (features && features.length > 0) prompt += `• Features/Specs:\n${features.map(f => `  - ${f}`).join('\n')}\n`;
 
   if (mode === 'generate') {
-    prompt += `\nIMPORTANT: Write it like a real Nigerian dealer advert. Natural, conversational, 3-6 sentences. Include the category and key specs naturally. No bullet points or structured format.`;
+    prompt += `\nIMPORTANT: Write exactly 3-4 sentences. Detect and include the correct category. Natural Nigerian dealer style. No bullet points.`;
   }
 
   return prompt;

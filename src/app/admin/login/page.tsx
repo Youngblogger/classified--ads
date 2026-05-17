@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('admin@example.com');
   const [password, setPassword] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [showPassword, setShowPassword] = useState(false);

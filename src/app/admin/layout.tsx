@@ -169,7 +169,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, [isVerified, resetInactivityTimer]);
 
   // Login form state - MUST be before any early returns
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginEmail, setLoginEmail] = useState('admin@example.com');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginShowPassword, setLoginShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
