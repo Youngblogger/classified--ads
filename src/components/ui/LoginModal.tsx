@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback, ClipboardEvent, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { X, Mail, Lock, Eye, EyeOff, Phone, Send, CheckCircle, Loader2 } from 'lucide-react';
+import { X, Mail, Lock, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
@@ -30,12 +30,6 @@ interface GoogleWindow {
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '190991791068-p65o95kslmp106ohlbdafsdthg702tn3.apps.googleusercontent.com';
 
-const isValidPhone = (phone: string): boolean => {
-  if (!phone) return false;
-  const length = phone.replace(/\s/g, '').length;
-  return length >= 11 && length <= 14;
-};
-
 function hasStoredToken(): boolean {
   if (typeof window === 'undefined') return false;
   try {
@@ -52,7 +46,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
   const router = useRouter();
   const { isLoginModalOpen, toggleLoginModal, toggleRegisterModal, closeAllModals } = useUIStore();
   const { isAuthenticated, login, setLoading, hasHydrated } = useAuthStore();
-  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [redirectUrl, setRedirectUrl] = useState('/');
 
@@ -80,7 +73,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
       }
     } catch (e) {}
   }, [forceRedirectUrl]);
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | React.ReactNode>('');
@@ -88,13 +80,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
   
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState<string[]>(['', '', '', '']);
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const googleInitializedRef = useRef(false);
   const [usedEmails, setUsedEmails] = useState<string[]>([]);
   const [rememberMe, setRememberMe] = useState(false);
@@ -109,141 +94,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
       setRememberMe(true);
     }
   }, []);
-
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [countdown]);
-
-  const handleSendOtp = async () => {
-    if (!isValidPhone(phone)) {
-      setError('Please enter a valid Nigerian phone number');
-      return;
-    }
-
-    setOtpLoading(true);
-    setError('');
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const response = await fetch(`${apiUrl}/auth/send-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ phone }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.phone?.[0] || 'Failed to send OTP');
-      }
-
-      setOtpSent(true);
-      setCountdown(30);
-      setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
-      
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send OTP';
-      setError(errorMessage);
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
-    setOtp(newOtp);
-    setError('');
-    if (value && index < 3) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-    if (newOtp.every((digit) => digit) && index === 3) {
-      handleVerifyOtp(newOtp.join(''));
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').slice(0, 4);
-    if (!/^\d+$/.test(pastedData)) return;
-    const newOtp = pastedData.split('').concat(['', '', '', '']).slice(0, 4);
-    setOtp(newOtp);
-    if (newOtp.every((digit) => digit)) {
-      handleVerifyOtp(newOtp.join(''));
-    }
-  };
-
-  const handleVerifyOtp = async (otpCode?: string) => {
-    const code = otpCode || otp.join('');
-    if (code.length !== 4) {
-      setError('Please enter the 4-digit code');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setLoading(true);
-
-    if (typeof window !== 'undefined' && redirectUrl) {
-      localStorage.setItem('authRedirect', redirectUrl);
-      sessionStorage.setItem('authRedirect', redirectUrl);
-    }
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const response = await fetch(`${apiUrl}/auth/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ phone, otp: code }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.otp?.[0] || 'Invalid OTP');
-      }
-
-      const userName = data.user?.name || 'there';
-      
-      login(data.user, data.token);
-      
-      setOtpVerified(true);
-      closeAllModals();
-      resetForm();
-      
-      window.scrollTo(0, 0);
-      window.location.href = redirectUrl || '/';
-      
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Invalid verification code';
-      setError(errorMessage);
-      setOtp(['', '', '', '']);
-      otpInputRefs.current[0]?.focus();
-    } finally {
-      setIsSubmitting(false);
-      setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (countdown > 0) return;
-    await handleSendOtp();
-  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,26 +189,13 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
 
   const resetForm = () => {
     setEmail('');
-    setPhone('');
     setPassword('');
     setError('');
-    setOtpSent(false);
-    setOtp(['', '', '', '']);
-    setOtpVerified(false);
-    setCountdown(0);
   };
 
   const handleClose = () => {
     closeAllModals();
     resetForm();
-  };
-
-  const handleLoginMethodChange = (method: 'email' | 'phone') => {
-    setLoginMethod(method);
-    setError('');
-    setOtpSent(false);
-    setOtp(['', '', '', '']);
-    setPhone('');
   };
 
   const handleFacebookLogin = async () => {
@@ -548,31 +385,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
           </div>
 
           <div className="p-4 md:p-6 flex-1 overflow-y-auto">
-            <div className="flex gap-2 p-1 bg-gray-100 rounded-xl mb-5">
-              <button
-                type="button"
-                onClick={() => handleLoginMethodChange('email')}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  loginMethod === 'email' 
-                    ? 'bg-primary-600 text-white shadow-sm font-semibold' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Email
-              </button>
-              <button
-                type="button"
-                onClick={() => handleLoginMethodChange('phone')}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  loginMethod === 'phone' 
-                    ? 'bg-primary-600 text-white shadow-sm font-semibold' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Phone
-              </button>
-            </div>
-
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm mb-4 flex items-center gap-2">
                 <X className="w-4 h-4 flex-shrink-0" />
@@ -580,15 +392,8 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
               </div>
             )}
 
-            {otpVerified && (
-              <div className="p-3 bg-green-50 border border-green-200 text-green-600 rounded-xl text-sm mb-4 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                Login successful!
-              </div>
-            )}
-
-            {/* Google Login - shown FIRST before email/phone forms, like Jiji/OLX */}
-            <div className="mb-5">
+            {/* Google Login - at top */}
+            <div className="mb-3">
               <div id="google-signin-button" className="w-full"></div>
               {googleLoading && (
                 <div className="flex items-center justify-center gap-2 mt-2 text-sm text-gray-500">
@@ -598,124 +403,100 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
               )}
             </div>
 
-            {loginMethod === 'email' && (
-              <>
-                <div className="relative my-3">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200"></div>
-                  </div>
-                  <div className="relative flex justify-center">
-                    <span className="px-3 bg-white text-xs text-gray-500">Or sign in with email</span>
-                  </div>
+            {/* Facebook */}
+            <button 
+              onClick={handleFacebookLogin}
+              disabled={facebookLoading}
+              className="flex items-center justify-center gap-1 py-2 px-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 w-full mb-4"
+            >
+              {facebookLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <svg viewBox="0 0 24 24" className="w-4 h-4">
+                  <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+              )}
+              Continue with Facebook
+            </button>
+
+            <div className="relative my-3">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="px-3 bg-white text-xs text-gray-500">Or sign in with email</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div>
+                <label className="block text-base font-semibold text-gray-800 mb-2">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full pl-14 pr-5 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
+                    style={{ height: '60px' }}
+                    required
+                    list="email-suggestions"
+                  />
+                  <datalist id="email-suggestions">
+                    {usedEmails.map((e: string) => (
+                      <option key={e} value={e} />
+                    ))}
+                  </datalist>
                 </div>
+              </div>
 
-                <form onSubmit={handleEmailLogin} className="space-y-4">
-                  <div>
-                    <label className="block text-base font-semibold text-gray-800 mb-2">Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
-                        className="w-full pl-14 pr-5 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
-                        style={{ height: '60px' }}
-                        required
-                        list="email-suggestions"
-                      />
-                      <datalist id="email-suggestions">
-                        {usedEmails.map((e: string) => (
-                          <option key={e} value={e} />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-base font-semibold text-gray-800 mb-2">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        className="w-full pl-14 pr-14 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
-                        style={{ height: '60px' }}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500 cursor-pointer" 
-                      />
-                      <span className="text-gray-600">Remember me</span>
-                    </label>
-                    <Link href="/forgot-password" className="text-primary-600 hover:text-primary-700 font-medium">
-                      Forgot password?
-                    </Link>
-                  </div>
-
+              <div>
+                <label className="block text-base font-semibold text-gray-800 mb-2">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full pl-14 pr-14 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
+                    style={{ height: '60px' }}
+                    required
+                  />
                   <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    Sign In
+                    {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
                   </button>
-                </form>
-              </>
-            )}
-
-            {/* Phone Login Form - Coming Soon */}
-            {loginMethod === 'phone' && (
-              <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-                  <Phone className="w-8 h-8 text-primary-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">Phone Login</h3>
-                <p className="text-gray-500 text-sm text-center max-w-xs">
-                  Login with phone number is not yet available. Please use email or social login.
-                </p>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl">
-                  <span className="text-amber-600 font-medium text-sm">Coming soon...</span>
                 </div>
               </div>
-            )}
 
-            {/* Facebook - under everything */}
-            {loginMethod === 'email' && (
-              <div className="flex flex-col gap-2 mt-3">
-                <button 
-                  onClick={handleFacebookLogin}
-                  disabled={facebookLoading}
-                  className="flex items-center justify-center gap-1 py-2 px-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 w-full"
-                >
-                  {facebookLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <svg viewBox="0 0 24 24" className="w-4 h-4">
-                      <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                  )}
-                  Continue with Facebook
-                </button>
+              <div className="flex justify-between items-center text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500 cursor-pointer" 
+                  />
+                  <span className="text-gray-600">Remember me</span>
+                </label>
+                <Link href="/forgot-password" className="text-primary-600 hover:text-primary-700 font-medium">
+                  Forgot password?
+                </Link>
               </div>
-            )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                Sign In
+              </button>
+            </form>
 
             <p className="text-center mt-4 text-sm text-gray-600">
               Don&apos;t have an account?{' '}
