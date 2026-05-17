@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 interface GenerateRequest {
   title: string;
@@ -16,27 +16,32 @@ interface GenerateRequest {
   language?: string;
 }
 
-const SYSTEM_PROMPT = `You are a professional Nigerian marketplace copywriter. Your job is to write product descriptions for classified ads on iList (a Nigerian classified ads platform).
+const SYSTEM_PROMPT = `You are a Nigerian vendor writing a product ad for WhatsApp broadcasts and Facebook marketplace. Write exactly like real Nigerian dealers — short, punchy, conversational, and trustworthy.
+
+Style examples:
+- "Sharp clean iPhone 17 Pro Max 256GB available for sale. Direct UK used, everything working perfectly. Face ID, battery health and camera all intact. Comes with charger and receipt. Neat like new. DM if interested."
+- "Brand new sealed Apple iPhone 17 Pro Max 256GB available. Factory unlock, untouched seal, complete accessories intact. Very clean and original device. No hidden fault, buy and use immediately. Serious buyers only please."
 
 Rules:
-- Write in a Nigerian marketplace-friendly tone (clear, honest, persuasive)
-- NEVER include scam/spam words: "urgent", "click here", "limited offer", "guaranteed", "100%", "miracle", "magic", "cash now", "wire transfer", "Western Union"
-- Use proper English with Nigerian context
-- Format with bullet points (•) for features
-- Keep descriptions factual and honest
-- Include relevant keywords for SEO
-- Price should be mentioned naturally
-- Location context (Nigeria, states, LGAs) should be referenced if provided`;
+- Write like a real Nigerian dealer talking to a customer — natural, not robotic
+- Start with the product name and key condition (e.g. "Sharp clean", "Brand new sealed", "Direct UK used", "Nigerian version")
+- Mention key specs briefly — storage, color, dual SIM, battery health, etc.
+- Keep it short — 3-6 sentences max, no long paragraphs
+- NEVER include scam words: "urgent", "click here", "limited offer", "guaranteed", "100%", "miracle", "magic", "cash now", "wire transfer", "Western Union"
+- End with a natural call-to-action: "DM if interested", "Serious buyers only please", "Call/WhatsApp for more info", "Available for inspection"
+- No markdown, no bullet points structure — just plain conversational text
+- Auto-include the category naturally (e.g. "phone", "shoe", "bag", "car")
+- Auto-generate relevant specs naturally in the flow`;
 
 async function generateWithAI(prompt: string): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: prompt },
@@ -48,9 +53,9 @@ async function generateWithAI(prompt: string): Promise<string> {
 
   if (!response.ok) {
     const error = await response.text();
-    console.error('OpenAI API error:', error);
+    console.error('Groq API error:', error);
     if (response.status === 401) {
-      throw new Error('Invalid OpenAI API key. Add a valid OPENAI_API_KEY to .env.local');
+      throw new Error('Invalid Groq API key. Add a valid GROQ_API_KEY to .env.local');
     }
     throw new Error(`AI generation failed: ${response.statusText}`);
   }
@@ -91,7 +96,7 @@ function buildPrompt(request: GenerateRequest): string {
       break;
 
     default:
-      prompt = `Write a professional, attractive, and SEO-friendly product description for a Nigerian classified ad.\n\n`;
+      prompt = `Write a Nigerian dealer-style product ad for this item. Include the category naturally and auto-generate relevant specs in the flow.\n\n`;
   }
 
   prompt += `Product Details:\n`;
@@ -105,12 +110,7 @@ function buildPrompt(request: GenerateRequest): string {
   if (features && features.length > 0) prompt += `• Features/Specs:\n${features.map(f => `  - ${f}`).join('\n')}\n`;
 
   if (mode === 'generate') {
-    prompt += `\nFormat the response as:
-• A catchy first line
-• A detailed 2-3 paragraph description with bullet points for key features
-• A call-to-action at the end
-
-Do NOT use markdown headers. Use plain text with bullet points (•).`;
+    prompt += `\nIMPORTANT: Write it like a real Nigerian dealer advert. Natural, conversational, 3-6 sentences. Include the category and key specs naturally. No bullet points or structured format.`;
   }
 
   return prompt;
@@ -118,9 +118,9 @@ Do NOT use markdown headers. Use plain text with bullet points (•).`;
 
 export async function POST(request: NextRequest) {
   try {
-    if (!OPENAI_API_KEY) {
+    if (!GROQ_API_KEY) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY not configured' },
+        { error: 'GROQ_API_KEY not configured' },
         { status: 500 }
       );
     }
