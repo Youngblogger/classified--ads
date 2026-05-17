@@ -418,6 +418,8 @@ export default function RegisterModal() {
                 <label className="block text-base font-semibold text-gray-800 mb-2">Password *</label>
                 <div className="relative">
                   <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+                  {/* Dummy hidden input to trap browser autofill */}
+                  <input type="password" aria-hidden="true" tabIndex={-1} autoComplete="off" className="absolute w-0 h-0 p-0 -z-10" style={{ left: '-9999px', position: 'absolute' }} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
