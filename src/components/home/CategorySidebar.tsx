@@ -408,8 +408,16 @@ export default function CategorySidebar() {
       <aside
         ref={sidebarRef}
         onMouseLeave={handleCategoryLeave}
-        className="hidden lg:block w-[260px] flex-shrink-0 sticky top-[100px] max-h-[calc(100vh-115px)] overflow-y-auto rounded-xl bg-white border border-gray-200 shadow-sm self-start"
+        className="hidden lg:block w-[260px] flex-shrink-0 self-start"
+        style={{
+          position: 'sticky',
+          top: '110px',
+          maxHeight: 'calc(100vh - 130px)',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}
       >
+        <div className="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
         <nav>
           {isLoading && !categories.length ? (
             <SidebarSkeleton />
@@ -510,6 +518,7 @@ export default function CategorySidebar() {
             </div>
           </div>
         )}
+        </div>
       </aside>
     </>
   );

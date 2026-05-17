@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import CategoryNav from '@/components/ui/CategoryNav';
 import CategorySidebar from '@/components/home/CategorySidebar';
 import Footer from '@/components/layout/Footer';
-import LoadMoreButton from '@/components/ui/LoadMoreButton';
 import { AdCardSkeleton } from '@/components/ui/Skeleton';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
@@ -20,6 +20,24 @@ import { getBoostCardClasses, getBoostConfig, getBoostPlan, isBoostExpired } fro
 import { API_URL } from '@/lib/config';
 
 function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const [imgError, setImgError] = useState(false);
   const boostCardClasses = getBoostCardClasses(ad.boost_type);
   
@@ -53,7 +71,13 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   };
 
   return (
-    <div onClick={handleAdClick} className={`group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 cursor-pointer ${boostCardClasses}`}>
+    <div
+      ref={cardRef}
+      onClick={handleAdClick}
+      className={`group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 cursor-pointer ${boostCardClasses} ${
+        isVisible ? 'animate-fade-in' : 'opacity-0'
+      }`}
+    >
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
           <Image
@@ -121,13 +145,20 @@ export default function HomePage() {
     loadMore,
   } = useInfiniteAds({}, ITEMS_PER_PAGE);
 
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore,
+    isLoading: isLoadingMore,
+    enabled: !isLoading && !adsError,
+  });
+
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
       <ResponsiveHeader />
       <CategoryNav />
-      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-6">
+      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4">
         <CategorySidebar />
-        <main className="flex-1 min-w-0 relative pt-0 md:pt-[130px]" suppressHydrationWarning>
+        <main className="flex-1 min-w-0 relative pt-0 md:pt-[100px]" suppressHydrationWarning>
           {/* Hero Section - Hidden on mobile */}
           <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-xl">
           {/* Background Pattern */}
@@ -137,7 +168,7 @@ export default function HomePage() {
             }} />
           </div>
           
-          <div className="relative py-6 sm:py-8 md:py-10 lg:py-14 px-4">
+          <div className="relative py-5 sm:py-6 md:py-8 lg:py-10 px-4">
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               {/* Hero Content */}
               <div className="text-center lg:text-left">
@@ -341,13 +372,12 @@ export default function HomePage() {
                       <AdCardWithImage key={`${ad.id}-${index}`} ad={ad} index={index} />
                     ))}
                 </div>
-                {hasMore && (
-                  <LoadMoreButton 
-                    loading={isLoadingMore} 
-                    hasMore={hasMore} 
-                    onLoadMore={loadMore} 
-                  />
-                )}
+                {/* Infinite scroll sentinel */}
+                <div
+                  ref={sentinelRef}
+                  className="w-full h-4"
+                  aria-hidden="true"
+                />
                 {isLoadingMore && (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 mt-4">
                     {Array.from({ length: 4 }).map((_, i) => (

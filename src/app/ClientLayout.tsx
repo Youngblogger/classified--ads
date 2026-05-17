@@ -12,10 +12,9 @@ import GoogleOneTap from '@/components/auth/GoogleOneTap';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
-  fontFamily: string;
 }
 
-export default function ClientLayout({ children, fontFamily }: ClientLayoutProps) {
+export default function ClientLayout({ children }: ClientLayoutProps) {
   const pathname = usePathname();
 
   const isAdminPage = pathname?.startsWith('/admin');
@@ -30,11 +29,11 @@ export default function ClientLayout({ children, fontFamily }: ClientLayoutProps
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ fontFamily }}>
+    <div className="min-h-screen flex flex-col">
       <AuthProvider>
         <Preloader />
         {children}
-        <div className="md:hidden h-16" />
+        <div className="md:hidden h-12" />
         <BottomNav />
         <GoogleOneTap />
         <LoginModal />

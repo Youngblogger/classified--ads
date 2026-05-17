@@ -112,6 +112,7 @@ module.exports = {
         'premium-glow': 'premiumGlow 2s ease-in-out infinite',
         'premium-shimmer': 'premiumShimmer 3s ease-in-out infinite',
         'premium-sparkle': 'premiumSparkle 2s ease-in-out infinite',
+        'shimmer': 'shimmer 1.5s infinite',
       },
       keyframes: {
         fadeIn: {
@@ -154,6 +155,10 @@ module.exports = {
         premiumSparkle: {
           '0%, 100%': { opacity: '1', transform: 'scale(1)' },
           '50%': { opacity: '0.8', transform: 'scale(0.98)' },
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
         },
       },
     },

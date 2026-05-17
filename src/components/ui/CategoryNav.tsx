@@ -1,9 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { Loader2, ChevronRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -117,7 +116,6 @@ interface CategoryNavProps {
 
 export default function CategoryNav({ selectedCategory, onCategorySelect, className = '' }: CategoryNavProps) {
   const router = useRouter();
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data, error, isLoading } = useSWR(
     `${API_URL}/categories`,
@@ -148,7 +146,7 @@ export default function CategoryNav({ selectedCategory, onCategorySelect, classN
     <div className={`bg-white border-b border-gray-100 shadow-sm ${className}`}>
       <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6 xl:container xl:mx-auto">
         {isLoading ? (
-          <div className="flex items-center gap-4 py-3 px-2 overflow-x-auto">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:flex md:items-center md:gap-4 py-3 px-2 overflow-x-auto">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0">
                 <div className="w-12 h-12 rounded-full bg-gray-100 animate-pulse" />
@@ -157,54 +155,96 @@ export default function CategoryNav({ selectedCategory, onCategorySelect, classN
             ))}
           </div>
         ) : (
-          <div
-            ref={scrollRef}
-            className="flex items-center gap-1 sm:gap-2 py-2.5 sm:py-3 overflow-x-auto scrollbar-hide scroll-smooth"
-            style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}
-          >
-            <button
-              onClick={() => handleCategoryClick('')}
-              className={`flex flex-col items-center gap-1 flex-shrink-0 px-2 py-1 rounded-xl transition-all duration-200 group ${
-                !selectedCategory ? 'scale-105' : 'hover:scale-105'
-              }`}
-            >
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ring-1 text-xl ${
-                !selectedCategory
-                  ? 'bg-primary-600 text-white ring-primary-600 shadow-md scale-105'
-                  : 'bg-gray-100 ring-gray-100 group-hover:bg-gray-200 group-hover:ring-gray-200 group-hover:shadow-md'
-              }`}>
-                📋
-              </div>
-              <span className={`text-[11px] sm:text-xs font-semibold text-center leading-tight transition-colors duration-200 ${
-                !selectedCategory ? 'text-primary-600' : 'text-gray-600 group-hover:text-gray-900'
-              }`}>
-                All
-              </span>
-            </button>
-
-            {processed.map((category, index) => (
+          <>
+            {/* Mobile: Grid Layout */}
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:hidden gap-2 py-3 px-1">
               <button
-                key={`${category.slug}-${index}`}
-                onClick={() => handleCategoryClick(category.slug)}
+                onClick={() => handleCategoryClick('')}
+                className="flex flex-col items-center gap-1 py-2 px-1 rounded-xl transition-all duration-200 group"
+              >
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ring-1 text-xl ${
+                  !selectedCategory
+                    ? 'bg-primary-600 text-white ring-primary-600 shadow-md scale-105'
+                    : 'bg-gray-100 ring-gray-100 group-hover:bg-gray-200 group-hover:ring-gray-200'
+                }`}>
+                  📋
+                </div>
+                <span className={`text-[11px] font-semibold text-center leading-tight ${
+                  !selectedCategory ? 'text-primary-600' : 'text-gray-600'
+                }`}>
+                  All
+                </span>
+              </button>
+
+              {processed.slice(0, 11).map((category, index) => (
+                <button
+                  key={`${category.slug}-${index}`}
+                  onClick={() => handleCategoryClick(category.slug)}
+                  className="flex flex-col items-center gap-1 py-2 px-1 rounded-xl transition-all duration-200 group"
+                >
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ring-1 text-xl ${
+                    selectedCategory === category.slug
+                      ? 'bg-primary-100 ring-primary-200 shadow-md'
+                      : `${category.color.bg} ring-transparent group-hover:ring-1 group-hover:shadow-md`
+                  }`}>
+                    {category.emoji}
+                  </div>
+                  <span className="text-[11px] font-semibold text-center leading-tight text-gray-600 max-w-[60px] truncate">
+                    {category.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Desktop: Horizontal Scroll */}
+            <div
+              className="hidden md:flex items-center gap-1 sm:gap-2 py-2.5 sm:py-3 overflow-x-auto scrollbar-hide scroll-smooth"
+              style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}
+            >
+              <button
+                onClick={() => handleCategoryClick('')}
                 className={`flex flex-col items-center gap-1 flex-shrink-0 px-2 py-1 rounded-xl transition-all duration-200 group ${
-                  selectedCategory === category.slug ? 'scale-105' : 'hover:scale-105'
+                  !selectedCategory ? 'scale-105' : 'hover:scale-105'
                 }`}
               >
                 <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ring-1 text-xl ${
-                  selectedCategory === category.slug
-                    ? 'bg-primary-100 ring-primary-200 shadow-md'
-                    : `${category.color.bg} ring-transparent group-hover:ring-1 group-hover:shadow-md`
+                  !selectedCategory
+                    ? 'bg-primary-600 text-white ring-primary-600 shadow-md scale-105'
+                    : 'bg-gray-100 ring-gray-100 group-hover:bg-gray-200 group-hover:ring-gray-200 group-hover:shadow-md'
                 }`}>
-                  {category.emoji}
+                  📋
                 </div>
-                <span className={`text-[11px] sm:text-xs font-semibold text-center leading-tight transition-colors duration-200 max-w-[56px] sm:max-w-[72px] truncate ${
-                  selectedCategory === category.slug ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-900'
+                <span className={`text-[11px] sm:text-xs font-semibold text-center leading-tight transition-colors duration-200 ${
+                  !selectedCategory ? 'text-primary-600' : 'text-gray-600 group-hover:text-gray-900'
                 }`}>
-                  {category.name}
+                  All
                 </span>
               </button>
-            ))}
-          </div>
+
+              {processed.map((category, index) => (
+                <button
+                  key={`${category.slug}-${index}`}
+                  onClick={() => handleCategoryClick(category.slug)}
+                  className={`flex flex-col items-center gap-1 flex-shrink-0 px-2 py-1 rounded-xl transition-all duration-200 group ${
+                    selectedCategory === category.slug ? 'scale-105' : 'hover:scale-105'
+                  }`}
+                >
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ring-1 text-xl ${
+                    selectedCategory === category.slug
+                      ? 'bg-primary-100 ring-primary-200 shadow-md'
+                      : `${category.color.bg} ring-transparent group-hover:ring-1 group-hover:shadow-md`
+                  }`}>
+                    {category.emoji}
+                  </div>
+                  <span className={`text-[11px] sm:text-xs font-semibold text-center leading-tight transition-colors duration-200 max-w-[56px] sm:max-w-[72px] truncate ${
+                    selectedCategory === category.slug ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-900'
+                  }`}>
+                    {category.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
