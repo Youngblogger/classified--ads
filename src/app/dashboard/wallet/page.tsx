@@ -125,7 +125,7 @@ export default function WalletPage() {
   const activePendingPayments = pendingPayments.filter((p) => p.status === 'pending');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <WalletBalanceCard
         balance={balance}
         pendingBalance={pendingBalance}
@@ -135,15 +135,15 @@ export default function WalletPage() {
         subtitle="Manage your wallet and view transactions"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 order-2 lg:order-1 space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="lg:col-span-2 order-2 lg:order-1 space-y-2">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.15 }}
-            className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 p-5 shadow-sm"
+            className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 p-3.5 shadow-sm"
           >
-            <div className="flex items-center gap-2 mb-5">
+            <div className="flex items-center gap-2 mb-2">
               <div className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700/50">
                 <Wallet className="w-4 h-4 text-gray-600 dark:text-gray-400" />
               </div>
@@ -154,7 +154,7 @@ export default function WalletPage() {
           </motion.div>
         </div>
 
-        <div className="order-1 lg:order-2 space-y-5">
+        <div className="order-1 lg:order-2 space-y-2">
           <FundWalletCard onFund={handleFund} loading={funding} />
 
           <AnimatePresence>
@@ -163,9 +163,9 @@ export default function WalletPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
-                className="rounded-2xl border border-amber-200 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5 p-4"
+                className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5 p-2.5"
               >
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
                   <div className="p-1 rounded-lg bg-amber-100 dark:bg-amber-500/10">
                     <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   </div>

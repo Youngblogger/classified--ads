@@ -45,9 +45,9 @@ export default function FundWalletCard({ onFund, loading }: FundWalletCardProps)
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 p-5 shadow-sm"
+      className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 p-3.5 shadow-sm"
     >
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-2">
         <div className="p-1.5 rounded-lg bg-primary-50 dark:bg-primary-500/10">
           <CreditCard className="w-4 h-4 text-primary-600 dark:text-primary-400" />
         </div>

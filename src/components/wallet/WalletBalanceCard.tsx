@@ -65,14 +65,14 @@ export default function WalletBalanceCard({
   subtitle,
 }: WalletBalanceCardProps) {
   return (
-    <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-2 sm:pb-4 bg-bg/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
+    <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-1.5 pb-1.5 bg-bg/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
       {title && (
-        <div className="mb-2 sm:mb-4">
-          <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
-          {subtitle && <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 mt-0.5">{subtitle}</p>}
+        <div className="mb-1.5">
+          <h1 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
+          {subtitle && <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mt-0.5">{subtitle}</p>}
         </div>
       )}
-      <div className="flex sm:grid sm:grid-cols-3 gap-2 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+      <div className="flex sm:grid sm:grid-cols-3 gap-1.5 sm:gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

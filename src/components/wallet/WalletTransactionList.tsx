@@ -132,8 +132,8 @@ export default function WalletTransactionList({ transactions, loading }: WalletT
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="space-y-2">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-1.5 flex-wrap">
         {/* Desktop: pill tabs */}
         <div className="hidden sm:block">
           <FilterTabs tabs={tabsWithCounts} activeTab={activeTab} onTabChange={setActiveTab} />

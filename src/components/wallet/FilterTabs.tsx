@@ -23,7 +23,7 @@ export default function FilterTabs({ tabs, activeTab, onTabChange }: FilterTabsP
           key={tab.key}
           onClick={() => onTabChange(tab.key)}
           className={clsx(
-            'relative px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-200',
+            'relative px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-200',
             activeTab === tab.key
               ? 'text-white'
               : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50',
