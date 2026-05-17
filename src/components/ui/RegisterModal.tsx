@@ -384,31 +384,31 @@ export default function RegisterModal() {
 
   return (
     <div className={isRegisterModalOpen ? '' : 'hidden'}>
-      <div 
-        className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4"
-        onClick={handleClose}
-      >
         <div 
-          className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] overflow-hidden flex flex-col"
-          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-0 sm:p-4"
+          onClick={handleClose}
         >
-          {/* Header - Match homepage hero gradient */}
-          <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-6 py-5">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Create Account</h2>
-                <p className="text-primary-100 text-sm mt-1">Join iList - it&apos;s free!</p>
+          <div 
+            className="bg-white w-full h-full sm:w-[90%] sm:max-w-md sm:max-h-[95vh] sm:rounded-2xl flex flex-col sm:shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header - Match homepage hero gradient */}
+            <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-6 py-5 shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Create Account</h2>
+                  <p className="text-primary-100 text-sm mt-1">Join iList - it&apos;s free!</p>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
               </div>
-              <button
-                onClick={handleClose}
-                className="p-2 hover:bg-white/10 rounded-xl transition-colors"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
             </div>
-          </div>
 
-          <div className="p-6 flex-1 overflow-y-auto">
+          <div className="p-6 overflow-y-auto flex-1">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm flex items-center gap-2">
