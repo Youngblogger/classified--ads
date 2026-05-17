@@ -287,7 +287,7 @@ export default function CategorySidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tabletOpen, setTabletOpen] = useState(false);
   const [mobileBreadcrumbs, setMobileBreadcrumbs] = useState<Category[]>([]);
-  const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
+  const [panelPos, setPanelPos] = useState({ top: 0, left: 0, maxHeight: 400 });
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const subPanelRef = useRef<HTMLDivElement>(null);
@@ -358,12 +358,16 @@ export default function CategorySidebar() {
       if (el) {
         const rect = el.getBoundingClientRect();
         const vh = window.innerHeight;
-        const maxPanelHeight = vh - 104 - 24;
-        const spaceBelow = vh - rect.top - 8;
-        const top = spaceBelow < maxPanelHeight
-          ? Math.max(104 + 8, vh - maxPanelHeight - 8)
-          : rect.top;
-        setPanelPos({ top, left: rect.right - 2 });
+        const headerH = 112;
+        const maxAvail = vh - headerH - 16;
+        const availBelow = vh - rect.top - 16;
+        let top = rect.top;
+        let maxHeight = Math.min(maxAvail, availBelow);
+        if (maxHeight < 200) {
+          maxHeight = maxAvail;
+          top = Math.max(headerH, vh - maxHeight - 16);
+        }
+        setPanelPos({ top, left: rect.right - 2, maxHeight });
       }
     }, 80);
   }, [cancelCatHide]);
@@ -393,12 +397,16 @@ export default function CategorySidebar() {
       if (el) {
         const rect = el.getBoundingClientRect();
         const vh = window.innerHeight;
-        const maxPanelHeight = vh - 104 - 24;
-        const spaceBelow = vh - rect.top - 8;
-        const top = spaceBelow < maxPanelHeight
-          ? Math.max(104 + 8, vh - maxPanelHeight - 8)
-          : rect.top;
-        setPanelPos({ top, left: rect.right - 2 });
+        const headerH = 112;
+        const maxAvail = vh - headerH - 16;
+        const availBelow = vh - rect.top - 16;
+        let top = rect.top;
+        let maxHeight = Math.min(maxAvail, availBelow);
+        if (maxHeight < 200) {
+          maxHeight = maxAvail;
+          top = Math.max(headerH, vh - maxHeight - 16);
+        }
+        setPanelPos({ top, left: rect.right - 2, maxHeight });
       }
     }
   }, [activeCat, closeAll, clearAllTimers, getChildren, rootCats]);
@@ -465,7 +473,17 @@ export default function CategorySidebar() {
       const el = itemRefs.current[idx];
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      requestAnimationFrame(() => setPanelPos({ top: rect.top, left: rect.right }));
+      const vh = window.innerHeight;
+      const headerH = 112;
+      const maxAvail = vh - headerH - 16;
+      const availBelow = vh - rect.top - 16;
+      let top = rect.top;
+      let maxHeight = Math.min(maxAvail, availBelow);
+      if (maxHeight < 200) {
+        maxHeight = maxAvail;
+        top = Math.max(headerH, vh - maxHeight - 16);
+      }
+      requestAnimationFrame(() => setPanelPos({ top, left: rect.right - 2, maxHeight }));
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -673,7 +691,7 @@ export default function CategorySidebar() {
             left: `${panelPos.left}px`,
             minWidth: '220px',
             maxWidth: '300px',
-            maxHeight: 'calc(100vh - 104px - 24px)',
+            maxHeight: `${panelPos.maxHeight}px`,
           }}
         >
           <Link
@@ -684,7 +702,7 @@ export default function CategorySidebar() {
             <span className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors truncate">{displayCat.name}</span>
             <ChevronRight className="w-3.5 h-3.5 text-gray-300 ml-auto flex-shrink-0 group-hover:text-primary-400" />
           </Link>
-          <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 104px - 24px - 48px)', scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
+          <div className="overflow-y-auto" style={{ maxHeight: `${panelPos.maxHeight - 48}px`, scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
             <div className="py-1.5 px-1.5">
               {subs.map(sub => renderPanelItem(sub, true))}
             </div>
@@ -704,13 +722,13 @@ export default function CategorySidebar() {
             left: `${panelPos.left + 218}px`,
             minWidth: '200px',
             maxWidth: '260px',
-            maxHeight: 'calc(100vh - 104px - 24px)',
+            maxHeight: `${panelPos.maxHeight}px`,
           }}
         >
           <div className="px-4 py-2.5 border-b border-gray-50">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider truncate block">{displaySub.name}</span>
           </div>
-          <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 104px - 24px - 44px)', scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
+          <div className="overflow-y-auto" style={{ maxHeight: `${panelPos.maxHeight - 44}px`, scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
             <div className="py-1.5 px-1.5">
               {children.map(child => (
                 <Link
