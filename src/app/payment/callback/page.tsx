@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, CheckCircle, XCircle, Zap, Home, ArrowLeft, RefreshCw } from 'lucide-react';
 import { paymentApi } from '@/lib/api';
+import { mutate } from 'swr';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -61,6 +62,8 @@ function PaymentCallbackContent() {
 
           if (type === 'boost') {
             toast.success('Boost activated successfully!');
+            mutate('boosted_ads_listing');
+            mutate('homepage_data');
           } else {
             toast.success('Payment successful!');
           }

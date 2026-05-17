@@ -196,6 +196,7 @@ const NOTIFICATION_COLORS: Record<string, string> = {
 };
 
 function formatNotificationTime(dateString: string): string {
+  if (!dateString) return '';
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -206,8 +207,14 @@ function formatNotificationTime(dateString: string): string {
   if (diffMins < 1) return 'Just now';
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 2) return 'Yesterday';
   if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
+  
+  const isThisYear = date.getFullYear() === now.getFullYear();
+  if (isThisYear) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function Header({ variant = 'home', onMenuToggle }: { variant?: 'home' | 'dashboard'; onMenuToggle?: () => void }) {

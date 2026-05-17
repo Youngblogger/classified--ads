@@ -37,10 +37,18 @@ class AdListResource extends JsonResource
             'image' => $image ? [
                 'id' => $image->id,
                 'url' => $image->url,
-                'thumbnail_url' => $image->thumbnail_url,
+                'thumbnail_url' => $image->thumbnail,
                 'medium_url' => $image->medium_url,
                 'is_primary' => (bool) $image->is_primary,
             ] : null,
+            'images' => $this->whenLoaded('images', fn() => $this->images->take(5)->map(fn($img) => [
+                'id' => $img->id,
+                'url' => $img->url,
+                'thumbnail_url' => $img->thumbnail,
+                'medium_url' => $img->medium_url,
+                'is_primary' => (bool) $img->is_primary,
+            ])),
+            'image_url' => $image?->url,
             'images_count' => $this->images->count(),
             'category' => $this->whenLoaded('category', fn() => [
                 'id' => $this->category->id,

@@ -2,15 +2,14 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus } from 'lucide-react';
+import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus, ArrowUp } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import CategorySidebar from '@/components/home/CategorySidebar';
 import Footer from '@/components/layout/Footer';
 import { AdGridSkeleton } from '@/components/ui/Skeleton';
-import FloatingLoadMore from '@/components/ui/FloatingLoadMore';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import LoadMoreButton from '@/components/ui/LoadMoreButton';
 
-import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
+import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdMainImage } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import { useInfiniteAds } from '@/hooks/useAds';
 import Image from 'next/image';
@@ -43,18 +42,8 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const [imgError, setImgError] = useState(false);
   const boostCardClasses = getBoostCardClasses(ad.boost_type);
   
-  const getImageUrl = () => {
-    if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
-      return getAdImageUrl(ad.images[0]) || FALLBACK_IMAGE;
-    }
-    if (ad.image) {
-      return getAdImageUrl(ad.image) || FALLBACK_IMAGE;
-    }
-    return getAdImage(ad) || FALLBACK_IMAGE;
-  };
-  
-  const imageUrl = getImageUrl();
-  const imageCount = ad.images ? (Array.isArray(ad.images) ? ad.images.length : 0) : 0;
+  const imageUrl = getAdMainImage(ad);
+  const imageCount = ad.images_count || (ad.images ? (Array.isArray(ad.images) ? ad.images.length : 0) : 0) || 0;
 
   const getLocationDisplay = () => {
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
@@ -151,13 +140,26 @@ export default function HomePage() {
     loadMore,
   } = useInfiniteAds({}, ITEMS_PER_PAGE);
 
-  const { sentinelRef, isDelaying } = useInfiniteScroll({
-    onLoadMore: loadMore,
-    hasMore,
-    isLoading: isLoadingMore,
-    enabled: !isLoading && !adsError,
-    delayMs: 2800,
-  });
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 1200);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLoadMore = useCallback(() => {
+    loadMore();
+    setTimeout(() => {
+      setShowBackToTop(true);
+    }, 500);
+  }, [loadMore]);
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
@@ -371,17 +373,17 @@ export default function HomePage() {
                       return !isActiveBoost;
                     })
                     .map((ad: any, index: number) => (
-                      <AdCardWithImage key={`${ad.id}-${index}`} ad={ad} index={index} />
+                      <AdCardWithImage key={`ad-${ad.id}`} ad={ad} index={index} />
                     ))}
                 </div>
-                {/* Infinite scroll sentinel */}
-                <div
-                  ref={sentinelRef}
-                  className="w-full h-4"
-                  aria-hidden="true"
-                />
-                {/* Floating load more indicator during infinite scroll delay/fetch */}
-                {(isDelaying || isLoadingMore) && <FloatingLoadMore />}
+                {/* Load More Button - Jiji.ng style */}
+                {!isLoading && !adsError && (
+                  <LoadMoreButton
+                    onClick={handleLoadMore}
+                    loading={isLoadingMore}
+                    hasMore={hasMore}
+                  />
+                )}
               </>
             ) : (
               <div className="text-center py-16">
@@ -404,6 +406,17 @@ export default function HomePage() {
 
       </main>
       </div>
+
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-white border-2 border-primary-500 text-primary-600 rounded-full shadow-lg hover:shadow-xl hover:bg-primary-50 hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in"
+          aria-label="Back to top"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
+      )}
 
       <Footer />
     </div>

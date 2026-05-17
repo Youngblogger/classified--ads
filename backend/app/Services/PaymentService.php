@@ -588,6 +588,12 @@ class PaymentService
 
             if ($paymentIntent->type === 'boost') {
                 $this->attachBoostAfterPayment($paymentIntent);
+                // Clear caches immediately so boosted ad shows on homepage
+                CacheService::clearHomepage();
+                app(BoostTierService::class)->clearBoostedAdsCache();
+                if ($paymentIntent->ad_id) {
+                    CacheService::invalidateAdCache($paymentIntent->ad_id);
+                }
             }
 
             $this->logPaymentEvent(

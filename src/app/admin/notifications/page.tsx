@@ -89,13 +89,20 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const formatTime = (dateString: string) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    if (minutes < 60) return `${minutes} min ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hours ago`;
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 2) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+    const isThisYear = date.getFullYear() === now.getFullYear();
+    if (isThisYear) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 

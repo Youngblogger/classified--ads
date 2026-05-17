@@ -89,6 +89,11 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
+  // Let Socket.IO handle its own requests
+  if (req.url?.startsWith('/socket.io')) {
+    return;
+  }
+
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Socket.IO server running');
 });

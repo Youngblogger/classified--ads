@@ -52,7 +52,7 @@ class MessageController extends Controller
         $conversation = Conversation::where(fn($q) => $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id))
             ->findOrFail($conversationId);
 
-        $messages = Message::with('sender:id,name,avatar_url,google_avatar,full_avatar_url')
+        $messages = Message::with('sender:id,name,avatar,google_avatar,facebook_avatar')
             ->where('conversation_id', $conversationId)
             ->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);

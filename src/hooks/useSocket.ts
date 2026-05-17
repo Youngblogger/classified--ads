@@ -17,15 +17,17 @@ interface UseSocketOptions {
 }
 
 const SOCKET_CONFIG = {
-  transports: ['websocket', 'polling'],
+  transports: ['polling', 'websocket'],
   reconnection: true,
   reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 30000,
   randomizationFactor: 0.5,
-  timeout: 15000,
+  timeout: 20000,
   forceNew: true,
   autoConnect: true,
+  upgrade: true,
+  rememberUpgrade: true,
 };
 
 function getAuthToken(): string | null {

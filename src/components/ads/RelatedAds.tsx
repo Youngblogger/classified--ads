@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin, AlertCircle } from 'lucide-react';
-import { formatPrice, formatRelativeTime, getAdImageUrl, getCategoryFallback } from '@/lib/utils';
+import { formatPrice, formatRelativeTime, getAdMainImage, getCategoryFallback } from '@/lib/utils';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses } from '@/lib/boost-config';
 import { useSimilarAds } from '@/hooks/useAds';
@@ -61,8 +61,7 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {ads.map((ad: any) => {
             const boostCardCls = getBoostCardClasses(ad.boost_type);
-            const primaryImage = ad.images?.find((img: any) => img?.is_primary) || ad.images?.[0];
-            const imgUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
+            const imgUrl = getAdMainImage(ad);
             const fallbackImage = getCategoryFallback(ad.category);
 
             return (

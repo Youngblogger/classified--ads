@@ -43,43 +43,52 @@ class HomepageController extends Controller
 
     private function getFeaturedAds()
     {
-        return Ad::select([
-            'ads.id', 'ads.title', 'ads.price', 'ads.slug',
-            'ads.created_at', 'ads.views', 'ads.state', 'ads.lga',
-            'ads.is_featured', 'ads.is_verified',
-            'categories.name as category_name',
-            'categories.slug as category_slug',
-            'locations.name as location_name',
-            DB::raw('(SELECT COALESCE(thumbnail_url, url) FROM ad_images WHERE ad_images.ad_id = ads.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) as image_url'),
-            DB::raw('(SELECT COUNT(*) FROM ad_images WHERE ad_images.ad_id = ads.id) as images_count'),
-        ])
-        ->join('categories', 'ads.category_id', '=', 'categories.id')
-        ->leftJoin('locations', 'ads.location_id', '=', 'locations.id')
-        ->where('ads.status', 'active')
-        ->where('ads.is_featured', true)
-        ->orderBy('ads.created_at', 'desc')
-        ->limit(10)
-        ->get();
+        return Ad::with(['images', 'category', 'location'])
+            ->where('status', 'active')
+            ->where('is_featured', true)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(fn($ad) => $this->formatHomepageAd($ad));
     }
 
     private function getLatestAds()
     {
-        return Ad::select([
-            'ads.id', 'ads.title', 'ads.price', 'ads.slug',
-            'ads.created_at', 'ads.views', 'ads.state', 'ads.lga',
-            'ads.is_featured', 'ads.is_verified',
-            'categories.name as category_name',
-            'categories.slug as category_slug',
-            'locations.name as location_name',
-            DB::raw('(SELECT COALESCE(thumbnail_url, url) FROM ad_images WHERE ad_images.ad_id = ads.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) as image_url'),
-            DB::raw('(SELECT COUNT(*) FROM ad_images WHERE ad_images.ad_id = ads.id) as images_count'),
-        ])
-        ->join('categories', 'ads.category_id', '=', 'categories.id')
-        ->leftJoin('locations', 'ads.location_id', '=', 'locations.id')
-        ->where('ads.status', 'active')
-        ->orderBy('ads.created_at', 'desc')
-        ->limit(20)
-        ->get();
+        return Ad::with(['images', 'category', 'location'])
+            ->where('status', 'active')
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(fn($ad) => $this->formatHomepageAd($ad));
+    }
+
+    private function formatHomepageAd($ad)
+    {
+        $firstImage = $ad->images->first();
+        return [
+            'id' => $ad->id,
+            'title' => $ad->title,
+            'slug' => $ad->slug,
+            'price' => (float) $ad->price,
+            'created_at' => $ad->created_at?->toIso8601String(),
+            'views' => $ad->views,
+            'state' => $ad->state,
+            'lga' => $ad->lga,
+            'is_featured' => (bool) $ad->is_featured,
+            'is_verified' => (bool) $ad->is_verified,
+            'category_name' => $ad->category?->name,
+            'category_slug' => $ad->category?->slug,
+            'location_name' => $ad->location?->name,
+            'image' => $firstImage ? [
+                'url' => $firstImage->url,
+                'thumbnail_url' => $firstImage->thumbnail,
+                'medium_url' => $firstImage->medium_url,
+                'is_primary' => (bool) $firstImage->is_primary,
+            ] : null,
+            'image_url' => $firstImage?->url,
+            'image_thumbnail_url' => $firstImage?->thumbnail,
+            'images_count' => $ad->images->count(),
+        ];
     }
 
     private function getBoostedAdsForHomepage()
@@ -91,27 +100,23 @@ class HomepageController extends Controller
 
             if (empty($boostedAdIds)) return [];
 
-            return Ad::select([
-                'ads.id', 'ads.title', 'ads.price', 'ads.slug',
-                'ads.created_at', 'ads.views', 'ads.state', 'ads.lga',
-                'ads.is_featured', 'ads.is_verified',
-                'categories.name as category_name',
-                'categories.slug as category_slug',
-                'locations.name as location_name',
-                DB::raw('(SELECT COALESCE(thumbnail_url, url) FROM ad_images WHERE ad_images.ad_id = ads.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) as image_url'),
-                DB::raw('(SELECT COUNT(*) FROM ad_images WHERE ad_images.ad_id = ads.id) as images_count'),
-            ])
-            ->join('categories', 'ads.category_id', '=', 'categories.id')
-            ->leftJoin('locations', 'ads.location_id', '=', 'locations.id')
-            ->whereIn('ads.id', $boostedAdIds)
-            ->where('ads.status', 'active')
-            ->get()
-            ->map(function ($ad) use ($boostData) {
-                $ad->boost_info = $boostData['boost_data'][$ad->id] ?? null;
-                return $ad;
-            })
-            ->sortByDesc(fn($ad) => $ad->boost_info['priority_score'] ?? 0)
-            ->values();
+            return Ad::with(['images', 'category', 'location'])
+                ->whereIn('ads.id', $boostedAdIds)
+                ->where('ads.status', 'active')
+                ->get()
+                ->map(function ($ad) use ($boostData) {
+                    $boostInfo = $boostData['boost_data'][$ad->id] ?? null;
+                    $formatted = $this->formatHomepageAd($ad);
+                    $formatted['is_boosted'] = true;
+                    $formatted['boost_status'] = 'active';
+                    $formatted['boost_type'] = $boostInfo['boost_type'] ?? null;
+                    $formatted['boost_plan'] = $boostInfo['plan_type'] ?? $boostInfo['boost_type'] ?? null;
+                    $formatted['boost_expires_at'] = $boostInfo['end_time']?->toIso8601String();
+                    $formatted['boost_priority_score'] = $boostInfo['priority_score'] ?? 0;
+                    return $formatted;
+                })
+                ->sortByDesc(fn($ad) => $ad['boost_priority_score'] ?? 0)
+                ->values();
         } catch (\Exception $e) {
             return [];
         }

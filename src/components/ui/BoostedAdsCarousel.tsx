@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, MapPin, Image as ImageIcon } from 'lucide-react';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses, BoostType } from '@/lib/boost-config';
-import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
+import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdMainImage } from '@/lib/utils';
 import Image from 'next/image';
 import { useBoostedAds } from '@/hooks/useAds';
 import { useAdRanking } from '@/hooks/useAdRanking';
@@ -27,6 +27,7 @@ interface BoostedAd {
   description?: string;
   excerpt?: string;
   summary?: string;
+  image_url?: string;
   is_boosted?: boolean;
   boost_status?: string | null;
   boost_type?: BoostType | string | null;
@@ -35,13 +36,7 @@ interface BoostedAd {
 }
 
 function getImageUrl(ad: BoostedAd): string {
-  if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
-    return getAdImageUrl(ad.images[0]) || FALLBACK_IMAGE;
-  }
-  if (ad.image) {
-    return getAdImageUrl(ad.image) || FALLBACK_IMAGE;
-  }
-  return getAdImage(ad) || FALLBACK_IMAGE;
+  return getAdMainImage(ad);
 }
 
 function getLocationDisplay(ad: BoostedAd): string {

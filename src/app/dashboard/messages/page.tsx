@@ -257,6 +257,13 @@ export default function MessagesPage() {
       markAsRead(selectedConversation.id);
       joinConversation(String(selectedConversation.id));
       
+      // Fetch ad details if we don't have the slug
+      if (!selectedConversation.ad?.slug && selectedConversation.ad_id) {
+        adsApi.getAd(selectedConversation.ad_id).then(res => {
+          setAdDetails(res.data?.data || res.data);
+        }).catch(() => {});
+      }
+      
       return () => {
         leaveConversation(String(selectedConversation.id));
       };
@@ -693,16 +700,21 @@ export default function MessagesPage() {
     conv.ad?.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const formatTime = (dateString?: string) => {
+  const formatMessageTime = (dateString?: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     const now = new Date();
+    const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours}h ago`;
-    if (hours < 48) return 'Yesterday';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const days = Math.floor(diff / 86400000);
+    const isToday = days < 1 && date.getDate() === now.getDate();
+    if (isToday) return timeStr;
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth() && date.getFullYear() === yesterday.getFullYear()) return `Yesterday ${timeStr}`;
+    const isThisYear = date.getFullYear() === now.getFullYear();
+    if (isThisYear) return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${timeStr}`;
+    return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ${timeStr}`;
   };
 
   const getAvatarUrl = (avatar: string | null): string => {
@@ -789,7 +801,7 @@ export default function MessagesPage() {
                   <div className="flex-1 min-w-0 text-left">
                     <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                       <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{otherUser?.name || 'Unknown'}</p>
-                      <span className="text-[10px] sm:text-xs text-gray-400">{formatTime(conv.updated_at) || conv.time || ''}</span>
+                      <span className="text-[10px] sm:text-xs text-gray-400">{formatMessageTime(conv.updated_at) || conv.time || ''}</span>
                     </div>
                     <p className="text-xs sm:text-sm text-gray-500 truncate">
                       {conv.last_message_content || conv.last_message || conv.latestMessage?.content || conv.lastMessage || ''}
@@ -915,12 +927,18 @@ export default function MessagesPage() {
                 </div>
                 
                 {/* View Ad Button */}
-                <button 
-                  onClick={() => router.push(`/ad/${adSlug}`)}
-                  className="px-2 sm:px-3 py-1 sm:py-1.5 bg-primary-600 text-white rounded-lg text-[10px] sm:text-xs font-medium hover:bg-primary-700 flex-shrink-0 whitespace-nowrap"
-                >
-                  View
-                </button>
+                {adSlug ? (
+                  <button 
+                    onClick={() => router.push(`/ad/${adSlug}`)}
+                    className="px-2 sm:px-3 py-1 sm:py-1.5 bg-primary-600 text-white rounded-lg text-[10px] sm:text-xs font-medium hover:bg-primary-700 flex-shrink-0 whitespace-nowrap"
+                  >
+                    View
+                  </button>
+                ) : (
+                  <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-200 text-gray-500 rounded-lg text-[10px] sm:text-xs flex-shrink-0 whitespace-nowrap">
+                    Unavailable
+                  </span>
+                )}
               </div>
             );
           })()}
@@ -1055,7 +1073,7 @@ export default function MessagesPage() {
                         {/* Time and status */}
                         <div className="flex items-center justify-end gap-1 mt-1 pr-1">
                           <span className={`text-[10px] ${isMe ? 'text-[#6ab383]' : 'text-gray-400'}`}>
-                            {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            {formatMessageTime(msg.created_at)}
                           </span>
                           {isMe && (
                             <span className={`text-[10px] ${
@@ -1116,7 +1134,7 @@ export default function MessagesPage() {
                             </span>
                           )}
                           <span className={`text-[10px] ${isMe ? 'text-[#6ab383]' : 'text-gray-400'}`}>
-                            {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            {formatMessageTime(msg.created_at)}
                           </span>
                         </div>
                       </div>

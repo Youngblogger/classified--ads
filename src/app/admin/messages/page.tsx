@@ -160,11 +160,17 @@ export default function MessagesPage() {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Just now';
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
     if (hours < 24) return `${hours}h ago`;
-    if (hours < 48) return 'Yesterday';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (days < 2) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+    const isThisYear = date.getFullYear() === now.getFullYear();
+    if (isThisYear) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getAvatarUrl = (avatar: string | null): string | undefined => {

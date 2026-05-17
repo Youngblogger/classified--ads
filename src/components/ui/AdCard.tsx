@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
-import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
+import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getCategoryFallback, getAdMainImage } from '@/lib/utils';
 import { useState, memo, useCallback } from 'react';
 import PremiumBadge from './PremiumBadge';
 import { getBoostCardClasses } from '@/lib/boost-config';
@@ -18,23 +18,7 @@ interface AdCardProps {
 function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardProps) {
   const [imgError, setImgError] = useState(false);
 
-  const getImageUrl = (): string => {
-    const normalizeImage = (img: any): string => {
-      let url = '';
-      if (typeof img === 'string') url = img;
-      else if (img && typeof img === 'object') url = img.thumbnail_url || img.listing_url || img.thumbnail || img.full_thumbnail_url || img.display_url || img.url || img.full_url || img.original_url || '';
-      if (!url) return '';
-      if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) return url;
-      if (url.startsWith('json_dataset/')) return url.replace('json_dataset/', '/');
-      return `/images/${url}`;
-    };
-    if (ad.main_image) return normalizeImage(ad.main_image);
-    if (ad.slider_images?.length) return normalizeImage(ad.slider_images[0]);
-    if (ad.images?.length) return normalizeImage(ad.images[0]);
-    return '';
-  };
-  
-  const imageUrl = getImageUrl();
+  const imageUrl = getAdMainImage(ad);
   
   const getSlug = useCallback(() => {
     return (ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`;

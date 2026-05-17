@@ -404,6 +404,60 @@ export function getAdImages(ad: any): string[] {
   return images;
 }
 
+export function getAdMainImage(ad: any): string {
+  if (!ad) return FALLBACK_IMAGE;
+
+  // Handle image_url string format (HomepageController raw SQL)
+  if (typeof ad.image_url === 'string' && ad.image_url) {
+    const url = getAdImageUrl(ad.image_url);
+    if (url) return url;
+  }
+
+  // Handle images array (AdDetailResource format - all images)
+  if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
+    for (const img of ad.images) {
+      const url = getAdImageUrl(img);
+      if (url) return url;
+    }
+  }
+
+  // Handle single image object (AdListResource format)
+  if (ad.image && typeof ad.image === 'object') {
+    const url = getAdImageUrl(ad.image);
+    if (url) return url;
+  }
+
+  // Handle main_image + slider_images (seeded/local format)
+  if (ad.main_image) {
+    const url = getAdImageUrl(ad.main_image);
+    if (url) return url;
+  }
+  if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
+    for (const img of ad.slider_images) {
+      const url = getAdImageUrl(img);
+      if (url) return url;
+    }
+  }
+
+  // Handle raw image string directly on ad
+  if (typeof ad.image === 'string' && ad.image) {
+    const url = getAdImageUrl(ad.image);
+    if (url) return url;
+  }
+
+  // Handle image_urls array
+  if (ad.image_urls && Array.isArray(ad.image_urls) && ad.image_urls.length > 0) {
+    for (const url of ad.image_urls) {
+      if (url && typeof url === 'string') {
+        const resolved = getAdImageUrl(url);
+        if (resolved) return resolved;
+      }
+    }
+  }
+
+  return FALLBACK_IMAGE;
+}
+
 export function buildImageQuery(ad: any): string {
   if (!ad) return '';
   
@@ -462,9 +516,14 @@ export function formatRelativeTime(date: string | Date | undefined | null): stri
   if (diffInSeconds < 60) return 'Just now';
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 172800) return 'Yesterday';
   if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
   
-  return formatDate(date);
+  const isThisYear = d.getFullYear() === now.getFullYear();
+  if (isThisYear) {
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function truncateText(text: string, maxLength: number): string {
