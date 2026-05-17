@@ -23,7 +23,11 @@ import {
   CircleDollarSign,
   Settings2,
   AlertCircle,
-  Zap
+  Zap,
+  Sparkles,
+  Wand2,
+  ChevronDown,
+  Globe
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DynamicField, { CategoryField } from '@/components/forms/DynamicField';
@@ -157,6 +161,31 @@ function EditAdModal({
   });
   const [saving, setSaving] = useState(false);
   const [priceDisplay, setPriceDisplay] = useState(ad.price ? Number(ad.price).toLocaleString('en-US') : '');
+  
+  // AI Generation state
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiMode, setAiMode] = useState<'improve' | 'shorter' | 'professional' | 'selling_points' | 'translate' | 'generate'>('generate');
+  const [showAiOptions, setShowAiOptions] = useState(false);
+  const [aiGeneratedText, setAiGeneratedText] = useState('');
+  const [aiTypingText, setAiTypingText] = useState('');
+  const aiOptionsRef = useRef<HTMLDivElement>(null);
+  
+  // Typing animation effect
+  useEffect(() => {
+    if (!aiGeneratedText) {
+      setAiTypingText('');
+      return;
+    }
+    let index = 0;
+    const interval = setInterval(() => {
+      index++;
+      setAiTypingText(aiGeneratedText.slice(0, index));
+      if (index >= aiGeneratedText.length) {
+        clearInterval(interval);
+      }
+    }, 15);
+    return () => clearInterval(interval);
+  }, [aiGeneratedText]);
   
   // Category fields state
   const [categoryFields, setCategoryFields] = useState<CategoryField[]>([]);
@@ -316,6 +345,72 @@ function EditAdModal({
     }
   };
 
+  // Gather product details for AI from the ad and form data
+  const getProductDetails = useCallback(() => {
+    const cat = categories.find(c => c.id === formData.category_id);
+    const subcat = (ad as any).subcategory;
+    const stateLoc = locations.find(l => l.name === formData.state);
+    const features: string[] = [];
+    if (Array.isArray(attributes.custom_features)) {
+      features.push(...attributes.custom_features);
+    }
+    Object.entries(attributes).forEach(([key, value]) => {
+      if (key !== 'custom_features' && value) {
+        features.push(`${key}: ${value}`);
+      }
+    });
+
+    return {
+      title: formData.title || ad.title,
+      description: formData.description || ad.description || '',
+      category: cat?.name || '',
+      subcategory: subcat?.name || '',
+      price: formData.price || ad.price,
+      condition: (attributes as any).condition || '',
+      brand: (attributes as any).brand || '',
+      location: [formData.state, formData.lga].filter(Boolean).join(', '),
+      features,
+    };
+  }, [formData, ad, categories, locations, attributes]);
+
+  const handleGenerateWithAI = useCallback(async (mode: 'improve' | 'shorter' | 'professional' | 'selling_points' | 'translate' | 'generate') => {
+    setAiGenerating(true);
+    setAiMode(mode);
+    setShowAiOptions(false);
+    setAiGeneratedText('');
+    setAiTypingText('');
+
+    try {
+      const details = getProductDetails();
+      const response = await fetch('/api/admin/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...details, mode }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to generate description');
+
+      setAiGeneratedText(data.text);
+      setFormData(prev => ({ ...prev, description: data.text }));
+    } catch (err: any) {
+      toast.error(err.message || 'AI generation failed');
+    } finally {
+      setAiGenerating(false);
+    }
+  }, [getProductDetails]);
+
+  // Close AI options when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (aiOptionsRef.current && !aiOptionsRef.current.contains(e.target as Node)) {
+        setShowAiOptions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <ModalWrapper onClose={onClose} maxWidth="max-w-2xl">
       <div className="bg-gradient-to-br from-slate-50 to-white">
@@ -355,7 +450,7 @@ function EditAdModal({
             />
           </div>
           
-          {/* Description */}
+          {/* Description with AI */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700">
               <span className="flex items-center gap-2">
@@ -363,12 +458,107 @@ function EditAdModal({
                 Description
               </span>
             </label>
-            <textarea
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white min-h-[120px] resize-y"
-              placeholder="Describe your item..."
-            />
+            <div className="relative">
+              <textarea
+                value={aiGeneratedText ? aiTypingText : formData.description}
+                onChange={e => {
+                  setFormData({ ...formData, description: e.target.value });
+                  setAiGeneratedText('');
+                  setAiTypingText('');
+                }}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-200 transition-all bg-white min-h-[120px] resize-y"
+                placeholder="Describe your item..."
+              />
+              {aiGenerating && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] rounded-xl flex flex-col items-center justify-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-sky-500 animate-pulse" />
+                    <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
+                  </div>
+                  <span className="text-sm text-sky-600 font-medium animate-pulse">Generating with AI...</span>
+                </div>
+              )}
+            </div>
+            {/* AI Actions */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative" ref={aiOptionsRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowAiOptions(!showAiOptions)}
+                  disabled={aiGenerating}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-sky-500 to-purple-500 text-white text-xs font-medium rounded-lg hover:from-sky-600 hover:to-purple-600 transition-all disabled:opacity-50 shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Generate with AI
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showAiOptions ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showAiOptions && (
+                  <div className="absolute left-0 top-full mt-1 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-10 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateWithAI('generate')}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 flex items-center gap-2 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+                      Generate New
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateWithAI('improve')}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 flex items-center gap-2 transition-colors"
+                    >
+                      <Wand2 className="w-3.5 h-3.5 text-purple-500" />
+                      Improve Description
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateWithAI('shorter')}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 flex items-center gap-2 transition-colors"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-amber-500" />
+                      Make Shorter
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateWithAI('professional')}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 flex items-center gap-2 transition-colors"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-green-500" />
+                      Make More Professional
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateWithAI('selling_points')}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 flex items-center gap-2 transition-colors"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-orange-500" />
+                      Add Selling Points
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateWithAI('translate')}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 flex items-center gap-2 transition-colors"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-blue-500" />
+                      Translate (Pidgin)
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {aiGeneratedText && (
+                <button
+                  type="button"
+                  onClick={() => handleGenerateWithAI(aiMode)}
+                  disabled={aiGenerating}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-200 transition-all disabled:opacity-50"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Regenerate
+                </button>
+              )}
+            </div>
           </div>
           
           {/* Price & Category Grid */}
