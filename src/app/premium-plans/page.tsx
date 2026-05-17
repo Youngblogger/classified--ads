@@ -125,7 +125,7 @@ export default function PremiumPlansPage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
 
-      <main className="flex-1">
+      <main className="flex-1 pt-[48px] md:pt-[112px]">
         {/* Hero Section */}
         <section className="relative bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 py-20 overflow-hidden">
           <div className="absolute inset-0 opacity-10">

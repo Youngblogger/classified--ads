@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
-import CategoryNav from '@/components/ui/CategoryNav';
 import CategorySidebar from '@/components/home/CategorySidebar';
 import Footer from '@/components/layout/Footer';
-import { AdCardSkeleton } from '@/components/ui/Skeleton';
+import { AdGridSkeleton } from '@/components/ui/Skeleton';
+import FloatingLoadMore from '@/components/ui/FloatingLoadMore';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdImageUrl, getAdImage } from '@/lib/utils';
@@ -22,6 +22,8 @@ import { API_URL } from '@/lib/config';
 function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const revealDelay = useMemo(() => `${(index % 8) * 80}ms`, [index]);
+  const isEven = index % 2 === 0;
 
   useEffect(() => {
     const el = cardRef.current;
@@ -74,9 +76,14 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
     <div
       ref={cardRef}
       onClick={handleAdClick}
-      className={`group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 cursor-pointer ${boostCardClasses} ${
-        isVisible ? 'animate-fade-in' : 'opacity-0'
+      className={`group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 cursor-pointer will-change-transform ${boostCardClasses} ${
+        isVisible
+          ? isEven
+            ? 'animate-[zigzagInLeft_0.45s_ease-out_forwards]'
+            : 'animate-[zigzagInRight_0.45s_ease-out_forwards]'
+          : 'opacity-0'
       }`}
+      style={isVisible ? { animationDelay: revealDelay } : undefined}
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         {imageUrl && !imgError ? (
@@ -104,18 +111,17 @@ function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
         <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
           {formatPrice(ad.price, ad.currency)}
         </p>
-        <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5">
+        <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">
           {ad.title}
         </h3>
-        <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
+        {ad.short_description && (
+          <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2 mt-0.5 leading-relaxed">
+            {ad.short_description}
+          </p>
+        )}
+        <div className="flex items-center gap-1 mt-1 text-[10px] sm:text-xs text-gray-400">
           <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{getLocationDisplay()}</span>
-          {ad.created_at && (
-            <>
-              <span className="text-gray-300">·</span>
-              <span className="whitespace-nowrap">{formatRelativeTime(ad.created_at)}</span>
-            </>
-          )}
         </div>
       </div>
     </div>
@@ -145,20 +151,20 @@ export default function HomePage() {
     loadMore,
   } = useInfiniteAds({}, ITEMS_PER_PAGE);
 
-  const { sentinelRef } = useInfiniteScroll({
+  const { sentinelRef, isDelaying } = useInfiniteScroll({
     onLoadMore: loadMore,
     hasMore,
     isLoading: isLoadingMore,
     enabled: !isLoading && !adsError,
+    delayMs: 2800,
   });
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
       <ResponsiveHeader />
-      <CategoryNav />
-      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4">
+      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4 mt-[48px] md:mt-[112px]">
         <CategorySidebar />
-        <main className="flex-1 min-w-0 relative pt-0 md:pt-[100px]" suppressHydrationWarning>
+        <main className="flex-1 min-w-0 relative pt-0" suppressHydrationWarning>
           {/* Hero Section - Hidden on mobile */}
           <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-xl">
           {/* Background Pattern */}
@@ -340,11 +346,7 @@ export default function HomePage() {
             </div>
             
             {isLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <AdCardSkeleton key={i} />
-                ))}
-              </div>
+              <AdGridSkeleton count={8} />
             ) : adsError ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -378,13 +380,8 @@ export default function HomePage() {
                   className="w-full h-4"
                   aria-hidden="true"
                 />
-                {isLoadingMore && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 mt-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <AdCardSkeleton key={i} />
-                    ))}
-                  </div>
-                )}
+                {/* Floating load more indicator during infinite scroll delay/fetch */}
+                {(isDelaying || isLoadingMore) && <FloatingLoadMore />}
               </>
             ) : (
               <div className="text-center py-16">

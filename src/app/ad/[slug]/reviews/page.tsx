@@ -134,7 +134,7 @@ export default function AdReviewsPage() {
   return (
     <>
       <Header />
-      <main className="container-app py-8">
+      <main className="container-app pt-[48px] md:pt-[112px] pb-8">
         <div className="mb-6">
           <nav className="flex items-center gap-2 text-sm text-gray-500">
             <Link href="/" className="hover:text-primary-600">Home</Link>

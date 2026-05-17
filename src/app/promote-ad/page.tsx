@@ -121,7 +121,7 @@ export default function PromoteAdPage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
 
-      <main className="flex-1">
+      <main className="flex-1 pt-[48px] md:pt-[112px]">
         {/* Hero Section */}
         <section className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 py-16 overflow-hidden">
           <div className="absolute inset-0 opacity-10">

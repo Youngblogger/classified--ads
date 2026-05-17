@@ -1,167 +1,26 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Loader2, AlertCircle } from 'lucide-react';
-import axios from 'axios';
-import { formatPrice, formatRelativeTime, getAdImageUrl, FALLBACK_IMAGE, getCategoryFallback } from '@/lib/utils';
+import { MapPin, AlertCircle } from 'lucide-react';
+import { formatPrice, formatRelativeTime, getAdImageUrl, getCategoryFallback } from '@/lib/utils';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses } from '@/lib/boost-config';
-
-interface AdImage {
-  url?: string;
-  display_url?: string;
-  thumbnail_url?: string;
-  original_url?: string;
-  is_primary?: boolean;
-  full_url?: string;
-  full_thumbnail_url?: string;
-}
-
-interface Ad {
-  id: number;
-  title: string;
-  slug: string;
-  price: string | number;
-  currency: string;
-  condition: string;
-  description?: string;
-  short_description?: string;
-  images: AdImage[];
-  location?: { name: string } | null;
-  state?: string;
-  lga?: string;
-  created_at: string;
-  category?: { name?: string; slug?: string } | string;
-  is_boosted?: boolean;
-  boost_status?: string | null;
-  boost_type?: string | null;
-}
+import { useSimilarAds } from '@/hooks/useAds';
 
 interface RelatedAdsProps {
   currentAdId: number;
   categoryId?: number;
   subcategoryId?: number;
   locationId?: number;
-  initialAds?: Ad[];
 }
 
-export default function RelatedAds({ currentAdId, categoryId, subcategoryId, locationId, initialAds }: RelatedAdsProps) {
-  const [ads, setAds] = useState<Ad[]>(initialAds || []);
-  const [loading, setLoading] = useState(!initialAds);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const loadedIdsRef = useRef<Set<number>>(new Set(initialAds?.map(ad => ad.id) || []));
+export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
+  const { similarAds, isLoading, isError } = useSimilarAds(currentAdId);
 
-  const API_URL = 'http://127.0.0.1:8000/api';
-  const ITEMS_PER_PAGE = 8;
+  const ads = similarAds.filter((ad: any) => ad.id !== currentAdId);
 
-  const fetchAds = useCallback(async (pageNum: number, isInitial = false) => {
-    try {
-      setError(null);
-      
-      if (isInitial) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
-
-      const params = new URLSearchParams({
-        ad_id: currentAdId.toString(),
-        limit: ITEMS_PER_PAGE.toString(),
-        page: pageNum.toString(),
-      });
-
-      const response = await axios.get(`${API_URL}/ads/similar?${params}`, {
-        timeout: 10000,
-      });
-
-      let newAds = response.data.data || response.data.ads || response.data || [];
-      
-      if (!Array.isArray(newAds)) {
-        newAds = [];
-      }
-
-      const uniqueAds = newAds.filter((ad: Ad) => {
-        if (loadedIdsRef.current.has(ad.id)) {
-          return false;
-        }
-        loadedIdsRef.current.add(ad.id);
-        return true;
-      });
-
-      if (isInitial) {
-        loadedIdsRef.current = new Set(uniqueAds.map((ad: Ad) => ad.id));
-        setAds(uniqueAds);
-      } else {
-        setAds((prev) => [...prev, ...uniqueAds]);
-      }
-
-      setHasMore(uniqueAds.length === ITEMS_PER_PAGE);
-      setPage(pageNum);
-    } catch (err: any) {
-      console.error('Error fetching similar ads:', err);
-      setError(err.message || 'Failed to load ads');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [currentAdId]);
-
-  useEffect(() => {
-    if (!initialAds) {
-      fetchAds(1, true);
-    }
-  }, [initialAds, fetchAds]);
-
-  useEffect(() => {
-    if (loading || !hasMore) return;
-
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-          fetchAds(page + 1);
-        }
-      },
-      { 
-        threshold: 0.1,
-        rootMargin: '50px',
-      }
-    );
-
-    if (loadMoreRef.current) {
-      observerRef.current.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [hasMore, loadingMore, loading, page, fetchAds]);
-
-  const getLocationDisplay = (ad: Ad) => {
-    if (!ad.location?.name && !ad.state && !ad.lga) return 'N/A';
-    
-    const stateName = ad.state || ad.location?.name || '';
-    const lgaName = ad.lga || '';
-    
-    if (stateName && lgaName) {
-      return `${stateName}, ${lgaName}`;
-    }
-    return stateName || lgaName || 'N/A';
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6">
         <h3 className="text-base sm:text-lg font-bold text-dark mb-3 sm:mb-4">Similar Ads</h3>
@@ -186,57 +45,41 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
           <span className="text-xs sm:text-sm text-gray-500">{ads.length}+</span>
         )}
       </div>
-      
-      {error && (
+
+      {isError && (
         <div className="flex items-center gap-2 text-red-500 text-xs sm:text-sm mb-3 sm:mb-4 p-2 sm:p-3 bg-red-50 rounded-lg">
           <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span>{error}</span>
-          <button 
-            onClick={() => fetchAds(1, true)} 
-            className="ml-auto text-primary-600 hover:underline"
-          >
-            Retry
-          </button>
+          <span>Failed to load similar ads</span>
         </div>
       )}
-      
-      {ads.length === 0 && !loading ? (
+
+      {ads.length === 0 && !isLoading ? (
         <div className="text-center py-6 sm:py-8 text-gray-500">
           <p className="text-sm">No similar ads found</p>
-          <button 
-            onClick={() => fetchAds(1, true)} 
-            className="text-primary-600 hover:underline mt-2 text-sm"
-          >
-            Refresh
-          </button>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-            {ads.map((ad) => {
-              const boostCardCls = getBoostCardClasses(ad.boost_type);
-              return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+          {ads.map((ad: any) => {
+            const boostCardCls = getBoostCardClasses(ad.boost_type);
+            const primaryImage = ad.images?.find((img: any) => img?.is_primary) || ad.images?.[0];
+            const imgUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
+            const fallbackImage = getCategoryFallback(ad.category);
+
+            return (
               <Link
                 key={ad.id}
                 href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`}
                 className={`group block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-200 ${boostCardCls}`}
               >
                 <div className="relative aspect-[4/3] bg-gray-100">
-                  {(() => {
-                    const primaryImage = ad.images?.find(img => img?.is_primary) || ad.images?.[0];
-                    const imgUrl = primaryImage ? getAdImageUrl(primaryImage) : '';
-                    const fallbackImage = getCategoryFallback(ad.category);
-                    return (
-                      <Image
-                        src={imgUrl || fallbackImage}
-                        alt={ad.title}
-                        fill
-                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => { if (imgUrl) (e.target as HTMLImageElement).src = fallbackImage; }}
-                      />
-                    );
-                  })()}
+                  <Image
+                    src={imgUrl || fallbackImage}
+                    alt={ad.title}
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => { if (imgUrl) (e.target as HTMLImageElement).src = fallbackImage; }}
+                  />
                   <PremiumBadge boostType={ad.boost_type} size="sm" />
                 </div>
                 <div className="p-2">
@@ -246,9 +89,9 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
                   <h4 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5">
                     {ad.title}
                   </h4>
-                  <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
+                  <div className="flex items-center gap-1 mt-2 text-[10px] sm:text-xs text-gray-400">
                     <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-                    <span className="truncate">{getLocationDisplay(ad)}</span>
+                    <span className="truncate">{ad.location?.name || ad.state || ad.lga || 'N/A'}</span>
                     {ad.created_at && (
                       <>
                         <span className="text-gray-300">·</span>
@@ -259,22 +102,8 @@ export default function RelatedAds({ currentAdId, categoryId, subcategoryId, loc
                 </div>
               </Link>
             );
-            })}
-          </div>
-
-          {/* Infinite scroll trigger */}
-          <div ref={loadMoreRef} className="mt-4 sm:mt-6 text-center py-3 sm:py-4">
-            {loadingMore && (
-              <div className="flex items-center justify-center gap-2 text-gray-500">
-                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                <span className="text-xs sm:text-sm">Loading more...</span>
-              </div>
-            )}
-            {!hasMore && ads.length > 0 && (
-              <p className="text-xs sm:text-sm text-gray-400">No more ads to show</p>
-            )}
-          </div>
-        </>
+          })}
+        </div>
       )}
     </div>
   );

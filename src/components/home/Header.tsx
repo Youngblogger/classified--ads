@@ -18,7 +18,7 @@ import {
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
 import { cn, BACKEND_URL } from '@/lib/utils';
-import CategoryNav from '@/components/ui/CategoryNav';
+
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useSocket } from '@/hooks/useSocket';

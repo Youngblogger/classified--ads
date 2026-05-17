@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 interface UseInfiniteScrollOptions {
   onLoadMore: () => void;
@@ -9,6 +9,7 @@ interface UseInfiniteScrollOptions {
   threshold?: number;
   rootMargin?: string;
   enabled?: boolean;
+  delayMs?: number;
 }
 
 export function useInfiniteScroll({
@@ -18,17 +19,35 @@ export function useInfiniteScroll({
   threshold = 0.1,
   rootMargin = '200px',
   enabled = true,
+  delayMs = 2800,
 }: UseInfiniteScrollOptions) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [isDelaying, setIsDelaying] = useState(false);
+  const lockedRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const trigger = useCallback(() => {
+    if (lockedRef.current) return;
+    if (!hasMore || isLoading || !enabled) return;
+
+    lockedRef.current = true;
+    setIsDelaying(true);
+
+    timerRef.current = setTimeout(() => {
+      setIsDelaying(false);
+      onLoadMore();
+      lockedRef.current = false;
+    }, delayMs);
+  }, [onLoadMore, hasMore, isLoading, enabled, delayMs]);
 
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const [entry] = entries;
-      if (entry.isIntersecting && hasMore && !isLoading && enabled) {
-        onLoadMore();
+      if (entry.isIntersecting && hasMore && !isLoading && enabled && !lockedRef.current) {
+        trigger();
       }
     },
-    [onLoadMore, hasMore, isLoading, enabled]
+    [trigger, hasMore, isLoading, enabled]
   );
 
   useEffect(() => {
@@ -47,5 +66,17 @@ export function useInfiniteScroll({
     };
   }, [handleObserver, threshold, rootMargin]);
 
-  return { sentinelRef };
+  useEffect(() => {
+    if (!isLoading) {
+      lockedRef.current = false;
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return { sentinelRef, isDelaying };
 }

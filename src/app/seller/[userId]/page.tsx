@@ -169,7 +169,7 @@ export default function SellerProfilePage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
 
-      <main className="flex-1 w-full px-4 py-6 md:px-6 lg:px-8">
+      <main className="flex-1 w-full px-4 pt-[48px] md:pt-[112px] pb-6 md:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <Link href="/" className="inline-flex items-center gap-1 text-gray-500 hover:text-[#4B5320] mb-6 transition-colors">
             <ChevronLeft className="w-4 h-4" />

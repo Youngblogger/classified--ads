@@ -681,93 +681,19 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
               </>
             )}
 
-            {/* Phone Login Form */}
+            {/* Phone Login Form - Coming Soon */}
             {loginMethod === 'phone' && (
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-base font-semibold text-gray-800 mb-2">Phone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Enter phone number"
-                      disabled={otpSent}
-                      className="w-full pl-14 pr-5 py-5 text-xl font-bold border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all disabled:bg-gray-100 text-gray-900 placeholder:text-lg placeholder:font-normal placeholder:text-gray-400 bg-white"
-                      style={{ height: '70px' }}
-                    />
-                  </div>
-                  {!isValidPhone(phone) && phone.length > 0 && (
-                    <p className="text-sm text-red-500 mt-2">Phone number must be 11-14 digits</p>
-                  )}
+              <div className="flex flex-col items-center justify-center py-10 space-y-4">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
+                  <Phone className="w-8 h-8 text-primary-600" />
                 </div>
-
-                {!otpSent ? (
-                  <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={otpLoading || !isValidPhone(phone)}
-                    className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    Send OTP Code
-                  </button>
-                ) : (
-                  <>
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-3">
-                      <p className="text-sm text-green-700 flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4" />
-                        OTP sent to {phone}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2 text-center">Enter 4-digit code</label>
-                      <div className="flex justify-center gap-2">
-                        {otp.map((digit, index) => (
-                          <input
-                            key={index}
-                            ref={(el) => { otpInputRefs.current[index] = el; }}
-                            type="text"
-                            inputMode="numeric"
-                            maxLength={1}
-                            value={digit}
-                            onChange={(e) => handleOtpChange(index, e.target.value)}
-                            onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                            onPaste={handleOtpPaste}
-                            disabled={isSubmitting}
-                            className="w-12 h-12 text-center text-lg font-bold rounded-xl border-2 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none bg-gray-50 transition-all"
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleVerifyOtp()}
-                      disabled={isSubmitting || otp.join('').length !== 4}
-                      className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Verify & Login
-                    </button>
-
-                    <div className="text-center text-sm">
-                      {countdown > 0 ? (
-                        <p className="text-gray-500">Resend OTP in {countdown}s</p>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleResendOtp}
-                          className="text-primary-600 hover:text-primary-700 font-medium"
-                        >
-                          Resend OTP Code
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
+                <h3 className="text-lg font-semibold text-gray-900">Phone Login</h3>
+                <p className="text-gray-500 text-sm text-center max-w-xs">
+                  Login with phone number is not yet available. Please use email or social login.
+                </p>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+                  <span className="text-amber-600 font-medium text-sm">Coming soon...</span>
+                </div>
               </div>
             )}
 

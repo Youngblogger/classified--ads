@@ -84,12 +84,6 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
             <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
             <span className="truncate">{getLocationDisplay()}</span>
-            {(ad as any).created_at && (
-              <>
-                <span className="text-gray-300">·</span>
-                <span className="whitespace-nowrap">{formatRelativeTime((ad as any).created_at)}</span>
-              </>
-            )}
           </div>
         </div>
       </Link>
@@ -145,18 +139,17 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
         <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
           {formatPrice(ad.price, ad.currency)}
         </p>
-        <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5">
+        <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">
           {ad.title}
         </h3>
-        <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
+        {(ad as any).short_description && (
+          <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2 mt-0.5 leading-relaxed">
+            {(ad as any).short_description}
+          </p>
+        )}
+        <div className="flex items-center gap-1 mt-1 text-[10px] sm:text-xs text-gray-400">
           <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{getLocationDisplay()}</span>
-          {(ad as any).created_at && (
-            <>
-              <span className="text-gray-300">·</span>
-              <span className="whitespace-nowrap">{formatRelativeTime((ad as any).created_at)}</span>
-            </>
-          )}
         </div>
       </div>
     </Link>

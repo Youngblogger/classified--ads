@@ -9,7 +9,7 @@ export default function TermsOfServicePage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
       
-      <main className="flex-1 py-12">
+      <main className="flex-1 pt-[48px] md:pt-[112px] pb-12">
         <div className="container-app">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-3 mb-8">

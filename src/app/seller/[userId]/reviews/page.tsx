@@ -252,7 +252,7 @@ export default function SellerReviewsPage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
       
-      <main className="flex-1 py-8">
+      <main className="flex-1 pt-[48px] md:pt-[112px] pb-8">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Back Link */}
           <button 
