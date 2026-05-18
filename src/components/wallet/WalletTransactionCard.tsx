@@ -143,7 +143,7 @@ function copyToClipboard(text: string) {
   });
 }
 
-const pendingLike = ['pending', 'processing', 'awaiting_confirmation'];
+const pendingLike = ['pending', 'processing', 'awaiting_confirmation', 'expired'];
 
 interface WalletTransactionCardProps {
   transaction: WalletTransaction;
@@ -158,7 +158,9 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
   const [localStatus, setLocalStatus] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [flashGreen, setFlashGreen] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const typeConfig = getTypeConfig(transaction.type);
   const Icon = typeConfig.icon;
@@ -167,6 +169,7 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
   const amountNum = parseFloat(transaction.amount);
   const displayStatus = localStatus || transaction.status;
   const isPendingLike = pendingLike.includes(displayStatus);
+  const isFailedStatus = displayStatus === 'failed' || displayStatus === 'expired';
 
   const isCoolingDown = cooldown > 0;
 
@@ -185,6 +188,31 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
       if (cooldownRef.current) clearInterval(cooldownRef.current);
     };
   }, [isCoolingDown]);
+
+  useEffect(() => {
+    if (!isPendingLike) {
+      setCountdown(null);
+      return;
+    }
+    const expiresMs = transaction.expires_at
+      ? new Date(transaction.expires_at).getTime()
+      : Date.now() + 5 * 60 * 1000;
+    const tick = () => {
+      const now = Date.now();
+      const secs = Math.max(0, Math.floor((expiresMs - now) / 1000));
+      setCountdown(secs);
+      if (secs <= 0) {
+        setLocalStatus('failed');
+        setCountdown(null);
+        if (countdownRef.current) clearInterval(countdownRef.current);
+      }
+    };
+    tick();
+    countdownRef.current = setInterval(tick, 1000);
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [transaction.expires_at, isPendingLike]);
 
   useEffect(() => {
     setLocalStatus(null);
@@ -207,7 +235,6 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
       setTimeout(() => setFlashGreen(false), 1200);
       setCooldown(0);
     } else {
-      toast('Still pending', { id: 'refresh-check', icon: '⏳' });
       setCooldown(3);
     }
   };
@@ -233,7 +260,7 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
     >
       <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
         {/* LEFT: Refresh button for pending, decorative type icon otherwise */}
-          {isPendingLike && onRefreshTransaction ? (
+          {isPendingLike && onRefreshTransaction && !isFailedStatus ? (
             <button
               onClick={handleRefresh}
               disabled={isRefreshing || isCoolingDown}
@@ -300,6 +327,14 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
               {typeConfig.label}
             </span>
             <StatusBadge status={displayStatus} size="sm" />
+            {countdown !== null && countdown > 0 && (
+              <span className={clsx(
+                'text-[10px] sm:text-[11px] font-mono font-medium',
+                countdown <= 120 ? 'text-red-500 dark:text-red-400 animate-pulse' : 'text-amber-500 dark:text-amber-400',
+              )}>
+                {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}
+              </span>
+            )}
             {isCoolingDown && isPendingLike && !localStatus && (
               <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">
                 ({cooldown}s)
