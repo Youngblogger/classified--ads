@@ -233,55 +233,62 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
     >
       <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
         {/* LEFT: Refresh button for pending, decorative type icon otherwise */}
-        <motion.div
-          animate={flashGreen ? { scale: [1, 1.15, 1] } : { scale: 1 }}
-          transition={{ duration: 0.4 }}
-        >
           {isPendingLike && onRefreshTransaction ? (
             <button
               onClick={handleRefresh}
               disabled={isRefreshing || isCoolingDown}
               className={clsx(
-                'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0',
-                'transition-all duration-200',
-                'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
-                'hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:scale-105',
-                'active:scale-95',
-                (isRefreshing || isCoolingDown) && 'opacity-70 cursor-not-allowed',
+                'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 relative',
+                'transition-all duration-300',
+                isRefreshing
+                  ? 'bg-amber-200 dark:bg-amber-500/30 text-amber-700 dark:text-amber-300 scale-110 shadow-lg shadow-amber-200/50 dark:shadow-amber-500/20'
+                  : isCoolingDown
+                    ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                    : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:scale-105 active:scale-95',
               )}
               title={isRefreshing ? 'Verifying...' : isCoolingDown ? `Wait ${cooldown}s` : 'Verify transaction status'}
             >
-              <motion.div
-                animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
-                transition={isRefreshing ? { repeat: Infinity, duration: 1, ease: 'linear' } : { duration: 0.3 }}
-              >
-                <RotateCw className={clsx(
-                  'w-4 h-4 sm:w-5 sm:h-5',
-                  isRefreshing && 'animate-spin',
-                )} />
-              </motion.div>
+              {isRefreshing && (
+                <motion.span
+                  className="absolute inset-0 rounded-xl border-2 border-amber-400 dark:border-amber-300"
+                  initial={{ scale: 1, opacity: 1 }}
+                  animate={{ scale: 1.6, opacity: 0 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: 'ease-out' }}
+                />
+              )}
+              {isRefreshing ? (
+                <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+              ) : isCoolingDown ? (
+                <span className="text-[10px] sm:text-xs font-bold">{cooldown}</span>
+              ) : (
+                <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
+              )}
             </button>
           ) : (
             <motion.div
-              key={displayStatus}
-              initial={flashGreen ? { scale: 0, rotate: -90 } : false}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-              className={clsx(
-                'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0',
-                flashGreen
-                  ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                  : typeConfig.bg,
-              )}
+              animate={flashGreen ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+              transition={{ duration: 0.4 }}
             >
-              {flashGreen ? (
-                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <Icon className={clsx('w-4 h-4 sm:w-5 sm:h-5', typeConfig.text)} />
-              )}
+              <motion.div
+                key={displayStatus}
+                initial={flashGreen ? { scale: 0, rotate: -90 } : false}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                className={clsx(
+                  'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0',
+                  flashGreen
+                    ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                    : typeConfig.bg,
+                )}
+              >
+                {flashGreen ? (
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                ) : (
+                  <Icon className={clsx('w-4 h-4 sm:w-5 sm:h-5', typeConfig.text)} />
+                )}
+              </motion.div>
             </motion.div>
           )}
-        </motion.div>
 
         {/* MIDDLE: Click to view details */}
         <button
@@ -454,9 +461,11 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
                     disabled={isRefreshing || isCoolingDown}
                     className={clsx(
                       'inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all',
-                      isCoolingDown && !isRefreshing
-                        ? 'border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : 'border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10',
+                      isRefreshing
+                        ? 'border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                        : isCoolingDown
+                          ? 'border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          : 'border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10',
                     )}
                     title={isRefreshing ? 'Verifying...' : isCoolingDown ? `Wait ${cooldown}s` : 'Check payment status'}
                   >
@@ -464,7 +473,7 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
                       'w-3 h-3 sm:w-3.5 sm:h-3.5',
                       isRefreshing && 'animate-spin',
                     )} />
-                    {isRefreshing ? 'Verifying...' : isCoolingDown ? `Retry in ${cooldown}s` : 'Check Status'}
+                    {isRefreshing ? 'Verifying...' : isCoolingDown ? `Wait ${cooldown}s` : 'Check Status'}
                   </button>
                 )}
               </div>

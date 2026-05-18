@@ -60,20 +60,23 @@ export function generateReceiptPDF(data: ReceiptData): Blob {
   doc.setFillColor(green[0], green[1], green[2]);
   doc.rect(0, 0, pageW, 36, 'F');
 
+  doc.circle(pageW / 2 - 15, 10, 6);
+  doc.setFillColor(255, 255, 255);
+  doc.fill();
+
+  doc.setTextColor(green[0], green[1], green[2]);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('i', pageW / 2 - 15, 13, { align: 'center' });
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('PAYMENT RECEIPT', pageW / 2, 16, { align: 'center' });
+  doc.text('PAYMENT RECEIPT', pageW / 2, 24, { align: 'center' });
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('iList Marketplace', pageW / 2, 24, { align: 'center' });
-  doc.text(
-    `Issued: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
-    pageW / 2,
-    30,
-    { align: 'center' },
-  );
+  doc.text('iList Marketplace', pageW / 2, 31, { align: 'center' });
 
   let y = 48;
 
@@ -106,7 +109,6 @@ export function generateReceiptPDF(data: ReceiptData): Blob {
   const leftMargin = 14;
   const rightMargin = 14;
   const col1 = 48;
-  const col2 = pageW - leftMargin - rightMargin - col1;
   const rowH = 7;
 
   doc.setFillColor(245, 247, 250);
@@ -152,11 +154,6 @@ export function generateReceiptPDF(data: ReceiptData): Blob {
   doc.text('Thank you for using iList Marketplace.', pageW / 2, y, { align: 'center' });
   y += 5;
   doc.text('This is a computer-generated receipt.', pageW / 2, y, { align: 'center' });
-
-  const footerY = doc.internal.pageSize.getHeight() - 12;
-  doc.setFontSize(7);
-  doc.setTextColor(156, 163, 175);
-  doc.text(`Receipt #${data.reference}`, pageW / 2, footerY, { align: 'center' });
 
   return doc.output('blob');
 }
