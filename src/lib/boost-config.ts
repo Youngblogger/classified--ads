@@ -169,7 +169,9 @@ export function getBoostConfig(boostType: string | null | undefined): BoostUICon
 export function getBoostCardClasses(boostType: string | null | undefined): string {
   const config = getBoostConfig(boostType);
   if (!config) return '';
-  return 'promoted-card';
+  const plan = getBoostPlan(boostType);
+  const borderClass = plan === 'diamond' ? 'promoted-border-diamond' : plan === 'platinum' ? 'promoted-border-platinum' : 'promoted-border-gold';
+  return `promoted-card ${borderClass}`;
 }
 
 export function getBoostBadgeAnimation(boostType: string | null | undefined): string {
