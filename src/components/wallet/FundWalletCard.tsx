@@ -73,7 +73,7 @@ export default function FundWalletCard({ onFund, loading }: FundWalletCardProps)
                 }
               }}
               className={clsx(
-                'w-full pl-8 pr-4 py-3 text-lg font-bold rounded-xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600',
+                'w-full pl-8 pr-4 py-3 text-lg font-normal rounded-xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600',
                 'focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 transition-all',
                 error ? 'border-red-300 dark:border-red-500' : 'border-gray-200 dark:border-gray-600',
               )}
@@ -97,7 +97,7 @@ export default function FundWalletCard({ onFund, loading }: FundWalletCardProps)
               type="button"
               onClick={() => handleQuickAmount(val)}
               className={clsx(
-                'px-4 py-2 text-base font-extrabold rounded-xl border transition-all',
+                'px-4 py-2 text-base font-normal rounded-xl border transition-all',
                 amount === String(val)
                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-400'
                   : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50',
