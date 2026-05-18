@@ -315,11 +315,11 @@ export default function PostAdWizard() {
           </div>
           <p className="text-sm text-gray-600">Your ad is now live on the homepage!</p>
         </div>,
-        { duration: 5000 }
+        { duration: 3000 }
       );
 
       clearDraft();
-      setTimeout(() => router.push('/'), 2000);
+      setTimeout(() => router.push('/'), 800);
     } catch (err: any) {
       let errorMsg = 'Failed to post ad. Please try again.';
       if (err.response?.data?.errors) {

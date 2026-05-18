@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, ChevronLeft, GripVertical, Loader2, Phone, MessageCircle, MapPinned, ArrowLeft, ChevronDown, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { adsApi } from '@/lib/api';
+import { mutate } from 'swr';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { getPhoneValidationError } from '@/lib/utils';
 import { nigeriaLocations } from '@/lib/nigeriaLocations';
@@ -711,6 +712,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       // Clear saved draft
       clearPostAdDraft();
       
+      // Invalidate SWR ad cache so homepage shows new ad instantly
+      mutate(key => typeof key === 'string' && key.startsWith('ads?'));
+      
       // Show success message
       toast.success(
         <div className="flex flex-col gap-3">
@@ -720,14 +724,14 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           </div>
           <p className="text-sm text-gray-600">Your ad is now live on the homepage!</p>
         </div>,
-        { duration: 6000 }
+        { duration: 3000 }
       );
       
       // Redirect to homepage after short delay
       if (isStandalone) {
         setTimeout(() => {
           router.push('/');
-        }, 2000);
+        }, 800);
       }
       
       if (onSuccess) {

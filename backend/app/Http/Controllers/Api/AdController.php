@@ -17,6 +17,7 @@ use App\Services\CacheService;
 use App\Services\BoostTierService;
 use App\Services\SavedAdService;
 use App\Services\CloudinaryService;
+use App\Services\ImageProcessingService;
 use App\Services\AdImageCacheService;
 use App\Jobs\Cloudinary\DeleteCloudinaryFileJob;
 use App\Events\AdSaved;
@@ -605,29 +606,50 @@ class AdController extends Controller
 
     private function uploadAdImages(Request $request, Ad $ad, $user): void
     {
-        $cloudinary = new CloudinaryService();
+        $useCloudinary = !empty(env('CLOUDINARY_URL'));
+        $imageService = app(ImageProcessingService::class);
+
         foreach ($request->file('images') as $index => $image) {
             try {
-                $result = $cloudinary->uploadImage($image->getPathname(), [
-                    'folder' => 'ads',
-                    'user_id' => $user->id,
-                    'tags' => ['ad', 'ad_' . $ad->id],
-                ]);
-                if ($result['success']) {
-                    AdImage::create([
-                        'ad_id' => $ad->id,
-                        'url' => $result['secure_url'],
-                        'original_url' => $result['secure_url'],
-                        'thumbnail_url' => $result['thumbnail_url'],
-                        'medium_url' => $result['optimized_url'] ?? null,
-                        'public_id' => $result['public_id'],
-                        'width' => $result['width'] ?? null,
-                        'height' => $result['height'] ?? null,
-                        'file_size' => $result['bytes'] ?? null,
-                        'is_primary' => $index === 0,
-                        'sort_order' => $index,
+                if ($useCloudinary) {
+                    $cloudinary = new CloudinaryService();
+                    $result = $cloudinary->uploadImage($image->getPathname(), [
+                        'folder' => 'ads',
+                        'user_id' => $user->id,
+                        'tags' => ['ad', 'ad_' . $ad->id],
                     ]);
+                    if ($result['success']) {
+                        AdImage::create([
+                            'ad_id' => $ad->id,
+                            'url' => $result['secure_url'],
+                            'original_url' => $result['secure_url'],
+                            'thumbnail_url' => $result['thumbnail_url'],
+                            'medium_url' => $result['optimized_url'] ?? null,
+                            'public_id' => $result['public_id'],
+                            'width' => $result['width'] ?? null,
+                            'height' => $result['height'] ?? null,
+                            'file_size' => $result['bytes'] ?? null,
+                            'is_primary' => $index === 0,
+                            'sort_order' => $index,
+                        ]);
+                        continue;
+                    }
                 }
+
+                $result = $imageService->processAdImage($image, $ad->id);
+                AdImage::create([
+                    'ad_id' => $ad->id,
+                    'url' => url($result['url']),
+                    'original_url' => url($result['original_url']),
+                    'thumbnail_url' => url($result['thumbnail_url']),
+                    'medium_url' => url($result['medium_url']),
+                    'public_id' => null,
+                    'width' => $result['width'] ?? null,
+                    'height' => $result['height'] ?? null,
+                    'file_size' => $result['file_size'] ?? null,
+                    'is_primary' => $index === 0,
+                    'sort_order' => $index,
+                ]);
             } catch (\Exception $e) {
                 Log::warning('Image upload failed', ['error' => $e->getMessage()]);
             }

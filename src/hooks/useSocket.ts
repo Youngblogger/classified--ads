@@ -19,7 +19,7 @@ interface UseSocketOptions {
 const SOCKET_CONFIG = {
   transports: ['polling', 'websocket'],
   reconnection: true,
-  reconnectionAttempts: Infinity,
+  reconnectionAttempts: 5,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 30000,
   randomizationFactor: 0.5,
