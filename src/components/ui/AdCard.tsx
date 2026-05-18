@@ -4,8 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
-import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getCategoryFallback, getAdMainImage } from '@/lib/utils';
-import { useState, memo, useCallback } from 'react';
+import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getCategoryFallback, getAdMainImage, getAdMainImageWithCacheBust, getImageVersionBuster } from '@/lib/utils';
+import { useState, memo, useCallback, useRef } from 'react';
 import PremiumBadge from './PremiumBadge';
 import PromotedBadge from './PromotedBadge';
 import { getBoostCardClasses } from '@/lib/boost-config';
@@ -37,6 +37,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   const showFallback = !imageUrl || imgError;
   const boostType = (ad as any).boost_type;
   const cardBoostClasses = getBoostCardClasses(boostType);
+  const imageSrc = showFallback ? getFallbackImage() : getAdMainImageWithCacheBust(ad);
+  const adImageKey = `ad-img-${ad.id}-${imgError ? 'fallback' : 'original'}`;
 
   const getLocationDisplay = () => {
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
@@ -50,7 +52,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
       <Link href={`/ad/${getSlug()}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow flex overflow-hidden block">
         <div className="relative w-28 sm:w-48 h-28 sm:h-36 flex-shrink-0 bg-gray-100">
           <Image
-            src={showFallback ? getFallbackImage() : imageUrl}
+            key={adImageKey}
+            src={imageSrc}
             alt={ad.title}
             fill
             sizes="(max-width: 768px) 112px, 192px"
@@ -81,7 +84,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
       <Link href={`/ad/${getSlug()}`} className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow block ${cardBoostClasses}`}>
         <div className="relative aspect-square bg-gray-100">
           <Image
-            src={showFallback ? getFallbackImage() : imageUrl}
+            key={adImageKey}
+            src={imageSrc}
             alt={ad.title}
             fill
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"

@@ -142,10 +142,10 @@ class AdController extends Controller
             $response = new AdDetailResource($ad);
 
             $responseData = $response->toArray($request);
-            CacheService::put($cacheKey, $responseData, 600);
+            CacheService::put($cacheKey, $responseData, 60);
 
             return response()->json(['data' => $responseData])
-                ->header('Cache-Control', 'private, max-age=300');
+                ->header('Cache-Control', 'private, max-age=60');
         } catch (\Exception $e) {
             Log::error('Failed to fetch ad: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load ad'], 500);
@@ -633,28 +633,7 @@ class AdController extends Controller
             }
         }
         app(AdImageCacheService::class)->invalidateAdCache($ad->id);
-    }
-
-    private function handleImageUploads(Request $request, Ad $ad): void
-    {
-        $imageService = app(\App\Services\ImageProcessingService::class);
-        $existingCount = $ad->images()->count();
-        $maxImages = \App\Services\ImageProcessingService::getMaxImagesPerAd();
-        $allowedSlots = $maxImages - $existingCount;
-
-        foreach (array_slice($request->file('images'), 0, $allowedSlots) as $index => $file) {
-            $imageService->validateImage($file);
-            $tempFilename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $tempPath = 'temp/' . $tempFilename;
-            Storage::disk('public')->put($tempPath, file_get_contents($file->getPathname()));
-
-            \App\Jobs\ProcessAdImageJob::dispatch(
-                $ad->id,
-                $tempPath,
-                $existingCount + $index,
-                ($existingCount === 0 && $index === 0)
-            );
-        }
+        CacheService::clearAdDetail($ad->id);
     }
 
     private function deleteImageResources($image): void

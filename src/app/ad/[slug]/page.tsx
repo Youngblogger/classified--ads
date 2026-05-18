@@ -132,6 +132,10 @@ export default function AdDetailPage() {
       return;
     }
 
+    setCurrentImageIndex(0);
+    setCurrentImageError(false);
+    setThumbnailErrors({});
+
     let isMounted = true;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -139,7 +143,6 @@ export default function AdDetailPage() {
     const fetchAd = async () => {
       setLoading(true);
       setError(null);
-
 
       try {
         const response = await fetch(`${API_URL}/ads/${slug}`, {
@@ -202,12 +205,13 @@ export default function AdDetailPage() {
     }
   }, []);
 
-  // Auto-slide images
+  // Auto-slide images - uses sliderImages count to stay in sync
   useEffect(() => {
-    if (!ad || !ad.images || !Array.isArray(ad.images) || ad.images.length <= 1) return;
+    const images = getAdImages(ad);
+    if (!ad || images.length <= 1) return;
     
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % ad.images.length);
+      setCurrentImageIndex((prev) => (prev + 1) % images.length);
     }, 5000);
     
     return () => clearInterval(interval);
@@ -399,7 +403,8 @@ export default function AdDetailPage() {
                 >
                   {imagesUrls.length > 0 ? (
                     <Image 
-                      src={currentImageUrl} 
+                      key={`${ad.id}-img-${currentImageIndex}`}
+                      src={`${currentImageUrl}${currentImageUrl.includes('?') ? '&' : '?'}_cb=${ad?.updated_at || ad?.created_at || Date.now()}`}
                       alt={ad.title} 
                       fill
                       sizes="(max-width: 768px) 100vw, 60vw"

@@ -3,6 +3,12 @@ import { config, FALLBACK_IMAGE, CLOUDINARY_CLOUD_NAME, BACKEND_URL } from './co
 
 export { BACKEND_URL, FALLBACK_IMAGE, CLOUDINARY_CLOUD_NAME } from './config';
 
+let _imageVersionCounter = 0;
+export function getImageVersionBuster(): string {
+  _imageVersionCounter++;
+  return `_v=${_imageVersionCounter}_${Date.now()}`;
+}
+
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
@@ -346,13 +352,11 @@ export function getPrimaryImageUrl(images: any[]): string {
 export function getAdImage(ad: any, img?: any): string {
   if (!ad) return '';
   
-  // If img is provided, extract URL from it
   if (img !== undefined) {
     if (typeof img === 'string') return img;
     return getAdImageUrl(img);
   }
   
-  // Get first image from getAdImages
   const images = getAdImages(ad);
   return images[0] || '';
 }
@@ -362,58 +366,41 @@ export function getAdImages(ad: any): string[] {
   
   let images: string[] = [];
   
-  // Handle main_image + slider_images format
-  if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
-    images = ad.slider_images.map((img: any) => {
-      if (typeof img === 'string') {
-        if (img.startsWith('/') || img.startsWith('http')) return img;
-        return `/images/${img}`;
-      }
-      return getAdImageUrl(img);
-    }).filter(Boolean);
-  }
-  
-  // Fallback to main_image
-  if (images.length === 0 && ad.main_image) {
-    if (typeof ad.main_image === 'string') {
-      const img = ad.main_image.startsWith('/') || ad.main_image.startsWith('http') ? ad.main_image : `/images/${ad.main_image}`;
-      images = [img];
-    } else {
-      images = [getAdImageUrl(ad.main_image)].filter(Boolean);
-    }
-  }
-  
-  // Fallback to images array (standard format)
-  if (images.length === 0 && ad.images && Array.isArray(ad.images)) {
-    images = ad.images.filter((img: any) => img && img !== null && img !== undefined)
+  if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
+    images = ad.images
+      .filter((img: any) => img && img !== null && img !== undefined)
       .map((img: any) => {
         if (typeof img === 'string') {
           if (img.startsWith('/') || img.startsWith('http')) return img;
           return `/images/${img}`;
         }
         return getAdImageUrl(img);
-      }).filter(Boolean);
+      })
+      .filter(Boolean);
   }
   
-  // Fallback to single image object (AdListResource format)
   if (images.length === 0 && ad.image && typeof ad.image === 'object') {
     const url = getAdImageUrl(ad.image);
+    if (url) images = [url];
+  }
+  
+  if (images.length === 0 && typeof ad.image_url === 'string' && ad.image_url) {
+    const url = getAdImageUrl(ad.image_url);
     if (url) images = [url];
   }
   
   return images;
 }
 
+function getImageTimestamp(ad: any): string {
+  const ts = ad?.updated_at || ad?.created_at || Date.now();
+  const d = new Date(ts);
+  return isNaN(d.getTime()) ? String(Date.now()) : String(d.getTime());
+}
+
 export function getAdMainImage(ad: any): string {
   if (!ad) return FALLBACK_IMAGE;
 
-  // Handle image_url string format (HomepageController raw SQL)
-  if (typeof ad.image_url === 'string' && ad.image_url) {
-    const url = getAdImageUrl(ad.image_url);
-    if (url) return url;
-  }
-
-  // Handle images array (AdDetailResource format - all images)
   if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
     for (const img of ad.images) {
       const url = getAdImageUrl(img);
@@ -421,41 +408,30 @@ export function getAdMainImage(ad: any): string {
     }
   }
 
-  // Handle single image object (AdListResource format)
   if (ad.image && typeof ad.image === 'object') {
     const url = getAdImageUrl(ad.image);
     if (url) return url;
   }
 
-  // Handle main_image + slider_images (seeded/local format)
-  if (ad.main_image) {
-    const url = getAdImageUrl(ad.main_image);
+  if (typeof ad.image_url === 'string' && ad.image_url) {
+    const url = getAdImageUrl(ad.image_url);
     if (url) return url;
   }
-  if (ad.slider_images && Array.isArray(ad.slider_images) && ad.slider_images.length > 0) {
-    for (const img of ad.slider_images) {
-      const url = getAdImageUrl(img);
-      if (url) return url;
-    }
-  }
 
-  // Handle raw image string directly on ad
   if (typeof ad.image === 'string' && ad.image) {
     const url = getAdImageUrl(ad.image);
     if (url) return url;
   }
 
-  // Handle image_urls array
-  if (ad.image_urls && Array.isArray(ad.image_urls) && ad.image_urls.length > 0) {
-    for (const url of ad.image_urls) {
-      if (url && typeof url === 'string') {
-        const resolved = getAdImageUrl(url);
-        if (resolved) return resolved;
-      }
-    }
-  }
-
   return FALLBACK_IMAGE;
+}
+
+export function getAdMainImageWithCacheBust(ad: any): string {
+  const url = getAdMainImage(ad);
+  if (!url || url === FALLBACK_IMAGE) return url;
+  const ts = getImageTimestamp(ad);
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}_cb=${ts}`;
 }
 
 export function buildImageQuery(ad: any): string {

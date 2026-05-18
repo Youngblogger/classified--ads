@@ -572,6 +572,7 @@ body {
   /* ===== Promoted Card (subtle premium styling) ===== */
 
   .promoted-card {
+    border-width: 2px !important;
     box-shadow: 0 2px 10px rgba(255, 193, 7, 0.06);
   }
 
