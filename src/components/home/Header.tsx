@@ -369,7 +369,16 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const saveRecentSearch = useCallback((term: string) => {
@@ -1127,29 +1136,52 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                       </button>
 
                       {profileMenuOpen && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-dropdown border border-slate-100 animate-fade-in z-[9999] overflow-hidden">
-                          <div className="px-4 py-3 border-b border-slate-50">
-                            <p className="text-sm font-semibold text-slate-900 truncate">{user?.name || 'User'}</p>
-                            <p className="text-xs text-slate-500 truncate">{user?.email || ''}</p>
-                          </div>
-                          <div className="py-1">
-                            <Link
-                              href="/dashboard"
-                              onClick={() => setProfileMenuOpen(false)}
-                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                            >
-                              <LayoutDashboard className="w-4 h-4 text-slate-400" />
-                              Dashboard
-                            </Link>
-                            <button
-                              onClick={handleLogout}
-                              disabled={isLoggingOut}
-                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
-                            >
-                              <LogOut className="w-4 h-4" />
-                              {isLoggingOut ? 'Logging out...' : 'Logout'}
-                            </button>
-                          </div>
+                        <div
+                          className="absolute right-0 mt-2 w-52 py-1.5 bg-white dark:bg-gray-800 rounded-2xl shadow-xl shadow-black/5 border border-gray-100 dark:border-gray-700 z-[9999] overflow-hidden animate-fade-in"
+                          style={{ animation: 'fadeSlideIn 0.15s ease-out' }}
+                        >
+                          <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-6px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }`}</style>
+                          <Link
+                            href="/dashboard"
+                            onClick={() => setProfileMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
+                          >
+                            <LayoutDashboard className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            Dashboard
+                          </Link>
+                          <Link
+                            href="/dashboard/my-ads"
+                            onClick={() => setProfileMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
+                          >
+                            <Package className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            My Ads
+                          </Link>
+                          <Link
+                            href="/dashboard/wallet"
+                            onClick={() => setProfileMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
+                          >
+                            <CreditCard className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            Wallet
+                          </Link>
+                          <Link
+                            href="/dashboard/settings"
+                            onClick={() => setProfileMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
+                          >
+                            <Settings className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            Settings
+                          </Link>
+                          <div className="mx-3 my-1 border-t border-gray-100 dark:border-gray-700" />
+                          <button
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors w-full"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            {isLoggingOut ? 'Logging out...' : 'Logout'}
+                          </button>
                         </div>
                       )}
                     </div>
