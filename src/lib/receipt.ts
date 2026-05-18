@@ -54,7 +54,7 @@ let logoDataUrl: string | null = null;
 async function loadLogo(): Promise<string | null> {
   if (logoDataUrl) return logoDataUrl;
   try {
-    const res = await fetch('/icons/iList-logo.png');
+    const res = await fetch('/icons/iList-white.png');
     const blob = await res.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -83,15 +83,15 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
 
   const logo = await loadLogo();
   if (logo) {
-    doc.addImage(logo, 'PNG', pageW / 2 - 7, 4, 14, 14);
+    doc.addImage(logo, 'PNG', 14, 8, 14, 14);
   } else {
     doc.setFillColor(255, 255, 255);
-    doc.circle(pageW / 2 - 15, 9, 5);
+    doc.circle(21, 15, 5);
     doc.fill();
     doc.setTextColor(green[0], green[1], green[2]);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('i', pageW / 2 - 15, 11.5, { align: 'center' });
+    doc.text('i', 21, 17.5, { align: 'center' });
   }
 
   doc.setTextColor(255, 255, 255);
@@ -108,6 +108,18 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
     28,
     { align: 'center' },
   );
+
+  doc.setTextColor(235, 235, 235);
+  doc.setFontSize(56);
+  doc.setFont('helvetica', 'bold');
+  doc.text('iList', pageW / 2, pageH - 45, { align: 'center', angle: -35 });
+
+  for (let ry = pageH * 0.55; ry < pageH - 15; ry += 7) {
+    doc.setTextColor(248, 248, 248);
+    doc.setFontSize(3.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  `, 0, ry, { angle: -35 });
+  }
 
   let y = 38;
 

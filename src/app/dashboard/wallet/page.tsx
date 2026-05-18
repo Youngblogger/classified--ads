@@ -25,20 +25,6 @@ interface WalletTransaction {
   expires_at?: string;
 }
 
-interface PendingPayment {
-  id: number;
-  type: string;
-  amount: number;
-  currency: string;
-  reference: string;
-  status: string;
-  created_at: string;
-  expires_at: string;
-  remaining_seconds: number;
-  ad_id?: number;
-  wallet_id?: number;
-}
-
 interface Wallet {
   id: number;
   balance: string;
@@ -48,21 +34,15 @@ interface Wallet {
 export default function WalletPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [funding, setFunding] = useState(false);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchWallet = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
     try {
-      const [walletRes, paymentsRes] = await Promise.all([
-        api.get('/wallet'),
-        api.get('/payments/pending').catch(() => ({ data: { data: [] } })),
-      ]);
+      const walletRes = await api.get('/wallet');
       setWallet(walletRes.data.wallet);
       setTransactions(walletRes.data.transactions?.data || walletRes.data.transactions || []);
-      setPendingPayments(paymentsRes.data?.data || []);
     } catch {
       if (showLoader) {
         setWallet({ id: 0, balance: '0.00', pending_balance: '0.00' });
@@ -80,7 +60,6 @@ export default function WalletPage() {
 
     if (verified === 'true' && reference) {
       window.history.replaceState({}, '', '/dashboard/wallet');
-      setPendingPayments([]);
       api.post('/wallet/verify', { reference })
         .then(() => {
           toast.success('Payment successful! Your wallet has been credited.', { duration: 5000 });
@@ -93,25 +72,6 @@ export default function WalletPage() {
       fetchWallet();
     }
   }, [fetchWallet]);
-
-  useEffect(() => {
-    if (pendingPayments.some((p) => p.status === 'pending')) {
-      pollingRef.current = setInterval(() => {
-        fetchWallet(false);
-      }, 5000);
-    } else {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    }
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [pendingPayments, fetchWallet]);
 
   const handleFund = async (amount: number) => {
     setFunding(true);
@@ -146,7 +106,7 @@ export default function WalletPage() {
   }, [fetchWallet]);
 
   const balance = parseFloat(wallet?.balance || '0');
-  const totalTransactions = transactions.length + pendingPayments.filter((p) => p.status === 'pending').length;
+  const totalTransactions = transactions.length;
 
   return (
     <div className="space-y-3">
@@ -175,7 +135,6 @@ export default function WalletPage() {
 
             <WalletTransactionList
               transactions={transactions}
-              pendingPayments={pendingPayments}
               loading={loading}
               onRefreshTransaction={handleRefreshTransaction}
             />

@@ -437,9 +437,8 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
                         created_at: transaction.created_at,
                         description: getDescription(transaction),
                       });
-                      toast.success('Receipt downloaded successfully');
                     } catch {
-                      toast.error('Failed to generate receipt, try again');
+                      // Silent fail
                     } finally {
                       setDownloading(false);
                     }
