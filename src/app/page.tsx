@@ -1,120 +1,76 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, Image as ImageIcon, Shield, Zap, Star, Search, Plus, ArrowUp } from 'lucide-react';
+import { Shield, Zap, Star, Search, Plus, ArrowUp } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import CategorySidebar from '@/components/home/CategorySidebar';
 import Footer from '@/components/layout/Footer';
 import { AdGridSkeleton } from '@/components/ui/Skeleton';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 
-import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdMainImage } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import { useInfiniteAds } from '@/hooks/useAds';
-import Image from 'next/image';
-import PremiumBadge from '@/components/ui/PremiumBadge';
-import BoostedAdsCarousel from '@/components/ui/BoostedAdsCarousel';
-import { getBoostCardClasses, getBoostConfig, getBoostPlan, isBoostExpired } from '@/lib/boost-config';
-import { API_URL } from '@/lib/config';
+import AdCard from '@/components/ui/AdCard';
+import { getBoostPlan, isBoostExpired, calculateBoostScore } from '@/lib/boost-config';
 
-function AdCardWithImage({ ad, index }: { ad: any; index: number }) {
-  const [isVisible, setIsVisible] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const revealDelay = useMemo(() => `${(index % 8) * 80}ms`, [index]);
-  const isEven = index % 2 === 0;
+function buildUnifiedFeed(ads: any[]): any[] {
+  const boosted = ads.filter((ad: any) => {
+    const plan = getBoostPlan(ad.boost_type);
+    return plan && ad.boost_status === 'active' && !isBoostExpired(ad);
+  });
+  const normal = ads.filter((ad: any) => {
+    const plan = getBoostPlan(ad.boost_type);
+    const isActiveBoost = plan && ad.boost_status === 'active' && !isBoostExpired(ad);
+    return !isActiveBoost;
+  });
 
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  const [imgError, setImgError] = useState(false);
-  const boostCardClasses = getBoostCardClasses(ad.boost_type);
-  
-  const imageUrl = getAdMainImage(ad);
-  const imageCount = ad.images_count || (ad.images ? (Array.isArray(ad.images) ? ad.images.length : 0) : 0) || 0;
+  const scoredBoosted = boosted
+    .map(ad => ({ ad, score: calculateBoostScore(ad) }))
+    .sort((a, b) => b.score - a.score);
 
-  const getLocationDisplay = () => {
-    const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
-    const lgaName = ad.lga || '';
-    if (stateName && lgaName && stateName !== lgaName) {
-      return `${lgaName}, ${stateName}`;
+  const result: any[] = [];
+  let bi = 0;
+  let ni = 0;
+
+  const pattern = [2, 2, 1, 2];
+  let pi = 0;
+
+  while (bi < scoredBoosted.length || ni < normal.length) {
+    const count = pattern[pi % pattern.length];
+    const isBoost = pi % 2 === 0;
+
+    if (isBoost) {
+      for (let i = 0; i < count && bi < scoredBoosted.length; i++) {
+        result.push(scoredBoosted[bi].ad);
+        bi++;
+      }
+    } else {
+      for (let i = 0; i < count && ni < normal.length; i++) {
+        result.push(normal[ni]);
+        ni++;
+      }
     }
-    return stateName || lgaName || 'No location';
-  };
 
-  const handleAdClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const targetSlug = (ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`;
-    window.location.href = `/ad/${targetSlug}`;
-  };
+    pi++;
 
-  return (
-    <div
-      ref={cardRef}
-      onClick={handleAdClick}
-      className={`group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 cursor-pointer will-change-transform ${boostCardClasses} ${
-        isVisible
-          ? isEven
-            ? 'animate-[zigzagInLeft_0.45s_ease-out_forwards]'
-            : 'animate-[zigzagInRight_0.45s_ease-out_forwards]'
-          : 'opacity-0'
-      }`}
-      style={isVisible ? { animationDelay: revealDelay } : undefined}
-    >
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-        {imageUrl && !imgError ? (
-          <Image
-            src={imageUrl}
-            alt={ad.title}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={() => setImgError(true)}
-            loading="lazy"
-          />
-        ) : (
-          <Image src={FALLBACK_IMAGE} alt="No image" fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover" />
-        )}
-        <PremiumBadge boostType={ad.boost_type} size="sm" />
-        {imageCount > 1 && (
-          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
-            <ImageIcon className="w-3 h-3" />
-            {imageCount}
-          </div>
-        )}
-      </div>
-      <div className="p-2">
-        <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
-          {formatPrice(ad.price, ad.currency)}
-        </p>
-        <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">
-          {ad.title}
-        </h3>
-        {ad.short_description && (
-          <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2 mt-0.5 leading-relaxed">
-            {ad.short_description}
-          </p>
-        )}
-        <div className="flex items-center gap-1 mt-1 text-[10px] sm:text-xs text-gray-400">
-          <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-          <span className="truncate">{getLocationDisplay()}</span>
-        </div>
-      </div>
-    </div>
-  );
+    if (bi >= scoredBoosted.length && ni < normal.length) {
+      while (ni < normal.length) {
+        result.push(normal[ni]);
+        ni++;
+      }
+      break;
+    }
+    if (ni >= normal.length && bi < scoredBoosted.length) {
+      while (bi < scoredBoosted.length) {
+        result.push(scoredBoosted[bi].ad);
+        bi++;
+      }
+      break;
+    }
+  }
+
+  return result;
 }
 
 const FEATURED_CATEGORIES = [
@@ -279,63 +235,7 @@ export default function HomePage() {
 
 
 
-        {/* Boosted Ads Carousel */}
-        <BoostedAdsCarousel />
-
-        {/* Diamond Top Boosted */}
-        {!isLoading && !adsError && recentAds.filter((ad: any) => {
-          const plan = getBoostPlan(ad.boost_type);
-          return plan === 'diamond' && ad.boost_status === 'active' && !isBoostExpired(ad);
-        }).length > 0 && (
-          <section className="py-3 sm:py-4 bg-gradient-to-b from-indigo-50/40 to-transparent">
-            <div className="px-2 sm:px-4 md:px-6 lg:px-8">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <span className="text-lg sm:text-xl">💎</span>
-                <h2 className="text-base sm:text-lg font-bold text-gray-900">Top Boosted Ads</h2>
-                <span className="text-[10px] sm:text-xs font-medium text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">Premium</span>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
-                {recentAds
-                  .filter((ad: any) => {
-                    const plan = getBoostPlan(ad.boost_type);
-                    return plan === 'diamond' && ad.boost_status === 'active' && !isBoostExpired(ad);
-                  })
-                  .slice(0, 4)
-                  .map((ad: any, index: number) => (
-                    <AdCardWithImage key={`diamond-${ad.id}`} ad={ad} index={index} />
-                  ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Platinum + Gold Featured */}
-        {!isLoading && !adsError && recentAds.filter((ad: any) => {
-          const plan = getBoostPlan(ad.boost_type);
-          return (plan === 'platinum' || plan === 'gold') && ad.boost_status === 'active' && !isBoostExpired(ad);
-        }).length > 0 && (
-          <section className="py-3 sm:py-4 bg-white">
-            <div className="px-2 sm:px-4 md:px-6 lg:px-8">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <span className="text-lg sm:text-xl">⭐</span>
-                <h2 className="text-base sm:text-lg font-bold text-gray-900">Featured Boost</h2>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
-                {recentAds
-                  .filter((ad: any) => {
-                    const plan = getBoostPlan(ad.boost_type);
-                    return (plan === 'platinum' || plan === 'gold') && ad.boost_status === 'active' && !isBoostExpired(ad);
-                  })
-                  .slice(0, 4)
-                  .map((ad: any, index: number) => (
-                    <AdCardWithImage key={`featured-${ad.id}`} ad={ad} index={index} />
-                  ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Latest Ads */}
+        {/* Unified Latest Ads Feed */}
         <section className="py-4 bg-white">
           <div className="px-2 sm:px-4 md:px-6 lg:px-8">
             <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
@@ -366,17 +266,10 @@ export default function HomePage() {
             ) : recentAds.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
-                  {recentAds
-                    .filter((ad: any) => {
-                      const plan = getBoostPlan(ad.boost_type);
-                      const isActiveBoost = plan && ad.boost_status === 'active' && !isBoostExpired(ad);
-                      return !isActiveBoost;
-                    })
-                    .map((ad: any, index: number) => (
-                      <AdCardWithImage key={`ad-${ad.id}`} ad={ad} index={index} />
-                    ))}
+                  {buildUnifiedFeed(recentAds).map((ad: any) => (
+                    <AdCard key={`ad-${ad.id}`} ad={ad} />
+                  ))}
                 </div>
-                {/* Load More Button - Jiji.ng style */}
                 {!isLoading && !adsError && (
                   <LoadMoreButton
                     onClick={handleLoadMore}
@@ -388,7 +281,7 @@ export default function HomePage() {
             ) : (
               <div className="text-center py-16">
                 <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <ImageIcon className="w-10 h-10 text-gray-400" />
+                  <span className="text-4xl text-gray-400">📭</span>
                 </div>
                 <h3 className="text-xl font-semibold text-dark mb-2">No ads yet</h3>
                 <p className="text-gray-500 mb-5">Be the first to post an ad in your area!</p>
@@ -400,9 +293,6 @@ export default function HomePage() {
             )}
           </div>
         </section>
-
-
-
 
       </main>
       </div>

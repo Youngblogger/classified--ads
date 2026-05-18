@@ -6,7 +6,7 @@ import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
 import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getCategoryFallback, getAdMainImage } from '@/lib/utils';
 import { useState, memo, useCallback } from 'react';
-import PremiumBadge from './PremiumBadge';
+import PromotedBadge from './PromotedBadge';
 import { getBoostCardClasses } from '@/lib/boost-config';
 
 interface AdCardProps {
@@ -58,7 +58,6 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             loading={priority ? 'eager' : 'lazy'}
             priority={priority}
           />
-          <PremiumBadge boostType={boostType} size="sm" />
         </div>
         <div className="flex-1 p-2 sm:p-3 min-w-0">
           <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
@@ -68,6 +67,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
             <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
             <span className="truncate">{getLocationDisplay()}</span>
+            {boostType && <PromotedBadge boostType={boostType} />}
           </div>
         </div>
       </Link>
@@ -88,7 +88,6 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             loading={priority ? 'eager' : 'lazy'}
             priority={priority}
           />
-          <PremiumBadge boostType={boostType} size="sm" />
         </div>
         <div className="p-2">
           <p className="text-xs sm:text-sm font-bold text-primary-600 leading-tight">
@@ -98,6 +97,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-400">
             <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
             <span className="truncate">{getLocationDisplay()}</span>
+            {boostType && <PromotedBadge boostType={boostType} />}
           </div>
         </div>
       </Link>
@@ -117,7 +117,6 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           loading={priority ? 'eager' : 'lazy'}
           priority={priority}
         />
-        <PremiumBadge boostType={boostType} size="sm" />
       </div>
       <div className="p-2">
         <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
@@ -134,6 +133,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
         <div className="flex items-center gap-1 mt-1 text-[10px] sm:text-xs text-gray-400">
           <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{getLocationDisplay()}</span>
+          {boostType && <PromotedBadge boostType={boostType} />}
         </div>
       </div>
     </Link>

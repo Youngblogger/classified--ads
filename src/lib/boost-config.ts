@@ -169,7 +169,7 @@ export function getBoostConfig(boostType: string | null | undefined): BoostUICon
 export function getBoostCardClasses(boostType: string | null | undefined): string {
   const config = getBoostConfig(boostType);
   if (!config) return '';
-  return `${config.cardClasses} ${config.cardHoverClasses}`;
+  return 'promoted-card';
 }
 
 export function getBoostBadgeAnimation(boostType: string | null | undefined): string {
@@ -283,26 +283,27 @@ export function isBoostExpired(ad: { boost_status?: string | null; boost_expires
 /**
  * Dynamic Boost Score Formula
  *
- * score = (weight * 10 * timeFactor) + freshness + (engagement * exposurePenalty)
+ * score = (boostLevel * 1000) + freshnessScore + engagementScore + sellerQualityScore
  */
 export function calculateBoostScore(ad: ScorableAd): number {
   const expired = isBoostExpired(ad);
   const weight = expired ? 0 : getBoostWeight(ad.boost_type);
-
-  const hour = new Date().getHours();
-  const timeFactor = hour >= 18 && hour <= 23 ? 1.3 : hour >= 9 ? 1.0 : 0.8;
+  const boostLevel = weight;
 
   const ageMs = ad.created_at ? Date.now() - new Date(ad.created_at).getTime() : 0;
   const ageHours = ageMs / 3600000;
-  const freshness = Math.max(0, 10 / (1 + ageHours));
+  const freshnessScore = Math.max(0, 100 / (1 + ageHours));
 
-  const engagement = (ad.views || 0) * 0.01;
+  const engagementScore = Math.min(50, (ad.views || 0) * 0.02);
+
+  const sellerQualityScore = 10;
 
   const viewsToday = ad.boost_views_today || 0;
   const maxViews = ad.max_daily_boost_views || 100;
   const exposurePenalty = viewsToday > maxViews ? 0.5 : 1.0;
 
-  return weight * 10 * timeFactor + freshness + engagement * exposurePenalty;
+  const baseScore = boostLevel * 1000 + freshnessScore + engagementScore + sellerQualityScore;
+  return baseScore * exposurePenalty;
 }
 
 /**
@@ -312,7 +313,7 @@ export function calculateBoostScore(ad: ScorableAd): number {
 export function revenuePriorityBoost(ad: ScorableAd): number {
   const base = calculateBoostScore(ad);
   const plan = getBoostPlan(ad.boost_type);
-  const revenueFactor = plan === 'diamond' ? 1.5 : plan === 'platinum' ? 1.2 : 1;
+  const revenueFactor = plan === 'diamond' ? 1.3 : plan === 'platinum' ? 1.15 : 1;
   return base * revenueFactor;
 }
 

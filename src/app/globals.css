@@ -569,4 +569,44 @@ body {
     color: #1d4ed8;
   }
 
+  /* ===== Promoted Card (subtle premium styling) ===== */
+
+  .promoted-card {
+    border-color: rgba(255, 193, 7, 0.35) !important;
+    box-shadow: 0 2px 10px rgba(255, 193, 7, 0.06);
+  }
+
+  .promoted-card:hover {
+    box-shadow: 0 4px 16px rgba(255, 193, 7, 0.1);
+  }
+
+  /* ===== 💎 Premium Badge Animation ===== */
+
+  .premium-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    animation: premiumGlow 2.8s ease-in-out infinite;
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  @keyframes premiumGlow {
+    0% {
+      transform: scale(1);
+      opacity: 0.9;
+      filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0));
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 1;
+      filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.4));
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0.9;
+      filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0));
+    }
+  }
+
 }
