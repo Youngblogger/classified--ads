@@ -97,7 +97,7 @@ export default function FundWalletCard({ onFund, loading }: FundWalletCardProps)
               type="button"
               onClick={() => handleQuickAmount(val)}
               className={clsx(
-                'px-3 py-1.5 text-xs font-medium rounded-lg border transition-all',
+                'px-4 py-2 text-base font-extrabold rounded-xl border transition-all',
                 amount === String(val)
                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-400'
                   : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50',

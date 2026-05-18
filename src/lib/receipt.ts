@@ -43,10 +43,12 @@ function getDescription(type: string, status: string, method: string, desc?: str
 }
 
 function formatAmount(value: string | number) {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-  }).format(Number(value));
+  const n = Number(value);
+  const formatted = n.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `NGN ${formatted}`;
 }
 
 function formatStatus(status: string): string {
@@ -194,7 +196,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
     doc.setFont('helvetica', 'bold');
     doc.text(label, leftMargin + 3, y + 4.5);
 
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(75, 85, 99);
     doc.text(value, leftMargin + col1 + 3, y + 4.5);
 
