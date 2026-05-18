@@ -17,15 +17,21 @@ function getDescription(type: string, status: string, method: string, desc?: str
   }
   if (type === 'deposit') {
     if (status === 'success' || status === 'completed') {
-      return `Wallet funding via ${method === 'paystack' ? 'Paystack' : 'Wallet transfer'}`;
+      return 'Payment successfully';
     }
-    return 'Wallet funding - pending confirmation';
+    if (['failed', 'expired', 'declined', 'rejected'].includes(status)) {
+      return 'Wallet funding - failed';
+    }
+    return 'Wallet funding';
   }
   if (type === 'payment') {
     if (status === 'success' || status === 'completed') {
-      return 'Payment for ad listing';
+      return 'Payment successfully';
     }
-    return 'Payment for ad listing - pending';
+    if (['failed', 'expired', 'declined', 'rejected'].includes(status)) {
+      return 'Boosted ad payment - failed';
+    }
+    return 'Boosted ad payment';
   }
   if (type === 'promotion') {
     return 'Ad promotion boost';
