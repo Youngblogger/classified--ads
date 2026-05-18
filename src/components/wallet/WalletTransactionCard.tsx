@@ -218,7 +218,7 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
     return () => {
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
-  }, [transaction.expires_at, isPendingLike]);
+  }, [transaction.expires_at, transaction.created_at, isPendingLike]);
 
   useEffect(() => {
     setLocalStatus(null);
