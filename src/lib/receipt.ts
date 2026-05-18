@@ -49,6 +49,23 @@ function formatAmount(value: string | number) {
   }).format(Number(value));
 }
 
+function formatStatus(status: string): string {
+  const lower = status.toLowerCase();
+  if (['success', 'successful', 'approved', 'confirmed', 'credited', 'completed'].includes(lower)) {
+    return 'Successful';
+  }
+  if (['failed', 'declined', 'rejected'].includes(lower)) {
+    return 'Failed';
+  }
+  if (['cancelled', 'canceled'].includes(lower)) {
+    return 'Cancelled';
+  }
+  if (lower === 'refunded') return 'Refunded';
+  if (lower === 'expired') return 'Expired';
+  if (lower === 'pending') return 'Pending';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 let logoDataUrl: string | null = null;
 
 async function loadLogo(): Promise<string | null> {
@@ -112,13 +129,13 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   doc.setTextColor(235, 235, 235);
   doc.setFontSize(56);
   doc.setFont('helvetica', 'bold');
-  doc.text('iList', pageW / 2, pageH - 60, { align: 'center', angle: -35 });
+  doc.text('iList', pageW / 2, pageH - 65, { align: 'center', angle: 35 });
 
-  for (let ry = pageH * 0.48; ry < pageH - 15; ry += 7) {
+  for (let ry = pageH * 0.44; ry < pageH - 15; ry += 7) {
     doc.setTextColor(248, 248, 248);
     doc.setFontSize(3.5);
     doc.setFont('helvetica', 'normal');
-    doc.text(`  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  `, 0, ry, { angle: -35 });
+    doc.text(`  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  `, 0, ry, { angle: 35 });
   }
 
   let y = 38;
@@ -131,10 +148,10 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
 
   const rows: [string, string][] = [
     ['Reference ID', data.reference],
-    ['Type', data.type.charAt(0).toUpperCase() + data.type.slice(1)],
+    ['Type', data.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())],
     ['Description', getDescription(data.type, data.status, data.payment_method, data.description)],
     ['Amount', formatAmount(data.amount)],
-    ['Status', data.status.charAt(0).toUpperCase() + data.status.slice(1)],
+    ['Status', formatStatus(data.status)],
     ['Payment Method', data.payment_method || 'Wallet'],
     [
       'Date',
