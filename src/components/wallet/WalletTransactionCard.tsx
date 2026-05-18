@@ -14,6 +14,7 @@ import {
   RotateCw,
   CheckCircle,
   Loader2,
+  Info,
 } from 'lucide-react';
 import clsx from 'clsx';
 import StatusBadge from './StatusBadge';
@@ -194,18 +195,25 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
     e.stopPropagation();
     if (isRefreshing || cooldown > 0 || !onRefreshTransaction || !txRef) return;
 
+    toast.loading('Checking transaction status...', { id: 'refresh-check' });
     setIsRefreshing(true);
     const confirmed = await onRefreshTransaction(txRef);
     setIsRefreshing(false);
 
     if (confirmed) {
+      toast.success('Transaction status updated', { id: 'refresh-check' });
       setLocalStatus('success');
       setFlashGreen(true);
       setTimeout(() => setFlashGreen(false), 1200);
       setCooldown(0);
     } else {
-      setCooldown(5);
+      toast('Still pending', { id: 'refresh-check', icon: '⏳' });
+      setCooldown(3);
     }
+  };
+
+  const handleToggleExpand = () => {
+    setExpanded((prev) => !prev);
   };
 
   return (
@@ -223,26 +231,48 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
           : 'border-gray-100 dark:border-gray-700/60',
       )}
     >
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full text-left p-3 sm:p-4"
-      >
-        <div className="flex items-center gap-2 sm:gap-3">
-          <motion.div
-            animate={flashGreen ? { scale: [1, 1.15, 1] } : { scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className={clsx(
-              'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0',
-              flashGreen
-                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                : typeConfig.bg,
-            )}
-          >
+      <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
+        {/* LEFT: Refresh button for pending, decorative type icon otherwise */}
+        <motion.div
+          animate={flashGreen ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          {isPendingLike && onRefreshTransaction ? (
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing || isCoolingDown}
+              className={clsx(
+                'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0',
+                'transition-all duration-200',
+                'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
+                'hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:scale-105',
+                'active:scale-95',
+                (isRefreshing || isCoolingDown) && 'opacity-70 cursor-not-allowed',
+              )}
+              title={isRefreshing ? 'Verifying...' : isCoolingDown ? `Wait ${cooldown}s` : 'Verify transaction status'}
+            >
+              <motion.div
+                animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
+                transition={isRefreshing ? { repeat: Infinity, duration: 1, ease: 'linear' } : { duration: 0.3 }}
+              >
+                <RotateCw className={clsx(
+                  'w-4 h-4 sm:w-5 sm:h-5',
+                  isRefreshing && 'animate-spin',
+                )} />
+              </motion.div>
+            </button>
+          ) : (
             <motion.div
               key={displayStatus}
               initial={flashGreen ? { scale: 0, rotate: -90 } : false}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+              className={clsx(
+                'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0',
+                flashGreen
+                  ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                  : typeConfig.bg,
+              )}
             >
               {flashGreen ? (
                 <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -250,48 +280,78 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
                 <Icon className={clsx('w-4 h-4 sm:w-5 sm:h-5', typeConfig.text)} />
               )}
             </motion.div>
-          </motion.div>
+          )}
+        </motion.div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white capitalize">
-                {typeConfig.label}
+        {/* MIDDLE: Click to view details */}
+        <button
+          onClick={handleToggleExpand}
+          className="flex-1 min-w-0 text-left focus:outline-none"
+        >
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white capitalize">
+              {typeConfig.label}
+            </span>
+            <StatusBadge status={displayStatus} size="sm" />
+            {isCoolingDown && isPendingLike && !localStatus && (
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">
+                ({cooldown}s)
               </span>
-              <StatusBadge status={displayStatus} size="sm" />
-            </div>
-            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate leading-tight">
-              {getDescription(transaction)}
-            </p>
-            <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{formatted.full}</p>
+            )}
           </div>
+          <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate leading-tight">
+            {getDescription(transaction)}
+          </p>
+          <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{formatted.full}</p>
+        </button>
 
-          <div className="text-right shrink-0">
-            <p
-              className={clsx(
-                'text-xs sm:text-sm font-bold',
-                flashGreen
+        {/* RIGHT: Amount + actions */}
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <p
+            className={clsx(
+              'text-xs sm:text-sm font-bold whitespace-nowrap',
+              flashGreen
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : typeConfig.sign === 'positive'
                   ? 'text-emerald-600 dark:text-emerald-400'
-                  : typeConfig.sign === 'positive'
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : typeConfig.sign === 'negative'
-                      ? 'text-red-600 dark:text-red-400'
-                      : 'text-gray-900 dark:text-white',
-              )}
-            >
-              {typeConfig.sign === 'positive' ? '+' : typeConfig.sign === 'negative' ? '-' : ''}
-              {formatAmount(amountNum)}
-            </p>
-          </div>
-
-          <motion.div
-            animate={{ rotate: expanded ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 transition-colors shrink-0"
+                  : typeConfig.sign === 'negative'
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-gray-900 dark:text-white',
+            )}
           >
-            <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </motion.div>
+            {typeConfig.sign === 'positive' ? '+' : typeConfig.sign === 'negative' ? '-' : ''}
+            {formatAmount(amountNum)}
+          </p>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleExpand();
+              }}
+              className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors"
+              title="View details"
+            >
+              <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            </button>
+            <motion.div
+              animate={{ rotate: expanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleExpand();
+                }}
+                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors"
+                title="Toggle details"
+              >
+                <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            </motion.div>
+          </div>
         </div>
-      </button>
+      </div>
 
       <AnimatePresence>
         {expanded && (
@@ -388,36 +448,24 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
                   {downloading ? 'Generating...' : 'Receipt'}
                 </button>
 
-                {isPendingLike && onRefreshTransaction && (
-                  <div className="flex items-center gap-2 ml-auto">
-                    {cooldown > 0 && !localStatus && (
-                      <span className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                        Still awaiting confirmation...
-                      </span>
+                {isPendingLike && onRefreshTransaction && localStatus !== 'success' && (
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing || isCoolingDown}
+                    className={clsx(
+                      'inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all',
+                      isCoolingDown && !isRefreshing
+                        ? 'border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        : 'border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10',
                     )}
-                    {localStatus !== 'success' && (
-                      <motion.button
-                        whileTap={cooldown === 0 ? { scale: 0.9 } : {}}
-                        onClick={handleRefresh}
-                        disabled={isRefreshing || cooldown > 0}
-                        className={clsx(
-                          'inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all',
-                          cooldown > 0
-                            ? 'border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                            : 'border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10',
-                        )}
-                        title={cooldown > 0 ? `Wait ${cooldown}s` : 'Check payment status'}
-                      >
-                        <motion.div
-                          animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
-                          transition={isRefreshing ? { repeat: Infinity, duration: 1, ease: 'linear' } : { duration: 0.2 }}
-                        >
-                          <RotateCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        </motion.div>
-                        {isRefreshing ? 'Checking...' : cooldown > 0 ? `${cooldown}s` : 'Refresh'}
-                      </motion.button>
-                    )}
-                  </div>
+                    title={isRefreshing ? 'Verifying...' : isCoolingDown ? `Wait ${cooldown}s` : 'Check payment status'}
+                  >
+                    <RotateCw className={clsx(
+                      'w-3 h-3 sm:w-3.5 sm:h-3.5',
+                      isRefreshing && 'animate-spin',
+                    )} />
+                    {isRefreshing ? 'Verifying...' : isCoolingDown ? `Retry in ${cooldown}s` : 'Check Status'}
+                  </button>
                 )}
               </div>
             </div>
