@@ -229,7 +229,6 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
     e.stopPropagation();
     if (isRefreshing || cooldown > 0 || !onRefreshTransaction || !txRef) return;
 
-    toast.loading('Checking transaction status...', { id: 'refresh-check' });
     setIsRefreshing(true);
     const confirmed = await onRefreshTransaction(txRef);
     setIsRefreshing(false);
