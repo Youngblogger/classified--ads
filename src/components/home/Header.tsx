@@ -1137,7 +1137,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
 
                       {profileMenuOpen && (
                         <div
-                          className="absolute right-0 mt-2 w-52 py-1.5 bg-white dark:bg-gray-800 rounded-2xl shadow-xl shadow-black/5 border border-gray-100 dark:border-gray-700 z-[9999] overflow-hidden animate-fade-in"
+                          className="absolute right-0 mt-2 w-52 py-1.5 bg-white dark:bg-gray-800 rounded-[7px] shadow-xl shadow-black/5 border border-gray-100 dark:border-gray-700 z-[9999] overflow-hidden animate-fade-in"
                           style={{ animation: 'fadeSlideIn 0.15s ease-out' }}
                         >
                           <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-6px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }`}</style>
