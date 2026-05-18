@@ -112,9 +112,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   doc.setTextColor(235, 235, 235);
   doc.setFontSize(56);
   doc.setFont('helvetica', 'bold');
-  doc.text('iList', pageW / 2, pageH - 45, { align: 'center', angle: -35 });
+  doc.text('iList', pageW / 2, pageH - 60, { align: 'center', angle: -35 });
 
-  for (let ry = pageH * 0.55; ry < pageH - 15; ry += 7) {
+  for (let ry = pageH * 0.48; ry < pageH - 15; ry += 7) {
     doc.setTextColor(248, 248, 248);
     doc.setFontSize(3.5);
     doc.setFont('helvetica', 'normal');
