@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Wallet } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Wallet } from 'lucide-react';
 import {
   WalletBalanceCard,
   WalletTransactionList,
-  PendingPaymentCard,
   FundWalletCard,
 } from '@/components/wallet';
 
@@ -52,26 +51,25 @@ export default function WalletPage() {
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [funding, setFunding] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchWallet = useCallback(async () => {
-    const timeoutId = setTimeout(() => setLoading(false), 10000);
+  const fetchWallet = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
-      setLoading(true);
       const [walletRes, paymentsRes] = await Promise.all([
         api.get('/wallet'),
         api.get('/payments/pending').catch(() => ({ data: { data: [] } })),
       ]);
-      clearTimeout(timeoutId);
       setWallet(walletRes.data.wallet);
       setTransactions(walletRes.data.transactions?.data || walletRes.data.transactions || []);
       setPendingPayments(paymentsRes.data?.data || []);
     } catch {
-      clearTimeout(timeoutId);
-      setWallet({ id: 0, balance: '0.00', pending_balance: '0.00' });
-      setTransactions([]);
+      if (showLoader) {
+        setWallet({ id: 0, balance: '0.00', pending_balance: '0.00' });
+        setTransactions([]);
+      }
     } finally {
-      clearTimeout(timeoutId);
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   }, []);
 
@@ -96,6 +94,25 @@ export default function WalletPage() {
     }
   }, [fetchWallet]);
 
+  useEffect(() => {
+    if (pendingPayments.some((p) => p.status === 'pending')) {
+      pollingRef.current = setInterval(() => {
+        fetchWallet(false);
+      }, 5000);
+    } else {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    }
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [pendingPayments, fetchWallet]);
+
   const handleFund = async (amount: number) => {
     setFunding(true);
     try {
@@ -114,22 +131,28 @@ export default function WalletPage() {
     }
   };
 
-  const handlePaymentExpired = useCallback((payment: PendingPayment) => {
-    toast.error(`Payment of ${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(payment.amount)} has expired`, { duration: 5000 });
-    fetchWallet();
+  const handleRefreshTransaction = useCallback(async (reference: string) => {
+    try {
+      const res = await api.post('/wallet/verify', { reference });
+      if (res.data.success || res.data.status === 'success') {
+        toast.success('Payment confirmed!', { duration: 3000 });
+        fetchWallet();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   }, [fetchWallet]);
 
   const balance = parseFloat(wallet?.balance || '0');
-  const pendingBalance = parseFloat(wallet?.pending_balance || '0');
-
-  const activePendingPayments = pendingPayments.filter((p) => p.status === 'pending');
+  const totalTransactions = transactions.length + pendingPayments.filter((p) => p.status === 'pending').length;
 
   return (
     <div className="space-y-3">
       <WalletBalanceCard
         balance={balance}
-        pendingBalance={pendingBalance}
-        totalTransactions={transactions.length}
+        totalTransactions={totalTransactions}
         loading={loading}
         title="Wallet"
         subtitle="Manage your wallet and view transactions"
@@ -150,41 +173,17 @@ export default function WalletPage() {
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Transaction History</h3>
             </div>
 
-            <WalletTransactionList transactions={transactions} loading={loading} />
+            <WalletTransactionList
+              transactions={transactions}
+              pendingPayments={pendingPayments}
+              loading={loading}
+              onRefreshTransaction={handleRefreshTransaction}
+            />
           </motion.div>
         </div>
 
         <div className="order-1 lg:order-2 space-y-2">
           <FundWalletCard onFund={handleFund} loading={funding} />
-
-          <AnimatePresence>
-            {activePendingPayments.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5 p-2.5"
-              >
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <div className="p-1 rounded-lg bg-amber-100 dark:bg-amber-500/10">
-                    <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">
-                    Pending Payments ({activePendingPayments.length})
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {activePendingPayments.map((payment) => (
-                    <PendingPaymentCard
-                      key={payment.id}
-                      payment={payment}
-                      onExpired={handlePaymentExpired}
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
     </div>
