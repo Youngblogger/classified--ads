@@ -100,15 +100,15 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
 
   const logo = await loadLogo();
   if (logo) {
-    doc.addImage(logo, 'PNG', 14, 8, 14, 14);
+    doc.addImage(logo, 'PNG', 14, 10, 14, 4.7);
   } else {
     doc.setFillColor(255, 255, 255);
-    doc.circle(21, 15, 5);
+    doc.circle(21, 12, 5);
     doc.fill();
     doc.setTextColor(green[0], green[1], green[2]);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('i', 21, 17.5, { align: 'center' });
+    doc.text('i', 21, 14.5, { align: 'center' });
   }
 
   doc.setTextColor(255, 255, 255);
@@ -130,6 +130,8 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   doc.setFontSize(56);
   doc.setFont('helvetica', 'bold');
   doc.text('iList', pageW / 2, pageH - 65, { align: 'center', angle: 35 });
+  doc.setFontSize(12);
+  doc.text('classified ads marketplace', pageW / 2, pageH - 55, { align: 'center', angle: 35 });
 
   for (let ry = pageH * 0.44; ry < pageH - 15; ry += 7) {
     doc.setTextColor(248, 248, 248);
@@ -163,7 +165,6 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
         minute: '2-digit',
       }),
     ],
-    ['Transaction Fee', 'N0.00'],
   ];
 
   const leftMargin = 14;
