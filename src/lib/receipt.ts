@@ -49,42 +49,73 @@ function formatAmount(value: string | number) {
   }).format(Number(value));
 }
 
-export function generateReceiptPDF(data: ReceiptData): Blob {
+let logoDataUrl: string | null = null;
+
+async function loadLogo(): Promise<string | null> {
+  if (logoDataUrl) return logoDataUrl;
+  try {
+    const res = await fetch('/icons/iList-logo.png');
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        logoDataUrl = reader.result as string;
+        resolve(logoDataUrl);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   const doc = new jsPDF({ unit: 'mm', format: 'a5' });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
 
   const green = [0, 158, 56] as const;
   const dark = '#1F2937';
   const muted = '#6B7280';
 
   doc.setFillColor(green[0], green[1], green[2]);
-  doc.rect(0, 0, pageW, 36, 'F');
+  doc.rect(0, 0, pageW, 30, 'F');
 
-  doc.circle(pageW / 2 - 15, 10, 6);
-  doc.setFillColor(255, 255, 255);
-  doc.fill();
-
-  doc.setTextColor(green[0], green[1], green[2]);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('i', pageW / 2 - 15, 13, { align: 'center' });
+  const logo = await loadLogo();
+  if (logo) {
+    doc.addImage(logo, 'PNG', pageW / 2 - 7, 4, 14, 14);
+  } else {
+    doc.setFillColor(255, 255, 255);
+    doc.circle(pageW / 2 - 15, 9, 5);
+    doc.fill();
+    doc.setTextColor(green[0], green[1], green[2]);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('i', pageW / 2 - 15, 11.5, { align: 'center' });
+  }
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
+  doc.setFontSize(15);
   doc.setFont('helvetica', 'bold');
-  doc.text('PAYMENT RECEIPT', pageW / 2, 24, { align: 'center' });
+  doc.text('PAYMENT RECEIPT', pageW / 2, 18, { align: 'center' });
 
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text('iList Marketplace', pageW / 2, 31, { align: 'center' });
+  doc.text('iList Marketplace', pageW / 2, 24, { align: 'center' });
+  doc.text(
+    `Issued: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+    pageW / 2,
+    28,
+    { align: 'center' },
+  );
 
-  let y = 48;
+  let y = 38;
 
   doc.setTextColor(dark);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text('Transaction Details', pageW / 2, y, { align: 'center' });
-  y += 10;
+  y += 9;
 
   const rows: [string, string][] = [
     ['Reference ID', data.reference],
@@ -109,15 +140,15 @@ export function generateReceiptPDF(data: ReceiptData): Blob {
   const leftMargin = 14;
   const rightMargin = 14;
   const col1 = 48;
-  const rowH = 7;
+  const rowH = 6.5;
 
   doc.setFillColor(245, 247, 250);
   doc.rect(leftMargin, y, pageW - leftMargin - rightMargin, rowH, 'F');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(green[0], green[1], green[2]);
-  doc.text('Item', leftMargin + 3, y + 5);
-  doc.text('Details', leftMargin + col1 + 3, y + 5);
+  doc.text('Item', leftMargin + 3, y + 4.5);
+  doc.text('Details', leftMargin + col1 + 3, y + 4.5);
 
   y += rowH;
   let alt = false;
@@ -128,25 +159,25 @@ export function generateReceiptPDF(data: ReceiptData): Blob {
       doc.rect(leftMargin, y, pageW - leftMargin - rightMargin, rowH, 'F');
     }
 
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(dark);
     doc.setFont('helvetica', 'bold');
-    doc.text(label, leftMargin + 3, y + 5);
+    doc.text(label, leftMargin + 3, y + 4.5);
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(75, 85, 99);
-    doc.text(value, leftMargin + col1 + 3, y + 5);
+    doc.text(value, leftMargin + col1 + 3, y + 4.5);
 
     y += rowH;
     alt = !alt;
   }
 
-  y += 8;
+  y = pageH - 28;
 
   const lineL = 14;
   doc.setDrawColor(229, 231, 235);
   doc.line(lineL, y, pageW - lineL, y);
-  y += 10;
+  y += 8;
 
   doc.setFontSize(8);
   doc.setTextColor(muted);
@@ -158,21 +189,14 @@ export function generateReceiptPDF(data: ReceiptData): Blob {
   return doc.output('blob');
 }
 
-export function downloadReceipt(data: ReceiptData, filename?: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    try {
-      const blob = generateReceiptPDF(data);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || `receipt-${data.reference}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-      resolve();
-    } catch (err) {
-      reject(err);
-    }
-  });
+export async function downloadReceipt(data: ReceiptData, filename?: string): Promise<void> {
+  const blob = await generateReceiptPDF(data);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || `receipt-${data.reference}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
