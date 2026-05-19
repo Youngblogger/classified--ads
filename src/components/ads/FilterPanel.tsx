@@ -168,43 +168,51 @@ export default function FilterPanel({ categorySlug, subcategorySlug, onFilterCha
               </div>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={priceMin ? formatInputPrice(priceMin) : ''}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/[^0-9]/g, '');
-                  setPriceMin(raw);
-                }}
-                onFocus={(e) => e.target.select()}
-                className={cn(
-                  'w-full px-2.5 py-1.5 border rounded-md text-sm text-gray-900 transition-all duration-200',
-                  priceMin
-                    ? 'bg-white border-primary-300 ring-1 ring-primary-100'
-                    : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                )}
-              />
+          <div className="flex items-end gap-1">
+            <div className="flex-1">
+              <span className="text-[10px] text-gray-400 font-medium mb-1 block">Min</span>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-900 text-sm font-medium">₦</span>
+                <input
+                  type="text"
+                  value={priceMin ? formatInputPrice(priceMin) : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    setPriceMin(raw);
+                  }}
+                  onFocus={(e) => e.target.select()}
+                  className={cn(
+                    'w-full pl-6 pr-2 py-1.5 border rounded-md text-sm text-gray-900 transition-all duration-200',
+                    priceMin
+                      ? 'bg-white border-primary-300 ring-1 ring-primary-100'
+                      : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                  )}
+                />
+              </div>
             </div>
-            <div className="flex items-center justify-center w-5">
-              <div className="w-3 h-px bg-gray-300" />
+            <div className="flex items-center justify-center pb-2.5">
+              <div className="w-2 h-px bg-gray-300" />
             </div>
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={priceMax ? formatInputPrice(priceMax) : ''}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/[^0-9]/g, '');
-                  setPriceMax(raw);
-                }}
-                onFocus={(e) => e.target.select()}
-                className={cn(
-                  'w-full px-2.5 py-1.5 border rounded-md text-sm text-gray-900 transition-all duration-200',
-                  priceMax
-                    ? 'bg-white border-primary-300 ring-1 ring-primary-100'
-                    : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                )}
-              />
+            <div className="flex-1">
+              <span className="text-[10px] text-gray-400 font-medium mb-1 block">Max</span>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-900 text-sm font-medium">₦</span>
+                <input
+                  type="text"
+                  value={priceMax ? formatInputPrice(priceMax) : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    setPriceMax(raw);
+                  }}
+                  onFocus={(e) => e.target.select()}
+                  className={cn(
+                    'w-full pl-6 pr-2 py-1.5 border rounded-md text-sm text-gray-900 transition-all duration-200',
+                    priceMax
+                      ? 'bg-white border-primary-300 ring-1 ring-primary-100'
+                      : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                  )}
+                />
+              </div>
             </div>
           </div>
         </div>

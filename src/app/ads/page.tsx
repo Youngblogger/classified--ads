@@ -297,51 +297,6 @@ function AdsPageContent() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <ResponsiveHeader />
       <main className="flex-1 w-full px-4 pt-[48px] pb-6 md:px-6 md:pt-[72px] lg:px-8">
-        {/* Search Header */}
-        <div className="max-w-7xl mx-auto bg-white rounded-xl p-3 sm:p-4 mb-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={localQuery}
-                onChange={(e) => setLocalQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Search ads..."
-                className="w-full pl-12 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              {localQuery ? (
-                <button
-                  onClick={handleSearch}
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                >
-                  <Search className="w-4 h-4 text-white" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleSearch}
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-colors"
-                >
-                  <Search className="w-4 h-4 text-gray-400" />
-                </button>
-              )}
-            </div>
-
-            {/* Mobile/Tablet Filter Toggle */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-xl font-medium shrink-0 hover:bg-primary-700 transition-colors"
-            >
-              <SlidersHorizontal className="w-5 h-5" />
-              Filters
-            </button>
-
-            {/* Search Button removed - now inside input */}
-          </div>
-        </div>
 
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
           {/* Mobile Filter Overlay */}
@@ -365,6 +320,32 @@ function AdsPageContent() {
                   <X className="w-5 h-5 text-gray-600" />
                 </button>
               </div>
+
+              {/* Search inside sidebar */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <h3 className="font-semibold text-gray-900 text-sm mb-2">Search</h3>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={localQuery}
+                    onChange={(e) => setLocalQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    placeholder="Search ads..."
+                    className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  {localQuery ? (
+                    <button
+                      onClick={handleSearch}
+                      type="button"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 bg-primary-600 hover:bg-primary-700 rounded-md transition-colors"
+                    >
+                      <Search className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
               {/* Location */}
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Location</h3>
@@ -401,10 +382,19 @@ function AdsPageContent() {
             <div className="flex-1 bg-white rounded-xl p-4 sm:p-6 shadow-sm">
               {/* Results Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-semibold text-gray-500 tracking-tight">
-                  {localQuery ? `Results for "${localQuery}"` : 'Result'}
-                </h1>
+              <div className="flex items-center gap-3">
+                {/* Mobile filter toggle */}
+                <button
+                  onClick={() => setShowFilters(true)}
+                  className="lg:hidden flex items-center justify-center gap-1.5 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium shrink-0 hover:bg-primary-700 transition-colors"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  Filters
+                </button>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-semibold text-gray-500 tracking-tight">
+                    {localQuery ? `Results for "${localQuery}"` : 'Result'}
+                  </h1>
                 <p className="text-sm sm:text-base text-gray-500">
                   {ads.length} ads found
                   {(selectedCategoryId || selectedSubcategoryId) && (
@@ -416,8 +406,9 @@ function AdsPageContent() {
                   )}
                 </p>
               </div>
+            </div>
 
-              <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
                 {/* Sort */}
                 <select
                   value={sortBy}
