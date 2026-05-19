@@ -8,7 +8,7 @@ import Footer from '@/components/layout/Footer';
 import AdCard from '@/components/ui/AdCard';
 import FilterPanel from '@/components/ads/FilterPanel';
 import { useGlobalStore, useUIStore } from '@/lib/store';
-import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal, MapPin, Loader2 } from 'lucide-react';
+import { Search, Grid, List, X, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { AdGridSkeleton } from '@/components/ui/Skeleton';
 import { useSearchInfinite } from '@/hooks/useAds';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -309,72 +309,38 @@ function AdsPageContent() {
 
           {/* Filters Sidebar - Sticky */}
           <div className={`
-            lg:w-64 lg:flex-shrink-0
-            ${showFilters ? 'fixed inset-y-0 left-0 w-[90vw] max-w-sm z-[145] overflow-y-auto bg-gray-50 p-5 lg:relative lg:inset-auto lg:w-64 lg:max-w-none lg:z-auto lg:overflow-visible lg:bg-transparent lg:p-0 lg:px-0' : 'hidden lg:block'}
+            lg:w-72 lg:flex-shrink-0
+            ${showFilters ? 'fixed inset-y-0 left-0 w-[90vw] max-w-sm z-[145] overflow-y-auto bg-white p-5 lg:relative lg:inset-auto lg:w-72 lg:max-w-none lg:z-auto lg:overflow-visible lg:bg-transparent lg:p-0' : 'hidden lg:block'}
           `}>
-            <div className="lg:sticky lg:top-24 space-y-4">
+            <div className="lg:sticky lg:top-24 max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:scrollbar-thin space-y-3">
               {/* Mobile Close Button */}
               <div className="flex items-center justify-between lg:hidden mb-2">
-                <h3 className="font-semibold text-gray-900 text-lg">Filters</h3>
-                <button onClick={() => setShowFilters(false)} className="p-2 hover:bg-gray-200 rounded-lg">
-                  <X className="w-5 h-5 text-gray-600" />
+                <h3 className="font-semibold text-gray-900 text-base">Filters</h3>
+                <button onClick={() => setShowFilters(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
 
-              {/* Search inside sidebar */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <h3 className="font-semibold text-gray-900 text-sm mb-2">Search</h3>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={localQuery}
-                    onChange={(e) => setLocalQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder="Search ads..."
-                    className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                  {localQuery ? (
-                    <button
-                      onClick={handleSearch}
-                      type="button"
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 bg-primary-600 hover:bg-primary-700 rounded-md transition-colors"
-                    >
-                      <Search className="w-3.5 h-3.5 text-white" />
-                    </button>
-                  ) : null}
-                </div>
-              </div>
+              <FilterPanel
+                categorySlug={categorySlug}
+                subcategorySlug={subcategorySlug}
+                onFilterChange={handleFilterChange}
+                searchQuery={localQuery}
+                onSearchChange={setLocalQuery}
+                onSearch={handleSearch}
+                locationSlug={selectedLocationSlug}
+                lgaParam={selectedLGA}
+                onLocationChange={(slug, lga) => { setSelectedLocationSlug(slug); setSelectedLGA(lga); }}
+                selectedLocationState={selectedLocationState}
+                onToggleLocationModal={toggleLocationModal}
+              />
 
-              {/* Location */}
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-4">Location</h3>
-              <button
-                onClick={() => toggleLocationModal()}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:border-gray-300 transition-all"
-              >
-                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span className="flex-1 text-left truncate capitalize">
-                  {selectedLocationState.toLowerCase()}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-              </button>
-            </div>
-
-            {/* Dynamic filter panel (price, condition, attributes) */}
-            <FilterPanel
-              categorySlug={categorySlug}
-              subcategorySlug={subcategorySlug}
-              onFilterChange={handleFilterChange}
-            />
-
-            {/* Clear Filters */}
-            <button
-              onClick={clearFilters}
-              className="w-full px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg bg-white shadow-sm"
-            >
-              Clear All Filters
-            </button>
+              {/* Clear Filters */}
+              {(priceMinRaw || priceMaxRaw || condition || selectedLocationSlug || selectedLGA) && (
+                <button onClick={clearFilters} className="w-full py-2.5 text-xs text-primary-600 hover:bg-primary-50 rounded-lg border border-gray-100 font-medium transition-colors">
+                  Clear All Filters
+                </button>
+              )}
             </div>
           </div>
 
