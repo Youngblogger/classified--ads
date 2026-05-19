@@ -10,6 +10,7 @@ import SellerProfileCard from '@/components/ui/SellerProfileCard';
 import RelatedAds from '@/components/ads/RelatedAds';
 import LatestReviews from '@/components/reviews/LatestReviews';
 import AdAttributes from '@/components/ads/AdAttributes';
+import AdSpecifications from '@/components/ads/AdSpecifications';
 import ReportAdModal from '@/components/ui/ReportAdModal';
 import BoostPlansModal from '@/components/ui/BoostPlansModal';
 import { DynamicChatModal } from '@/lib/dynamicImports';
@@ -655,18 +656,16 @@ export default function AdDetailPage() {
                   </div>
                 </div>
 
-                {/* Specifications Section */}
-                {(() => {
-                  const specs = ad.attributes || ad.specifications;
-                  if (!specs || Object.keys(specs).length === 0) {
-                    return null;
-                  }
-                  return (
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <AdAttributes attributes={specs} />
-                    </div>
-                  );
-                })()}
+                {/* Dynamic Specifications Section */}
+                {ad.specifications && ad.specifications.length > 0 ? (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <AdSpecifications specifications={ad.specifications} />
+                  </div>
+                ) : ad.attributes && Object.keys(ad.attributes).length > 0 ? (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <AdAttributes attributes={ad.attributes} />
+                  </div>
+                ) : null}
               </div>
 
             </div>

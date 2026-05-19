@@ -120,7 +120,7 @@ class AdController extends Controller
 
             $ad = Ad::with([
                 'images' => fn($q) => $q->orderBy('sort_order')->orderBy('is_primary', 'desc'),
-                'category',
+                'category.categoryFields',
                 'location',
                 'user',
                 'activeBoost.plan',
