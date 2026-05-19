@@ -274,6 +274,8 @@ export default function EnterpriseSidebar() {
   const subs = displayCat ? getChildren(displayCat) : [];
   const children = displaySub ? getChildren(displaySub) : [];
   const childHasItems = !!displaySub && getChildren(displaySub).length > 0;
+  const mainPanelWidth = Math.min(panelPos.panelLeft || 680, (typeof window !== 'undefined' ? window.innerWidth : 1200) - panelPos.left - 16);
+  const childPanelLeft = Math.min(panelPos.left + mainPanelWidth + 8, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 248);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -724,7 +726,7 @@ export default function EnterpriseSidebar() {
           </div>
 
           {/* Panel body */}
-          <div className="overflow-y-auto" style={{ maxHeight: `calc(${Math.min(panelPos.maxHeight, window.innerHeight - 128)}px - 48px)`, scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
+          <div className="overflow-y-auto flex-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
             <div className="p-3">
               {/* Two-column subcategory layout */}
               <div className="grid grid-cols-2 gap-2">
@@ -757,36 +759,6 @@ export default function EnterpriseSidebar() {
                           <ChevronRight className={cn('w-3 h-3 flex-shrink-0 transition-transform duration-150', isSelected ? 'text-primary-400 rotate-90' : 'text-gray-300')} />
                         )}
                       </div>
-
-                      {/* Level 3 - children inline */}
-                      {isSelected && childCount > 0 && (
-                        <div className="ml-8 mt-0.5 space-y-0.5 border-l-2 border-primary-100 pl-2">
-                          {getChildren(sub).slice(0, 8).map(child => (
-                            <Link
-                              key={child.id}
-                              href={`/ads?category=${child.slug}`}
-                              onClick={() => { addRecentlyViewed(child); setRecentlyViewed(getRecentlyViewed()); closeAll(); }}
-                              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors group"
-                            >
-                              <span className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-primary-400 flex-shrink-0" />
-                              <span className="flex-1 truncate">{child.name}</span>
-                              {child.ad_count != null && (
-                                <span className="text-[10px] text-gray-400">{formatCount(child.ad_count)}</span>
-                              )}
-                            </Link>
-                          ))}
-                          {getChildren(sub).length > 8 && (
-                            <Link
-                              href={`/ads?category=${sub.slug}`}
-                              onClick={() => { addRecentlyViewed(sub); closeAll(); }}
-                              className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] text-primary-600 hover:text-primary-700 font-medium"
-                            >
-                              View all {getChildren(sub).length} {sub.name.toLowerCase()}
-                              <ChevronRight className="w-3 h-3" />
-                            </Link>
-                          )}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -815,6 +787,51 @@ export default function EnterpriseSidebar() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Level 3 - Child panel */}
+      {displaySub && childHasItems && (
+        <div
+          onMouseEnter={handlePanelEnter}
+          onMouseLeave={handlePanelLeave}
+          className="fixed z-50 bg-white rounded-xl border border-gray-100/80 shadow-xl overflow-y-auto animate-fade-in"
+          style={{
+            top: `${Math.max(112, Math.min(panelPos.top, window.innerHeight - panelPos.maxHeight - 16))}px`,
+            left: `${childPanelLeft}px`,
+            width: '240px',
+            maxHeight: `${Math.min(panelPos.maxHeight, window.innerHeight - 128)}px`,
+          }}
+        >
+          <div className="px-3 py-2.5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{displaySub.name}</span>
+          </div>
+          <div className="p-2 space-y-0.5">
+            {getChildren(displaySub).map(child => (
+              <Link
+                key={child.id}
+                href={`/ads?category=${child.slug}`}
+                onClick={() => { addRecentlyViewed(child); setRecentlyViewed(getRecentlyViewed()); closeAll(); }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors group"
+              >
+                {renderIcon(child, 'sm')}
+                <span className="flex-1 truncate">{child.name}</span>
+                {child.ad_count != null && (
+                  <span className="text-[10px] text-gray-400 tabular-nums">{formatCount(child.ad_count)}</span>
+                )}
+              </Link>
+            ))}
+            {getChildren(displaySub).length > 15 && (
+              <Link
+                href={`/ads?category=${displaySub.slug}`}
+                onClick={() => { addRecentlyViewed(displaySub); closeAll(); }}
+                className="flex items-center gap-2 px-3 py-2 text-xs text-primary-600 hover:text-primary-700 font-medium mt-1 border-t border-gray-50 pt-2"
+              >
+                View all {getChildren(displaySub).length} {displaySub.name.toLowerCase()}
+                <ChevronRight className="w-3 h-3" />
+              </Link>
+            )}
           </div>
         </div>
       )}
