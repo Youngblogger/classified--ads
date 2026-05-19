@@ -139,7 +139,7 @@ export default function FilterPanel({ categorySlug, subcategorySlug, onFilterCha
 
   return (
     <div className={cn('space-y-4', className)}>
-      {/* Price / Salary / Fee */}
+        {/* Price / Salary / Fee */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-1">
@@ -153,22 +153,9 @@ export default function FilterPanel({ categorySlug, subcategorySlug, onFilterCha
               </button>
             )}
           </div>
-          {hasData && (
-            <div className="mb-3">
-              <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="absolute top-0 h-full bg-gradient-to-r from-primary-300 to-primary-500 rounded-full transition-all duration-300"
-                  style={{ left: `${minPrice > 0 ? ((parseFloat(priceMin || String(minPrice)) - minPrice) / (maxPrice - minPrice || 1)) * 100 : 0}%`, width: `${sliderWidth}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-[11px] text-gray-400 mt-1.5">
-                <span>{formatPrice(minPrice)}</span>
-                {meta.price?.avg ? <span className="font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">{formatPrice(meta.price.avg)} avg</span> : null}
-                <span>{formatPrice(maxPrice)}</span>
-              </div>
-            </div>
-          )}
-          <div className="flex items-end gap-1">
+
+          {/* Manual price input (top) */}
+          <div className="flex items-end gap-1 mb-4">
             <div className="flex-1">
               <span className="text-[10px] text-gray-400 font-medium mb-1 block">Min</span>
               <div className="relative">
@@ -215,50 +202,86 @@ export default function FilterPanel({ categorySlug, subcategorySlug, onFilterCha
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Price distribution quick picks */}
-        {(meta.price_distribution || []).length > 0 && (
-          <div className="border-t border-gray-50 px-4 py-3">
-            <p className="text-[11px] text-gray-400 mb-2 font-medium uppercase tracking-wider">Quick select</p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {(meta.price_distribution || []).filter(b => b.count > 0).slice(0, 6).map(b => {
-                const priceTotal = meta.price?.total || 0;
-                const countPct = priceTotal > 0 ? (b.count / priceTotal) * 100 : 0;
+          {/* OR divider */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex-1 h-px bg-gray-100" />
+            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">OR browse by price</span>
+            <div className="flex-1 h-px bg-gray-100" />
+          </div>
+
+          {/* Price range quick picks — Jiji style with radio buttons */}
+          {(meta.price_distribution || []).filter(b => b.count > 0).length > 0 && (
+            <div>
+              {(meta.price_distribution || []).filter(b => b.count > 0).slice(0, 6).map((b, idx, arr) => {
                 const isSelected = parseFloat(priceMin || '0') === b.min && parseFloat(priceMax || '0') === b.max;
+                const isFirst = idx === 0;
+                const isLast = idx === arr.length - 1;
+                const label = isFirst
+                  ? `Under ${formatPriceShort(b.max)}`
+                  : isLast
+                    ? `More than ${formatPriceShort(b.min)}`
+                    : `${formatPriceShort(b.min)} - ${formatPriceShort(b.max)}`;
                 return (
-                  <button
+                  <label
                     key={b.bucket}
                     onClick={() => {
                       if (isSelected) {
                         setPriceMin('');
                         setPriceMax('');
                       } else {
-                        setPriceMin(String(b.min));
-                        setPriceMax(String(b.max));
+                        setPriceMin(isFirst ? '0' : String(b.min));
+                        setPriceMax(isLast ? '' : String(b.max));
                       }
                     }}
                     className={cn(
-                      'flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg border text-xs transition-all duration-200',
+                      'flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 group',
                       isSelected
-                        ? 'bg-primary-50 border-primary-200 text-primary-700'
-                        : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100 hover:border-gray-200'
+                        ? 'bg-primary-50'
+                        : 'hover:bg-gray-50'
                     )}
                   >
-                    <span className="font-medium leading-tight">{formatPrice(b.min)}</span>
-                    <span className="text-[9px] text-gray-400 leading-tight">{b.count} ads</span>
-                    <div className="w-full h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
-                      <div
-                        className={cn('h-full rounded-full transition-colors', isSelected ? 'bg-primary-400' : 'bg-primary-200')}
-                        style={{ width: `${Math.max(countPct, 5)}%` }}
-                      />
+                    <div className={cn(
+                      'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                      isSelected
+                        ? 'border-primary-500 bg-primary-500'
+                        : 'border-gray-300 group-hover:border-gray-400'
+                    )}>
+                      {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </div>
-                  </button>
+                    <span className={cn(
+                      'text-xs font-medium flex-1',
+                      isSelected ? 'text-primary-700' : 'text-gray-600'
+                    )}>
+                      {label}
+                    </span>
+                    <span className={cn(
+                      'text-[10px] tabular-nums',
+                      isSelected ? 'text-primary-600' : 'text-gray-400'
+                    )}>
+                      {formatCount(b.count)} ads
+                    </span>
+                  </label>
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+
+          {(isPriceActive || hasData) && (
+            <div className="mt-3 pt-3 border-t border-gray-50">
+              <div className="relative h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="absolute top-0 h-full bg-gradient-to-r from-primary-300 to-primary-500 rounded-full transition-all duration-300"
+                  style={{ left: `${minPrice > 0 ? ((parseFloat(priceMin || String(minPrice)) - minPrice) / (maxPrice - minPrice || 1)) * 100 : 0}%`, width: `${sliderWidth}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                <span>{formatPrice(minPrice || 0)}</span>
+                <span>{formatPrice(maxPrice || (meta.price?.max || 0))}</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Condition with Radio Buttons */}
@@ -462,4 +485,14 @@ function formatInputPrice(raw: string): string {
   const num = parseInt(raw, 10);
   if (isNaN(num)) return raw;
   return num.toLocaleString();
+}
+
+function formatPriceShort(amount: number): string {
+  if (amount >= 1_000_000) return (amount / 1_000_000).toFixed(amount % 1_000_000 === 0 ? 0 : 1) + ' M';
+  if (amount >= 1_000) return (amount / 1_000).toFixed(0) + ' K';
+  return String(amount);
+}
+
+function formatCount(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
