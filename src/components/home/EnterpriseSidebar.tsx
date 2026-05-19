@@ -231,9 +231,7 @@ function RecursiveCategoryList({
 
 export default function EnterpriseSidebar() {
   const [hoveredCat, setHoveredCat] = useState<Category | null>(null);
-  const [hoveredSub, setHoveredSub] = useState<Category | null>(null);
   const [activeCat, setActiveCat] = useState<Category | null>(null);
-  const [activeSub, setActiveSub] = useState<Category | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tabletOpen, setTabletOpen] = useState(false);
   const [mobileBreadcrumbs, setMobileBreadcrumbs] = useState<Category[]>([]);
@@ -245,7 +243,6 @@ export default function EnterpriseSidebar() {
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const subPanelRef = useRef<HTMLDivElement>(null);
-  const childPanelRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -258,7 +255,6 @@ export default function EnterpriseSidebar() {
   useEffect(() => { setRecentlyViewed(getRecentlyViewed()); }, []);
 
   const tree = useMemo(() => apiData?.tree || [], [apiData]);
-  const featured = apiData?.featured || [];
   const trending = apiData?.trending || [];
 
   const rootCats = useMemo(() => {
@@ -267,15 +263,10 @@ export default function EnterpriseSidebar() {
   }, [tree]);
 
   const isActiveCat = (cat: Category) => (hoveredCat || activeCat)?.id === cat.id;
-  const isActiveSub = (sub: Category) => (hoveredSub || activeSub)?.id === sub.id;
 
   const displayCat = hoveredCat || activeCat;
-  const displaySub = hoveredSub || activeSub;
   const subs = displayCat ? getChildren(displayCat) : [];
-  const children = displaySub ? getChildren(displaySub) : [];
-  const childHasItems = !!displaySub && getChildren(displaySub).length > 0;
   const mainPanelWidth = Math.min(panelPos.panelLeft || 260, (typeof window !== 'undefined' ? window.innerWidth : 1200) - panelPos.left - 16);
-  const childPanelLeft = Math.min(panelPos.left + mainPanelWidth + 8, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 248);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -284,28 +275,23 @@ export default function EnterpriseSidebar() {
 
   const showCatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hideCatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showSubTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInPanelRef = useRef(false);
 
   const clearAllTimers = useCallback(() => {
     if (showCatTimer.current) { clearTimeout(showCatTimer.current); showCatTimer.current = null; }
     if (hideCatTimer.current) { clearTimeout(hideCatTimer.current); hideCatTimer.current = null; }
-    if (showSubTimer.current) { clearTimeout(showSubTimer.current); showSubTimer.current = null; }
   }, []);
 
   const closeAll = useCallback(() => {
     clearAllTimers();
     setHoveredCat(null);
-    setHoveredSub(null);
     setActiveCat(null);
-    setActiveSub(null);
   }, [clearAllTimers]);
 
   const scheduleCatHide = useCallback(() => {
     if (hideCatTimer.current) { clearTimeout(hideCatTimer.current); }
     hideCatTimer.current = setTimeout(() => {
       setHoveredCat(null);
-      setHoveredSub(null);
     }, 400);
   }, []);
 
@@ -317,8 +303,6 @@ export default function EnterpriseSidebar() {
     cancelCatHide();
     if (showCatTimer.current) { clearTimeout(showCatTimer.current); }
     showCatTimer.current = setTimeout(() => {
-      setHoveredSub(null);
-      setActiveSub(null);
       setHoveredCat(cat);
       const el = itemRefs.current[index];
       if (el) {
@@ -333,7 +317,6 @@ export default function EnterpriseSidebar() {
           maxHeight = maxAvail;
           top = Math.max(headerH, vh - maxHeight - 16);
         }
-        const sidebarW = 248;
         const panelLeft = rect.right;
         const vw = window.innerWidth;
         const maxPanelW = Math.min(260, vw - panelLeft - 16);
@@ -344,18 +327,14 @@ export default function EnterpriseSidebar() {
 
   const handleCatLeave = useCallback(() => {
     if (showCatTimer.current) { clearTimeout(showCatTimer.current); showCatTimer.current = null; }
-    if (showSubTimer.current) { clearTimeout(showSubTimer.current); showSubTimer.current = null; }
     if (!activeCat && !isInPanelRef.current) scheduleCatHide();
   }, [activeCat, scheduleCatHide]);
 
   const handleCatClick = useCallback((cat: Category) => {
     if (activeCat?.id === cat.id) { closeAll(); return; }
-    const subs = getChildren(cat);
     clearAllTimers();
     setActiveCat(cat);
-    setActiveSub(null);
     setHoveredCat(cat);
-    setHoveredSub(subs.length > 0 ? subs[0] : null);
     addRecentlyViewed(cat);
     setRecentlyViewed(getRecentlyViewed());
     const idx = rootCats.findIndex(c => c.id === cat.id);
@@ -367,24 +346,6 @@ export default function EnterpriseSidebar() {
       }
     }
   }, [activeCat, closeAll, clearAllTimers, rootCats]);
-
-  const handleSubEnter = useCallback((sub: Category) => {
-    cancelCatHide();
-    if (showSubTimer.current) { clearTimeout(showSubTimer.current); }
-    showSubTimer.current = setTimeout(() => {
-      setHoveredSub(sub);
-    }, 50);
-  }, [cancelCatHide]);
-
-  const handleSubLeave = useCallback(() => {
-    if (showSubTimer.current) { clearTimeout(showSubTimer.current); }
-  }, []);
-
-  const handleSubClick = useCallback((sub: Category) => {
-    addRecentlyViewed(sub);
-    setRecentlyViewed(getRecentlyViewed());
-    window.location.href = `/ads?category=${sub.slug}`;
-  }, []);
 
   const handlePanelEnter = useCallback(() => {
     isInPanelRef.current = true;
@@ -435,7 +396,6 @@ export default function EnterpriseSidebar() {
       const t = e.target as Node;
       if (sidebarRef.current?.contains(t)) return;
       if (subPanelRef.current?.contains(t)) return;
-      if (childPanelRef.current?.contains(t)) return;
       closeAll();
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -726,31 +686,17 @@ export default function EnterpriseSidebar() {
 
           {/* Vertical nav list */}
           <div className="overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
-            {subs.map(sub => {
-              const childCount = getChildren(sub).length;
-              const isSelected = isActiveSub(sub);
-              return (
-                <Link
-                  key={sub.id}
-                  href={`/ads?category=${sub.slug}`}
-                  onMouseEnter={() => handleSubEnter(sub)}
-                  onMouseLeave={handleSubLeave}
-                  onClick={() => addRecentlyViewed(sub)}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 border-b border-gray-50/80 transition-colors',
-                    isSelected
-                      ? 'bg-primary-50/50 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  )}
-                >
-                  {renderIcon(sub, 'sm')}
-                  <span className="flex-1 text-sm truncate">{sub.name}</span>
-                  {childCount > 0 && (
-                    <ChevronRight className={cn('w-3 h-3 flex-shrink-0', isSelected ? 'text-primary-400' : 'text-gray-300')} />
-                  )}
-                </Link>
-              );
-            })}
+            {subs.map(sub => (
+              <Link
+                key={sub.id}
+                href={`/ads?category=${sub.slug}`}
+                onClick={() => addRecentlyViewed(sub)}
+                className="flex items-center gap-3 px-3 py-2 border-b border-gray-50/80 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                {renderIcon(sub, 'sm')}
+                <span className="flex-1 truncate">{sub.name}</span>
+              </Link>
+            ))}
 
             {/* Trending */}
             {trending.length > 0 && (
@@ -778,47 +724,7 @@ export default function EnterpriseSidebar() {
         </div>
       )}
 
-      {/* Level 3 - Child panel (vertical nav list) */}
-      {displaySub && childHasItems && (
-        <div
-          onMouseEnter={handlePanelEnter}
-          onMouseLeave={handlePanelLeave}
-          className="fixed z-50 bg-white border border-gray-200/80 shadow-lg"
-          style={{
-            top: `${Math.max(112, Math.min(panelPos.top, window.innerHeight - panelPos.maxHeight - 16))}px`,
-            left: `${panelPos.left + mainPanelWidth - 1}px`,
-            width: '220px',
-            maxHeight: `${Math.min(panelPos.maxHeight, window.innerHeight - 128)}px`,
-          }}
-        >
-          <div className="px-3 py-2 border-b border-gray-100 bg-gray-50/80">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{displaySub.name}</span>
-          </div>
-          <div className="overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
-            {getChildren(displaySub).map(child => (
-              <Link
-                key={child.id}
-                href={`/ads?category=${child.slug}`}
-                onClick={() => { addRecentlyViewed(child); setRecentlyViewed(getRecentlyViewed()); closeAll(); }}
-                className="flex items-center gap-2.5 px-3 py-2 border-b border-gray-50/80 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                {renderIcon(child, 'sm')}
-                <span className="flex-1 truncate">{child.name}</span>
-              </Link>
-            ))}
-            {getChildren(displaySub).length > 15 && (
-              <Link
-                href={`/ads?category=${displaySub.slug}`}
-                onClick={() => { addRecentlyViewed(displaySub); closeAll(); }}
-                className="flex items-center gap-2 px-3 py-2 text-xs text-primary-600 hover:bg-primary-50 transition-colors font-medium"
-              >
-                View all {getChildren(displaySub).length}
-                <ChevronRight className="w-3 h-3" />
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
+
 
     </>
   );
