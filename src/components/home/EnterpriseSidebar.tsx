@@ -274,7 +274,7 @@ export default function EnterpriseSidebar() {
   const subs = displayCat ? getChildren(displayCat) : [];
   const children = displaySub ? getChildren(displaySub) : [];
   const childHasItems = !!displaySub && getChildren(displaySub).length > 0;
-  const mainPanelWidth = Math.min(panelPos.panelLeft || 680, (typeof window !== 'undefined' ? window.innerWidth : 1200) - panelPos.left - 16);
+  const mainPanelWidth = Math.min(panelPos.panelLeft || 260, (typeof window !== 'undefined' ? window.innerWidth : 1200) - panelPos.left - 16);
   const childPanelLeft = Math.min(panelPos.left + mainPanelWidth + 8, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 248);
 
   const searchResults = useMemo(() => {
@@ -336,7 +336,7 @@ export default function EnterpriseSidebar() {
         const sidebarW = 248;
         const panelLeft = rect.right;
         const vw = window.innerWidth;
-        const maxPanelW = Math.min(680, vw - panelLeft - 16);
+        const maxPanelW = Math.min(260, vw - panelLeft - 16);
         setPanelPos({ top: rect.top, left: panelLeft, maxHeight: Math.min(maxHeight, vh - headerH - 16), panelLeft: maxPanelW });
       }
     }, 100);
@@ -363,7 +363,7 @@ export default function EnterpriseSidebar() {
       const el = itemRefs.current[idx];
       if (el) {
         const rect = el.getBoundingClientRect();
-        setPanelPos({ top: rect.top, left: rect.right, maxHeight: 500, panelLeft: 680 });
+        setPanelPos({ top: rect.top, left: rect.right, maxHeight: 500, panelLeft: 260 });
       }
     }
   }, [activeCat, closeAll, clearAllTimers, rootCats]);
@@ -381,11 +381,10 @@ export default function EnterpriseSidebar() {
   }, []);
 
   const handleSubClick = useCallback((sub: Category) => {
-    if (activeSub?.id === sub.id) { setActiveSub(null); setHoveredSub(null); }
-    else { setActiveSub(sub); setHoveredSub(sub); }
     addRecentlyViewed(sub);
     setRecentlyViewed(getRecentlyViewed());
-  }, [activeSub]);
+    window.location.href = `/ads?category=${sub.slug}`;
+  }, []);
 
   const handlePanelEnter = useCallback(() => {
     isInPanelRef.current = true;
@@ -398,7 +397,11 @@ export default function EnterpriseSidebar() {
 
   const handleMobileSelect = useCallback((cat: Category) => {
     const children = getChildren(cat);
-    if (children.length > 0) setMobileBreadcrumbs(prev => [...prev, cat]);
+    if (children.length > 0) {
+      setMobileBreadcrumbs(prev => [...prev, cat]);
+    } else {
+      window.location.href = `/ads?category=${cat.slug}`;
+    }
   }, []);
   const handleMobileBack = useCallback(() => setMobileBreadcrumbs(prev => prev.slice(0, -1)), []);
   const handleSearchResult = useCallback((cat: Category) => {
@@ -550,7 +553,7 @@ export default function EnterpriseSidebar() {
       <aside
         ref={sidebarRef}
         onMouseLeave={handleCatLeave}
-        className="hidden lg:block w-[248px] flex-shrink-0 self-start z-40"
+        className="hidden lg:block w-[220px] flex-shrink-0 self-start z-40"
         style={{
           position: 'sticky',
           top: 'calc(104px + 8px)',
@@ -641,11 +644,10 @@ export default function EnterpriseSidebar() {
                       ref={el => { itemRefs.current[index] = el; }}
                       onMouseEnter={() => { setFocusedCatIndex(index); handleCatEnter(cat, index); }}
                       onMouseLeave={handleCatLeave}
-                      onClick={() => handleCatClick(cat)}
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCatClick(cat); }
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = `/ads?category=${cat.slug}`; }
                         if (e.key === 'ArrowRight' && hasSubs) { handleCatEnter(cat, index); }
                       }}
                       className={cn(
@@ -655,26 +657,28 @@ export default function EnterpriseSidebar() {
                           : 'border-l-transparent text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-l-gray-200'
                       )}
                     >
-                      {renderIcon(cat)}
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium truncate leading-tight block">{cat.name}</span>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          {badge && <Badge type={badge} />}
-                          {(cat as any).is_featured && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] font-semibold uppercase">
-                              <Star className="w-2.5 h-2.5" />
-                              Popular
-                            </span>
-                          )}
-                          {(cat as any).is_trending && !badge && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[9px] font-semibold uppercase">
-                              <Flame className="w-2.5 h-2.5" />
-                              Hot
-                            </span>
-                          )}
+                      <Link href={`/ads?category=${cat.slug}`} className="flex items-center gap-2.5 flex-1 min-w-0" onClick={() => addRecentlyViewed(cat)}>
+                        {renderIcon(cat)}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium truncate leading-tight block">{cat.name}</span>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {badge && <Badge type={badge} />}
+                            {(cat as any).is_featured && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] font-semibold uppercase">
+                                <Star className="w-2.5 h-2.5" />
+                                Popular
+                              </span>
+                            )}
+                            {(cat as any).is_trending && !badge && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[9px] font-semibold uppercase">
+                                <Flame className="w-2.5 h-2.5" />
+                                Hot
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <span className="text-[11px] font-medium text-gray-400 tabular-nums">{formatCount(cat.ad_count)}</span>
+                        <span className="text-[11px] font-medium text-gray-400 tabular-nums">{formatCount(cat.ad_count)}</span>
+                      </Link>
                       {hasSubs && (
                         <ChevronRight className={cn('w-3.5 h-3.5 flex-shrink-0 transition-all duration-200', active ? 'text-primary-400 translate-x-px' : 'text-gray-300')} />
                       )}
@@ -688,147 +692,127 @@ export default function EnterpriseSidebar() {
         </div>
       </aside>
 
-      {/* Mega Panel - Level 2 & 3 combined */}
+      {/* Mega Panel - Level 2 (vertical nav list) */}
       {displayCat && subs.length > 0 && (
         <div
           ref={subPanelRef}
           onMouseEnter={handlePanelEnter}
           onMouseLeave={handlePanelLeave}
-          className="fixed z-50 bg-white rounded-xl border border-gray-100/80 shadow-xl overflow-hidden animate-fade-in"
+          className="fixed z-50 bg-white border border-gray-200/80 shadow-lg"
           style={{
             top: `${Math.max(112, Math.min(panelPos.top, window.innerHeight - panelPos.maxHeight - 16))}px`,
             left: `${panelPos.left}px`,
-            width: `${Math.min(panelPos.panelLeft || 680, window.innerWidth - panelPos.left - 16)}px`,
+            width: `${Math.min(panelPos.panelLeft || 260, window.innerWidth - panelPos.left - 16)}px`,
             maxHeight: `${Math.min(panelPos.maxHeight, window.innerHeight - 128)}px`,
           }}
         >
-          {/* Panel header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-100 to-gray-50">
-            <Link
-              href={`/ads?category=${displayCat.slug}`}
-              onClick={() => addRecentlyViewed(displayCat)}
-              className="flex items-center gap-2.5 hover:opacity-80 transition-opacity group"
-            >
+          {/* Header */}
+          <Link
+            href={`/ads?category=${displayCat.slug}`}
+            onClick={() => addRecentlyViewed(displayCat)}
+            className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 bg-gray-50/80 hover:bg-gray-100 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
               {renderIcon(displayCat)}
-              <div>
-                <span className="text-sm font-bold text-gray-900 group-hover:text-primary-600 transition-colors">{displayCat.name}</span>
-                <span className="text-[10px] text-gray-400 ml-2">{subs.length} subcategories</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-400 ml-1" />
-            </Link>
+              <span className="text-sm font-semibold text-gray-800">{displayCat.name}</span>
+            </div>
             <div className="flex items-center gap-2">
               {(displayCat as any).is_trending && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-semibold">
-                  <TrendingUp className="w-3 h-3" /> Trending
-                </span>
+                <span className="text-[10px] text-orange-600 font-medium">Trending</span>
               )}
+              <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
             </div>
-          </div>
+          </Link>
 
-          {/* Panel body */}
-          <div className="overflow-y-auto flex-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
-            <div className="p-3">
-              {/* Two-column subcategory layout */}
-              <div className="grid grid-cols-2 gap-2">
-                {subs.map(sub => {
-                  const childCount = getChildren(sub).length;
-                  const isSelected = isActiveSub(sub);
-                  return (
-                    <div key={sub.id}>
-                      <div
-                        onMouseEnter={() => handleSubEnter(sub)}
-                        onMouseLeave={handleSubLeave}
-                        onClick={() => handleSubClick(sub)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSubClick(sub); } }}
-                        className={cn(
-                          'flex items-center gap-2.5 px-3 py-2.5 cursor-pointer rounded-lg transition-all duration-100',
-                          isSelected
-                            ? 'bg-primary-50/60 text-primary-700 font-medium shadow-sm'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        )}
-                      >
-                        {renderIcon(sub, 'sm')}
-                        <span className="flex-1 text-sm truncate">{sub.name}</span>
-                        {(sub as any).category_badge && <Badge type={(sub as any).category_badge} />}
-                        {childCount > 0 && (
-                          <span className="text-[10px] text-gray-400 tabular-nums">{childCount}</span>
-                        )}
-                        {childCount > 0 && (
-                          <ChevronRight className={cn('w-3 h-3 flex-shrink-0 transition-transform duration-150', isSelected ? 'text-primary-400 rotate-90' : 'text-gray-300')} />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          {/* Vertical nav list */}
+          <div className="overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
+            {subs.map(sub => {
+              const childCount = getChildren(sub).length;
+              const isSelected = isActiveSub(sub);
+              return (
+                <Link
+                  key={sub.id}
+                  href={`/ads?category=${sub.slug}`}
+                  onMouseEnter={() => handleSubEnter(sub)}
+                  onMouseLeave={handleSubLeave}
+                  onClick={() => addRecentlyViewed(sub)}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 border-b border-gray-50/80 transition-colors',
+                    isSelected
+                      ? 'bg-primary-50/50 text-primary-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  )}
+                >
+                  {renderIcon(sub, 'sm')}
+                  <span className="flex-1 text-sm truncate">{sub.name}</span>
+                  {childCount > 0 && (
+                    <ChevronRight className={cn('w-3 h-3 flex-shrink-0', isSelected ? 'text-primary-400' : 'text-gray-300')} />
+                  )}
+                </Link>
+              );
+            })}
 
-              {/* Trending & Featured section */}
-              {trending.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <TrendingUp className="w-3.5 h-3.5 text-orange-500" />
-                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Trending Categories</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {trending.slice(0, 6).map(cat => (
-                      <Link
-                        key={cat.id}
-                        href={`/ads?category=${cat.slug}`}
-                        onClick={() => { addRecentlyViewed(cat); closeAll(); }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 text-[11px] font-medium hover:bg-orange-100 transition-colors"
-                      >
-                        <Flame className="w-3 h-3" />
-                        <span className="truncate max-w-[100px]">{cat.name}</span>
-                      </Link>
-                    ))}
-                  </div>
+            {/* Trending */}
+            {trending.length > 0 && (
+              <div className="px-3 py-2 border-t border-gray-100 bg-gray-50/40">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <TrendingUp className="w-3 h-3 text-orange-500" />
+                  <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Trending</span>
                 </div>
-              )}
-            </div>
+                <div className="space-y-0.5">
+                  {trending.slice(0, 4).map(cat => (
+                    <Link
+                      key={cat.id}
+                      href={`/ads?category=${cat.slug}`}
+                      onClick={() => { addRecentlyViewed(cat); closeAll(); }}
+                      className="flex items-center gap-2 px-2 py-1.5 text-xs text-orange-700 hover:bg-orange-50/50 transition-colors rounded"
+                    >
+                      <Flame className="w-2.5 h-2.5 flex-shrink-0" />
+                      <span className="truncate">{cat.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Level 3 - Child panel */}
+      {/* Level 3 - Child panel (vertical nav list) */}
       {displaySub && childHasItems && (
         <div
           onMouseEnter={handlePanelEnter}
           onMouseLeave={handlePanelLeave}
-          className="fixed z-50 bg-white rounded-xl border border-gray-100/80 shadow-xl overflow-y-auto animate-fade-in"
+          className="fixed z-50 bg-white border border-gray-200/80 shadow-lg"
           style={{
             top: `${Math.max(112, Math.min(panelPos.top, window.innerHeight - panelPos.maxHeight - 16))}px`,
-            left: `${childPanelLeft}px`,
-            width: '240px',
+            left: `${panelPos.left + mainPanelWidth - 1}px`,
+            width: '220px',
             maxHeight: `${Math.min(panelPos.maxHeight, window.innerHeight - 128)}px`,
           }}
         >
-          <div className="px-3 py-2.5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="px-3 py-2 border-b border-gray-100 bg-gray-50/80">
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{displaySub.name}</span>
           </div>
-          <div className="p-2 space-y-0.5">
+          <div className="overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
             {getChildren(displaySub).map(child => (
               <Link
                 key={child.id}
                 href={`/ads?category=${child.slug}`}
                 onClick={() => { addRecentlyViewed(child); setRecentlyViewed(getRecentlyViewed()); closeAll(); }}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors group"
+                className="flex items-center gap-2.5 px-3 py-2 border-b border-gray-50/80 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
                 {renderIcon(child, 'sm')}
                 <span className="flex-1 truncate">{child.name}</span>
-                {child.ad_count != null && (
-                  <span className="text-[10px] text-gray-400 tabular-nums">{formatCount(child.ad_count)}</span>
-                )}
               </Link>
             ))}
             {getChildren(displaySub).length > 15 && (
               <Link
                 href={`/ads?category=${displaySub.slug}`}
                 onClick={() => { addRecentlyViewed(displaySub); closeAll(); }}
-                className="flex items-center gap-2 px-3 py-2 text-xs text-primary-600 hover:text-primary-700 font-medium mt-1 border-t border-gray-50 pt-2"
+                className="flex items-center gap-2 px-3 py-2 text-xs text-primary-600 hover:bg-primary-50 transition-colors font-medium"
               >
-                View all {getChildren(displaySub).length} {displaySub.name.toLowerCase()}
+                View all {getChildren(displaySub).length}
                 <ChevronRight className="w-3 h-3" />
               </Link>
             )}
