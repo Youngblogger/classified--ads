@@ -176,53 +176,28 @@ export default function LocationModal() {
           `}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Mobile Close Button */}
-          {isMobile && (
-            <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#1E3A8A]" />
-                <h2 className="text-base font-bold text-dark">Select Location</h2>
-              </div>
-              <button
-                onClick={handleClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+          {/* Colored Header */}
+          <div className="bg-primary-600 px-4 py-3 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-white" />
+              <h2 className="text-base font-bold text-white">Select Location</h2>
             </div>
-          )}
-
-          {/* Drag Handle (mobile only) */}
-          {!isMobile && (
-            <div className="flex justify-center pt-2 pb-1 sm:pt-3">
-              <div className="w-10 h-1 bg-gray-300 rounded-full" />
-            </div>
-          )}
+            <button
+              onClick={handleClose}
+              className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
 
           {/* State Selection View */}
           {!showLGAView && (
             <>
-              {/* Header - Desktop only */}
-              {!isMobile && (
-                <div className="flex justify-between items-center px-3 pb-2 sm:px-4 sm:pb-3">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#1E3A8A]" />
-                    <h2 className="text-base sm:text-lg font-bold text-dark">Select Location</h2>
-                  </div>
-                  <button
-                    onClick={handleClose}
-                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <X className="w-4 h-4 text-gray-500" />
-                  </button>
-                </div>
-              )}
-
               {/* Current Selection */}
               {selectedLocation && (
-                <div className="mx-3 mb-2 px-3 py-2 bg-[#1E3A8A]/5 rounded-lg sm:mx-4">
+                <div className="mx-3 mb-2 px-3 py-2 bg-primary-50 rounded-lg sm:mx-4">
                   <p className="text-xs text-gray-600">
-                    Current: <span className="font-medium text-[#1E3A8A]">
+                    Current: <span className="font-medium text-primary-600">
                       {selectedLocation.lga ? `${selectedLocation.name}, ${selectedLocation.lga}` : selectedLocation.name}
                     </span>
                   </p>
@@ -238,7 +213,7 @@ export default function LocationModal() {
                     placeholder="Search state..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent"
+                    className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                   {searchQuery && (
                     <button
@@ -255,7 +230,7 @@ export default function LocationModal() {
               <div className="flex-1 overflow-y-auto px-3 pb-3 sm:px-4">
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 text-[#1E3A8A] animate-spin" />
+                    <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
                     <span className="ml-2 text-gray-500 text-sm">Loading...</span>
                   </div>
                 ) : error ? (
@@ -263,7 +238,7 @@ export default function LocationModal() {
                     <p className="text-red-500 mb-2 text-sm">{error}</p>
                     <button 
                       onClick={fetchLocations}
-                      className="text-[#1E3A8A] hover:underline font-medium text-sm"
+                      className="text-primary-600 hover:underline font-medium text-sm"
                     >
                       Try again
                     </button>
@@ -281,11 +256,11 @@ export default function LocationModal() {
                         handleClose();
                       }}
                       className={`w-full flex items-center gap-2 p-2.5 sm:p-3 rounded-lg transition-colors border ${
-                        !selectedState ? 'bg-[#1E3A8A]/5 border-[#1E3A8A]/30' : 'bg-white border-gray-100 hover:bg-gray-50'
+                        !selectedState ? 'bg-primary-50 border-primary-200' : 'bg-white border-gray-100 hover:bg-gray-50'
                       }`}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        !selectedState ? 'bg-[#1E3A8A] text-white' : 'bg-gray-100 text-gray-500'
+                        !selectedState ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-500'
                       }`}>
                         <Globe className="w-4 h-4" />
                       </div>
@@ -298,13 +273,13 @@ export default function LocationModal() {
                         onClick={() => handleStateClick(state)}
                         className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-lg transition-colors border ${
                           selectedState?.id === state.id 
-                            ? 'bg-[#1E3A8A]/5 border-[#1E3A8A]/30' 
+                            ? 'bg-primary-50 border-primary-200' 
                             : 'bg-white border-gray-100 hover:bg-gray-50 hover:border-gray-200'
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            selectedState?.id === state.id ? 'bg-[#1E3A8A] text-white' : 'bg-gray-100 text-gray-500'
+                            selectedState?.id === state.id ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-500'
                           }`}>
                             <MapPin className="w-4 h-4" />
                           </div>
@@ -345,7 +320,7 @@ export default function LocationModal() {
                         }
                       }}
                       disabled={!selectedState}
-                      className="flex-1 px-4 py-2.5 bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                      className="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
                     >
                       Apply
                     </button>
@@ -359,26 +334,26 @@ export default function LocationModal() {
           {showLGAView && selectedState && (
             <>
               {/* Header */}
-              <div className="flex justify-between items-center px-3 pb-2 sm:px-4 sm:pb-3">
+              <div className="bg-primary-600 px-4 py-3 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <button onClick={handleBack} className="p-1 -ml-1 hover:bg-gray-100 rounded-lg">
-                    <ChevronRight className="w-4 h-4 text-gray-600 rotate-180" />
+                  <button onClick={handleBack} className="p-1 -ml-1 hover:bg-white/20 rounded-lg">
+                    <ChevronRight className="w-5 h-5 text-white rotate-180" />
                   </button>
-                  <h2 className="text-base sm:text-lg font-bold text-dark">{selectedState.name}</h2>
+                  <h2 className="text-base font-bold text-white">{selectedState.name}</h2>
                 </div>
                 <button
                   onClick={handleClose}
-                  className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
                 >
-                  <X className="w-4 h-4 text-gray-500" />
+                  <X className="w-5 h-5 text-white" />
                 </button>
               </div>
 
               {/* State Badge */}
-              <div className="mx-3 mb-2 px-3 py-2 bg-[#1E3A8A]/5 rounded-lg sm:mx-4">
+              <div className="mx-3 mb-2 px-3 py-2 bg-primary-50 rounded-lg sm:mx-4">
                 <button 
                   onClick={handleBack}
-                  className="text-xs text-[#1E3A8A] hover:underline flex items-center gap-1"
+                  className="text-xs text-primary-600 hover:underline flex items-center gap-1"
                 >
                   <ChevronRight className="w-3 h-3 rotate-180" />
                   Change state
@@ -394,7 +369,7 @@ export default function LocationModal() {
                     placeholder="Search area..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent"
+                    className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                   {searchQuery && (
                     <button
@@ -422,7 +397,7 @@ export default function LocationModal() {
                         });
                         handleClose();
                       }}
-                      className="px-4 py-2 bg-[#1E3A8A] text-white rounded-lg font-medium text-sm"
+                      className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium text-sm"
                     >
                       Select {selectedState.name} anyway
                     </button>
@@ -456,13 +431,13 @@ export default function LocationModal() {
                         onClick={() => handleLGASelect(lga)}
                         className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-lg transition-colors border ${
                           selectedLGA?.id === lga.id 
-                            ? 'bg-[#1E3A8A]/5 border-[#1E3A8A]/30' 
+                            ? 'bg-primary-50 border-primary-200' 
                             : 'bg-white border-gray-100 hover:bg-gray-50 hover:border-gray-200'
                         }`}
                       >
                         <span className="font-medium text-dark text-sm">{lga.name}</span>
                         {selectedLGA?.id === lga.id ? (
-                          <Check className="w-4 h-4 text-[#1E3A8A]" />
+                          <Check className="w-4 h-4 text-primary-600" />
                         ) : (
                           <ChevronRight className="w-4 h-4 text-gray-400" />
                         )}
@@ -484,7 +459,7 @@ export default function LocationModal() {
                   <button
                     onClick={handleConfirm}
                     disabled={!selectedLGA}
-                    className="flex-1 px-4 py-2.5 bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
+                    className="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
                   >
                     {selectedLGA ? `Apply: ${selectedLGA.name}` : 'Select an area'}
                   </button>
