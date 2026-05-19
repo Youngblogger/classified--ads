@@ -7,6 +7,7 @@ import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import AdCard from '@/components/ui/AdCard';
 import FilterPanel from '@/components/ads/FilterPanel';
+import { useGlobalStore, useUIStore } from '@/lib/store';
 import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal, MapPin, Loader2 } from 'lucide-react';
 import { AdGridSkeleton } from '@/components/ui/Skeleton';
 import { useSearchInfinite } from '@/hooks/useAds';
@@ -100,6 +101,25 @@ function AdsPageContent() {
   const [attrFilters, setAttrFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const { toggleLocationModal } = useUIStore();
+  const { selectedLocation } = useGlobalStore();
+  const [selectedLocationState, setSelectedLocationState] = useState<string>('All Nigeria');
+  
+  // Sync with global location store
+  useEffect(() => {
+    if (selectedLocation) {
+      const stateName = selectedLocation.name || '';
+      const lgaName = selectedLocation.lga || '';
+      setSelectedLocationState(lgaName ? `${stateName}, ${lgaName}` : stateName);
+      setSelectedLocationSlug(selectedLocation.slug || locationSlug);
+      setSelectedLGA(selectedLocation.lga || lgaParam);
+    } else {
+      setSelectedLocationState('All Nigeria');
+      setSelectedLocationSlug(locationSlug);
+      setSelectedLGA(lgaParam);
+    }
+  }, [selectedLocation, locationSlug, lgaParam]);
   
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -217,11 +237,7 @@ function AdsPageContent() {
     setSelectedSubcategoryId(subId);
   }, [categorySlug, subcategorySlug, categories, catLookup, parentLookup]);
 
-  // Sync location from URL
-  useEffect(() => {
-    setSelectedLocationSlug(locationSlug);
-    setSelectedLGA(lgaParam);
-  }, [locationSlug, lgaParam]);
+
 
   // Sync localQuery from URL
   useEffect(() => {
@@ -280,9 +296,9 @@ function AdsPageContent() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <ResponsiveHeader />
-      <main className="flex-1 w-full px-4 pt-[48px] pb-6 md:px-6 md:pt-28 lg:px-8">
+      <main className="flex-1 w-full px-4 pt-[48px] pb-6 md:px-6 md:pt-[72px] lg:px-8">
         {/* Search Header */}
-        <div className="max-w-7xl mx-auto bg-white rounded-xl p-4 sm:p-6 lg:p-8 mb-6 shadow-sm">
+        <div className="max-w-7xl mx-auto bg-white rounded-xl p-3 sm:p-4 mb-4 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Search Input */}
             <div className="flex-1 relative">
@@ -349,67 +365,19 @@ function AdsPageContent() {
                   <X className="w-5 h-5 text-gray-600" />
                 </button>
               </div>
-              {/* Categories */}
-              <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
-              <div className="space-y-1">
-                <button
-                  onClick={() => { setSelectedCategoryId(null); setSelectedSubcategoryId(null); updateUrl(null, null, selectedLocationSlug, selectedLGA, localQuery); }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-gray-700 ${
-                    !selectedCategoryId ? 'bg-primary-50 text-primary-600 font-medium' : 'hover:bg-gray-100 bg-gray-50'
-                  }`}
-                >
-                  All Categories
-                </button>
-                {mainCategories.slice(0, 10).map((cat: any) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubcategoryId(null); updateUrl(cat.id, null, selectedLocationSlug, selectedLGA, localQuery); }}
-                    className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 text-gray-700 ${
-                      selectedCategoryId === cat.id ? 'bg-primary-50 text-primary-600 font-medium' : 'hover:bg-gray-100 bg-gray-50'
-                    }`}
-                  >
-                    <span>{getEmojiForCategory(cat.name)}</span>
-                    <span className="truncate">{cat.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Location */}
+              {/* Location */}
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-4">Location</h3>
-              <select
-                value={selectedLocationSlug}
-                onChange={(e) => {
-                  setSelectedLocationSlug(e.target.value);
-                  setSelectedLGA('');
-                }}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg mb-2"
+              <button
+                onClick={() => toggleLocationModal()}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:border-gray-300 transition-all"
               >
-                <option value="">All Nigeria</option>
-                {locations.map((state: any) => (
-                  <option key={state.id} value={state.slug}>
-                    {state.name}
-                  </option>
-                ))}
-              </select>
-              
-              {/* LGA Dropdown */}
-              {selectedLocationSlug && locations.find((l: any) => l.slug === selectedLocationSlug)?.children && (
-                <select
-                  value={selectedLGA}
-                  onChange={(e) => setSelectedLGA(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
-                >
-                  <option value="">All LGAs in {locations.find((l: any) => l.slug === selectedLocationSlug)?.name}</option>
-                  {locations.find((l: any) => l.slug === selectedLocationSlug)?.children?.map((lga: any) => (
-                    <option key={lga.slug} value={lga.name}>
-                      {lga.name}
-                    </option>
-                  ))}
-                </select>
-              )}
+                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="flex-1 text-left truncate capitalize">
+                  {selectedLocationState.toLowerCase()}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              </button>
             </div>
 
             {/* Dynamic filter panel (price, condition, attributes) */}
@@ -434,8 +402,8 @@ function AdsPageContent() {
               {/* Results Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {localQuery ? `Results for "${localQuery}"` : 'All Ads'}
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-500 tracking-tight">
+                  {localQuery ? `Results for "${localQuery}"` : 'Result'}
                 </h1>
                 <p className="text-sm sm:text-base text-gray-500">
                   {ads.length} ads found
