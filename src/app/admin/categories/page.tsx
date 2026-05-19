@@ -19,6 +19,7 @@ import {
   Save,
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
+import { getCategoryIcon } from '@/lib/categoryIcons';
 import toast from 'react-hot-toast';
 import IconPicker from '@/components/ui/IconPicker';
 
@@ -255,8 +256,12 @@ export default function CategoriesPage() {
   const renderIcon = (cat: Category, size: 'sm' | 'md' = 'md') => {
     const cls = size === 'sm' ? 'w-6 h-6' : 'w-10 h-10';
     if (cat.image) return <img src={cat.image} alt="" className={`${cls} rounded object-cover`} />;
-    if (cat.icon) return <span className={`${cls} flex items-center justify-center text-lg`}>{cat.icon}</span>;
-    return <FolderTree className={`${cls} p-1.5 text-gray-400`} />;
+    const IconComp = getCategoryIcon(cat.icon);
+    return (
+      <span className={`${cls} flex items-center justify-center rounded-lg bg-gray-100`}>
+        <IconComp className={size === 'sm' ? 'w-3.5 h-3.5' : 'w-5 h-5'} style={{ color: '#6b7280' }} />
+      </span>
+    );
   };
 
   const renderCatRow = (cat: Category, cats: Category[], index: number, depth: number) => {
@@ -524,12 +529,12 @@ export default function CategoriesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Icon (emoji)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
                   <button type="button" onClick={() => setShowIconPicker(true)}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg flex items-center gap-3 hover:bg-gray-50 text-sm"
                   >
                     {formData.icon ? (
-                      <><span className="text-2xl">{formData.icon}</span><span className="text-gray-700">{formData.icon}</span></>
+                      <>{(() => { const I = getCategoryIcon(formData.icon); return <I className="w-5 h-5 text-gray-600" />; })()}<span className="text-gray-700">{formData.icon}</span></>
                     ) : (
                       <><FolderTree className="w-5 h-5 text-gray-400" /><span className="text-gray-400">Choose icon</span></>
                     )}

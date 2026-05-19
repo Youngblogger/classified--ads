@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { FolderTree, Plus, Edit, Trash2, X, ChevronRight, Upload, Loader2, Sparkles, TrendingUp } from 'lucide-react';
 import { adminApi } from '@/lib/api';
+import { getCategoryIcon } from '@/lib/categoryIcons';
 import toast from 'react-hot-toast';
+import IconPicker from '@/components/ui/IconPicker';
 
 interface Subcategory {
   id: number;
@@ -42,6 +44,7 @@ export default function SubcategoriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [editingSubcategory, setEditingSubcategory] = useState<Subcategory | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -251,7 +254,13 @@ export default function SubcategoriesPage() {
               <tr key={subcategory.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <FolderTree className="w-5 h-5 text-gray-400" />
+                    {subcategory.image ? (
+                      <img src={subcategory.image} alt="" className="w-6 h-6 rounded object-cover" />
+                    ) : subcategory.icon ? (
+                      (() => { const I = getCategoryIcon(subcategory.icon); return <I className="w-5 h-5 text-gray-500" />; })()
+                    ) : (
+                      <FolderTree className="w-5 h-5 text-gray-400" />
+                    )}
                     <span className="font-medium text-gray-900">{subcategory.name}</span>
                   </div>
                 </td>
@@ -374,15 +383,17 @@ export default function SubcategoriesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Icon (optional)
+                    Icon
                   </label>
-                  <input
-                    type="text"
-                    value={formData.icon}
-                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                    placeholder="Icon name or emoji"
-                  />
+                  <button type="button" onClick={() => setShowIconPicker(true)}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-3 hover:bg-gray-50 text-sm"
+                  >
+                    {formData.icon ? (
+                      <>{(() => { const I = getCategoryIcon(formData.icon); return <I className="w-5 h-5 text-gray-600" />; })()}<span className="text-gray-700">{formData.icon}</span></>
+                    ) : (
+                      <><FolderTree className="w-5 h-5 text-gray-400" /><span className="text-gray-400">Choose icon</span></>
+                    )}
+                  </button>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
@@ -488,6 +499,14 @@ export default function SubcategoriesPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {showIconPicker && (
+        <IconPicker
+          value={formData.icon}
+          onChange={(icon) => { setFormData({ ...formData, icon }); setShowIconPicker(false); }}
+          onClose={() => setShowIconPicker(false)}
+        />
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { API_URL } from '@/lib/config';
+import { getCategoryIcon } from '@/lib/categoryIcons';
 import useSWR from 'swr';
 
 interface Category {
@@ -447,11 +448,22 @@ export default function EnterpriseSidebar() {
     ? rootCats
     : getChildren(mobileBreadcrumbs[mobileBreadcrumbs.length - 1]);
 
-  const renderIcon = (cat: Category) => (
-    <span className={cn('flex-shrink-0 w-7 h-7 flex items-center justify-center text-sm rounded-lg', getBg(cat.name))}>
-      {getIcon(cat.slug, cat.name)}
-    </span>
-  );
+  const renderIcon = (cat: Category, size: 'sm' | 'md' = 'md') => {
+    const dim = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7';
+    if (cat.image) {
+      return (
+        <span className={cn('flex-shrink-0 flex items-center justify-center rounded-lg overflow-hidden', dim)}>
+          <img src={cat.image} alt="" className="w-full h-full object-cover" loading="lazy" />
+        </span>
+      );
+    }
+    const IconComp = getCategoryIcon(cat.icon);
+    return (
+      <span className={cn('flex-shrink-0 flex items-center justify-center rounded-lg', dim, getBg(cat.name))}>
+        <IconComp className="w-4 h-4 text-gray-600" />
+      </span>
+    );
+  };
 
   return (
     <>
@@ -594,7 +606,7 @@ export default function EnterpriseSidebar() {
                         onClick={() => handleSearchResult(cat)}
                         className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                       >
-                        <span className="w-5 h-5 flex items-center justify-center text-xs rounded bg-gray-100">{getIcon(cat.slug, cat.name)}</span>
+                        {renderIcon(cat, 'sm')}
                         <span className="flex-1 truncate">
                           <Highlight text={cat.name} query={searchQuery} />
                         </span>
@@ -604,28 +616,6 @@ export default function EnterpriseSidebar() {
                   )}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Recently viewed */}
-          {recentlyViewed.length > 0 && !showSearch && (
-            <div className="px-3 py-2 border-b border-gray-50 bg-gradient-to-r from-primary-50/40 to-transparent">
-              <div className="flex items-center gap-1 mb-1.5">
-                <History className="w-3 h-3 text-gray-400" />
-                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Recent</span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {recentlyViewed.slice(0, 4).map(cat => (
-                  <Link
-                    key={cat.id}
-                    href={`/ads?category=${cat.slug}`}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-gray-100 text-[11px] text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-xs"
-                  >
-                    <span className="text-xs">{getIcon(cat.slug, cat.name)}</span>
-                    <span className="truncate max-w-[80px]">{cat.name}</span>
-                  </Link>
-                ))}
-              </div>
             </div>
           )}
 
@@ -755,9 +745,7 @@ export default function EnterpriseSidebar() {
                             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         )}
                       >
-                        <span className="w-6 h-6 flex items-center justify-center text-xs rounded-md bg-gray-100 flex-shrink-0">
-                          {getIcon(sub.slug, sub.name)}
-                        </span>
+                        {renderIcon(sub, 'sm')}
                         <span className="flex-1 text-sm truncate">{sub.name}</span>
                         {(sub as any).category_badge && <Badge type={(sub as any).category_badge} />}
                         {childCount > 0 && (
