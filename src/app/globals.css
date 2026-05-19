@@ -387,6 +387,15 @@
     }
   }
 
+  .animate-gps-blink {
+    animation: gpsBlink 1.2s ease-in-out infinite;
+  }
+
+  @keyframes gpsBlink {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 180, 63, 0.4); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 8px rgba(0, 180, 63, 0); }
+  }
+
   .animate-slide-up {
     animation: slideUpModal 0.3s ease-out forwards;
   }
