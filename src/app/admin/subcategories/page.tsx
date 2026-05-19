@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FolderTree, Plus, Edit, Trash2, X, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { FolderTree, Plus, Edit, Trash2, X, ChevronRight, Upload, Loader2, Sparkles, TrendingUp } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -12,7 +12,11 @@ interface Subcategory {
   category_id: number;
   category?: { name: string };
   icon?: string;
+  image?: string;
   is_active?: boolean;
+  is_featured?: boolean;
+  is_trending?: boolean;
+  category_badge?: string;
   ads_count?: number;
   created_at: string;
 }
@@ -23,18 +27,32 @@ interface Category {
   slug: string;
 }
 
+const BADGE_OPTIONS = [
+  { value: '', label: 'None' },
+  { value: 'new', label: 'New' },
+  { value: 'trending', label: 'Trending' },
+  { value: 'popular', label: 'Popular' },
+  { value: 'verified', label: 'Verified' },
+];
+
 export default function SubcategoriesPage() {
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [editingSubcategory, setEditingSubcategory] = useState<Subcategory | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
     category_id: '',
     icon: '',
+    image: '',
     is_active: true,
+    is_featured: false,
+    is_trending: false,
+    category_badge: '',
   });
 
   const fetchData = async () => {
@@ -68,7 +86,11 @@ export default function SubcategoriesPage() {
           slug: formData.slug,
           category_id: formData.category_id,
           icon: formData.icon,
+          image: formData.image,
           is_active: formData.is_active,
+          is_featured: formData.is_featured,
+          is_trending: formData.is_trending,
+          category_badge: formData.category_badge,
         });
         toast.success('Subcategory updated successfully');
       } else {
@@ -77,8 +99,12 @@ export default function SubcategoriesPage() {
           slug: formData.slug,
           category_id: formData.category_id,
           icon: formData.icon,
+          image: formData.image,
           is_active: formData.is_active,
-          parent_id: formData.category_id, // For subcategories
+          is_featured: formData.is_featured,
+          is_trending: formData.is_trending,
+          category_badge: formData.category_badge,
+          parent_id: formData.category_id,
         });
         toast.success('Subcategory created successfully');
       }
@@ -98,7 +124,11 @@ export default function SubcategoriesPage() {
       slug: subcategory.slug,
       category_id: subcategory.category_id.toString(),
       icon: subcategory.icon || '',
+      image: subcategory.image || '',
       is_active: subcategory.is_active ?? true,
+      is_featured: subcategory.is_featured ?? false,
+      is_trending: subcategory.is_trending ?? false,
+      category_badge: subcategory.category_badge || '',
     });
     setShowModal(true);
   };
@@ -122,7 +152,11 @@ export default function SubcategoriesPage() {
       slug: '',
       category_id: '',
       icon: '',
+      image: '',
       is_active: true,
+      is_featured: false,
+      is_trending: false,
+      category_badge: '',
     });
   };
 
@@ -301,7 +335,7 @@ export default function SubcategoriesPage() {
                   required
                 >
                   <option value="">Select a category</option>
-                  {categories.map((cat) => (
+                  {categories.filter((cat: any) => !cat.parent_id).map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>
@@ -337,39 +371,109 @@ export default function SubcategoriesPage() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Icon (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.icon}
+                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="Icon name or emoji"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
+                  <select
+                    value={formData.category_badge}
+                    onChange={(e) => setFormData({ ...formData, category_badge: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  >
+                    {BADGE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Icon (optional)
-                </label>
-                <input
-                  type="text"
-                  value={formData.icon}
-                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  placeholder="Icon name or emoji"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={formData.image}
+                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      placeholder="Image URL"
+                    />
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploadingImage(true);
+                      try {
+                        const res = await adminApi.uploadCategoryImage(file);
+                        setFormData(prev => ({ ...prev, image: res.data.url }));
+                        toast.success('Image uploaded');
+                      } catch { toast.error('Upload failed'); }
+                      finally { setUploadingImage(false); }
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  </button>
+                </div>
+                {formData.image && (
+                  <div className="relative mt-2 inline-block">
+                    <img src={formData.image} alt="" className="w-16 h-16 rounded-lg object-cover border" />
+                    <button type="button" onClick={() => setFormData({ ...formData, image: '' })}
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-xs">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500"
-                />
-                <label htmlFor="is_active" className="text-sm text-gray-700">
-                  Active
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={formData.is_active}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    className="w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500" />
+                  <span className="text-sm text-gray-700">Active</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={formData.is_featured}
+                    onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                    className="w-4 h-4 text-amber-500 border-gray-300 rounded focus:ring-amber-500" />
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-sm text-gray-700">Featured</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={formData.is_trending}
+                    onChange={(e) => setFormData({ ...formData, is_trending: e.target.checked })}
+                    className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500" />
+                  <TrendingUp className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="text-sm text-gray-700">Trending</span>
                 </label>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    resetForm();
-                  }}
+                  onClick={() => { setShowModal(false); resetForm(); }}
                   className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   Cancel

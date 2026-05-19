@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { Shield, Zap, Star, Search, Plus, ArrowUp } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
-import CategorySidebar from '@/components/home/CategorySidebar';
+import EnterpriseSidebar from '@/components/home/EnterpriseSidebar';
 import Footer from '@/components/layout/Footer';
 import { AdGridSkeleton } from '@/components/ui/Skeleton';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
@@ -121,7 +121,7 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
       <ResponsiveHeader />
       <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4 mt-[48px] md:mt-[112px]">
-        <CategorySidebar />
+        <EnterpriseSidebar />
         <main className="flex-1 min-w-0 relative pt-0" suppressHydrationWarning>
           {/* Hero Section - Hidden on mobile */}
           <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-xl">

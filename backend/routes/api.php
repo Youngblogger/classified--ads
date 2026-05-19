@@ -128,6 +128,8 @@ Route::prefix('secure-control-9ja')->middleware([\App\Http\Middleware\SecureAdmi
     // Categories
     Route::get('/categories', [AdminController::class, 'categories']);
     Route::post('/categories', [AdminController::class, 'createCategory']);
+    Route::post('/categories/upload-image', [AdminController::class, 'uploadCategoryImage']);
+    Route::post('/categories/reorder', [AdminController::class, 'reorderCategories']);
     Route::put('/categories/{id}', [AdminController::class, 'updateCategory']);
     Route::delete('/categories/{id}', [AdminController::class, 'deleteCategory']);
     
@@ -241,6 +243,7 @@ Route::prefix('auth')->middleware('auth.api')->group(function () {
 Route::prefix('categories')->middleware('cache-response:3600')->group(function () {
     Route::get('/', [CategoryController::class, 'index']);
     Route::get('/all', [CategoryController::class, 'getAllCategories']);
+    Route::get('/mega-menu', [CategoryController::class, 'megaMenu']);
     Route::get('/{slug}', [CategoryController::class, 'show']);
     
     // Category fields (public - for dynamic forms)

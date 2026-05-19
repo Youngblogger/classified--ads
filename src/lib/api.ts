@@ -570,6 +570,13 @@ export const adminApi = {
   createCategory: (data: any) => adminApiClient.post(`${STEALTH_PREFIX}/categories`, data),
   updateCategory: (id: number, data: any) => adminApiClient.put(`${STEALTH_PREFIX}/categories/${id}`, data),
   deleteCategory: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/categories/${id}`),
+  uploadCategoryImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return adminApiClient.upload(`${STEALTH_PREFIX}/categories/upload-image`, formData);
+  },
+  reorderCategories: (items: { id: number; sort_order: number }[]) =>
+    adminApiClient.post(`${STEALTH_PREFIX}/categories/reorder`, { items }),
 
   // Reports
   getReports: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/reports`, { params }),

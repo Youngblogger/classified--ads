@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -599,14 +600,33 @@ class AdminController extends Controller
     // Categories Management
     public function categories(Request $request)
     {
-        $query = Category::query();
+        $all = Category::with(['children' => function ($q) {
+            $q->with(['children' => function ($qq) {
+                $qq->orderBy('sort_order')->orderBy('name');
+            }])->orderBy('sort_order')->orderBy('name');
+        }])->orderBy('sort_order')->orderBy('name')->get();
 
-        if ($request->search) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+        $parents = $all->whereNull('parent_id')->values();
+        return response()->json([
+            'tree' => $parents,
+            'all' => $all,
+        ]);
+    }
+
+    public function reorderCategories(Request $request)
+    {
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|exists:categories,id',
+            'items.*.sort_order' => 'required|integer|min:0',
+        ]);
+
+        foreach ($request->items as $item) {
+            Category::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
         }
 
-        $categories = $query->orderBy('sort_order')->get();
-        return response()->json($categories);
+        Cache::forget('categories_mega_menu');
+        return response()->json(['message' => 'Categories reordered']);
     }
 
     public function createCategory(Request $request)
@@ -616,7 +636,13 @@ class AdminController extends Controller
             'slug' => 'required|string|max:255|unique:categories',
             'icon' => 'nullable|string',
             'image' => 'nullable|string',
+            'description' => 'nullable|string',
             'parent_id' => 'nullable|exists:categories,id',
+            'is_active' => 'sometimes|boolean',
+            'is_featured' => 'sometimes|boolean',
+            'is_trending' => 'sometimes|boolean',
+            'category_badge' => 'nullable|string|max:50',
+            'sort_order' => 'sometimes|integer',
         ]);
 
         $category = Category::create($validated);
@@ -632,7 +658,11 @@ class AdminController extends Controller
             'slug' => 'sometimes|string|max:255|unique:categories,slug,' . $id,
             'icon' => 'nullable|string',
             'image' => 'nullable|string',
+            'description' => 'nullable|string',
             'is_active' => 'sometimes|boolean',
+            'is_featured' => 'sometimes|boolean',
+            'is_trending' => 'sometimes|boolean',
+            'category_badge' => 'nullable|string|max:50',
             'sort_order' => 'sometimes|integer',
         ]);
 
@@ -645,6 +675,22 @@ class AdminController extends Controller
         $category = Category::findOrFail($id);
         $category->delete();
         return response()->json(['message' => 'Category deleted']);
+    }
+
+    public function uploadCategoryImage(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|file|mimes:jpeg,png,jpg,webp,svg|max:2048',
+        ]);
+
+        $file = $request->file('image');
+        $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('categories', $filename, 'public');
+
+        return response()->json([
+            'url' => Storage::url($path),
+            'path' => $path,
+        ]);
     }
 
     // Locations Management
