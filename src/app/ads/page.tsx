@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import AdCard from '@/components/ui/AdCard';
+import FilterPanel from '@/components/ads/FilterPanel';
 import { Search, Filter, Grid, List, X, ChevronDown, SlidersHorizontal, MapPin, Loader2 } from 'lucide-react';
 import { AdGridSkeleton } from '@/components/ui/Skeleton';
 import { useSearchInfinite } from '@/hooks/useAds';
@@ -95,9 +96,8 @@ function AdsPageContent() {
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [priceMinRaw, setPriceMinRaw] = useState('');
   const [priceMaxRaw, setPriceMaxRaw] = useState('');
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
   const [condition, setCondition] = useState<string>('');
+  const [attrFilters, setAttrFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
@@ -136,11 +136,14 @@ function AdsPageContent() {
     if (priceMinRaw) p.min_price = priceMinRaw;
     if (priceMaxRaw) p.max_price = priceMaxRaw;
     if (condition) p.condition = condition;
+    for (const [k, v] of Object.entries(attrFilters)) {
+      if (v) p['attr_' + k] = v;
+    }
     const sortConfig = sortMapping[sortBy];
     p.sort_by = sortConfig.sort_by;
     p.sort_order = sortConfig.sort_order;
     return p;
-  }, [localQuery, selectedCategoryId, selectedSubcategoryId, selectedLocationSlug, selectedLGA, priceMinRaw, priceMaxRaw, condition, sortBy]);
+  }, [localQuery, selectedCategoryId, selectedSubcategoryId, selectedLocationSlug, selectedLGA, priceMinRaw, priceMaxRaw, condition, attrFilters, sortBy]);
 
   const debouncedParams = useDebounce(queryParams, 400);
 
@@ -247,6 +250,13 @@ function AdsPageContent() {
     window.history.pushState({}, '', `/ads?${params.toString()}`);
   }, [catLookup]);
 
+  const handleFilterChange = useCallback((state: { priceMin: string; priceMax: string; condition: string; attrs: Record<string, string> }) => {
+    setPriceMinRaw(state.priceMin);
+    setPriceMaxRaw(state.priceMax);
+    setCondition(state.condition);
+    setAttrFilters(state.attrs);
+  }, []);
+
   const handleSearch = () => {
     updateUrl(selectedCategoryId, selectedSubcategoryId, selectedLocationSlug, selectedLGA, localQuery);
   };
@@ -259,9 +269,8 @@ function AdsPageContent() {
     setSelectedLGA('');
     setPriceMinRaw('');
     setPriceMaxRaw('');
-    setPriceMin('');
-    setPriceMax('');
     setCondition('');
+    setAttrFilters({});
     setSortBy('newest');
     updateUrl(null, null, '', '', '');
   };
@@ -403,69 +412,12 @@ function AdsPageContent() {
               )}
             </div>
 
-            {/* Price Range */}
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-4">Price Range</h3>
-              <div className="space-y-2">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
-                  <input
-                    type="text"
-                    value={priceMin}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/[,]/g, '');
-                      setPriceMinRaw(raw);
-                      setPriceMin(raw ? Number(raw).toLocaleString('en-US') : '');
-                    }}
-                    placeholder="Min price"
-                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-                  />
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
-                  <input
-                    type="text"
-                    value={priceMax}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/[,]/g, '');
-                      setPriceMaxRaw(raw);
-                      setPriceMax(raw ? Number(raw).toLocaleString('en-US') : '');
-                    }}
-                    placeholder="Max price"
-                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Condition */}
-            <div className="space-y-2">
-              <h3 className="font-semibold text-gray-900 text-sm px-1">Condition</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { key: 'new', label: 'Brand New', emoji: '✨', border: 'border-green-300', bg: 'bg-green-50', text: 'text-green-800' },
-                  { key: 'like_new', label: 'Like New', emoji: '💎', border: 'border-blue-300', bg: 'bg-blue-50', text: 'text-blue-800' },
-                  { key: 'good', label: 'Used', emoji: '🔹', border: 'border-amber-300', bg: 'bg-amber-50', text: 'text-amber-800' },
-                  { key: 'fair', label: 'Refurbished', emoji: '🔧', border: 'border-purple-300', bg: 'bg-purple-50', text: 'text-purple-800' },
-                ].map(({ key, label, emoji, border, bg, text }) => {
-                  const isActive = condition === key;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setCondition(isActive ? '' : key)}
-                      className={`flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 border-2 ${
-                        isActive
-                          ? `${border} ${bg} ${text} shadow-md scale-[0.98]`
-                          : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className="text-base leading-none">{emoji}</span>
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* Dynamic filter panel (price, condition, attributes) */}
+            <FilterPanel
+              categorySlug={categorySlug}
+              subcategorySlug={subcategorySlug}
+              onFilterChange={handleFilterChange}
+            />
 
             {/* Clear Filters */}
             <button

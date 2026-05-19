@@ -32,6 +32,13 @@ class SearchService
         $location = $params['location'] ?? null;
         $limit = $params['limit'] ?? 60;
 
+        $attrFilters = [];
+        foreach ($params as $key => $value) {
+            if (str_starts_with($key, 'attr_') && $value !== null && $value !== '') {
+                $attrFilters[substr($key, 5)] = $value;
+            }
+        }
+
         $cacheKey = 'search:' . md5(serialize($params));
         if (!empty($query) && strlen($query) >= 2) {
             $cached = Cache::get($cacheKey);
@@ -40,7 +47,7 @@ class SearchService
             }
         }
 
-        $ads = $this->buildQuery($query, $categoryId, $subcategoryId, $minPrice, $maxPrice, $location)
+        $ads = $this->buildQuery($query, $categoryId, $subcategoryId, $minPrice, $maxPrice, $location, $attrFilters)
             ->limit($limit)
             ->get();
 
@@ -117,7 +124,7 @@ class SearchService
         ];
     }
 
-    private function buildQuery(string $query, ?int $categoryId, ?int $subcategoryId, ?float $minPrice, ?float $maxPrice, ?string $location)
+    private function buildQuery(string $query, ?int $categoryId, ?int $subcategoryId, ?float $minPrice, ?float $maxPrice, ?string $location, array $attrFilters = [])
     {
         $baseQuery = Ad::with(['images', 'category', 'location', 'user'])
             ->active()
@@ -160,7 +167,41 @@ class SearchService
                 ->orWhere('slug', 'like', '%' . Str::slug($location) . '%'));
         }
 
+        foreach ($attrFilters as $field => $value) {
+            $this->applyAttributeFilter($baseQuery, $field, $value);
+        }
+
         return $baseQuery;
+    }
+
+    private function applyAttributeFilter($query, string $field, $value): void
+    {
+        $jsonPath = 'attributes->"$."' . $field . '"';
+
+        if (is_array($value)) {
+            $query->where(function ($q) use ($jsonPath, $value) {
+                foreach ($value as $v) {
+                    $q->orWhereRaw("JSON_EXTRACT({$jsonPath}) = ?", [$v]);
+                }
+            });
+        } elseif (str_contains($value, ',')) {
+            $parts = array_map('trim', explode(',', $value));
+            $query->where(function ($q) use ($jsonPath, $parts) {
+                foreach ($parts as $v) {
+                    $q->orWhereRaw("JSON_EXTRACT({$jsonPath}) = ?", [$v]);
+                }
+            });
+        } elseif (str_contains($value, '-')) {
+            $rangeParts = explode('-', $value);
+            if (count($rangeParts) === 2) {
+                $from = (float) $rangeParts[0];
+                $to = (float) $rangeParts[1];
+                $query->whereRaw("JSON_EXTRACT({$jsonPath}) >= ?", [$from])
+                      ->whereRaw("JSON_EXTRACT({$jsonPath}) <= ?", [$to]);
+            }
+        } else {
+            $query->whereRaw("JSON_EXTRACT({$jsonPath}) = ?", [$value]);
+        }
     }
 
     private function getCategoryAndDescendants(int $categoryId): array

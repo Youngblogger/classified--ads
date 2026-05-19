@@ -250,6 +250,10 @@ Route::prefix('categories')->middleware('cache-response:3600')->group(function (
     Route::get('/{category}/fields', [CategoryFieldController::class, 'forCategory']);
 });
 
+// Filter metadata (public - dynamic filter configuration per category)
+Route::get('/filters/meta', [\App\Http\Controllers\Api\FilterMetaController::class, 'index'])
+    ->middleware('cache-response:120');
+
 // Category fields management (protected - admin only)
 Route::prefix('category-fields')->middleware('auth.api')->group(function () {
     Route::get('/', [CategoryFieldController::class, 'index']);
