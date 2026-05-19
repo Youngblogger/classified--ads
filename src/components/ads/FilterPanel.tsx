@@ -91,12 +91,25 @@ export default function FilterPanel({
     syncTimeout.current = setTimeout(() => {
       onFilterChange({ priceMin, priceMax, condition, attrs: attrFilters });
     }, 300);
-  }, [priceMin, priceMax, condition, attrFilters, onFilterChange]);
+  }, [condition, attrFilters, onFilterChange]);
 
   useEffect(() => {
     syncFilters();
     return () => { if (syncTimeout.current) clearTimeout(syncTimeout.current); };
   }, [syncFilters]);
+
+  const applyPrice = useCallback(() => {
+    if (syncTimeout.current) clearTimeout(syncTimeout.current);
+    onFilterChange({ priceMin, priceMax, condition, attrs: attrFilters });
+  }, [priceMin, priceMax, condition, attrFilters, onFilterChange]);
+
+  const setPriceAndApply = useCallback((min: string, max: string) => {
+    setPriceMin(min);
+    setPriceMax(max);
+    setTimeout(() => {
+      onFilterChange({ priceMin: min, priceMax: max, condition, attrs: attrFilters });
+    }, 0);
+  }, [condition, attrFilters, onFilterChange]);
 
   useEffect(() => {
     setPriceMin('');
@@ -271,6 +284,7 @@ export default function FilterPanel({
                     type="text" value={priceMin ? formatInputPrice(priceMin) : ''}
                     onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setPriceMin(raw); }}
                     onFocus={(e) => e.target.select()}
+                    onBlur={applyPrice}
                     className={cn('w-full pl-6 pr-2 py-1.5 border rounded-lg text-xs text-gray-900 transition-all', priceMin ? 'bg-white border-primary-300 ring-1 ring-primary-100' : 'bg-gray-50 border-gray-200 hover:border-gray-300')}
                   />
                 </div>
@@ -284,6 +298,7 @@ export default function FilterPanel({
                     type="text" value={priceMax ? formatInputPrice(priceMax) : ''}
                     onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setPriceMax(raw); }}
                     onFocus={(e) => e.target.select()}
+                    onBlur={applyPrice}
                     className={cn('w-full pl-6 pr-2 py-1.5 border rounded-lg text-xs text-gray-900 transition-all', priceMax ? 'bg-white border-primary-300 ring-1 ring-primary-100' : 'bg-gray-50 border-gray-200 hover:border-gray-300')}
                   />
                 </div>
@@ -312,7 +327,7 @@ export default function FilterPanel({
                     const isLast = idx === arr.length - 1;
                     const label = isFirst ? `Under ${formatPriceShort(b.max)}` : isLast ? `More than ${formatPriceShort(b.min)}` : `${formatPriceShort(b.min)} - ${formatPriceShort(b.max)}`;
                     return (
-                      <label key={b.bucket} onClick={() => { if (isSelected) { setPriceMin(''); setPriceMax(''); } else { setPriceMin(isFirst ? '0' : String(b.min)); setPriceMax(isLast ? '' : String(b.max)); } }}
+                      <label key={b.bucket} onClick={() => { if (isSelected) { setPriceAndApply('', ''); } else { setPriceAndApply(isFirst ? '0' : String(b.min), isLast ? '' : String(b.max)); } }}
                         className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-all group', isSelected ? 'bg-primary-50' : 'hover:bg-gray-50')}>
                         <div className={cn('w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all', isSelected ? 'border-primary-500 bg-primary-500' : 'border-gray-300 group-hover:border-gray-400')}>
                           {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}

@@ -296,7 +296,7 @@ function AdsPageContent() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <ResponsiveHeader />
-      <main className="flex-1 w-full px-4 pt-[48px] pb-6 md:px-6 md:pt-[72px] lg:px-8">
+      <main className="flex-1 w-full px-4 pt-[44px] pb-6 md:px-6 md:pt-[56px] lg:px-8">
 
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
           {/* Mobile Filter Overlay */}
@@ -312,7 +312,7 @@ function AdsPageContent() {
             lg:w-72 lg:flex-shrink-0
             ${showFilters ? 'fixed inset-y-0 left-0 w-[90vw] max-w-sm z-[145] overflow-y-auto bg-white p-5 lg:relative lg:inset-auto lg:w-72 lg:max-w-none lg:z-auto lg:overflow-visible lg:bg-transparent lg:p-0' : 'hidden lg:block'}
           `}>
-            <div className="lg:sticky lg:top-24 max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:scrollbar-thin space-y-3">
+            <div className="lg:sticky lg:top-20 max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:scrollbar-thin space-y-3">
               {/* Mobile Close Button */}
               <div className="flex items-center justify-between lg:hidden mb-2">
                 <h3 className="font-semibold text-gray-900 text-base">Filters</h3>

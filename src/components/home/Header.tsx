@@ -649,7 +649,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     return (
       <header className="sticky top-0 z-[100] w-full bg-primary-600">
         <div className="container-app">
-          <div className="h-16 flex items-center justify-between">
+          <div className="h-12 flex items-center justify-between">
             <div className="h-8 w-24 bg-white/20 rounded animate-pulse" />
             <div className="h-6 w-32 bg-white/20 rounded animate-pulse" />
           </div>
@@ -685,9 +685,9 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
       )}
 
       {/* MAIN HEADER */}
-      <div className="bg-primary-600 shadow-header h-16">
+      <div className={cn('bg-primary-600 shadow-header', variant === 'home' ? 'h-14' : 'h-12')}>
         <div className="container-app">
-          <div className="flex items-center justify-between h-16 gap-4">
+          <div className={cn('flex items-center justify-between gap-4', variant === 'home' ? 'h-14' : 'h-12')}>
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
               <img 
