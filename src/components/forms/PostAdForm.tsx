@@ -334,6 +334,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       if (normalizedName.includes('health') && scName.includes('health')) return true;
       if (normalizedName.includes('baby') && scName.includes('baby')) return true;
       if (normalizedName.includes('sport') && scName.includes('sport')) return true;
+      if ((normalizedName.includes('home') || normalizedName.includes('furniture')) && scName.includes('home')) return true;
+      if (normalizedName.includes('agric') && scName.includes('agric')) return true;
+      if (normalizedName.includes('entertainment') && scName.includes('entertainment')) return true;
       return false;
     });
     
@@ -614,27 +617,29 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   };
 
   const nextStep = () => {
-    if (step === 1 && !categoryId) {
-      toast.error('Please select a category');
-      return;
+    if (step === 1) {
+      if (!categoryId) {
+        toast.error('Please select a category');
+        return;
+      }
+      if (!locationId) {
+        toast.error('Please select a location');
+        return;
+      }
+      if (!title || title.length < 5) {
+        toast.error('Please enter a title (at least 5 characters)');
+        return;
+      }
+      if (!price || parseFloat(price) <= 0) {
+        toast.error('Please enter a valid price');
+        return;
+      }
+      if (!condition) {
+        toast.error('Please select a condition');
+        return;
+      }
     }
-    if (step === 1 && !locationId) {
-      toast.error('Please select a location');
-      return;
-    }
-    if (step === 2 && (!title || title.length < 5)) {
-      toast.error('Please enter a title (at least 5 characters)');
-      return;
-    }
-    if (step === 2 && images.length === 0) {
-      toast.error('Please add at least one image');
-      return;
-    }
-    if (step === 3 && (!price || parseFloat(price) <= 0)) {
-      toast.error('Please enter a valid price');
-      return;
-    }
-    setStep(prev => Math.min(prev + 1, 4));
+    setStep(prev => Math.min(prev + 1, 2));
   };
 
   const prevStep = () => {
@@ -842,7 +847,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
       {/* Progress Steps */}
       <div className="flex items-center justify-center gap-2 mb-8">
-        {['Category', 'Details', 'Price', 'Review'].map((s, i) => (
+        {['Basic Info', 'Media & Details'].map((s, i) => (
           <div key={s} className="flex items-center">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
               step > i + 1 ? 'bg-green-500 text-white' :
@@ -854,49 +859,139 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             <span className={`ml-2 text-sm hidden sm:inline ${step >= i + 1 ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
               {s}
             </span>
-            {i < 3 && <div className={`w-8 sm:w-16 h-0.5 mx-2 ${step > i + 1 ? 'bg-green-500' : 'bg-gray-200'}`} />}
+            {i < 1 && <div className={`w-8 sm:w-16 h-0.5 mx-2 ${step > i + 1 ? 'bg-green-500' : 'bg-gray-200'}`} />}
           </div>
         ))}
       </div>
 
-      {/* Step 1: Category & Location */}
+      {/* Step 1: Basic Info */}
       {step === 1 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
-              Category <span className="text-red-500">*</span>
-            </label>
-            <button
-              onClick={() => setShowCategorySelector(true)}
-              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
-            >
-              <span className={`text-base font-medium ${categoryBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
-                {categoryBreadcrumb || 'Select Category'}
-              </span>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
+        <div className="space-y-6">
+          {/* Category & Location Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <button
+                onClick={() => setShowCategorySelector(true)}
+                className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
+              >
+                <span className={`text-base font-medium ${categoryBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {categoryBreadcrumb || 'Select Category'}
+                </span>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                Location <span className="text-red-500">*</span>
+              </label>
+              <button
+                onClick={() => setShowLocationSelector(true)}
+                className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
+              >
+                <span className={`text-base font-medium ${locationBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {locationBreadcrumb || 'Select Location'}
+                </span>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
           </div>
 
-          {/* Location */}
+          {/* Title */}
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
-              Location <span className="text-red-500">*</span>
+            <label className="block text-base font-semibold text-gray-800 mb-3">
+              Title <span className="text-red-500">*</span>
             </label>
-            <button
-              onClick={() => setShowLocationSelector(true)}
-              className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
-            >
-              <span className={`text-base font-medium ${locationBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
-                {locationBreadcrumb || 'Select Location'}
-              </span>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. iPhone 14 Pro Max 256GB"
+              className="w-full px-4 py-3 text-base font-bold border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 bg-white text-gray-900 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400"
+              maxLength={100}
+              style={{ height: '60px' }}
+            />
+            <p className="text-sm text-gray-400 mt-2 text-right">{title.length}/100</p>
+          </div>
+
+          {/* Condition & Price Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Condition */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Condition <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { key: 'new', label: 'Brand New', color: 'emerald' },
+                  { key: 'like_new', label: 'Like New', color: 'blue' },
+                  { key: 'good', label: 'Used', color: 'amber' },
+                  { key: 'fair', label: 'Refurbished', color: 'purple' }
+                ] as const).map(({ key, label, color }) => {
+                  const isSelected = condition === key;
+                  const colorClasses = {
+                    emerald: isSelected ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-700',
+                    blue: isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-blue-700',
+                    amber: isSelected ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-200 hover:border-amber-400 hover:bg-amber-50 text-amber-700',
+                    purple: isSelected ? 'border-purple-500 bg-purple-500 text-white' : 'border-purple-200 hover:border-purple-400 hover:bg-purple-50 text-purple-700',
+                  };
+                  const checkColor = {
+                    emerald: 'text-emerald-500',
+                    blue: 'text-blue-500',
+                    amber: 'text-amber-500',
+                    purple: 'text-purple-500',
+                  };
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setCondition(key)}
+                      className={`group relative px-4 py-2 rounded-lg border-2 transition-all duration-300 ${colorClasses[color]}`}
+                    >
+                      <span className="font-semibold text-sm">{label}</span>
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                          <Check className={`w-3 h-3 ${checkColor[color]}`} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Price */}
+            <div>
+              <label className="block text-base font-semibold text-gray-800 mb-3">
+                Price <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-2xl font-bold">₦</span>
+                <input
+                  type="text"
+                  value={formatPrice(price)}
+                  onChange={handlePriceChange}
+                  placeholder="0"
+                  className="w-full pl-12 pr-4 py-4 text-2xl border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-bold bg-white text-gray-900 placeholder:text-2xl placeholder:font-bold placeholder:text-gray-300"
+                  style={{ height: '80px' }}
+                />
+              </div>
+              <label className="flex items-center gap-3 cursor-pointer mt-3">
+                <input
+                  type="checkbox"
+                  checked={negotiable}
+                  onChange={(e) => setNegotiable(e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-gray-700">Price is negotiable</span>
+              </label>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Step 2: Details */}
+      {/* Step 2: Media & Details */}
       {step === 2 && (
         <div className="space-y-6">
           {/* Images */}
@@ -980,23 +1075,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             )}
           </div>
 
-          {/* Title */}
-          <div>
-            <label className="block text-base font-semibold text-gray-800 mb-3">
-              Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. iPhone 14 Pro Max 256GB"
-              className="w-full px-4 py-3 text-base font-bold border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 bg-white text-gray-900 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400"
-              maxLength={100}
-              style={{ height: '60px' }}
-            />
-            <p className="text-sm text-gray-400 mt-2 text-right">{title.length}/100</p>
-          </div>
-
           {/* Description */}
           <div>
             <label className="block text-base font-semibold text-gray-800 mb-3">
@@ -1012,48 +1090,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             <p className="text-sm text-gray-400 mt-2 text-right">{description.length}/2000</p>
           </div>
 
-          {/* Condition */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Condition <span className="text-red-500">*</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {([
-                { key: 'new', label: 'Brand New', color: 'emerald' },
-                { key: 'like_new', label: 'Like New', color: 'blue' },
-                { key: 'good', label: 'Used', color: 'amber' },
-                { key: 'fair', label: 'Refurbished', color: 'purple' }
-              ] as const).map(({ key, label, color }) => {
-                const isSelected = condition === key;
-                const colorClasses = {
-                  emerald: isSelected ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-700',
-                  blue: isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-blue-700',
-                  amber: isSelected ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-200 hover:border-amber-400 hover:bg-amber-50 text-amber-700',
-                  purple: isSelected ? 'border-purple-500 bg-purple-500 text-white' : 'border-purple-200 hover:border-purple-400 hover:bg-purple-50 text-purple-700',
-                };
-                const checkColor = {
-                  emerald: 'text-emerald-500',
-                  blue: 'text-blue-500',
-                  amber: 'text-amber-500',
-                  purple: 'text-purple-500',
-                };
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setCondition(key)}
-                    className={`group relative px-4 py-2 rounded-lg border-2 transition-all duration-300 ${colorClasses[color]}`}
-                  >
-                    <span className="font-semibold text-sm">{label}</span>
-                    {isSelected && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center">
-                        <Check className={`w-3 h-3 ${checkColor[color]}`} />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+
 
           {/* Brand/Model/Config for categories with brands */}
           {selectedStructuredCategory?.hasBrand && getAvailableBrands().length > 0 && (
@@ -1317,84 +1354,50 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Step 3: Price */}
-      {step === 3 && (
-        <div className="max-w-md mx-auto space-y-6">
-          <div>
-            <label className="block text-base font-semibold text-gray-800 mb-3">
-              Price <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-2xl font-bold">₦</span>
-              <input
-                type="text"
-                value={formatPrice(price)}
-                onChange={handlePriceChange}
-                placeholder="0"
-                className="w-full pl-12 pr-4 py-4 text-2xl border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-bold bg-white text-gray-900 placeholder:text-2xl placeholder:font-bold placeholder:text-gray-300"
-                style={{ height: '80px' }}
-              />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={negotiable}
-              onChange={(e) => setNegotiable(e.target.checked)}
-              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            />
-            <span className="text-gray-700">Price is negotiable</span>
-          </label>
-        </div>
-      )}
-
-      {/* Step 4: Review */}
-      {step === 4 && (
-        <div className="space-y-6">
-          <div className="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-4">
+          {/* Review Summary */}
+          <div className="bg-gradient-to-br from-gray-50 to-primary-50/30 rounded-xl p-4 sm:p-6 space-y-4 border border-gray-200">
+            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+              <Check className="w-5 h-5 text-primary-500" />
+              Ad Summary
+            </h4>
             <div className="flex flex-col sm:flex-row items-start gap-4">
               {images[0] && (
-                <div className="w-full sm:w-24 h-48 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 relative">
-                  <Image src={images[0].preview} alt="" fill sizes="96px" className="object-cover" />
+                <div className="w-full sm:w-20 h-40 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 relative border border-gray-200">
+                  <Image src={images[0].preview} alt="" fill sizes="80px" className="object-cover" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900 text-lg sm:text-base break-words">{title || 'No title'}</h3>
-                <p className="text-xl sm:text-2xl font-bold text-primary-600 mt-1">
+                <h3 className="font-semibold text-gray-900 text-base break-words">{title || 'No title'}</h3>
+                <p className="text-lg font-bold text-primary-600 mt-1">
                   ₦{formatPrice(price) || '0'}
                   {negotiable && <span className="text-sm font-normal text-gray-500 ml-2">Negotiable</span>}
                 </p>
               </div>
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
               <div className="flex flex-wrap gap-1">
-                <span className="text-gray-500">Category:</span>
-                <span className="text-gray-900 font-medium">{selectedCategory?.name || 'N/A'}</span>
+                <span className="text-gray-400">Category:</span>
+                <span className="text-gray-800 font-medium">{selectedCategory?.name || 'N/A'}</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                <span className="text-gray-500">Location:</span>
-                <span className="text-gray-900 font-medium">
+                <span className="text-gray-400">Location:</span>
+                <span className="text-gray-800 font-medium">
                   {selectedState?.name || 'N/A'}{lgaId ? ` > ${lgaId}` : ''}
                 </span>
               </div>
               <div className="flex flex-wrap gap-1">
-                <span className="text-gray-500">Condition:</span>
-                <span className="text-gray-900 font-medium">{condition && conditionLabels[condition as keyof typeof conditionLabels] || 'N/A'}</span>
+                <span className="text-gray-400">Condition:</span>
+                <span className="text-gray-800 font-medium">{condition && conditionLabels[condition as keyof typeof conditionLabels] || 'N/A'}</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                <span className="text-gray-500">Photos:</span>
-                <span className="text-gray-900 font-medium">{images.length}</span>
+                <span className="text-gray-400">Photos:</span>
+                <span className="text-gray-800 font-medium">{images.length}</span>
               </div>
             </div>
-
             <div>
-              <span className="text-gray-500 text-sm">Description:</span>
-              <p className="text-gray-700 mt-1 text-sm line-clamp-3">{description || 'No description'}</p>
+              <span className="text-gray-400 text-sm">Description:</span>
+              <p className="text-gray-700 mt-0.5 text-sm line-clamp-2">{description || 'No description'}</p>
             </div>
           </div>
         </div>
@@ -1413,7 +1416,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           <div />
         )}
 
-        {step < 4 ? (
+        {step < 2 ? (
           <button
             onClick={nextStep}
             className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
