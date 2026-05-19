@@ -552,12 +552,13 @@ export default function EnterpriseSidebar() {
         style={{
           position: 'sticky',
           top: 'calc(104px + 8px)',
-          maxHeight: 'calc(100vh - 104px - 16px)',
         }}
       >
-        <div className="bg-white rounded-xl border border-gray-100/80 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-100/80 shadow-sm flex flex-col overflow-hidden"
+          style={{ maxHeight: 'calc(100vh - 104px - 32px)' }}
+        >
           {/* Header with search toggle */}
-          <div className="px-3 py-2.5 border-b border-gray-50 flex items-center justify-between">
+          <div className="px-3 py-2.5 border-b border-gray-50 flex items-center justify-between flex-shrink-0">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">All Categories</h3>
             <button
               onClick={() => { setShowSearch(!showSearch); if (!showSearch) setTimeout(() => searchInputRef.current?.focus(), 100); }}
@@ -570,7 +571,7 @@ export default function EnterpriseSidebar() {
 
           {/* Inline search */}
           {showSearch && (
-            <div className="px-3 py-2 border-b border-gray-50">
+            <div className="px-3 py-2 border-b border-gray-50 flex-shrink-0">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                 <input
@@ -619,10 +620,10 @@ export default function EnterpriseSidebar() {
             </div>
           )}
 
-          {/* Category list */}
+          {/* Category list - fills remaining space */}
           <div
-            className="overflow-y-auto"
-            style={{ maxHeight: 'calc(100vh - 104px - 16px - 40px)', scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}
+            className="flex-1 overflow-y-auto"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}
           >
             {isLoading && !tree.length ? <SidebarSkeleton /> : !rootCats.length ? (
               <div className="px-4 py-8 text-center text-gray-400 text-sm">No categories</div>
@@ -681,6 +682,7 @@ export default function EnterpriseSidebar() {
               </div>
             )}
           </div>
+
         </div>
       </aside>
 
@@ -699,7 +701,7 @@ export default function EnterpriseSidebar() {
           }}
         >
           {/* Panel header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-100 to-gray-50">
             <Link
               href={`/ads?category=${displayCat.slug}`}
               onClick={() => addRecentlyViewed(displayCat)}
@@ -817,17 +819,6 @@ export default function EnterpriseSidebar() {
         </div>
       )}
 
-      {/* Keyboard shortcut hint */}
-      <div className="hidden lg:block fixed bottom-4 left-4 z-40">
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200/60 px-2.5 py-1.5 shadow-xs">
-          <div className="flex items-center gap-2 text-[10px] text-gray-400">
-            <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px] font-mono text-gray-500 border border-gray-200">/</kbd>
-            <span>Search</span>
-            <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px] font-mono text-gray-500 border border-gray-200">ESC</kbd>
-            <span>Close</span>
-          </div>
-        </div>
-      </div>
     </>
   );
 }
