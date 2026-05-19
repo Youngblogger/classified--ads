@@ -259,7 +259,7 @@ export default function MessagesPage() {
       
       // Fetch ad details if we don't have the slug
       if (!selectedConversation.ad?.slug && selectedConversation.ad_id) {
-        adsApi.getAd(selectedConversation.ad_id).then(res => {
+        adsApi.getById(selectedConversation.ad_id).then(res => {
           setAdDetails(res.data?.data || res.data);
         }).catch(() => {});
       }

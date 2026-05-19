@@ -25,7 +25,7 @@ const fetcher = async (url: string) => {
 
 const iconEmojis: Record<string, string> = {
   'smartphone': '📱', 'phone': '📱', 'mobile': '📱',
-  'telecommunications': '📱', 'phones-tablets': '📱', 'mobile-phones-tablets': '📱',
+  'telecommunications': '📱', 'mobile-phones': '📱',
   'car': '🚗', 'vehicle': '🚗', 'vehicles': '🚗', 'automotive': '🚗', 'cars-vehicles': '🚗',
   'property': '🏠', 'home': '🏠', 'real-estate': '🏠', 'properties': '🏠',
   'electronics': '💻', 'laptop': '💻', 'computer': '💻', 'computers-laptops': '💻',

@@ -22,6 +22,11 @@ class Category extends Model
         return $this->hasMany(Category::class, 'parent_id');
     }
 
+    public function activeChildren(): HasMany
+    {
+        return $this->hasMany(Category::class, 'parent_id')->where('is_active', true)->orderBy('sort_order')->orderBy('name');
+    }
+
     public function ads(): HasMany
     {
         return $this->hasMany(Ad::class);
@@ -30,6 +35,21 @@ class Category extends Model
     public function allChildren(): HasMany
     {
         return $this->children()->with('allChildren');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeParents($query)
+    {
+        return $query->whereNull('parent_id');
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('sort_order')->orderBy('name');
     }
 
     public function getAllDescendantsAttribute()

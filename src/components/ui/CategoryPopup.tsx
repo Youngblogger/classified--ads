@@ -153,7 +153,6 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
       'sports': '🏋️',
       'sports-fitness': '🏋️',
       'mobile-phones': '📱',
-      'mobile-phones-tablets': '📱',
       'gaming': '🎮',
       'agriculture': '🌾',
       'services': '🔧',

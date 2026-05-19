@@ -76,12 +76,12 @@ const localCategories = [
     { id: 603, name: 'Kitchen Appliances', slug: 'kitchen-appliances' }, { id: 604, name: 'Bedding', slug: 'bedding' },
   ]},
   { id: 7, name: 'Jobs', slug: 'jobs', icon: 'Briefcase', children: [
-    { id: 701, name: 'Full-time Jobs', slug: 'full-time' }, { id: 702, name: 'Part-time Jobs', slug: 'part-time' },
-    { id: 703, name: 'Remote Jobs', slug: 'remote' }, { id: 704, name: 'Internships', slug: 'internships' },
+    { id: 701, name: 'Full-time Jobs', slug: 'full-time-jobs' }, { id: 702, name: 'Part-time Jobs', slug: 'part-time-jobs' },
+    { id: 703, name: 'Remote Jobs', slug: 'remote-jobs' }, { id: 704, name: 'Internships', slug: 'internship-jobs' },
   ]},
   { id: 8, name: 'Services', slug: 'services', icon: 'Wrench', children: [
-    { id: 801, name: 'Cleaning Services', slug: 'cleaning' }, { id: 802, name: 'Repair & Maintenance', slug: 'repair' },
-    { id: 803, name: 'Moving & Logistics', slug: 'moving' }, { id: 804, name: 'Event Services', slug: 'events' },
+    { id: 801, name: 'Cleaning Services', slug: 'cleaning-services' }, { id: 802, name: 'Repair & Maintenance', slug: 'repair-services' },
+    { id: 803, name: 'Moving & Logistics', slug: 'moving-services' }, { id: 804, name: 'Event Services', slug: 'event-planning' },
   ]},
   { id: 9, name: 'Pets', slug: 'pets', icon: 'Dog', children: [
     { id: 901, name: 'Dogs', slug: 'dogs' }, { id: 902, name: 'Cats', slug: 'cats' },

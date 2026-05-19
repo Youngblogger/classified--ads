@@ -128,7 +128,7 @@ class HybridCategorizationService
     private function getCategoryForType(string $type): ?Category
     {
         $categoryMap = [
-            'phones' => 'phones-tablets',
+            'phones' => 'mobile-phones',
             'laptops' => 'computers',
             'cars' => 'vehicles',
             'electronics' => 'electronics',

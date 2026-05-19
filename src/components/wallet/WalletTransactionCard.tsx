@@ -285,7 +285,7 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
                   className="absolute inset-0 rounded-xl border-2 border-amber-400 dark:border-amber-300"
                   initial={{ scale: 1, opacity: 1 }}
                   animate={{ scale: 1.6, opacity: 0 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: 'ease-out' }}
+                  transition={{ repeat: Infinity, duration: 1, ease: 'easeOut' }}
                 />
               )}
               {isRefreshing ? (
