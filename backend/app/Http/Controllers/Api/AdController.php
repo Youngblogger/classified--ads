@@ -40,6 +40,9 @@ class AdController extends Controller
             if ($request->category) {
                 $query->byCategory($request->category);
             }
+            if ($request->subcategory) {
+                $query->bySubcategory($request->subcategory);
+            }
             if ($request->location) {
                 $query->byLocation($request->location);
             }

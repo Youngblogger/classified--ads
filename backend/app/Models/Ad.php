@@ -130,6 +130,11 @@ class Ad extends Model
         return $query->whereHas('category', fn($q) => $q->where('slug', $slug));
     }
 
+    public function scopeBySubcategory($query, string $slug)
+    {
+        return $query->whereHas('subcategory', fn($q) => $q->where('slug', $slug));
+    }
+
     public function scopeByLocation($query, string $slug)
     {
         return $query->whereHas('location', fn($q) => $q->where('slug', $slug));

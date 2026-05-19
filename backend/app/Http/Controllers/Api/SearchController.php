@@ -41,12 +41,19 @@ class SearchController extends Controller
                 $categoryId = $category?->id;
             }
 
+            $subcategoryId = $request->get('subcategory_id');
+            if (!$subcategoryId && $request->get('subcategory')) {
+                $subcategory = Category::where('slug', $request->get('subcategory'))->select('id')->first();
+                $subcategoryId = $subcategory?->id;
+            }
+
             $page = max((int) $request->get('page', 1), 1);
             $perPage = min((int) $request->get('per_page', 20), 50);
 
             $params = [
                 'search_query' => $request->get('q', ''),
                 'category_id' => $categoryId,
+                'subcategory_id' => $subcategoryId,
                 'min_price' => $request->get('min_price'),
                 'max_price' => $request->get('max_price'),
                 'location' => $request->get('location'),

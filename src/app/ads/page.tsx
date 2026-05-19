@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
@@ -82,12 +82,14 @@ function AdsPageContent() {
   // URL params
   const query = searchParams.get('q') || '';
   const categorySlug = searchParams.get('category') || '';
+  const subcategorySlug = searchParams.get('subcategory') || '';
   const locationSlug = searchParams.get('location') || '';
   const lgaParam = searchParams.get('lga') || '';
 
   // Local state
   const [localQuery, setLocalQuery] = useState(query || '');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number | null>(null);
   const [selectedLocationSlug, setSelectedLocationSlug] = useState<string>(locationSlug);
   const [selectedLGA, setSelectedLGA] = useState<string>(lgaParam);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
@@ -128,6 +130,7 @@ function AdsPageContent() {
     const p: Record<string, string> = {};
     if (localQuery) p.q = localQuery;
     if (selectedCategoryId) p.category_id = selectedCategoryId.toString();
+    if (selectedSubcategoryId) p.subcategory_id = selectedSubcategoryId.toString();
     if (selectedLocationSlug) p.location = selectedLocationSlug;
     if (selectedLGA) p.lga = selectedLGA;
     if (priceMinRaw) p.min_price = priceMinRaw;
@@ -137,7 +140,7 @@ function AdsPageContent() {
     p.sort_by = sortConfig.sort_by;
     p.sort_order = sortConfig.sort_order;
     return p;
-  }, [localQuery, selectedCategoryId, selectedLocationSlug, selectedLGA, priceMinRaw, priceMaxRaw, condition, sortBy]);
+  }, [localQuery, selectedCategoryId, selectedSubcategoryId, selectedLocationSlug, selectedLGA, priceMinRaw, priceMaxRaw, condition, sortBy]);
 
   const debouncedParams = useDebounce(queryParams, 400);
 
@@ -159,23 +162,57 @@ function AdsPageContent() {
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, loadMore]);
 
-  // Find category by slug
+  // Build flat lookup for categories (id -> cat) and parent lookup (id -> parent_id)
+  const { catLookup, parentLookup } = useMemo(() => {
+    const byId = new Map<number, Category>();
+    const byParent = new Map<number, number>();
+    const walk = (cats: Category[], parentId?: number) => {
+      for (const c of cats) {
+        byId.set(c.id, c);
+        if (parentId) byParent.set(c.id, parentId);
+        if (c.subcategories) walk(c.subcategories, c.id);
+      }
+    };
+    walk(categories);
+    return { catLookup: byId, parentLookup: byParent };
+  }, [categories]);
+
+  // Sync category and subcategory from URL
   useEffect(() => {
-    if (categorySlug && categories.length > 0) {
-      const findCategory = (cats: Category[], target: string): Category | null => {
-        for (const cat of cats) {
-          if (cat.slug === target) return cat;
-          if (cat.subcategories) {
-            const found = findCategory(cat.subcategories, target);
-            if (found) return found;
-          }
+    if (!categories.length) return;
+    let catId: number | null = null;
+    let subId: number | null = null;
+
+    if (subcategorySlug) {
+      for (const c of Array.from(catLookup.values())) {
+        if (c.slug === subcategorySlug && parentLookup.has(c.id)) {
+          const pId = parentLookup.get(c.id)!;
+          const pCat = catLookup.get(pId);
+          catId = pCat ? pCat.id : pId;
+          subId = c.id;
+          break;
         }
-        return null;
-      };
-      const cat = findCategory(categories, categorySlug);
-      if (cat) setSelectedCategoryId(cat.id);
+      }
+    } else if (categorySlug) {
+      for (const c of Array.from(catLookup.values())) {
+        if (c.slug === categorySlug) {
+          if (parentLookup.has(c.id)) {
+            // Legacy link: category slug is a subcategory
+            const pId = parentLookup.get(c.id)!;
+            const pCat = catLookup.get(pId);
+            catId = pCat ? pCat.id : pId;
+            subId = c.id;
+          } else {
+            catId = c.id;
+          }
+          break;
+        }
+      }
     }
-  }, [categorySlug, categories]);
+
+    setSelectedCategoryId(catId);
+    setSelectedSubcategoryId(subId);
+  }, [categorySlug, subcategorySlug, categories, catLookup, parentLookup]);
 
   // Sync location from URL
   useEffect(() => {
@@ -188,25 +225,36 @@ function AdsPageContent() {
     setLocalQuery(query || '');
   }, [query]);
 
-  const handleSearch = () => {
+  const updateUrl = useCallback((catId: number | null, subId: number | null, locSlug: string, lga: string, q: string) => {
     const params = new URLSearchParams();
-    if (localQuery) params.set('q', localQuery);
-    if (selectedCategoryId) {
-      const cat = categories.find(c => c.id === selectedCategoryId);
-      if (cat) params.set('category', cat.slug);
+    if (q) params.set('q', q);
+    if (catId) {
+      const cat = catLookup.get(catId);
+      if (cat) {
+        if (subId) {
+          const sub = catLookup.get(subId);
+          if (sub) {
+            params.set('category', cat.slug);
+            params.set('subcategory', sub.slug);
+          }
+        } else {
+          params.set('category', cat.slug);
+        }
+      }
     }
-    if (selectedLocationSlug) {
-      params.set('location', selectedLocationSlug);
-    }
-    if (selectedLGA) {
-      params.set('lga', selectedLGA);
-    }
+    if (locSlug) params.set('location', locSlug);
+    if (lga) params.set('lga', lga);
     window.history.pushState({}, '', `/ads?${params.toString()}`);
+  }, [catLookup]);
+
+  const handleSearch = () => {
+    updateUrl(selectedCategoryId, selectedSubcategoryId, selectedLocationSlug, selectedLGA, localQuery);
   };
 
   const clearFilters = () => {
     setLocalQuery('');
     setSelectedCategoryId(null);
+    setSelectedSubcategoryId(null);
     setSelectedLocationSlug('');
     setSelectedLGA('');
     setPriceMinRaw('');
@@ -215,7 +263,7 @@ function AdsPageContent() {
     setPriceMax('');
     setCondition('');
     setSortBy('newest');
-    window.history.pushState({}, '', '/ads');
+    updateUrl(null, null, '', '', '');
   };
 
   const mainCategories = categories.filter((c: any) => !c.parent_id);
@@ -297,7 +345,7 @@ function AdsPageContent() {
               <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
               <div className="space-y-1">
                 <button
-                  onClick={() => setSelectedCategoryId(null)}
+                  onClick={() => { setSelectedCategoryId(null); setSelectedSubcategoryId(null); updateUrl(null, null, selectedLocationSlug, selectedLGA, localQuery); }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-gray-700 ${
                     !selectedCategoryId ? 'bg-primary-50 text-primary-600 font-medium' : 'hover:bg-gray-100 bg-gray-50'
                   }`}
@@ -307,7 +355,7 @@ function AdsPageContent() {
                 {mainCategories.slice(0, 10).map((cat: any) => (
                   <button
                     key={cat.id}
-                    onClick={() => setSelectedCategoryId(cat.id)}
+                    onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubcategoryId(null); updateUrl(cat.id, null, selectedLocationSlug, selectedLGA, localQuery); }}
                     className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 text-gray-700 ${
                       selectedCategoryId === cat.id ? 'bg-primary-50 text-primary-600 font-medium' : 'hover:bg-gray-100 bg-gray-50'
                     }`}
@@ -439,6 +487,13 @@ function AdsPageContent() {
                 </h1>
                 <p className="text-sm sm:text-base text-gray-500">
                   {ads.length} ads found
+                  {(selectedCategoryId || selectedSubcategoryId) && (
+                    <> in <span className="font-medium text-gray-700">
+                      {selectedSubcategoryId
+                        ? `${catLookup.get(selectedCategoryId!)?.name || ''} > ${catLookup.get(selectedSubcategoryId)?.name || ''}`
+                        : catLookup.get(selectedCategoryId!)?.name || ''}
+                    </span></>
+                  )}
                 </p>
               </div>
 

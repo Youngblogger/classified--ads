@@ -26,6 +26,7 @@ class SearchService
     {
         $query = $params['search_query'] ?? '';
         $categoryId = $params['category_id'] ?? null;
+        $subcategoryId = $params['subcategory_id'] ?? null;
         $minPrice = $params['min_price'] ?? null;
         $maxPrice = $params['max_price'] ?? null;
         $location = $params['location'] ?? null;
@@ -39,7 +40,7 @@ class SearchService
             }
         }
 
-        $ads = $this->buildQuery($query, $categoryId, $minPrice, $maxPrice, $location)
+        $ads = $this->buildQuery($query, $categoryId, $subcategoryId, $minPrice, $maxPrice, $location)
             ->limit($limit)
             ->get();
 
@@ -116,7 +117,7 @@ class SearchService
         ];
     }
 
-    private function buildQuery(string $query, ?int $categoryId, ?float $minPrice, ?float $maxPrice, ?string $location)
+    private function buildQuery(string $query, ?int $categoryId, ?int $subcategoryId, ?float $minPrice, ?float $maxPrice, ?string $location)
     {
         $baseQuery = Ad::with(['images', 'category', 'location', 'user'])
             ->active()
@@ -140,6 +141,10 @@ class SearchService
         if ($categoryId) {
             $categoryIds = $this->getCategoryAndDescendants($categoryId);
             $baseQuery->whereIn('category_id', $categoryIds);
+        }
+
+        if ($subcategoryId) {
+            $baseQuery->where('subcategory_id', $subcategoryId);
         }
 
         if ($minPrice !== null) {

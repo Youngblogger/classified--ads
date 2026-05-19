@@ -262,6 +262,27 @@ export default function EnterpriseSidebar() {
     return tree;
   }, [tree]);
 
+  const parentLookup = useMemo(() => {
+    const map = new Map<number, Category>();
+    const walk = (cats: Category[], parent?: Category) => {
+      for (const cat of cats) {
+        if (parent) map.set(cat.id, parent);
+        if (cat.children) walk(cat.children, cat);
+        if (cat.active_children) walk(cat.active_children, cat);
+      }
+    };
+    walk(tree);
+    return map;
+  }, [tree]);
+
+  const getCategoryUrl = useCallback((cat: Category): string => {
+    const parent = parentLookup.get(cat.id);
+    if (parent) {
+      return `/ads?category=${parent.slug}&subcategory=${cat.slug}`;
+    }
+    return `/ads?category=${cat.slug}`;
+  }, [parentLookup]);
+
   const isActiveCat = (cat: Category) => (hoveredCat || activeCat)?.id === cat.id;
 
   const displayCat = hoveredCat || activeCat;
@@ -361,9 +382,14 @@ export default function EnterpriseSidebar() {
     if (children.length > 0) {
       setMobileBreadcrumbs(prev => [...prev, cat]);
     } else {
-      window.location.href = `/ads?category=${cat.slug}`;
+      const parent = mobileBreadcrumbs.length > 0 ? mobileBreadcrumbs[mobileBreadcrumbs.length - 1] : null;
+      if (parent) {
+        window.location.href = `/ads?category=${parent.slug}&subcategory=${cat.slug}`;
+      } else {
+        window.location.href = `/ads?category=${cat.slug}`;
+      }
     }
-  }, []);
+  }, [mobileBreadcrumbs]);
   const handleMobileBack = useCallback(() => setMobileBreadcrumbs(prev => prev.slice(0, -1)), []);
   const handleSearchResult = useCallback((cat: Category) => {
     setSearchQuery('');
@@ -568,7 +594,7 @@ export default function EnterpriseSidebar() {
                     searchResults.map(cat => (
                       <Link
                         key={cat.id}
-                        href={`/ads?category=${cat.slug}`}
+                        href={getCategoryUrl(cat)}
                         onClick={() => handleSearchResult(cat)}
                         className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                       >
@@ -610,6 +636,7 @@ export default function EnterpriseSidebar() {
                         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = `/ads?category=${cat.slug}`; }
                         if (e.key === 'ArrowRight' && hasSubs) { handleCatEnter(cat, index); }
                       }}
+                      onClick={() => handleCatClick(cat)}
                       className={cn(
                         'relative flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-all duration-100 border-l-[3px] select-none',
                         active
@@ -689,7 +716,7 @@ export default function EnterpriseSidebar() {
             {subs.map(sub => (
               <Link
                 key={sub.id}
-                href={`/ads?category=${sub.slug}`}
+                href={`/ads?category=${displayCat.slug}&subcategory=${sub.slug}`}
                 onClick={() => addRecentlyViewed(sub)}
                 className="flex items-center gap-3 px-3 py-2 border-b border-gray-50/80 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
@@ -709,7 +736,7 @@ export default function EnterpriseSidebar() {
                   {trending.slice(0, 4).map(cat => (
                     <Link
                       key={cat.id}
-                      href={`/ads?category=${cat.slug}`}
+                      href={getCategoryUrl(cat)}
                       onClick={() => { addRecentlyViewed(cat); closeAll(); }}
                       className="flex items-center gap-2 px-2 py-1.5 text-xs text-orange-700 hover:bg-orange-50/50 transition-colors rounded"
                     >

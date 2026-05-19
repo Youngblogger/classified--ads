@@ -51,6 +51,9 @@ class MeiliSearchService
             if (!empty($params['category_id'])) {
                 $filters[] = 'category_id = ' . (int) $params['category_id'];
             }
+            if (!empty($params['subcategory_id'])) {
+                $filters[] = 'subcategory_id = ' . (int) $params['subcategory_id'];
+            }
             if (!empty($params['min_price'])) {
                 $filters[] = 'price >= ' . (float) $params['min_price'];
             }
@@ -219,7 +222,7 @@ class MeiliSearchService
         ]);
 
         $index->updateFilterableAttributes([
-            'category_id', 'location_id', 'price', 'condition', 'status',
+            'category_id', 'subcategory_id', 'location_id', 'price', 'condition', 'status',
             'is_featured', 'is_verified', 'user_id',
         ]);
 
@@ -268,6 +271,7 @@ class MeiliSearchService
             'clicks_count' => (int) $ad->clicks_count,
             'share_count' => (int) $ad->share_count,
             'category_id' => $ad->category_id,
+            'subcategory_id' => $ad->subcategory_id,
             'location_id' => $ad->location_id,
             'user_id' => $ad->user_id,
             'state' => $ad->state ?? '',
