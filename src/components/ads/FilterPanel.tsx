@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import useSWR from 'swr';
-import { X, ChevronDown, GripVertical, SlidersHorizontal } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { API_URL } from '@/lib/config';
 
@@ -135,110 +135,189 @@ export default function FilterPanel({ categorySlug, subcategorySlug, onFilterCha
     );
   }
 
+  const isPriceActive = priceMin || priceMax;
+
   return (
-    <div className={cn('space-y-5', className)}>
+    <div className={cn('space-y-4', className)}>
       {/* Price / Salary / Fee */}
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <h3 className="font-semibold text-gray-900 mb-3 text-sm">{priceLabel}</h3>
-        {hasData && (
-          <div className="mb-3">
-            <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="absolute top-0 h-full bg-primary-200 rounded-full"
-                style={{ left: '0%', width: `${sliderWidth}%` }}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-4 pt-4 pb-3">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-gray-900 text-sm">{priceLabel}</h3>
+            {isPriceActive && (
+              <button
+                onClick={() => { setPriceMin(''); setPriceMax(''); }}
+                className="text-[10px] text-gray-400 hover:text-gray-600 uppercase tracking-wider font-medium"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {hasData && (
+            <div className="mb-3">
+              <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="absolute top-0 h-full bg-gradient-to-r from-primary-300 to-primary-500 rounded-full transition-all duration-300"
+                  style={{ left: `${minPrice > 0 ? ((parseFloat(priceMin || String(minPrice)) - minPrice) / (maxPrice - minPrice || 1)) * 100 : 0}%`, width: `${sliderWidth}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[11px] text-gray-400 mt-1.5">
+                <span>{formatPrice(minPrice)}</span>
+                {meta.price?.avg ? <span className="font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">{formatPrice(meta.price.avg)} avg</span> : null}
+                <span>{formatPrice(maxPrice)}</span>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={priceMin ? formatInputPrice(priceMin) : ''}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  setPriceMin(raw);
+                }}
+                onFocus={(e) => e.target.select()}
+                className={cn(
+                  'w-full px-2.5 py-1.5 border rounded-md text-sm text-gray-900 transition-all duration-200',
+                  priceMin
+                    ? 'bg-white border-primary-300 ring-1 ring-primary-100'
+                    : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                )}
               />
             </div>
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>{formatPrice(minPrice)}</span>
-              <span className="font-medium text-gray-600">{formatPrice(meta.price?.avg || 0)} avg</span>
-              <span>{formatPrice(maxPrice)}</span>
+            <div className="flex items-center justify-center w-5">
+              <div className="w-3 h-px bg-gray-300" />
             </div>
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{meta?.currency || '₦'}</span>
-            <input
-              type="text"
-              value={priceMin}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/[^0-9]/g, '');
-                setPriceMin(raw);
-              }}
-              placeholder="Min"
-              className="w-full pl-7 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-            />
-          </div>
-          <span className="text-gray-300 text-xs">—</span>
-          <div className="relative flex-1">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{meta?.currency || '₦'}</span>
-            <input
-              type="text"
-              value={priceMax}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/[^0-9]/g, '');
-                setPriceMax(raw);
-              }}
-              placeholder="Max"
-              className="w-full pl-7 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-            />
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={priceMax ? formatInputPrice(priceMax) : ''}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  setPriceMax(raw);
+                }}
+                onFocus={(e) => e.target.select()}
+                className={cn(
+                  'w-full px-2.5 py-1.5 border rounded-md text-sm text-gray-900 transition-all duration-200',
+                  priceMax
+                    ? 'bg-white border-primary-300 ring-1 ring-primary-100'
+                    : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                )}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Price distribution */}
+        {/* Price distribution quick picks */}
         {(meta.price_distribution || []).length > 0 && (
-          <div className="mt-3 space-y-0.5">
-            {(meta.price_distribution || []).filter(b => b.count > 0).slice(0, 6).map(b => {
-              const pct = maxPrice > 0 ? ((b.max - b.min) / (maxPrice - minPrice || 1)) * 100 : 0;
-              const priceTotal = meta.price?.total || 0;
-              const countPct = priceTotal > 0 ? (b.count / priceTotal) * 100 : 0;
-              return (
-                <button
-                  key={b.bucket}
-                  onClick={() => { setPriceMin(String(b.min)); setPriceMax(String(b.max)); }}
-                  className="flex items-center gap-2 w-full group"
-                >
-                  <div className="flex-1 h-3 bg-gray-100 rounded-sm overflow-hidden relative">
-                    <div
-                      className="h-full bg-primary-100 group-hover:bg-primary-200 transition-colors rounded-sm"
-                      style={{ width: `${Math.max(countPct, 2)}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-gray-400 w-12 text-right tabular-nums">{b.count}</span>
-                </button>
-              );
-            })}
+          <div className="border-t border-gray-50 px-4 py-3">
+            <p className="text-[11px] text-gray-400 mb-2 font-medium uppercase tracking-wider">Quick select</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {(meta.price_distribution || []).filter(b => b.count > 0).slice(0, 6).map(b => {
+                const priceTotal = meta.price?.total || 0;
+                const countPct = priceTotal > 0 ? (b.count / priceTotal) * 100 : 0;
+                const isSelected = parseFloat(priceMin || '0') === b.min && parseFloat(priceMax || '0') === b.max;
+                return (
+                  <button
+                    key={b.bucket}
+                    onClick={() => {
+                      if (isSelected) {
+                        setPriceMin('');
+                        setPriceMax('');
+                      } else {
+                        setPriceMin(String(b.min));
+                        setPriceMax(String(b.max));
+                      }
+                    }}
+                    className={cn(
+                      'flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg border text-xs transition-all duration-200',
+                      isSelected
+                        ? 'bg-primary-50 border-primary-200 text-primary-700'
+                        : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100 hover:border-gray-200'
+                    )}
+                  >
+                    <span className="font-medium leading-tight">{formatPrice(b.min)}</span>
+                    <span className="text-[9px] text-gray-400 leading-tight">{b.count} ads</span>
+                    <div className="w-full h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                      <div
+                        className={cn('h-full rounded-full transition-colors', isSelected ? 'bg-primary-400' : 'bg-primary-200')}
+                        style={{ width: `${Math.max(countPct, 5)}%` }}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Condition */}
+      {/* Condition with Radio Buttons */}
       {conditions.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="font-semibold text-gray-900 mb-3 text-sm">Condition</h3>
-          <div className="space-y-1">
-            <button
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <h3 className="font-semibold text-gray-900 text-sm mb-3">Condition</h3>
+          <div className="space-y-1.5">
+            <label
               onClick={() => setCondition('')}
               className={cn(
-                'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors',
-                !condition ? 'bg-primary-50 text-primary-600 font-medium' : 'text-gray-500 hover:bg-gray-50'
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 group',
+                !condition
+                  ? 'bg-primary-50 border border-primary-200'
+                  : 'bg-gray-50 border border-gray-100 hover:bg-gray-100 hover:border-gray-200'
               )}
             >
-              Any Condition
-            </button>
-            {conditions.map(c => (
-              <button
-                key={c.value}
-                onClick={() => setCondition(condition === c.value ? '' : c.value)}
-                className={cn(
-                  'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between',
-                  condition === c.value ? 'bg-primary-50 text-primary-600 font-medium' : 'text-gray-500 hover:bg-gray-50'
-                )}
-              >
-                <span>{c.label}</span>
-                <span className="text-[10px] text-gray-400">{c.count}</span>
-              </button>
-            ))}
+              <div className={cn(
+                'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                !condition
+                  ? 'border-primary-500 bg-primary-500'
+                  : 'border-gray-300 group-hover:border-gray-400'
+              )}>
+                {!condition && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+              </div>
+              <span className={cn(
+                'text-sm font-medium flex-1',
+                !condition ? 'text-primary-700' : 'text-gray-600'
+              )}>
+                Any Condition
+              </span>
+            </label>
+            {conditions.map(c => {
+              const isSelected = condition === c.value;
+              return (
+                <label
+                  key={c.value}
+                  onClick={() => setCondition(isSelected ? '' : c.value)}
+                  className={cn(
+                    'relative flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 group',
+                    isSelected
+                      ? 'bg-primary-50 border border-primary-200'
+                      : 'bg-gray-50 border border-gray-100 hover:bg-gray-100 hover:border-gray-200'
+                  )}
+                >
+                  <div className={cn(
+                    'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                    isSelected
+                      ? 'border-primary-500 bg-primary-500'
+                      : 'border-gray-300 group-hover:border-gray-400'
+                  )}>
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                  <span className={cn(
+                    'text-sm font-medium flex-1',
+                    isSelected ? 'text-primary-700' : 'text-gray-600'
+                  )}>
+                    {c.label}
+                  </span>
+                  <span className={cn(
+                    'text-[11px] tabular-nums px-2 py-0.5 rounded-full',
+                    isSelected ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400'
+                  )}>
+                    {c.count}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </div>
       )}
@@ -368,4 +447,11 @@ function formatPrice(amount: number): string {
   if (amount >= 1_000_000) return '₦' + (amount / 1_000_000).toFixed(1) + 'M';
   if (amount >= 1_000) return '₦' + (amount / 1_000).toFixed(0) + 'K';
   return '₦' + amount.toFixed(0);
+}
+
+function formatInputPrice(raw: string): string {
+  if (!raw) return '';
+  const num = parseInt(raw, 10);
+  if (isNaN(num)) return raw;
+  return num.toLocaleString();
 }
