@@ -75,6 +75,14 @@ export default function LocationModal() {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
     window.addEventListener('resize', checkMobile);
+
+    // Clean up old localStorage entries — location is now session-based
+    try {
+      localStorage.removeItem('ilist-global-storage');
+      localStorage.removeItem('ilist-cached-detection');
+      localStorage.removeItem('ilist-selected-location');
+    } catch {}
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -97,7 +105,7 @@ export default function LocationModal() {
 
   const cacheDetection = useCallback((data: CachedDetection) => {
     try {
-      localStorage.setItem(CACHED_DETECTION_KEY, JSON.stringify(data));
+      sessionStorage.setItem(CACHED_DETECTION_KEY, JSON.stringify(data));
     } catch {}
   }, []);
 
@@ -137,7 +145,7 @@ export default function LocationModal() {
 
   const selectAndClose = useCallback((loc: { id?: number; name: string; slug: string; lga: string | null; lgaId?: number }) => {
     setSelectedLocation(loc);
-    try { localStorage.setItem(SELECTED_LOCATION_KEY, JSON.stringify({ name: loc.name, slug: loc.slug, lga: loc.lga, lgaId: loc.lgaId })); } catch {}
+    try { sessionStorage.setItem(SELECTED_LOCATION_KEY, JSON.stringify({ name: loc.name, slug: loc.slug, lga: loc.lga, lgaId: loc.lgaId })); } catch {}
     handleClose();
   }, [setSelectedLocation, handleClose]);
 
@@ -287,7 +295,7 @@ export default function LocationModal() {
     setGpsState('detecting');
     setDetectedAddress(null);
     setGeoError(null);
-    try { localStorage.removeItem(CACHED_DETECTION_KEY); } catch {}
+    try { sessionStorage.removeItem(CACHED_DETECTION_KEY); } catch {}
 
     let resolved = false;
 

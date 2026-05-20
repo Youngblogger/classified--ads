@@ -121,6 +121,7 @@ export const useGlobalStore = create<GlobalStore>()(
     {
       name: 'ilist-global-storage',
       partialize: (state) => ({ selectedLocation: state.selectedLocation }),
+      storage: typeof window !== 'undefined' ? sessionStorage : undefined,
     }
   )
 );
