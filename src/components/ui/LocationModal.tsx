@@ -193,8 +193,7 @@ export default function LocationModal() {
 
   const handleLGASelect = useCallback((lga: LocationData) => {
     setSelectedLGA(lga);
-    if (selectedState) selectAndClose({ id: lga.id, name: selectedState.name, slug: selectedState.slug, lga: lga.name, lgaId: lga.id });
-  }, [selectedState, selectAndClose]);
+  }, []);
 
   const handleConfirm = () => {
     if (selectedLGA && selectedState) selectAndClose({ id: selectedLGA.id, name: selectedState.name, slug: selectedState.slug, lga: selectedLGA.name, lgaId: selectedLGA.id });
@@ -207,61 +206,54 @@ export default function LocationModal() {
     setSearchQuery('');
   };
 
-  // Reverse geocode using Nominatim — returns human-readable address
+  // Reverse geocode via server-side proxy — returns human-readable address
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<{ state: string; city: string; area: string; display: string; formattedAddress: string } | null> => {
-    const parseAddress = (addr: any) => {
+    const parseAddress = (addr: any): { state: string; city: string; area: string; formattedAddress: string } | null => {
       const state = addr.state || addr.region || '';
       const city = addr.city || addr.town || addr.village || addr.county || '';
       const area = addr.suburb || addr.neighbourhood || addr.road || '';
       const country = addr.country || '';
 
+      if (!state && !city && !area && !country) return null;
+
       const stateLabel = state.toLowerCase().includes('federal capital') || state.toLowerCase() === 'abuja'
         ? 'Federal Capital Territory (Abuja)'
         : state ? `${state} State` : '';
 
+      // Priority 1: Area + State (e.g. "Ikeja, Lagos State")
+      if (area && stateLabel) {
+        return { state, city, area, formattedAddress: `${area}, ${stateLabel}` };
+      }
+      // Priority 2: City + State (e.g. "Lekki, Lagos")
+      if (city && state) {
+        return { state, city, area, formattedAddress: `${city}, ${state}` };
+      }
+      // Priority 3: City + Country (e.g. "Abuja, Nigeria")
+      if (city && country) {
+        return { state, city, area, formattedAddress: `${city}, ${country}` };
+      }
+
+      // Fallback: build from available parts
       const parts: string[] = [];
       if (area) parts.push(area);
       if (city && city !== area) parts.push(city);
       if (stateLabel) parts.push(stateLabel);
       if (country) parts.push(country);
-
       const formattedAddress = parts.length > 0 ? parts.join(', ') : state || country || '';
       return { state, city, area, formattedAddress };
     };
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
-        { signal: controller.signal }
-      );
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(`/api/geocode?lat=${lat}&lon=${lng}`, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error('Geocoding failed');
       const data = await res.json();
+      if (data.error) throw new Error(data.error);
       const result = parseAddress(data.address || {});
-      if (result.formattedAddress) {
+      if (result) {
         return { ...result, display: data.display_name || '' };
-      }
-    } catch {}
-
-    // Fallback: try search endpoint with coordinate string
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${lat}+${lng}&limit=1&addressdetails=1`,
-        { signal: controller.signal }
-      );
-      clearTimeout(timeoutId);
-      if (res.ok) {
-        const results = await res.json();
-        if (results.length > 0) {
-          const result = parseAddress(results[0].address || {});
-          if (result.formattedAddress) {
-            return { ...result, display: results[0].display_name || '' };
-          }
-        }
       }
     } catch {}
 
@@ -355,12 +347,12 @@ export default function LocationModal() {
               autoCloseAfterSuccess(fallback, address);
             }
           } else {
-            setDetectedAddress('Nigeria (detected)');
-            setGpsState('success');
+            setDetectedAddress('Could not identify location');
+            setGpsState('error');
           }
         } catch {
-          setDetectedAddress('Nigeria (detected)');
-          setGpsState('success');
+          setDetectedAddress('Could not identify location');
+          setGpsState('error');
         }
       },
       (err) => {
@@ -391,6 +383,8 @@ export default function LocationModal() {
         return 'GPS signal not found. Please move to an open area and try again, or select manually.';
       case 'Location request timed out':
         return 'The request took too long. Please check your connection and try again.';
+      case 'Could not identify location':
+        return 'We found your coordinates but could not determine the address. Please select manually.';
       default:
         return 'We could not detect your location. Please try again or select manually.';
     }
@@ -465,10 +459,10 @@ export default function LocationModal() {
                       onClick={handleDetectLocation}
                       className="w-full flex items-center gap-3 p-3 transition-all group"
                     >
-                      <div className="relative flex-shrink-0 flex items-center justify-center">
-                        <div className="absolute w-9 h-9 rounded-full bg-primary-100/60 animate-gps-pulse-idle" />
-                        <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm">
-                          <GpsCrosshair className="w-4 h-4 text-white animate-gps-float" />
+                      <div className="relative flex-shrink-0 flex items-center justify-center w-9 h-9">
+                        <div className="absolute inset-0 rounded-full bg-primary-100/40 animate-gps-pulse-idle" />
+                        <div className="relative flex items-center justify-center w-5 h-5 drop-shadow-[0_0_6px_rgba(79,70,229,0.4)]">
+                          <GpsCrosshair className="w-full h-full text-primary-600 animate-gps-float" />
                         </div>
                       </div>
 
@@ -481,8 +475,8 @@ export default function LocationModal() {
                         </span>
                       </div>
 
-                      <div className="w-7 h-7 rounded-full bg-primary-100/60 group-hover:bg-primary-200/60 flex items-center justify-center flex-shrink-0 transition-colors">
-                        <Navigation className="w-3.5 h-3.5 text-primary-600" />
+                      <div className="w-6 h-6 rounded-full bg-primary-100/60 group-hover:bg-primary-200/60 flex items-center justify-center flex-shrink-0 transition-colors">
+                        <Navigation className="w-3 h-3 text-primary-600" />
                       </div>
                     </button>
                   )}
@@ -492,9 +486,9 @@ export default function LocationModal() {
                       <div className="relative flex-shrink-0 flex items-center justify-center w-9 h-9">
                         <div className="absolute inset-0 rounded-full border border-primary-300 animate-gps-radar-1" />
                         <div className="absolute inset-0 rounded-full border border-primary-300 animate-gps-radar-2" />
-                        <div className="absolute inset-0 rounded-full border-t-2 border-primary-400 rounded-full animate-gps-rotate w-9 h-9" />
-                        <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-sm animate-gps-blink-dot">
-                          <GpsCrosshair className="w-4 h-4 text-white" />
+                        <div className="absolute inset-0 rounded-full border-t-2 border-primary-400 animate-gps-rotate" />
+                        <div className="relative flex items-center justify-center w-5 h-5 animate-gps-blink-dot">
+                          <GpsCrosshair className="w-full h-full text-primary-600" />
                         </div>
                       </div>
 
@@ -513,13 +507,13 @@ export default function LocationModal() {
 
                   {gpsState === 'success' && (
                     <div className="flex items-center gap-3 p-3">
-                      <div className="relative flex-shrink-0 flex items-center justify-center">
-                        <div className="absolute w-9 h-9 rounded-full bg-primary-100/60 animate-gps-pulse-success" />
-                        <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm">
-                          <div className="relative">
-                            <GpsCrosshair className="w-4 h-4 text-white" />
-                            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center shadow-xs">
-                              <Check className="w-2 h-2 text-primary-600" />
+                      <div className="relative flex-shrink-0 flex items-center justify-center w-9 h-9">
+                        <div className="absolute inset-0 rounded-full bg-primary-100/40 animate-gps-pulse-success" />
+                        <div className="relative flex items-center justify-center">
+                          <div className="relative w-5 h-5">
+                            <GpsCrosshair className="w-full h-full text-primary-600" />
+                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-primary-600 rounded-full flex items-center justify-center">
+                              <Check className="w-1.5 h-1.5 text-white" />
                             </div>
                           </div>
                         </div>
@@ -536,8 +530,8 @@ export default function LocationModal() {
                         )}
                       </div>
 
-                      <div className="w-7 h-7 rounded-full bg-primary-100/60 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3.5 h-3.5 text-primary-600" />
+                      <div className="w-6 h-6 rounded-full bg-primary-100/60 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3 h-3 text-primary-600" />
                       </div>
                     </div>
                   )}
@@ -545,12 +539,12 @@ export default function LocationModal() {
                   {gpsState === 'error' && (
                     <div className="p-3">
                       <div className="flex items-center gap-3">
-                        <div className="relative flex-shrink-0 flex items-center justify-center animate-gps-error-shake">
-                          <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center shadow-sm">
-                            <div className="relative">
-                              <GpsCrosshair className="w-4 h-4 text-white" />
-                              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center shadow-xs">
-                                <X className="w-2 h-2 text-red-600" />
+                        <div className="relative flex-shrink-0 flex items-center justify-center w-9 h-9 animate-gps-error-shake">
+                          <div className="relative flex items-center justify-center">
+                            <div className="relative w-5 h-5">
+                              <GpsCrosshair className="w-full h-full text-red-500" />
+                              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full flex items-center justify-center">
+                                <X className="w-1.5 h-1.5 text-white" />
                               </div>
                             </div>
                           </div>
