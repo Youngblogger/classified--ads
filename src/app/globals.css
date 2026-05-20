@@ -630,4 +630,117 @@ body {
     }
   }
 
+  /* ===== GPS / Precise Location Animations ===== */
+
+  .animate-gps-rotate {
+    animation: gpsRotate 1.2s linear infinite;
+  }
+
+  @keyframes gpsRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-gps-radar-1 {
+    animation: gpsRadar 2s ease-out infinite;
+  }
+
+  .animate-gps-radar-2 {
+    animation: gpsRadar 2s ease-out infinite 0.6s;
+  }
+
+  .animate-gps-radar-3 {
+    animation: gpsRadar 2s ease-out infinite 1.2s;
+  }
+
+  @keyframes gpsRadar {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.8); opacity: 0; }
+  }
+
+  .animate-gps-blink-dot {
+    animation: gpsBlinkDot 0.8s ease-in-out infinite;
+  }
+
+  @keyframes gpsBlinkDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.92); }
+  }
+
+  .animate-gps-glow {
+    animation: gpsGlow 2.4s ease-in-out infinite;
+  }
+
+  @keyframes gpsGlow {
+    0%, 100% { box-shadow: 0 0 8px rgba(0, 180, 63, 0.15); }
+    50% { box-shadow: 0 0 20px rgba(0, 180, 63, 0.35); }
+  }
+
+  .animate-gps-float {
+    animation: gpsFloat 3s ease-in-out infinite;
+  }
+
+  @keyframes gpsFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+  }
+
+  .animate-gps-success-check {
+    animation: gpsSuccessCheck 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes gpsSuccessCheck {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.25); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .animate-gps-pulse-success {
+    animation: gpsPulseSuccess 2s ease-in-out infinite;
+  }
+
+  @keyframes gpsPulseSuccess {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+    50% { box-shadow: 0 0 0 14px rgba(34, 197, 94, 0); }
+  }
+
+  .animate-gps-pulse-idle {
+    animation: gpsPulseIdle 2s ease-in-out infinite;
+  }
+
+  @keyframes gpsPulseIdle {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 180, 63, 0.2); }
+    50% { box-shadow: 0 0 0 10px rgba(0, 180, 63, 0); }
+  }
+
+  .animate-gps-error-shake {
+    animation: gpsErrorShake 0.5s ease-in-out;
+  }
+
+  @keyframes gpsErrorShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+  }
+
+  .animate-gps-fade-out {
+    animation: gpsFadeOut 0.4s ease-out forwards;
+  }
+
+  @keyframes gpsFadeOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.96); }
+  }
+
+  .animate-gps-detecting-pulse {
+    animation: gpsDetectingPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes gpsDetectingPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 180, 63, 0.3); }
+    50% { box-shadow: 0 0 0 16px rgba(0, 180, 63, 0); }
+  }
+
 }
