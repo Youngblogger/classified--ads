@@ -340,51 +340,51 @@ export default function SellerProfileCard({
         
         {/* Right side - Name and Follow button */}
         <div className="flex-1 min-w-0">
-          {/* Line 1: Name + Verified Badge */}
-          <div className="flex items-center gap-3 min-w-0">
-            <span
-              className="font-bold text-dark truncate"
-              style={{ fontSize: currentSizes.name, maxWidth: '120px' }}
-            >
-              {seller.name || 'Unknown Seller'}
-            </span>
-            {((seller as any).is_verified || seller.verified) && <VerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
-          </div>
-          
-          {/* Follow Button - right side */}
-          {showFollowButton && seller.id && (
-            <div className="mt-2 flex justify-end">
+          {/* Line 1: Name + Follow Button (same row) */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <span
+                className="font-bold text-dark truncate"
+                style={{ fontSize: currentSizes.name }}
+              >
+                {seller.name || 'Unknown Seller'}
+              </span>
+              {((seller as any).is_verified || seller.verified) && <VerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
+            </div>
+            
+            {/* Follow Button - inline with name */}
+            {showFollowButton && seller.id && (
               <button
                 onClick={handleFollow}
                 disabled={isLoading || isInitializing || isOwnProfile}
                 className={`
-                  flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 flex-shrink-0
+                  flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all duration-300 shadow-sm hover:shadow-md flex-shrink-0
                   ${isFollowing 
-                    ? 'bg-accent-600 text-white border-2 border-accent-600 cursor-default' 
-                    : 'bg-[#E5E7EB] text-gray-800 hover:bg-accent-600 hover:text-white border-2 border-gray-400'
+                    ? 'bg-accent-600 text-white border border-accent-600 cursor-default' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-accent-600 hover:text-white border border-gray-300'
                   }
                   ${(isLoading || isInitializing) ? 'opacity-70 cursor-wait' : isFollowing ? '' : 'cursor-pointer'}
                 `}
               >
                 {isLoading ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="w-2.5 h-2.5 animate-spin" />
                 ) : isFollowing ? (
                   <>
-                    <CheckCircle className="w-3 h-3" />
+                    <CheckCircle className="w-2.5 h-2.5" />
                     <span>Following</span>
                   </>
                 ) : (
                   <>
-                    <UserPlus className="w-3 h-3" />
+                    <UserPlus className="w-2.5 h-2.5" />
                     <span>Follow</span>
                   </>
                 )}
               </button>
-            </div>
-          )}
+            )}
+          </div>
           
           {/* Line 2: Followers count */}
-          <div className="flex items-center gap-x-3 gap-y-1 mt-1">
+          <div className="flex items-center gap-x-3 gap-y-1 mt-0.5">
             <span className="text-xs text-gray-500">
               {followersCount > 0 ? formatFollowers(followersCount) : '0 followers'}
             </span>
