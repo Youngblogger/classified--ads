@@ -267,16 +267,17 @@ export default function LocationModal() {
 
   // Auto-close after successful detection
   const autoCloseAfterSuccess = useCallback((matched: { id?: number; name: string; slug: string; lga: string | null; lgaId?: number }, formattedAddress: string) => {
-    // Show success state for 1.5s, then auto-close
     closeTimerRef.current = setTimeout(() => {
       setIsClosing(true);
       setTimeout(() => {
         selectAndClose(matched);
       }, 400);
-    }, 1800);
+    }, 3000);
   }, [selectAndClose]);
 
   const handleDetectLocation = useCallback(async () => {
+    console.log('[GPS] Starting precise location detection...');
+
     if (!navigator.geolocation) {
       setGpsState('error');
       setDetectedAddress('Geolocation is not supported by your browser');
@@ -288,18 +289,27 @@ export default function LocationModal() {
     setGeoError(null);
     try { localStorage.removeItem(CACHED_DETECTION_KEY); } catch {}
 
-    let watchId: number | null = null;
     let resolved = false;
-    let bestPos: { lat: number; lng: number; acc: number } | null = null;
 
-    const processCoords = async (lat: number, lng: number) => {
+    // Overall safety timeout: show error if nothing resolves in 25s
+    const safetyTimer = setTimeout(() => {
       if (resolved) return;
       resolved = true;
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      console.error('[GPS] Safety timeout — no position after 25s');
+      setDetectedAddress('Could not get accurate GPS fix');
+      setGpsState('error');
+    }, 25000);
+
+    const processCoords = async (lat: number, lng: number) => {
+      clearTimeout(safetyTimer);
+      if (resolved) return;
+      resolved = true;
+      console.log(`[GPS] Processing: lat=${lat}, lng=${lng}`);
 
       try {
         const geo = await reverseGeocode(lat, lng);
         if (geo) {
+          console.log('[GEO] Reverse geocode result:', geo);
           const matched = matchToLocation(geo);
           const address = geo.formattedAddress;
 
@@ -320,66 +330,57 @@ export default function LocationModal() {
           setDetectedAddress('Could not identify location');
           setGpsState('error');
         }
-      } catch {
+      } catch (err) {
+        console.error('[GEO] Reverse geocode threw:', err);
         setDetectedAddress('Could not identify location');
         setGpsState('error');
       }
     };
 
-    watchId = navigator.geolocation.watchPosition(
+    // Phase 1: Try high-accuracy GPS with 10s timeout
+    navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
-        bestPos = { lat: latitude, lng: longitude, acc: accuracy };
-
-        // Immediate accept for good GPS fix (< 80m)
-        if (accuracy < 80) {
+        console.log(`[GPS] High-accuracy result: ${latitude},${longitude} (accuracy: ${accuracy}m)`);
+        if (accuracy < 1000) {
           processCoords(latitude, longitude);
+        } else {
+          console.warn(`[GPS] High-accuracy accuracy too poor (${accuracy}m > 1000m)`);
+          // Fall through to Phase 2
+          tryPhase2();
         }
       },
       (err) => {
-        if (resolved) return;
-        resolved = true;
-        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-        setGpsState('error');
-        switch (err.code) {
-          case err.PERMISSION_DENIED: setDetectedAddress('Location access denied'); break;
-          case err.POSITION_UNAVAILABLE: setDetectedAddress('Location unavailable'); break;
-          case err.TIMEOUT: setDetectedAddress('Location request timed out'); break;
-          default: setDetectedAddress('An error occurred');
-        }
+        console.warn(`[GPS] High-accuracy failed (${err.code}), trying low-accuracy...`);
+        tryPhase2();
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
 
-    // Progressive fallback: 5s → accept moderate accuracy, 12s → accept anything
-    setTimeout(() => {
-      if (resolved || !bestPos) return;
-      // Accuracy < 500m is reasonable — use it
-      if (bestPos.acc < 500) {
-        processCoords(bestPos.lat, bestPos.lng);
-      }
-    }, 5000);
-
-    setTimeout(() => {
+    // Phase 2: Fallback to standard accuracy (10s timeout)
+    const tryPhase2 = () => {
       if (resolved) return;
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      if (bestPos) {
-        // Use best position we got, even if accuracy is poor
-        processCoords(bestPos.lat, bestPos.lng);
-      } else {
-        // No position at all — one last try with low accuracy mode
-        navigator.geolocation.getCurrentPosition(
-          (pos) => processCoords(pos.coords.latitude, pos.coords.longitude),
-          () => {
-            if (resolved) return;
-            resolved = true;
-            setDetectedAddress('Could not get GPS fix');
-            setGpsState('error');
-          },
-          { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
-        );
-      }
-    }, 12000);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          console.log(`[GPS] Standard result: ${latitude},${longitude} (accuracy: ${accuracy}m)`);
+          processCoords(latitude, longitude);
+        },
+        (err) => {
+          if (resolved) return;
+          resolved = true;
+          console.error('[GPS] All positioning failed:', err);
+          setGpsState('error');
+          switch (err.code) {
+            case err.PERMISSION_DENIED: setDetectedAddress('Location access denied'); break;
+            case err.POSITION_UNAVAILABLE: setDetectedAddress('Location unavailable'); break;
+            case err.TIMEOUT: setDetectedAddress('Location request timed out'); break;
+            default: setDetectedAddress('An error occurred');
+          }
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+      );
+    };
   }, [reverseGeocode, matchToLocation, autoCloseAfterSuccess, cacheDetection]);
 
   const getGpsErrorDescription = (): string => {
@@ -393,6 +394,7 @@ export default function LocationModal() {
       case 'Could not identify location':
         return 'We found your coordinates but could not determine the address. Please select manually.';
       case 'Could not get GPS fix':
+      case 'Could not get accurate GPS fix':
         return 'Unable to get a GPS position. Try moving to an open area or select your location manually.';
       default:
         return 'We could not detect your location. Please try again or select manually.';
@@ -506,7 +508,7 @@ export default function LocationModal() {
                           Getting your precise location...
                         </span>
                         <span className="text-[11px] text-gray-500 block truncate">
-                          Acquiring GPS signal
+                          Determining your location
                         </span>
                       </div>
 
@@ -529,18 +531,12 @@ export default function LocationModal() {
                       </div>
 
                       <div className="flex-1 text-left min-w-0">
-                        {detectedAddress ? (
-                          <>
-                            <span className="text-sm font-semibold text-gray-900 block truncate">
-                              {detectedAddress}
-                            </span>
-                            <span className="text-[11px] text-green-600 block truncate">
-                              GPS verified location
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-sm font-semibold text-gray-900 block">
-                            Location detected!
+                        <span className="text-sm font-semibold text-gray-900 block truncate">
+                          {detectedAddress || 'Location detected'}
+                        </span>
+                        {detectedAddress && (
+                          <span className="text-[11px] text-green-600 block truncate">
+                            GPS verified location
                           </span>
                         )}
                       </div>

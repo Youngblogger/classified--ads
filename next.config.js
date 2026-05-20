@@ -18,7 +18,7 @@ const cspHeader = `
   base-uri 'self';
   form-action 'self';
   frame-ancestors 'none';
-  ${isProduction ? '' : 'upgrade-insecure-requests;'}
+  ${false ? 'upgrade-insecure-requests;' : ''}
 `;
 
 const nextConfig = {
