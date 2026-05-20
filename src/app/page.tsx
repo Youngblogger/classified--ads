@@ -181,40 +181,40 @@ export default function HomePage() {
               
               {/* Hero Image / Illustration */}
               <div className="hidden lg:block relative">
-                <div className="relative min-h-[220px]">
+                <div className="relative min-h-[200px]">
                   {/* Floating Cards */}
-                  <div className="absolute -top-2 -left-4 bg-white rounded-2xl shadow-2xl p-5 animate-fade-in">
-                    <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center">
-                        <Shield className="w-7 h-7 text-emerald-600" />
+                  <div className="absolute -top-2 -left-4 bg-white rounded-2xl shadow-lg p-3.5 animate-fade-in">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <Shield className="w-5 h-5 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-900">100% Safe</p>
-                        <p className="text-xs text-slate-500">Verified transactions</p>
+                        <p className="font-semibold text-slate-900 text-sm">100% Safe</p>
+                        <p className="text-[11px] text-slate-500">Verified transactions</p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="absolute top-1/3 right-0 bg-white rounded-2xl shadow-2xl p-5 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
-                        <Zap className="w-7 h-7 text-primary-600" />
+                  <div className="absolute top-1/3 right-0 bg-white rounded-2xl shadow-lg p-3.5 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
+                        <Zap className="w-5 h-5 text-primary-600" />
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-900">Quick Sale</p>
-                        <p className="text-xs text-slate-500">Sell in 24 hours</p>
+                        <p className="font-semibold text-slate-900 text-sm">Quick Sale</p>
+                        <p className="text-[11px] text-slate-500">Sell in 24 hours</p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="absolute bottom-4 left-6 bg-white rounded-2xl shadow-2xl p-5 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center">
-                        <Star className="w-7 h-7 text-amber-500" />
+                  <div className="absolute bottom-4 left-6 bg-white rounded-2xl shadow-lg p-3.5 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                        <Star className="w-5 h-5 text-amber-500" />
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-900">4.8/5 Rating</p>
-                        <p className="text-xs text-slate-500">10k+ reviews</p>
+                        <p className="font-semibold text-slate-900 text-sm">4.8/5 Rating</p>
+                        <p className="text-[11px] text-slate-500">10k+ reviews</p>
                       </div>
                     </div>
                   </div>
