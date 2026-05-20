@@ -919,11 +919,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           {/* Condition & Price Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Condition */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Condition <span className="text-red-500">*</span>
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {([
                   { key: 'new', label: 'Brand New', color: 'emerald' },
                   { key: 'like_new', label: 'Like New', color: 'blue' },
@@ -932,29 +932,18 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 ] as const).map(({ key, label, color }) => {
                   const isSelected = condition === key;
                   const colorClasses = {
-                    emerald: isSelected ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-700',
-                    blue: isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-blue-700',
-                    amber: isSelected ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-200 hover:border-amber-400 hover:bg-amber-50 text-amber-700',
-                    purple: isSelected ? 'border-purple-500 bg-purple-500 text-white' : 'border-purple-200 hover:border-purple-400 hover:bg-purple-50 text-purple-700',
-                  };
-                  const checkColor = {
-                    emerald: 'text-emerald-500',
-                    blue: 'text-blue-500',
-                    amber: 'text-amber-500',
-                    purple: 'text-purple-500',
+                    emerald: isSelected ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600',
+                    blue: isSelected ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600',
+                    amber: isSelected ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:text-amber-600',
+                    purple: isSelected ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-600',
                   };
                   return (
                     <button
                       key={key}
                       onClick={() => setCondition(key)}
-                      className={`group relative px-4 py-2 rounded-lg border-2 transition-all duration-300 ${colorClasses[color]}`}
+                      className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${colorClasses[color]}`}
                     >
-                      <span className="font-semibold text-sm">{label}</span>
-                      {isSelected && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center">
-                          <Check className={`w-3 h-3 ${checkColor[color]}`} />
-                        </div>
-                      )}
+                      {label}
                     </button>
                   );
                 })}
@@ -967,14 +956,14 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 Price <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-2xl font-bold">₦</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold">₦</span>
                 <input
                   type="text"
-                  value={formatPrice(price)}
+                  value={price}
                   onChange={handlePriceChange}
                   placeholder="0"
-                  className="w-full pl-12 pr-4 py-4 text-2xl border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-bold bg-white text-gray-900 placeholder:text-2xl placeholder:font-bold placeholder:text-gray-300"
-                  style={{ height: '80px' }}
+                  inputMode="numeric"
+                  className="w-full pl-9 pr-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-semibold bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-300"
                 />
               </div>
               <label className="flex items-center gap-3 cursor-pointer mt-3">

@@ -274,12 +274,6 @@ export default function PostAdWizard() {
     'new': 'Brand New', 'like_new': 'Like New', 'good': 'Used', 'fair': 'Refurbished'
   };
 
-  const formatPriceInput = (value: string) => {
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (!numericValue) return '';
-    return Number(numericValue).toLocaleString();
-  };
-
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPrice(e.target.value.replace(/[^0-9]/g, ''));
   };
@@ -552,20 +546,20 @@ export default function PostAdWizard() {
             </div>
 
             {/* Condition */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Condition <span className="text-red-500">*</span></label>
-              <div className="flex flex-wrap gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Condition <span className="text-red-500">*</span></label>
+              <div className="flex flex-wrap gap-1.5">
                 {([
                   { key: 'new', label: 'Brand New' }, { key: 'like_new', label: 'Like New' },
                   { key: 'good', label: 'Used' }, { key: 'fair', label: 'Refurbished' }
                 ] as const).map(({ key, label }) => (
                   <button
                     key={key} onClick={() => setCondition(key)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 ${
-                      condition === key ? 'border-primary-500 bg-primary-500 text-white' : 'border-gray-200 hover:border-primary-400 hover:bg-primary-50 text-gray-700'
+                    className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                      condition === key ? 'border-primary-500 bg-primary-500 text-white' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'
                     }`}
                   >
-                    <span className="font-semibold text-sm">{label}</span>
+                    {label}
                   </button>
                 ))}
               </div>
@@ -577,11 +571,12 @@ export default function PostAdWizard() {
                 Price <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-2xl font-bold">₦</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold">₦</span>
                 <input
-                  type="text" value={formatPriceInput(price)} onChange={handlePriceChange}
+                  type="text" value={price} onChange={handlePriceChange}
                   placeholder="0"
-                  className="w-full pl-12 pr-4 py-4 text-2xl border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all font-bold bg-white text-gray-900 placeholder:text-2xl placeholder:font-bold placeholder:text-gray-300"
+                  inputMode="numeric"
+                  className="w-full pl-9 pr-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all font-semibold bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-300"
                 />
               </div>
               <label className="flex items-center gap-3 cursor-pointer mt-4">
