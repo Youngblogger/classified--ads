@@ -207,7 +207,7 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium rounded-lg border border-gray-300 transition-colors"
             >
               Cancel
             </button>

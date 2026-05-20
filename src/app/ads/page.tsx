@@ -296,7 +296,7 @@ function AdsPageContent() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <ResponsiveHeader />
-      <main className="flex-1 w-full px-4 pt-[44px] pb-6 md:px-6 md:pt-[56px] lg:px-8">
+      <main className="flex-1 w-full px-4 pb-6 md:px-6 md:pt-24 lg:px-8">
 
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
           {/* Mobile Filter Overlay */}
