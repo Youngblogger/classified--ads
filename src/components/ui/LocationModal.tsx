@@ -42,6 +42,7 @@ interface CachedDetection {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 const CACHED_DETECTION_KEY = 'ilist-cached-detection';
+const SELECTED_LOCATION_KEY = 'ilist-selected-location';
 const CACHE_TTL = 30 * 60 * 1000;
 
 type GpsState = 'idle' | 'detecting' | 'success' | 'error';
@@ -94,22 +95,6 @@ export default function LocationModal() {
     }
   };
 
-  // Check for cached detection on modal open
-  const getCachedDetection = useCallback((): CachedDetection | null => {
-    try {
-      const raw = localStorage.getItem(CACHED_DETECTION_KEY);
-      if (!raw) return null;
-      const cached: CachedDetection = JSON.parse(raw);
-      if (Date.now() - cached.timestamp > CACHE_TTL) {
-        localStorage.removeItem(CACHED_DETECTION_KEY);
-        return null;
-      }
-      return cached;
-    } catch {
-      return null;
-    }
-  }, []);
-
   const cacheDetection = useCallback((data: CachedDetection) => {
     try {
       localStorage.setItem(CACHED_DETECTION_KEY, JSON.stringify(data));
@@ -130,15 +115,8 @@ export default function LocationModal() {
         clearTimeout(closeTimerRef.current);
         closeTimerRef.current = null;
       }
-
-      // Check cache for quick load
-      const cached = getCachedDetection();
-      if (cached && cached.matchedLocation) {
-        setDetectedAddress(cached.formattedAddress);
-        setGpsState('success');
-      }
     }
-  }, [isLocationModalOpen, locations, getCachedDetection]);
+  }, [isLocationModalOpen, locations]);
 
   const handleClose = useCallback(() => {
     setSearchQuery('');
@@ -159,6 +137,7 @@ export default function LocationModal() {
 
   const selectAndClose = useCallback((loc: { id?: number; name: string; slug: string; lga: string | null; lgaId?: number }) => {
     setSelectedLocation(loc);
+    try { localStorage.setItem(SELECTED_LOCATION_KEY, JSON.stringify({ name: loc.name, slug: loc.slug, lga: loc.lga, lgaId: loc.lgaId })); } catch {}
     handleClose();
   }, [setSelectedLocation, handleClose]);
 
@@ -210,37 +189,36 @@ export default function LocationModal() {
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<{ state: string; city: string; area: string; display: string; formattedAddress: string } | null> => {
     const parseAddress = (addr: any): { state: string; city: string; area: string; formattedAddress: string } | null => {
       const state = addr.state || addr.region || '';
-      const city = addr.city || addr.town || addr.village || addr.county || '';
-      const area = addr.suburb || addr.neighbourhood || addr.road || '';
       const country = addr.country || '';
 
-      if (!state && !city && !area && !country) return null;
+      if (!state && !country) return null;
+
+      // Use locality/town/city only — NEVER road/street/building
+      const locality = addr.suburb || addr.neighbourhood || addr.village || addr.town || addr.city || addr.county || '';
+      const city = addr.city || addr.town || addr.village || addr.county || '';
 
       const stateLabel = state.toLowerCase().includes('federal capital') || state.toLowerCase() === 'abuja'
         ? 'Federal Capital Territory (Abuja)'
         : state ? `${state} State` : '';
 
-      // Priority 1: Area + State (e.g. "Ikeja, Lagos State")
-      if (area && stateLabel) {
-        return { state, city, area, formattedAddress: `${area}, ${stateLabel}` };
+      // Priority 1: Locality + State (e.g. "Ikeja, Lagos State")
+      if (locality && stateLabel) {
+        return { state, city, area: locality, formattedAddress: `${locality}, ${stateLabel}` };
       }
-      // Priority 2: City + State (e.g. "Lekki, Lagos")
-      if (city && state) {
-        return { state, city, area, formattedAddress: `${city}, ${state}` };
+      // Priority 2: Locality + State (short form) (e.g. "Lekki, Lagos")
+      if (locality && state) {
+        return { state, city, area: locality, formattedAddress: `${locality}, ${state}` };
       }
       // Priority 3: City + Country (e.g. "Abuja, Nigeria")
       if (city && country) {
-        return { state, city, area, formattedAddress: `${city}, ${country}` };
+        return { state, city, area: locality, formattedAddress: `${city}, ${country}` };
+      }
+      // Priority 4: State only (e.g. "Kwara State")
+      if (stateLabel) {
+        return { state, city, area: '', formattedAddress: stateLabel };
       }
 
-      // Fallback: build from available parts
-      const parts: string[] = [];
-      if (area) parts.push(area);
-      if (city && city !== area) parts.push(city);
-      if (stateLabel) parts.push(stateLabel);
-      if (country) parts.push(country);
-      const formattedAddress = parts.length > 0 ? parts.join(', ') : state || country || '';
-      return { state, city, area, formattedAddress };
+      return null;
     };
 
     try {
@@ -308,54 +286,73 @@ export default function LocationModal() {
     setGpsState('detecting');
     setDetectedAddress(null);
     setGeoError(null);
+    // Clear any stale cached detection to prevent old data interfering
+    try { localStorage.removeItem(CACHED_DETECTION_KEY); } catch {}
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const geo = await reverseGeocode(latitude, longitude);
-          if (geo) {
-            const matched = matchToLocation(geo);
-            const address = geo.formattedAddress;
+    let watchId: number | null = null;
+    let resolved = false;
+    const timeout = 20000;
 
-            if (matched) {
-              setDetectedAddress(address);
-              setGpsState('success');
+    const processCoords = async (lat: number, lng: number) => {
+      if (resolved) return;
+      resolved = true;
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
 
-              // Cache the successful detection
-              cacheDetection({
-                formattedAddress: address,
-                matchedLocation: matched,
-                timestamp: Date.now()
-              });
+      try {
+        const geo = await reverseGeocode(lat, lng);
+        if (geo) {
+          const matched = matchToLocation(geo);
+          const address = geo.formattedAddress;
 
-              autoCloseAfterSuccess(matched, address);
-            } else {
-              // Matched no location in our list, still show readable address
-              setDetectedAddress(address);
-              setGpsState('success');
+          if (matched) {
+            setDetectedAddress(address);
+            setGpsState('success');
 
-              const fallbackSlug = address.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-              const fallback = { name: address, slug: fallbackSlug, lga: null };
+            cacheDetection({
+              formattedAddress: address,
+              matchedLocation: matched,
+              timestamp: Date.now()
+            });
 
-              cacheDetection({
-                formattedAddress: address,
-                matchedLocation: fallback,
-                timestamp: Date.now()
-              });
-
-              autoCloseAfterSuccess(fallback, address);
-            }
+            autoCloseAfterSuccess(matched, address);
           } else {
-            setDetectedAddress('Could not identify location');
-            setGpsState('error');
+            setDetectedAddress(address);
+            setGpsState('success');
+
+            const fallbackSlug = address.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            const fallback = { name: address, slug: fallbackSlug, lga: null };
+
+            cacheDetection({
+              formattedAddress: address,
+              matchedLocation: fallback,
+              timestamp: Date.now()
+            });
+
+            autoCloseAfterSuccess(fallback, address);
           }
-        } catch {
+        } else {
           setDetectedAddress('Could not identify location');
           setGpsState('error');
         }
+      } catch {
+        setDetectedAddress('Could not identify location');
+        setGpsState('error');
+      }
+    };
+
+    // Use watchPosition to get the best fix within the timeout
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        // Accept if accuracy < 100m (good GPS fix)
+        if (accuracy < 100) {
+          processCoords(latitude, longitude);
+        }
       },
       (err) => {
+        if (resolved) return;
+        resolved = true;
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
         setGpsState('error');
         switch (err.code) {
           case err.PERMISSION_DENIED:
@@ -371,8 +368,39 @@ export default function LocationModal() {
             setDetectedAddress('An error occurred');
         }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout, maximumAge: 0 }
     );
+
+    // Fallback: use the best position available after timeout
+    setTimeout(() => {
+      if (resolved) return;
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      // One-shot fallback with whatever position we can get
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          processCoords(position.coords.latitude, position.coords.longitude);
+        },
+        (err) => {
+          if (resolved) return;
+          resolved = true;
+          setGpsState('error');
+          switch (err.code) {
+            case err.PERMISSION_DENIED:
+              setDetectedAddress('Location access denied');
+              break;
+            case err.POSITION_UNAVAILABLE:
+              setDetectedAddress('Location unavailable');
+              break;
+            case err.TIMEOUT:
+              setDetectedAddress('Location request timed out');
+              break;
+            default:
+              setDetectedAddress('An error occurred');
+          }
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
+      );
+    }, timeout);
   }, [reverseGeocode, matchToLocation, autoCloseAfterSuccess, cacheDetection]);
 
   const getGpsErrorDescription = (): string => {
@@ -492,12 +520,12 @@ export default function LocationModal() {
                         </div>
                       </div>
 
-                      <div className="flex-1 text-left">
+                      <div className="flex-1 text-left min-w-0">
                         <span className="text-sm font-semibold text-gray-900 block">
                           Detecting your location...
                         </span>
-                        <span className="text-[11px] text-gray-500">
-                          Please wait while we find you
+                        <span className="text-[11px] text-gray-500 block truncate">
+                          Acquiring GPS signal...
                         </span>
                       </div>
 
