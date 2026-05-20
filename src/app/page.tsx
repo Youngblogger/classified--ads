@@ -132,28 +132,28 @@ export default function HomePage() {
             }} />
           </div>
           
-          <div className="relative py-5 sm:py-6 md:py-8 lg:py-10 px-4">
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="relative py-6 sm:py-8 md:py-10 lg:py-12 px-5 sm:px-6">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
               {/* Hero Content */}
               <div className="text-center lg:text-left">
-                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 sm:mb-4 leading-tight">
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3 sm:mb-4 leading-tight">
                   Find Anything,<br />
                   <span className="text-accent-400">Sell Everything</span>
                 </h1>
-                <p className="text-sm sm:text-base text-primary-100 mb-4 sm:mb-6 max-w-lg mx-auto lg:mx-0">
+                <p className="text-sm sm:text-base lg:text-lg text-primary-100 mb-4 sm:mb-6 lg:mb-8 max-w-lg mx-auto lg:mx-0">
                   Nigeria&apos;s trusted marketplace. Connect with buyers and sellers near you.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center lg:justify-start">
                   <Link
                     href="/ads"
-                    className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white text-primary-600 rounded-full font-medium hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-xs sm:text-sm"
+                    className="inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3.5 bg-white text-primary-600 rounded-full font-medium hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-xs sm:text-sm"
                   >
                     <Search className="w-4 h-4" />
                     <span>Browse Ads</span>
                   </Link>
                   <Link
                     href="/post-ad"
-                    className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-accent-600 text-white rounded-full font-medium hover:bg-accent-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-xs sm:text-sm"
+                    className="inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3.5 bg-accent-600 text-white rounded-full font-medium hover:bg-accent-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-xs sm:text-sm"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Post Free Ad</span>
@@ -161,19 +161,19 @@ export default function HomePage() {
                 </div>
                 
                 {/* Stats */}
-                <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-6 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-primary-500/30">
-                  <div className="text-center lg:text-left">
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">50K+</p>
+                <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-6 mt-4 sm:mt-6 lg:mt-8 pt-4 sm:pt-6 border-t border-primary-500/30">
+                  <div>
+                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">50K+</p>
                     <p className="text-[10px] sm:text-xs text-primary-200">Active Ads</p>
                   </div>
-                  <div className="w-px h-6 sm:h-8 bg-primary-500/30" />
-                  <div className="text-center lg:text-left">
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">100K+</p>
+                  <div className="w-px h-6 sm:h-10 bg-primary-500/30" />
+                  <div>
+                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">100K+</p>
                     <p className="text-[10px] sm:text-xs text-primary-200">Happy Users</p>
                   </div>
-                  <div className="w-px h-6 sm:h-8 bg-primary-500/30" />
-                  <div className="text-center lg:text-left">
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">36</p>
+                  <div className="w-px h-6 sm:h-10 bg-primary-500/30" />
+                  <div>
+                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">36</p>
                     <p className="text-[10px] sm:text-xs text-primary-200">States</p>
                   </div>
                 </div>
@@ -181,12 +181,12 @@ export default function HomePage() {
               
               {/* Hero Image / Illustration */}
               <div className="hidden lg:block relative">
-                <div className="relative">
+                <div className="relative min-h-[220px]">
                   {/* Floating Cards */}
-                  <div className="absolute -top-4 -left-4 bg-white rounded-2xl shadow-2xl p-4 animate-fade-in">
+                  <div className="absolute -top-2 -left-4 bg-white rounded-2xl shadow-2xl p-5 animate-fade-in">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                        <Shield className="w-6 h-6 text-emerald-600" />
+                      <div className="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <Shield className="w-7 h-7 text-emerald-600" />
                       </div>
                       <div>
                         <p className="font-semibold text-slate-900">100% Safe</p>
@@ -195,10 +195,10 @@ export default function HomePage() {
                     </div>
                   </div>
                   
-                  <div className="absolute top-1/4 -right-4 bg-white rounded-2xl shadow-2xl p-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                  <div className="absolute top-1/3 right-0 bg-white rounded-2xl shadow-2xl p-5 animate-fade-in" style={{ animationDelay: '0.2s' }}>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
-                        <Zap className="w-6 h-6 text-primary-600" />
+                      <div className="w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
+                        <Zap className="w-7 h-7 text-primary-600" />
                       </div>
                       <div>
                         <p className="font-semibold text-slate-900">Quick Sale</p>
@@ -207,10 +207,10 @@ export default function HomePage() {
                     </div>
                   </div>
                   
-                  <div className="absolute bottom-0 left-8 bg-white rounded-2xl shadow-2xl p-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                  <div className="absolute bottom-4 left-6 bg-white rounded-2xl shadow-2xl p-5 animate-fade-in" style={{ animationDelay: '0.4s' }}>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                        <Star className="w-6 h-6 text-amber-500" />
+                      <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center">
+                        <Star className="w-7 h-7 text-amber-500" />
                       </div>
                       <div>
                         <p className="font-semibold text-slate-900">4.8/5 Rating</p>
@@ -236,10 +236,10 @@ export default function HomePage() {
 
 
         {/* Unified Latest Ads Feed */}
-        <section className="py-4 bg-white">
-          <div className="px-2 sm:px-4 md:px-6 lg:px-8">
+        <section className="py-5 sm:py-6 bg-white">
+          <div className="px-2 sm:px-4 md:px-6 lg:px-10">
             <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 whitespace-nowrap">
+              <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">
                 Latest Ads
               </h2>
               <Link href="/ads" className="text-xs sm:text-sm text-primary-600 hover:underline font-medium whitespace-nowrap">
@@ -265,7 +265,7 @@ export default function HomePage() {
               </div>
             ) : recentAds.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-5">
                   {buildUnifiedFeed(recentAds).map((ad: any) => (
                     <AdCard key={`ad-${ad.id}`} ad={ad} />
                   ))}
