@@ -195,6 +195,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     try {
       const draft = JSON.parse(raw);
       if (!draft?.savedAt || Date.now() - draft.savedAt > 24 * 60 * 60 * 1000) return;
+      if (draftRestored) return;
       if (!title && !description && !price && images.length === 0) {
         if (draft.step) setStep(draft.step);
         if (draft.title) setTitle(draft.title);
@@ -227,7 +228,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         setDraftRestored(true);
       }
     } catch {}
-  }, [title, description, price, images]);
+  }, [draftRestored, title, description, price, images]);
 
   // Auto-save draft while typing (debounced)
   useEffect(() => {
@@ -498,8 +499,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9]/g, '');
-    setPrice(value);
+    const raw = e.currentTarget.value.replace(/[^0-9]/g, '');
+    setPrice(raw);
   };
 
   const validateFile = (file: File): string | null => {
@@ -875,7 +876,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               </label>
               <button
                 onClick={() => setShowCategorySelector(true)}
-                className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
+                className="w-full flex items-center justify-between py-3 px-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
               >
                 <span className={`text-base font-medium ${categoryBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
                   {categoryBreadcrumb || 'Select Category'}
@@ -889,7 +890,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               </label>
               <button
                 onClick={() => setShowLocationSelector(true)}
-                className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
+                className="w-full flex items-center justify-between py-3 px-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all duration-300 bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
               >
                 <span className={`text-base font-medium ${locationBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
                   {locationBreadcrumb || 'Select Location'}
@@ -911,7 +912,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               placeholder="e.g. iPhone 14 Pro Max 256GB"
               className="w-full px-4 py-3 text-base font-bold border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 bg-white text-gray-900 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400"
               maxLength={100}
-              style={{ height: '60px' }}
             />
             <p className="text-sm text-gray-400 mt-2 text-right">{title.length}/100</p>
           </div>
@@ -957,14 +957,15 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold">₦</span>
-                <input
-                  type="text"
-                  value={price}
-                  onChange={handlePriceChange}
-                  placeholder="0"
-                  inputMode="numeric"
-                  className="w-full pl-9 pr-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-semibold bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-300"
-                />
+            <input
+              type="text"
+              value={price}
+              onChange={handlePriceChange}
+              onInput={handlePriceChange}
+              placeholder="Enter price"
+              inputMode="numeric"
+              className="w-full pl-9 pr-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-semibold bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-300"
+            />
               </div>
               <label className="flex items-center gap-3 cursor-pointer mt-3">
                 <input
@@ -1094,7 +1095,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                     <select
                       value={selectedBrand}
                       onChange={(e) => handleBrandChange(e.target.value)}
-                      className="w-full px-3 py-2.5 pr-10 border-2 border-gray-200 rounded-lg bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
                     >
                       <option value="">Select Brand</option>
                       {getAvailableBrands().map((brand) => (
@@ -1115,7 +1116,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       <select
                         value={selectedModel}
                         onChange={(e) => handleModelChange(e.target.value)}
-                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
                       >
                         <option value="">Select Model</option>
                         {getAvailableModels().map((model) => (
@@ -1137,7 +1138,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       <select
                         value={selectedConfig}
                         onChange={(e) => handleConfigChange(e.target.value)}
-                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
                       >
                         <option value="">Select Configuration</option>
                         {modelPresets.map((preset) => (
@@ -1162,7 +1163,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       <select
                         value={attributes['Year'] || ''}
                         onChange={(e) => handleAttributeChange('Year', e.target.value)}
-                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
                       >
                         <option value="">Select Year</option>
                         {selectedStructuredCategory.fields.find(f => f.name === 'Year')?.options.map((year) => (
@@ -1182,7 +1183,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       <select
                         value={attributes['Transmission'] || ''}
                         onChange={(e) => handleAttributeChange('Transmission', e.target.value)}
-                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
                       >
                         <option value="">Select Transmission</option>
                         {selectedStructuredCategory.fields.find(f => f.name === 'Transmission')?.options.map((trans) => (
@@ -1202,7 +1203,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       <select
                         value={attributes['Fuel Type'] || ''}
                         onChange={(e) => handleAttributeChange('Fuel Type', e.target.value)}
-                        className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
                       >
                         <option value="">Select Fuel Type</option>
                         {selectedStructuredCategory.fields.find(f => f.name === 'Fuel Type')?.options.map((fuel) => (
@@ -1229,7 +1230,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                     <select
                       value={attributes[field.name] || ''}
                       onChange={(e) => handleAttributeChange(field.name, e.target.value)}
-                      className="w-full px-4 py-3.5 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
                     >
                       <option value="">Select {field.name}</option>
                       {field.options.map((option) => (
@@ -1277,7 +1278,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                     className={`w-full pl-11 pr-4 py-3 text-base font-semibold text-gray-900 bg-white border-2 rounded-lg focus:outline-none focus:ring-4 transition-all duration-300 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 group-hover:border-primary-300 ${
                       phoneError ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-gray-200 focus:border-primary-500 focus:ring-primary-100'
                     }`}
-                    style={{ height: '56px' }}
                     maxLength={11}
                   />
                   {phoneError && (
@@ -1301,7 +1301,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       onChange={(e) => setWhatsapp(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
                       placeholder="e.g. 08034567890"
                       className="w-full pl-11 pr-4 py-3 text-base font-semibold text-gray-900 bg-white border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none focus:ring-4 focus:ring-green-100 transition-all duration-300 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 group-hover:border-green-400"
-                      style={{ height: '56px' }}
                       maxLength={11}
                     />
                   </div>

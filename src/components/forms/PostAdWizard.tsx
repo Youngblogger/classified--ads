@@ -275,7 +275,7 @@ export default function PostAdWizard() {
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPrice(e.target.value.replace(/[^0-9]/g, ''));
+    setPrice(e.currentTarget.value.replace(/[^0-9]/g, ''));
   };
 
   const isFormValid = title && description && price && parseFloat(price) > 0 && categoryId && locationId && images.length > 0 && condition;
@@ -437,7 +437,7 @@ export default function PostAdWizard() {
                 </label>
                 <button
                   onClick={() => setShowCategorySelector(true)}
-                  className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
+                  className="w-full flex items-center justify-between py-3 px-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
                 >
                   <span className={`text-base font-medium ${categoryBreadcrumb ? 'text-gray-900' : 'text-gray-400'}`}>
                     {categoryBreadcrumb || 'Select Category'}
@@ -451,7 +451,7 @@ export default function PostAdWizard() {
                 </label>
                 <button
                   onClick={() => setShowLocationSelector(true)}
-                  className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
+                  className="w-full flex items-center justify-between py-3 px-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all bg-white focus:outline-none focus:ring-4 focus:ring-primary-100"
                 >
                   <span className={`text-base font-medium ${selectedStateName ? 'text-gray-900' : 'text-gray-400'}`}>
                     {selectedStateName ? `${selectedStateName}${lgaId ? ` > ${lgaId}` : ''}` : 'Select Location'}
@@ -573,8 +573,8 @@ export default function PostAdWizard() {
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold">₦</span>
                 <input
-                  type="text" value={price} onChange={handlePriceChange}
-                  placeholder="0"
+                  type="text" value={price} onChange={handlePriceChange} onInput={handlePriceChange}
+                  placeholder="Enter price"
                   inputMode="numeric"
                   className="w-full pl-9 pr-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all font-semibold bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-300"
                 />
