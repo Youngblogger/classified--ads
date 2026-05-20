@@ -120,7 +120,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
       <ResponsiveHeader />
-      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4 mt-[48px] md:mt-[112px]">
+      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4 mt-[4px] md:mt-[96px]">
         <EnterpriseSidebar />
         <main className="flex-1 min-w-0 relative pt-0" suppressHydrationWarning>
           {/* Hero Section - Hidden on mobile */}

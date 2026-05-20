@@ -133,5 +133,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
+  // Reset selected location to All Nigeria when a logged-out user visits
+  useEffect(() => {
+    if (!mounted) return;
+
+    const timer = setTimeout(() => {
+      const { isAuthenticated } = useAuthStore.getState();
+      if (!isAuthenticated) {
+        const { selectedLocation, setSelectedLocation } = useGlobalStore.getState();
+        if (selectedLocation) {
+          console.log('[Auth] Logged-out user detected, resetting location to All Nigeria');
+          setSelectedLocation(null);
+        }
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [mounted]);
+
   return <>{children}</>;
 }
