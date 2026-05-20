@@ -120,7 +120,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
       <ResponsiveHeader />
-      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4 mt-[4px] md:mt-[96px]">
+      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4 mt-[8px] md:mt-[104px]">
         <EnterpriseSidebar />
         <main className="flex-1 min-w-0 relative pt-0" suppressHydrationWarning>
           {/* Hero Section - Hidden on mobile */}
@@ -265,7 +265,7 @@ export default function HomePage() {
               </div>
             ) : recentAds.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-5">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-1.5 sm:gap-2">
                   {buildUnifiedFeed(recentAds).map((ad: any) => (
                     <AdCard key={`ad-${ad.id}`} ad={ad} />
                   ))}

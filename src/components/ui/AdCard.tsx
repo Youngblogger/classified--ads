@@ -112,7 +112,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   }
 
   return (
-    <Link href={`/ad/${getSlug()}`} className={`bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 group block ${cardBoostClasses}`}>
+    <Link href={`/ad/${getSlug()}`} className={`bg-white rounded-xl overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group block ${cardBoostClasses}`}>
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         <Image
           src={showFallback ? getFallbackImage() : imageUrl}
