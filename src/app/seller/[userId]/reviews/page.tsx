@@ -9,6 +9,8 @@ import { sellerReviewsApi } from '@/lib/api';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import SellerReviewCard from '@/components/reviews/SellerReviewCard';
+import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
+import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 
 interface Review {
   id: number;
@@ -299,7 +301,10 @@ export default function SellerReviewsPage() {
                 )}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-dark">{seller?.name || 'Seller'}</h1>
+                <h1 className="text-2xl font-bold text-dark flex items-center gap-2">{seller?.name || 'Seller'}
+                  {(seller as any)?.is_verified_seller && <VerifiedSellerBadge size="md" />}
+                  {(seller as any)?.is_verified_business && <BusinessVerifiedBadge size="md" />}
+                </h1>
                 <p className="text-gray-500">Seller Reviews</p>
               </div>
             </div>

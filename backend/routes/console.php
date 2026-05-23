@@ -97,6 +97,9 @@ Schedule::call(function () {
         });
 })->daily();
 
+// Process saved searches (daily notifications)
+Schedule::command('saved-searches:process')->hourly();
+
 // Clean up expired cache entries
 Schedule::command('cache:clear --tags=metrics')->daily();
 

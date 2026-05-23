@@ -9,6 +9,8 @@ import { formatPrice, getAdImageUrl } from '@/lib/utils';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
 import toast from 'react-hot-toast';
+import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
+import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 
 // Icons
 const HeartIcon = ({ className }: { className?: string }) => (
@@ -47,6 +49,8 @@ interface FavoriteAd {
   lga?: string;
   user?: {
     name: string;
+    is_verified_seller?: boolean;
+    is_verified_business?: boolean;
   };
   created_at: string;
 }
@@ -243,6 +247,8 @@ export default function FavoritesPage() {
                   {item.ad.user && (
                     <div className="flex items-center gap-1">
                       <span>By {item.ad.user.name}</span>
+                      {item.ad.user.is_verified_seller && <VerifiedSellerBadge size="sm" />}
+                      {item.ad.user.is_verified_business && <BusinessVerifiedBadge size="sm" />}
                     </div>
                   )}
                 </div>

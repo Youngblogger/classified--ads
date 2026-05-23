@@ -231,8 +231,9 @@ class AdController extends Controller
             if ($autoApproval['should_auto_approve']) {
                 try {
                     \App\Jobs\NotifyFollowersOfNewAdJob::dispatch($ad->id, $user->id);
+                    \App\Jobs\CheckSavedSearchesJob::dispatch($ad);
                 } catch (\Exception $e) {
-                    Log::warning('Failed to dispatch follower notification: ' . $e->getMessage());
+                    Log::warning('Failed to dispatch notifications: ' . $e->getMessage());
                 }
             }
 

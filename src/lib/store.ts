@@ -12,6 +12,7 @@ interface AuthStore extends AuthState {
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
   updateAuth: (data: Partial<AuthState>) => void;
+  refreshUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -53,6 +54,25 @@ export const useAuthStore = create<AuthStore>()(
       setLoading: (isLoading) => set({ isLoading }),
       
       updateAuth: (data) => set(data),
+      
+      refreshUser: async () => {
+        try {
+          const { default: axios } = await import('axios');
+          const { getCookie } = await import('./cookies');
+          const token = getCookie('token') || get()?.token;
+          if (!token) return;
+          const res = await axios.get('/api/auth/me', {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          });
+          const userData = res.data?.data || res.data?.user || res.data;
+          if (userData && userData.id) {
+            set({ user: userData });
+          }
+        } catch {
+          // ignore refresh errors
+        }
+      },
     }),
     {
       name: 'user-auth-storage',

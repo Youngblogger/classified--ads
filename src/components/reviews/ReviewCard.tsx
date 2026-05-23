@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { Star, User, CheckCircle, Heart } from 'lucide-react';
 import axios from 'axios';
 import { getAuthToken } from '@/lib/cookies';
+import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
+import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -112,6 +114,8 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-semibold text-dark">{review.user.name}</span>
+            {(review.user as any).is_verified_seller && <VerifiedSellerBadge size="sm" />}
+            {(review.user as any).is_verified_business && <BusinessVerifiedBadge size="sm" />}
             {review.is_verified && (
               <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                 <CheckCircle className="w-3 h-3" />

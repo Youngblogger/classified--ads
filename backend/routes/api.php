@@ -36,6 +36,12 @@ use App\Http\Controllers\Api\AdModerationController;
 use App\Http\Controllers\Api\GrowthController;
 use App\Http\Controllers\Api\AdminAnalyticsController;
 use App\Http\Controllers\Api\AdminBoostController;
+use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\SavedSearchController;
+use App\Http\Controllers\Api\VerificationController;
+use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\BusinessVerificationController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -213,6 +219,28 @@ Route::prefix('secure-control-9ja')->middleware([\App\Http\Middleware\SecureAdmi
     Route::get('/analytics/summary', [AdminAnalyticsController::class, 'summary']);
     Route::get('/analytics/trends', [AdminAnalyticsController::class, 'trends']);
     Route::get('/analytics/revenue', [AdminAnalyticsController::class, 'revenueBreakdown']);
+
+    // Store Management
+    Route::get('/stores', [StoreController::class, 'adminIndex']);
+    Route::get('/stores/{id}', [StoreController::class, 'showById']);
+    Route::post('/stores/{id}/verify', [StoreController::class, 'adminVerify']);
+    Route::post('/stores/{id}/suspend', [StoreController::class, 'adminSuspend']);
+    Route::post('/stores/{id}/activate', [StoreController::class, 'adminActivate']);
+    Route::delete('/stores/{id}', [StoreController::class, 'adminDelete']);
+
+    // Personal Verification Management
+    Route::get('/verifications', [AdminController::class, 'verifications']);
+    Route::get('/verifications/{id}', [AdminController::class, 'verificationDetail']);
+    Route::post('/verifications/{id}/approve', [AdminController::class, 'approveVerification']);
+    Route::post('/verifications/{id}/reject', [AdminController::class, 'rejectVerification']);
+    Route::get('/verifications/stats', [AdminController::class, 'verificationStats']);
+
+    // Business Verification Management
+    Route::get('/business-verifications', [AdminController::class, 'businessVerifications']);
+    Route::get('/business-verifications/{id}', [AdminController::class, 'businessVerificationDetail']);
+    Route::post('/business-verifications/{id}/approve', [AdminController::class, 'approveBusinessVerification']);
+    Route::post('/business-verifications/{id}/reject', [AdminController::class, 'rejectBusinessVerification']);
+    Route::get('/business-verifications/stats', [AdminController::class, 'businessVerificationStats']);
 });
 
 // =====================================================
@@ -267,6 +295,18 @@ Route::prefix('locations')->middleware('cache-response:3600')->group(function ()
     Route::get('/', [LocationController::class, 'index']);
     Route::get('/{slug}', [LocationController::class, 'show']);
 });
+
+// Public Store Routes
+Route::prefix('stores')->group(function () {
+    Route::get('/{slug}', [StoreController::class, 'show']);
+    Route::get('/by-user/{userId}', [StoreController::class, 'getByUser']);
+    Route::get('/check-slug', [StoreController::class, 'checkSlug']);
+});
+
+// Analytics tracking routes (no auth required - used by frontend tracking)
+Route::post('/analytics/record-view/{adId}', [AnalyticsController::class, 'recordView']);
+Route::post('/analytics/record-click/{adId}', [AnalyticsController::class, 'recordClick']);
+Route::post('/analytics/record-share/{adId}', [AnalyticsController::class, 'recordShare']);
 
 // Icons (read-only public, write operations protected)
 Route::prefix('icons')->group(function () {
@@ -451,7 +491,59 @@ Route::middleware('auth.api')->group(function () {
     // Pending Payment Management
     Route::get('/payments/pending', [PaymentVerificationController::class, 'pendingPayments']);
     Route::post('/payments/{paymentIntentId}/cancel', [PaymentVerificationController::class, 'cancelPayment']);
+
+    // Store Management
+    Route::get('/my-store', [StoreController::class, 'myStore']);
+    Route::post('/stores', [StoreController::class, 'store']);
+    Route::match(['post', 'put'], '/stores/update', [StoreController::class, 'update']);
+    Route::post('/stores/upload-logo', [StoreController::class, 'uploadLogo']);
+    Route::post('/stores/upload-banner', [StoreController::class, 'uploadBanner']);
+    Route::post('/stores/{storeId}/follow', [StoreController::class, 'follow']);
+    Route::delete('/stores/{storeId}/unfollow', [StoreController::class, 'unfollow']);
+    Route::get('/stores/{storeId}/check-follow', [StoreController::class, 'checkFollow']);
+    Route::get('/stores/{storeId}/followers', [StoreController::class, 'followers']);
+    Route::get('/store/analytics', [StoreController::class, 'analytics']);
+    Route::get('/store/dashboard-analytics', [StoreController::class, 'dashboardAnalytics']);
+
+    // Saved Searches
+    Route::get('/saved-searches', [SavedSearchController::class, 'index']);
+    Route::post('/saved-searches', [SavedSearchController::class, 'store']);
+    Route::get('/saved-searches/{id}', [SavedSearchController::class, 'show']);
+    Route::put('/saved-searches/{id}', [SavedSearchController::class, 'update']);
+    Route::delete('/saved-searches/{id}', [SavedSearchController::class, 'destroy']);
+    Route::get('/saved-searches/{id}/search', [SavedSearchController::class, 'search']);
+
+    // Verification Center (Personal)
+    Route::get('/verifications', [VerificationController::class, 'myVerifications']);
+    Route::post('/verifications/phone', [VerificationController::class, 'submitPhone']);
+    Route::post('/verifications/email', [VerificationController::class, 'submitEmail']);
+    Route::post('/verifications/identity', [VerificationController::class, 'submitIdentity']);
+    Route::get('/verifications/status', [VerificationController::class, 'getStatus']);
+    Route::post('/verifications/upload', [VerificationController::class, 'uploadDocument']);
+
+    // Email Verification Flow (link-based)
+    Route::post('/email-verification/send', [EmailVerificationController::class, 'sendVerificationEmail']);
+    Route::post('/email-verification/resend', [EmailVerificationController::class, 'resendVerificationEmail']);
+    Route::get('/email-verification/status', [EmailVerificationController::class, 'status']);
+
+    // Business Verification (separate from personal)
+    Route::get('/business-verification', [BusinessVerificationController::class, 'myBusinessVerification']);
+    Route::post('/business-verification', [BusinessVerificationController::class, 'submit']);
+    Route::get('/business-verification/status', [BusinessVerificationController::class, 'getStatus']);
+    Route::post('/business-verification/upload', [BusinessVerificationController::class, 'uploadDocument']);
+
+    // Seller Analytics
+    Route::get('/analytics/overview', [AnalyticsController::class, 'overview']);
+    Route::get('/analytics/ad-performance', [AnalyticsController::class, 'adPerformance']);
+    Route::get('/analytics/ad/{adId}', [AnalyticsController::class, 'singleAdPerformance']);
+    Route::get('/analytics/daily', [AnalyticsController::class, 'dailyBreakdown']);
+    Route::get('/analytics/trends', [AnalyticsController::class, 'trends']);
+    Route::get('/analytics/top-ads', [AnalyticsController::class, 'topAds']);
+    Route::get('/analytics/store', [AnalyticsController::class, 'storePerformance']);
 });
+
+// Email verification callback (no auth - user clicks link from email)
+Route::post('/email-verification/verify', [EmailVerificationController::class, 'verify']);
 
 Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'handlePaystackWebhook']);
 

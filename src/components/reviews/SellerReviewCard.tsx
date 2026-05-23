@@ -6,6 +6,8 @@ import { Star, User, CheckCircle, Heart } from 'lucide-react';
 import axios from 'axios';
 import { useAuthStore } from '@/lib/store';
 import type { SellerReview } from '@/types';
+import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
+import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -124,12 +126,8 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
               <span className="font-semibold text-dark">
                 {review.user?.name || 'Anonymous User'}
               </span>
-              {review.user?.verified && (
-                <span className="flex items-center gap-1 text-xs text-[#4B5320] bg-[#4B5320]/10 px-2 py-0.5 rounded-full">
-                  <CheckCircle className="w-3 h-3" />
-                  Verified
-                </span>
-              )}
+              {(review.user as any)?.is_verified_seller && <VerifiedSellerBadge size="sm" />}
+              {(review.user as any)?.is_verified_business && <BusinessVerifiedBadge size="sm" />}
             </div>
             <span className="text-xs text-gray-400">{formatDate(review.created_at)}</span>
           </div>

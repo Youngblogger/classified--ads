@@ -6,6 +6,8 @@ import { CheckCircle, UserPlus, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { API_URL, BACKEND_URL } from '@/lib/config';
 import toast from 'react-hot-toast';
+import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
+import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 
 interface SellerProfileCardProps {
   seller: {
@@ -349,7 +351,8 @@ export default function SellerProfileCard({
               >
                 {seller.name || 'Unknown Seller'}
               </span>
-              {((seller as any).is_verified || seller.verified) && <VerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
+              {((seller as any).is_verified_seller || seller.verified) && <VerifiedSellerBadge size={size === 'sm' ? 'sm' : 'md'} />}
+              {((seller as any).is_verified_business) && <BusinessVerifiedBadge size={size === 'sm' ? 'sm' : 'md'} />}
             </div>
             
             {/* Follow Button - inline with name */}

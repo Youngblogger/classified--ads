@@ -12,9 +12,13 @@ use App\Models\Transaction;
 use App\Models\Wallet;
 use App\Models\PaymentIntent;
 use App\Models\BoostedAd;
+use App\Models\Store;
+use App\Models\UserVerification;
+use App\Models\BusinessVerification;
 use App\Services\NotificationService;
 use App\Services\AdminEmailNotificationService;
 use App\Services\CacheService;
+use App\Services\AuditService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -1327,5 +1331,190 @@ class AdminController extends Controller
                 'last_page' => $ads->lastPage(),
             ],
         ]);
+    }
+
+    // Verification Management
+    public function verifications(Request $request)
+    {
+        $query = UserVerification::with(['user', 'verifiedBy']);
+
+        if ($request->type) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $verifications = $query->orderBy('created_at', 'desc')
+            ->paginate($request->input('per_page', 20));
+
+        return response()->json($verifications);
+    }
+
+    public function verificationDetail($id)
+    {
+        $verification = UserVerification::with(['user', 'verifiedBy'])->findOrFail($id);
+        return response()->json($verification);
+    }
+
+    public function approveVerification(Request $request, $id)
+    {
+        $verification = UserVerification::findOrFail($id);
+
+        if ($verification->status !== 'pending') {
+            return response()->json(['message' => 'Verification is not pending'], 400);
+        }
+
+        $admin = $request->user();
+        $verification->approve($admin->id);
+
+        $verification->user->refresh();
+        if ($verification->user->verification_progress['is_full_verified_seller']) {
+            $verification->user->update([
+                'is_verified_seller' => true,
+                'seller_verified_at' => now(),
+            ]);
+            NotificationService::sellerBadgeActivated($verification->user);
+        }
+
+        NotificationService::send(
+            $verification->user_id,
+            'verification_approved',
+            'Verification Approved ✅',
+            "Your {$verification->type} verification has been approved!",
+            ['type' => $verification->type]
+        );
+
+        AuditService::verificationApproved($verification->id, $admin->id, $verification->user_id, $verification->type);
+
+        return response()->json(['message' => 'Verification approved', 'verification' => $verification]);
+    }
+
+    public function rejectVerification(Request $request, $id)
+    {
+        $request->validate(['reason' => 'required|string']);
+
+        $verification = UserVerification::findOrFail($id);
+
+        if ($verification->status !== 'pending') {
+            return response()->json(['message' => 'Verification is not pending'], 400);
+        }
+
+        $admin = $request->user();
+        $verification->reject($request->reason, $admin->id);
+
+        $verification->user->update([
+            'is_verified_seller' => false,
+            'seller_verified_at' => null,
+        ]);
+
+        NotificationService::send(
+            $verification->user_id,
+            'verification_rejected',
+            'Verification Rejected ❌',
+            "Your {$verification->type} verification was not approved. Reason: {$request->reason}",
+            ['type' => $verification->type, 'reason' => $request->reason]
+        );
+
+        AuditService::verificationRejected($verification->id, $admin->id, $verification->user_id, $verification->type, $request->reason);
+
+        return response()->json(['message' => 'Verification rejected', 'verification' => $verification]);
+    }
+
+    public function verificationStats(Request $request)
+    {
+        $stats = [
+            'total' => UserVerification::count(),
+            'pending' => UserVerification::where('status', 'pending')->count(),
+            'approved' => UserVerification::where('status', 'approved')->count(),
+            'rejected' => UserVerification::where('status', 'rejected')->count(),
+            'by_type' => UserVerification::selectRaw('type, COUNT(*) as count')
+                ->groupBy('type')
+                ->pluck('count', 'type'),
+            'pending_by_type' => UserVerification::where('status', 'pending')
+                ->selectRaw('type, COUNT(*) as count')
+                ->groupBy('type')
+                ->pluck('count', 'type'),
+        ];
+
+        return response()->json($stats);
+    }
+
+    // Business Verification Management
+    public function businessVerifications(Request $request)
+    {
+        $query = BusinessVerification::with(['user', 'reviewedBy']);
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $verifications = $query->orderBy('created_at', 'desc')
+            ->paginate($request->input('per_page', 20));
+
+        return response()->json($verifications);
+    }
+
+    public function businessVerificationDetail($id)
+    {
+        $verification = BusinessVerification::with(['user', 'reviewedBy'])->findOrFail($id);
+        return response()->json($verification);
+    }
+
+    public function approveBusinessVerification(Request $request, $id)
+    {
+        $verification = BusinessVerification::findOrFail($id);
+
+        if ($verification->status !== 'pending') {
+            return response()->json(['message' => 'Verification is not pending'], 400);
+        }
+
+        $admin = $request->user();
+        $verification->approve($admin->id);
+
+        NotificationService::businessBadgeActivated($verification->user, $verification->business_name);
+
+        AuditService::businessVerificationApproved($verification->id, $admin->id, $verification->user_id, $verification->business_name);
+
+        return response()->json(['message' => 'Business verification approved', 'verification' => $verification]);
+    }
+
+    public function rejectBusinessVerification(Request $request, $id)
+    {
+        $request->validate(['reason' => 'required|string']);
+
+        $verification = BusinessVerification::findOrFail($id);
+
+        if ($verification->status !== 'pending') {
+            return response()->json(['message' => 'Verification is not pending'], 400);
+        }
+
+        $admin = $request->user();
+        $verification->reject($request->reason, $admin->id);
+
+        NotificationService::send(
+            $verification->user_id,
+            'business_verification_rejected',
+            'Business Verification Rejected ❌',
+            "Your business verification was not approved. Reason: {$request->reason}",
+            ['business_name' => $verification->business_name, 'reason' => $request->reason]
+        );
+
+        AuditService::businessVerificationRejected($verification->id, $admin->id, $verification->user_id, $verification->business_name, $request->reason);
+
+        return response()->json(['message' => 'Business verification rejected', 'verification' => $verification]);
+    }
+
+    public function businessVerificationStats(Request $request)
+    {
+        $stats = [
+            'total' => BusinessVerification::count(),
+            'pending' => BusinessVerification::where('status', 'pending')->count(),
+            'approved' => BusinessVerification::where('status', 'approved')->count(),
+            'rejected' => BusinessVerification::where('status', 'rejected')->count(),
+        ];
+
+        return response()->json($stats);
     }
 }

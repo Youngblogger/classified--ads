@@ -46,11 +46,8 @@ class ApiClient {
         async (error: AxiosError) => {
           const axiosError = error as AxiosError<{ message?: string; success?: boolean; errors?: any }>;
           
-          // Rate limiting - show toast on 429
+          // Rate limiting - let individual handlers display their own messages
           if (axiosError.response?.status === 429) {
-            const data = axiosError.response?.data as any;
-            const msg = data?.message || 'Too many requests. Please slow down.';
-            toast.error(msg);
             return Promise.reject(error);
           }
           
@@ -749,6 +746,126 @@ export const adminBankTransfersApi = {
   getStats: () => api.get('/admin/bank-transfers/stats'),
   approve: (id: number) => api.post(`/admin/bank-transfers/${id}/approve`),
   reject: (id: number, note?: string) => api.post(`/admin/bank-transfers/${id}/reject`, { note }),
+};
+
+// ========================
+// NEW MODULE API METHODS
+// ========================
+
+// Store API
+export const storeApi = {
+  getMyStore: () => api.get('/my-store'),
+  getBySlug: (slug: string) => api.get(`/stores/${slug}`),
+  getByUser: (userId: number) => api.get(`/stores/by-user/${userId}`),
+  create: (data: FormData) => api.upload('/stores', data),
+  update: (data: FormData) => api.post('/stores/update', data),
+  uploadLogo: (file: File) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    return api.upload('/stores/upload-logo', formData);
+  },
+  uploadBanner: (file: File) => {
+    const formData = new FormData();
+    formData.append('banner', file);
+    return api.upload('/stores/upload-banner', formData);
+  },
+  follow: (storeId: number) => api.post(`/stores/${storeId}/follow`),
+  unfollow: (storeId: number) => api.delete(`/stores/${storeId}/unfollow`),
+  checkFollow: (storeId: number) => api.get(`/stores/${storeId}/check-follow`),
+  getFollowers: (storeId: number) => api.get(`/stores/${storeId}/followers`),
+  getAnalytics: (period?: string) => api.get('/store/analytics', { params: { period } }),
+  getDashboardAnalytics: () => api.get('/store/dashboard-analytics'),
+  checkSlug: (slug: string) => api.get('/stores/check-slug', { params: { slug } }),
+};
+
+// Saved Searches API
+export const savedSearchesApi = {
+  getAll: () => api.get('/saved-searches'),
+  getById: (id: number) => api.get(`/saved-searches/${id}`),
+  create: (data: { name: string; search_params: Record<string, any>; frequency?: string; notify_email?: boolean; notify_in_app?: boolean }) =>
+    api.post('/saved-searches', data),
+  update: (id: number, data: { name?: string; search_params?: Record<string, any>; frequency?: string; notify_email?: boolean; notify_in_app?: boolean }) =>
+    api.put(`/saved-searches/${id}`, data),
+  delete: (id: number) => api.delete(`/saved-searches/${id}`),
+  search: (id: number, page?: number) => api.get(`/saved-searches/${id}/search`, { params: { page } }),
+};
+
+// Verification API
+export const verificationApi = {
+  getMyVerifications: () => api.get('/verifications'),
+  submitPhone: (phone: string) => api.post('/verifications/phone', { phone }),
+  submitEmail: (email: string) => api.post('/verifications/email', { email }),
+  submitIdentity: (data: FormData) => api.upload('/verifications/identity', data),
+  getStatus: () => api.get('/verifications/status'),
+  uploadDocument: (file: File, type: string, field: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+    formData.append('field', field);
+    return api.upload('/verifications/upload', formData);
+  },
+};
+
+// Email Verification (link-based flow)
+export const emailVerificationApi = {
+  send: (email: string) => api.post('/email-verification/send', { email }),
+  verify: (token: string) => api.post('/email-verification/verify', { token }),
+  resend: () => api.post('/email-verification/resend'),
+  status: () => api.get('/email-verification/status'),
+};
+
+// Business Verification API (separate from personal verification)
+export const businessVerificationApi = {
+  getMyVerification: () => api.get('/business-verification'),
+  submit: (data: FormData) => api.upload('/business-verification', data),
+  getStatus: () => api.get('/business-verification/status'),
+  uploadDocument: (file: File, field: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('field', field);
+    return api.upload('/business-verification/upload', formData);
+  },
+};
+
+// Analytics API
+export const analyticsApi = {
+  getOverview: (period?: string) => api.get('/analytics/overview', { params: { period } }),
+  getAdPerformance: (period?: string) => api.get('/analytics/ad-performance', { params: { period } }),
+  getSingleAdPerformance: (adId: number, period?: string) => api.get(`/analytics/ad/${adId}`, { params: { period } }),
+  getDailyBreakdown: (period?: string) => api.get('/analytics/daily', { params: { period } }),
+  getTrends: (period?: string) => api.get('/analytics/trends', { params: { period } }),
+  getTopAds: () => api.get('/analytics/top-ads'),
+  getStorePerformance: (period?: string) => api.get('/analytics/store', { params: { period } }),
+  recordView: (adId: number) => api.post(`/analytics/record-view/${adId}`),
+  recordClick: (adId: number, type: 'phone' | 'whatsapp') => api.post(`/analytics/record-click/${adId}`, { type }),
+  recordShare: (adId: number) => api.post(`/analytics/record-share/${adId}`),
+};
+
+// Admin Personal Verification API
+export const adminVerificationApi = {
+  getAll: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/verifications`, { params }),
+  getById: (id: number) => adminApiClient.get(`${STEALTH_PREFIX}/verifications/${id}`),
+  approve: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/verifications/${id}/approve`),
+  reject: (id: number, reason: string) => adminApiClient.post(`${STEALTH_PREFIX}/verifications/${id}/reject`, { reason }),
+  getStats: () => adminApiClient.get(`${STEALTH_PREFIX}/verifications/stats`),
+};
+
+// Admin Business Verification API
+export const adminBusinessVerificationApi = {
+  getAll: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/business-verifications`, { params }),
+  getById: (id: number) => adminApiClient.get(`${STEALTH_PREFIX}/business-verifications/${id}`),
+  approve: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/business-verifications/${id}/approve`),
+  reject: (id: number, reason: string) => adminApiClient.post(`${STEALTH_PREFIX}/business-verifications/${id}/reject`, { reason }),
+  getStats: () => adminApiClient.get(`${STEALTH_PREFIX}/business-verifications/stats`),
+};
+
+export const adminStoreApi = {
+  getAll: (params?: Record<string, any>) => adminApiClient.get(`${STEALTH_PREFIX}/stores`, { params }),
+  getById: (id: number) => adminApiClient.get(`${STEALTH_PREFIX}/stores/${id}`),
+  verify: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/stores/${id}/verify`),
+  suspend: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/stores/${id}/suspend`),
+  activate: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/stores/${id}/activate`),
+  delete: (id: number) => adminApiClient.delete(`${STEALTH_PREFIX}/stores/${id}`),
 };
 
 export default api;

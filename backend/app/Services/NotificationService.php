@@ -258,6 +258,89 @@ class NotificationService
         return \App\Models\Follow::where('following_id', $ad->user_id)->count();
     }
 
+    // Store Notifications
+    public static function storeCreated($store)
+    {
+        return self::send($store->user_id, 'store_created', 'Store Created 🏪',
+            "Your store '{$store->name}' has been created successfully.",
+            ['store_id' => $store->id, 'store_slug' => $store->slug]
+        );
+    }
+
+    public static function newStoreFollower($store, $follower)
+    {
+        return self::send($store->user_id, 'store_followed', 'New Store Follower 👥',
+            "{$follower->name} is now following your store '{$store->name}'.",
+            ['store_id' => $store->id, 'follower_id' => $follower->id, 'follower_name' => $follower->name]
+        );
+    }
+
+    // Verification Notifications
+    public static function verificationSubmitted($userId, $type)
+    {
+        return self::send($userId, 'verification_submitted', 'Verification Submitted 📋',
+            "Your {$type} verification has been submitted for review.",
+            ['type' => $type]
+        );
+    }
+
+    public static function verificationApproved($userId, $type)
+    {
+        return self::send($userId, 'verification_approved', 'Verification Approved ✅',
+            "Your {$type} verification has been approved!",
+            ['type' => $type]
+        );
+    }
+
+    public static function verificationRejected($userId, $type, $reason)
+    {
+        return self::send($userId, 'verification_rejected', 'Verification Rejected ❌',
+            "Your {$type} verification was not approved. Reason: {$reason}",
+            ['type' => $type, 'reason' => $reason]
+        );
+    }
+
+    // Badge Notifications
+    public static function sellerBadgeActivated($user)
+    {
+        return self::send($user->id, 'seller_badge_activated', '🔵 Verified Seller Badge Active!',
+            "Congratulations! You've completed all verification steps. Your blue Verified Seller badge is now displayed across the marketplace.",
+            ['badge' => 'verified_seller']
+        );
+    }
+
+    public static function businessBadgeActivated($user, $businessName)
+    {
+        return self::send($user->id, 'business_badge_activated', '🏢 Verified Business Badge Active!',
+            "Your business '{$businessName}' is now verified. Your Verified Business badge is displayed on your store and listings.",
+            ['badge' => 'verified_business', 'business_name' => $businessName]
+        );
+    }
+
+    public static function documentsRequested($userId, $type, $message)
+    {
+        return self::send($userId, 'verification_documents_requested', 'Additional Documents Required 📄',
+            $message,
+            ['type' => $type]
+        );
+    }
+
+    // Saved Search Notifications
+    public static function savedSearchMatch($user, $savedSearch, $ad)
+    {
+        return self::send($user->id, 'saved_search_match', 'New Ad Matching Your Search 🔍',
+            "A new ad '{$ad->title}' matches your saved search '{$savedSearch->name}'.",
+            [
+                'saved_search_id' => $savedSearch->id,
+                'saved_search_name' => $savedSearch->name,
+                'ad_id' => $ad->id,
+                'ad_slug' => $ad->slug,
+                'ad_title' => $ad->title,
+                'ad_price' => $ad->price,
+            ]
+        );
+    }
+
     // System Notifications
     public static function systemNotice($userId, $title, $message)
     {

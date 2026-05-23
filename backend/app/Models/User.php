@@ -14,7 +14,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $appends = ['avatar_url', 'full_avatar_url'];
+    protected $appends = ['avatar_url', 'full_avatar_url', 'has_store', 'verification_progress'];
 
     /**
      * The attributes that are mass assignable.
@@ -35,6 +35,10 @@ class User extends Authenticatable
         'location',
         'location_id',
         'verified',
+        'is_verified_seller',
+        'seller_verified_at',
+        'is_verified_business',
+        'business_verified_at',
         'banned_at',
         'suspended_at',
         'ban_reason',
@@ -65,6 +69,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'verified' => 'boolean',
+            'is_verified_seller' => 'boolean',
+            'is_verified_business' => 'boolean',
+            'seller_verified_at' => 'datetime',
+            'business_verified_at' => 'datetime',
         ];
     }
 
@@ -117,6 +125,37 @@ class User extends Authenticatable
     public function following()
     {
         return $this->hasMany(\App\Models\Follow::class, 'follower_id');
+    }
+
+    public function store()
+    {
+        return $this->hasOne(\App\Models\Store::class);
+    }
+
+    public function savedSearches()
+    {
+        return $this->hasMany(\App\Models\SavedSearch::class);
+    }
+
+    public function verifications()
+    {
+        return $this->hasMany(\App\Models\UserVerification::class);
+    }
+
+    public function verifiedVerifications()
+    {
+        return $this->verifications()->where('status', 'approved');
+    }
+
+    public function storeFollowers()
+    {
+        return $this->hasMany(\App\Models\StoreFollower::class);
+    }
+
+    public function followedStores()
+    {
+        return $this->belongsToMany(\App\Models\Store::class, 'store_followers', 'user_id', 'store_id')
+            ->withTimestamps();
     }
 
     public function followersCount(): int
@@ -230,6 +269,57 @@ class User extends Authenticatable
             'silver' => 1.5,
             default => 1.0,
         };
+    }
+
+    public function getHasStoreAttribute(): bool
+    {
+        try {
+            return $this->store()->exists();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    public function getVerificationProgressAttribute(): array
+    {
+        try {
+            $phoneVerified = UserVerification::isUserVerified($this->id, 'phone');
+            $emailVerified = UserVerification::isUserVerified($this->id, 'email');
+            $identityVerified = UserVerification::isUserVerified($this->id, 'identity');
+
+            $completed = 0;
+            if ($phoneVerified) $completed++;
+            if ($emailVerified) $completed++;
+            if ($identityVerified) $completed++;
+
+            return [
+                'phone_verified' => $phoneVerified,
+                'email_verified' => $emailVerified,
+                'identity_verified' => $identityVerified,
+                'completed' => $completed,
+                'total' => 3,
+                'is_full_verified_seller' => $completed === 3,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'phone_verified' => false,
+                'email_verified' => false,
+                'identity_verified' => false,
+                'completed' => 0,
+                'total' => 3,
+                'is_full_verified_seller' => false,
+            ];
+        }
+    }
+
+    public function businessVerification()
+    {
+        return $this->hasOne(BusinessVerification::class)->latestOfMany();
+    }
+
+    public function businessVerifications()
+    {
+        return $this->hasMany(BusinessVerification::class);
     }
 
     // Generate unique referral code

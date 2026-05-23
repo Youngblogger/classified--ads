@@ -16,6 +16,8 @@ import BoostPlansModal from '@/components/ui/BoostPlansModal';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { Heart, MapPin, Eye, Phone, ChevronRight, MessageCircle, Home, Clock, CheckCircle, ArrowLeft, ArrowRight, Flag, Shield, CreditCard, ImageIcon, Zap, Ban } from 'lucide-react';
+import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
+import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 import toast from 'react-hot-toast';
 import { formatPrice, formatRelativeTime, BACKEND_URL, FALLBACK_IMAGE, getCategoryFallback, getAdImage, getAdImages, getAdImageUrl } from '@/lib/utils';
 import { getAuthToken } from '@/lib/cookies';
@@ -631,11 +633,13 @@ export default function AdDetailPage() {
 
                 {/* Additional Info Card */}
                 <div className="py-2">
-                  {/* Verified Badge */}
+                  {/* Verification Badges */}
                   <div className="flex items-center gap-3 mb-4">
+                    {ad.user?.is_verified_seller && <VerifiedSellerBadge size="md" showLabel />}
+                    {ad.user?.is_verified_business && <BusinessVerifiedBadge size="md" showLabel />}
                     {ad.is_verified && (
                       <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4" />Verified Seller
+                        <CheckCircle className="w-4 h-4" />Verified Listing
                       </span>
                     )}
                   </div>
@@ -834,6 +838,8 @@ export default function AdDetailPage() {
         sellerId={ad.user?.id || 0}
         sellerName={ad.user?.name || ad.sellerName || 'Seller'}
         sellerVerified={ad.user?.verified || ad.is_verified || false}
+        isVerifiedSeller={ad.user?.is_verified_seller || false}
+        isVerifiedBusiness={ad.user?.is_verified_business || false}
       />
 
       {/* Share Popup - Centered Modal */}

@@ -16,6 +16,20 @@ export interface User {
   email_verified_at?: string;
   phone_verified_at?: string;
   role?: string;
+  has_store?: boolean;
+  is_verified_seller?: boolean;
+  seller_verified_at?: string;
+  is_verified_business?: boolean;
+  business_verified_at?: string;
+  verification_progress?: {
+    phone_verified: boolean;
+    email_verified: boolean;
+    identity_verified: boolean;
+    completed: number;
+    total: number;
+    is_full_verified_seller: boolean;
+  };
+  notification_settings?: Record<string, any>;
 }
 
 export interface AuthState {
@@ -293,4 +307,164 @@ export interface ApiError {
   success: false;
   message: string;
   errors?: Record<string, string[]>;
+}
+
+// Store Types
+export interface Store {
+  id: number;
+  user_id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  logo?: string;
+  logo_url?: string;
+  banner?: string;
+  banner_url?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  location_id?: number;
+  website?: string;
+  social_links?: Record<string, string>;
+  is_verified: boolean;
+  verification_status: string;
+  verification_document?: string;
+  verified_at?: string;
+  verified_by?: number;
+  status: string;
+  settings?: Record<string, any>;
+  user?: User;
+  location?: Location;
+  followers_count?: number;
+  active_ads_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StoreFollower {
+  id: number;
+  store_id: number;
+  user_id: number;
+  user?: User;
+  created_at: string;
+}
+
+export interface StoreAnalytic {
+  id: number;
+  store_id: number;
+  date: string;
+  views: number;
+  unique_visitors: number;
+  followers_count: number;
+  ad_count: number;
+  contact_clicks: number;
+  whatsapp_clicks: number;
+  phone_clicks: number;
+}
+
+// Saved Search Types
+export interface SavedSearch {
+  id: number;
+  user_id: number;
+  name: string;
+  search_params: Record<string, any>;
+  frequency: 'instant' | 'daily' | 'weekly';
+  notify_email: boolean;
+  notify_in_app: boolean;
+  last_notified_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Business Verification Types
+export interface BusinessVerification {
+  id: number;
+  user_id: number;
+  business_name: string;
+  cac_number: string;
+  cac_document: string;
+  address_document?: string;
+  utility_bill?: string;
+  tax_registration?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string;
+  admin_notes?: string;
+  verified_at?: string;
+  reviewed_by?: number;
+  user?: User;
+  created_at: string;
+  updated_at: string;
+}
+
+// Verification Types
+export interface UserVerification {
+  id: number;
+  user_id: number;
+  type: 'phone' | 'email' | 'identity' | 'business';
+  status: 'pending' | 'approved' | 'rejected' | 'none';
+  document_type?: string;
+  document_number?: string;
+  document_front?: string;
+  document_back?: string;
+  document_selfie?: string;
+  verified_at?: string;
+  verified_by?: number;
+  rejection_reason?: string;
+  notes?: string;
+  expires_at?: string;
+  user?: User;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VerificationStatus {
+  is_phone_verified: boolean;
+  is_email_verified: boolean;
+  is_identity_verified: boolean;
+  is_business_verified: boolean;
+  verification_badges: string[];
+}
+
+// Analytics Types
+export interface AdAnalytic {
+  id: number;
+  ad_id: number;
+  date: string;
+  views: number;
+  unique_views: number;
+  favorites: number;
+  messages: number;
+  phone_clicks: number;
+  whatsapp_clicks: number;
+  shares: number;
+}
+
+export interface AnalyticsOverview {
+  total_views: number;
+  total_unique_views: number;
+  total_favorites: number;
+  total_messages: number;
+  total_phone_clicks: number;
+  total_whatsapp_clicks: number;
+  total_shares: number;
+  total_ads: number;
+  active_ads: number;
+  total_clicks: number;
+  ctr: number;
+  engagement_rate: number;
+}
+
+export interface AdPerformance {
+  id: number;
+  title: string;
+  slug: string;
+  price: number;
+  created_at: string;
+  total_views: number;
+  total_unique_views: number;
+  total_favorites: number;
+  total_messages: number;
+  total_phone_clicks: number;
+  total_whatsapp_clicks: number;
+  total_shares: number;
 }
