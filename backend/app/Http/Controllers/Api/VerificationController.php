@@ -135,9 +135,7 @@ class VerificationController extends Controller
             $validated = $request->validate([
                 'document_type' => 'required|in:nin,voters_card,passport,driver_license',
                 'document_number' => 'required|string',
-                'document_front' => 'required|file|image|mimes:jpeg,png,jpg,pdf|max:5120',
-                'document_back' => 'sometimes|file|image|mimes:jpeg,png,jpg,pdf|max:5120',
-                'document_selfie' => 'sometimes|file|image|mimes:jpeg,png,jpg|max:5120',
+                'document' => 'required|file|mimes:jpeg,png,jpg,pdf|max:10240',
             ]);
 
             $user = $request->user();
@@ -150,16 +148,8 @@ class VerificationController extends Controller
                 'document_number' => $validated['document_number'],
             ];
 
-            if ($request->hasFile('document_front')) {
-                $data['document_front'] = Storage::disk('public')->putFile('verifications', $request->file('document_front'));
-            }
-
-            if ($request->hasFile('document_back')) {
-                $data['document_back'] = Storage::disk('public')->putFile('verifications', $request->file('document_back'));
-            }
-
-            if ($request->hasFile('document_selfie')) {
-                $data['document_selfie'] = Storage::disk('public')->putFile('verifications', $request->file('document_selfie'));
+            if ($request->hasFile('document')) {
+                $data['document_front'] = Storage::disk('public')->putFile('verifications', $request->file('document'));
             }
 
             $verification = UserVerification::create($data);

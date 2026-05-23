@@ -189,9 +189,7 @@ export default function VerificationCenterPage() {
 
   const [identityDocType, setIdentityDocType] = useState('NIN');
   const [identityDocNumber, setIdentityDocNumber] = useState('');
-  const [identityFront, setIdentityFront] = useState<File | null>(null);
-  const [identityBack, setIdentityBack] = useState<File | null>(null);
-  const [identitySelfie, setIdentitySelfie] = useState<File | null>(null);
+  const [identityDoc, setIdentityDoc] = useState<File | null>(null);
   const [identitySubmitting, setIdentitySubmitting] = useState(false);
 
   const [bizName, setBizName] = useState('');
@@ -337,8 +335,8 @@ export default function VerificationCenterPage() {
       toast.error('Please enter your document number');
       return;
     }
-    if (!identityFront) {
-      toast.error('Please upload the front of your document');
+    if (!identityDoc) {
+      toast.error('Please upload your identity document');
       return;
     }
     setIdentitySubmitting(true);
@@ -346,15 +344,11 @@ export default function VerificationCenterPage() {
       const formData = new FormData();
       formData.append('document_type', identityDocType);
       formData.append('document_number', identityDocNumber);
-      formData.append('document_front', identityFront);
-      if (identityBack) formData.append('document_back', identityBack);
-      if (identitySelfie) formData.append('document_selfie', identitySelfie);
+      formData.append('document', identityDoc);
       await verificationApi.submitIdentity(formData);
       toast.success('Identity verification submitted for review');
       setIdentityDocNumber('');
-      setIdentityFront(null);
-      setIdentityBack(null);
-      setIdentitySelfie(null);
+      setIdentityDoc(null);
       fetchVerifications();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to submit identity verification');
@@ -621,25 +615,11 @@ export default function VerificationCenterPage() {
                     />
                   </div>
                   <FileUploadInput
-                    id="id-front"
-                    file={identityFront}
-                    onChange={setIdentityFront}
-                    label="Upload front of document (required)"
-                    accept="image/*"
-                  />
-                  <FileUploadInput
-                    id="id-back"
-                    file={identityBack}
-                    onChange={setIdentityBack}
-                    label="Upload back of document (optional)"
-                    accept="image/*"
-                  />
-                  <FileUploadInput
-                    id="id-selfie"
-                    file={identitySelfie}
-                    onChange={setIdentitySelfie}
-                    label="Upload selfie (optional)"
-                    accept="image/*"
+                    id="id-doc"
+                    file={identityDoc}
+                    onChange={setIdentityDoc}
+                    label="Upload identity document (required)"
+                    accept="image/*,.pdf"
                   />
                   <button
                     type="submit"
