@@ -167,6 +167,29 @@ export default function PostAdWizard() {
     fetchBoostPrices();
   }, []);
 
+  // Pre-fill category & location from last ad
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const prefetch = async () => {
+      try {
+        const res = await adsApi.getMyAds({ limit: 1 });
+        const ads = res.data?.data ?? [];
+        if (!ads.length) return;
+        const last = ads[0];
+        if (last.category?.id && !categoryId) {
+          setCategoryId(last.category.id);
+          setCategoryBreadcrumb(last.category.name);
+        }
+        if (last.location?.id && last.lga && !locationId) {
+          setLocationId(last.location.id);
+          setSelectedStateName(last.location.name);
+          setLgaId(last.lga);
+        }
+      } catch {}
+    };
+    prefetch();
+  }, [isAuthenticated]);
+
   const calculatePrice = (): number => {
     const basePrice = prices[boostType] || 5;
     const multiplier = duration >= 30 ? 0.7 : duration >= 14 ? 0.8 : duration >= 7 ? 0.85 : duration >= 3 ? 0.9 : 1.0;

@@ -345,7 +345,8 @@ class AdController extends Controller
             $page = max((int) $request->input('page', 1), 1);
 
             $query = Ad::with(['images', 'category', 'location', 'activeBoost.plan', 'user'])
-                ->where('user_id', $user->id);
+                ->where('user_id', $user->id)
+                ->orderBy('created_at', 'desc');
 
             if ($request->input('status')) {
                 $query->where('status', $request->input('status'));

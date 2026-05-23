@@ -230,6 +230,30 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     } catch {}
   }, [draftRestored, title, description, price, images]);
 
+  // Pre-fill category & location from last ad
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const prefetch = async () => {
+      try {
+        const res = await adsApi.getMyAds({ limit: 1 });
+        const ads = res.data?.data ?? [];
+        if (!ads.length) return;
+        const last = ads[0];
+        if (last.category?.id && !categoryId) {
+          setCategoryId(last.category.id);
+          setCategoryBreadcrumb(last.category.name);
+        }
+        if (last.location?.id && last.lga && !locationId) {
+          setLocationId(last.location.id);
+          setSelectedStateName(last.location.name);
+          setLgaId(last.lga);
+          setLocationBreadcrumb(`${last.location.name} > ${last.lga}`);
+        }
+      } catch {}
+    };
+    prefetch();
+  }, [isAuthenticated]);
+
   // Auto-save draft while typing (debounced)
   useEffect(() => {
     const timer = setTimeout(() => {
