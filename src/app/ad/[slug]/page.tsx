@@ -433,7 +433,7 @@ export default function AdDetailPage() {
                           
                           if (condition === 'new' || condition === 'brand_new' || condition === 'brand new') {
                             badgeClass = 'bg-green-50 text-green-700';
-                            label = 'Brand New';
+                            label = 'New';
                           } else if (condition === 'like_new' || condition === 'like new') {
                             badgeClass = 'bg-blue-50 text-blue-700';
                             label = 'Like New';

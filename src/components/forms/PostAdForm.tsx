@@ -157,7 +157,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [locationId, setLocationId] = useState<number | null>(null);
   const [selectedStateName, setSelectedStateName] = useState<string>('');
   const [lgaId, setLgaId] = useState<string>('');
-  const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
+  const [condition, setCondition] = useState<'new' | 'good' | 'fair' | ''>('');
   const [images, setImages] = useState<ImageFile[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -516,10 +516,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const selectedState = locationId ? nigeriaLocations.find(loc => stateSlugToId[loc.slug] === locationId) : null;
   const stateLgas = selectedState?.lgas || [];
 
-  const formatPrice = (value: string) => {
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (!numericValue) return '';
-    return Number(numericValue).toLocaleString();
+  const formatPriceDisplay = (value: string) => {
+    if (!value) return '';
+    return Number(value).toLocaleString();
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -825,8 +824,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   };
 
   const conditionLabels = {
-    'new': 'Brand New',
-    'like_new': 'Like New',
+    'new': 'New',
     'good': 'Used',
     'fair': 'Refurbished'
   };
@@ -949,15 +947,13 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               </label>
               <div className="flex flex-wrap gap-1.5">
                 {([
-                  { key: 'new', label: 'Brand New', color: 'emerald' },
-                  { key: 'like_new', label: 'Like New', color: 'blue' },
+                  { key: 'new', label: 'New', color: 'emerald' },
                   { key: 'good', label: 'Used', color: 'amber' },
                   { key: 'fair', label: 'Refurbished', color: 'purple' }
                 ] as const).map(({ key, label, color }) => {
                   const isSelected = condition === key;
                   const colorClasses = {
                     emerald: isSelected ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600',
-                    blue: isSelected ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600',
                     amber: isSelected ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:text-amber-600',
                     purple: isSelected ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-600',
                   };
@@ -983,9 +979,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold">₦</span>
             <input
               type="text"
-              value={price}
+              value={formatPriceDisplay(price)}
               onChange={handlePriceChange}
-              onInput={handlePriceChange}
               placeholder="Enter price"
               inputMode="numeric"
               className="w-full pl-9 pr-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all duration-300 font-semibold bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-300"
@@ -1382,7 +1377,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-gray-900 text-base break-words">{title || 'No title'}</h3>
                 <p className="text-lg font-bold text-primary-600 mt-1">
-                  ₦{formatPrice(price) || '0'}
+                  ₦{formatPriceDisplay(price) || '0'}
                   {negotiable && <span className="text-sm font-normal text-gray-500 ml-2">Negotiable</span>}
                 </p>
               </div>

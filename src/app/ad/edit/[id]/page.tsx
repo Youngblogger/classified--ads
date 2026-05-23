@@ -40,7 +40,7 @@ export default function EditAdPage() {
   const [locationId, setLocationId] = useState<number | null>(null);
   const [selectedStateName, setSelectedStateName] = useState('');
   const [lgaId, setLgaId] = useState('');
-  const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
+  const [condition, setCondition] = useState<'new' | 'good' | 'fair' | ''>('');
   const [images, setImages] = useState<{ id: string; file: File; preview: string }[]>([]);
   const [existingImages, setExistingImages] = useState<{ id: number; url: string; is_primary: boolean }[]>([]);
   const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
@@ -416,7 +416,7 @@ export default function EditAdPage() {
                     <label className="block text-sm font-medium text-gray-700">Condition <span className="text-red-500">*</span></label>
                     <div className="flex flex-wrap gap-2">
                       {([
-                        { key: 'new', label: 'Brand New' }, { key: 'like_new', label: 'Like New' },
+                        { key: 'new', label: 'New' },
                         { key: 'good', label: 'Used' }, { key: 'fair', label: 'Refurbished' }
                       ] as const).map(({ key, label }) => (
                         <button

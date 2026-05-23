@@ -115,7 +115,7 @@ export default function PostAdWizard() {
   const [locationId, setLocationId] = useState<number | null>(null);
   const [selectedStateName, setSelectedStateName] = useState('');
   const [lgaId, setLgaId] = useState('');
-  const [condition, setCondition] = useState<'new' | 'like_new' | 'good' | 'fair' | ''>('');
+  const [condition, setCondition] = useState<'new' | 'good' | 'fair' | ''>('');
   const [images, setImages] = useState<ImageFile[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -294,7 +294,12 @@ export default function PostAdWizard() {
   };
 
   const conditionLabels: Record<string, string> = {
-    'new': 'Brand New', 'like_new': 'Like New', 'good': 'Used', 'fair': 'Refurbished'
+    'new': 'New', 'good': 'Used', 'fair': 'Refurbished'
+  };
+
+  const formatPriceDisplay = (value: string) => {
+    if (!value) return '';
+    return Number(value).toLocaleString();
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -573,7 +578,7 @@ export default function PostAdWizard() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Condition <span className="text-red-500">*</span></label>
               <div className="flex flex-wrap gap-1.5">
                 {([
-                  { key: 'new', label: 'Brand New' }, { key: 'like_new', label: 'Like New' },
+                  { key: 'new', label: 'New' },
                   { key: 'good', label: 'Used' }, { key: 'fair', label: 'Refurbished' }
                 ] as const).map(({ key, label }) => (
                   <button
@@ -596,7 +601,7 @@ export default function PostAdWizard() {
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold">₦</span>
                 <input
-                  type="text" value={price} onChange={handlePriceChange} onInput={handlePriceChange}
+                  type="text" value={formatPriceDisplay(price)} onChange={handlePriceChange}
                   placeholder="Enter price"
                   inputMode="numeric"
                   className="w-full pl-9 pr-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all font-semibold bg-white text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-300"

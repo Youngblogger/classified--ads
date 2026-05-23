@@ -65,9 +65,14 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           <PremiumBadge boostType={boostType} size="sm" />
         </div>
         <div className="flex-1 p-2 sm:p-3 min-w-0">
-          <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
-            {formatPrice(ad.price, ad.currency)}
-          </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
+              {formatPrice(ad.price, ad.currency)}
+            </p>
+            {ad.negotiable && (
+              <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
+            )}
+          </div>
           <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">{ad.title}</h3>
           <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
             <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
@@ -97,9 +102,14 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           <PremiumBadge boostType={boostType} size="sm" />
         </div>
         <div className="p-2">
-          <p className="text-xs sm:text-sm font-bold text-primary-600 leading-tight">
-            {formatPrice(ad.price, ad.currency)}
-          </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-xs sm:text-sm font-bold text-primary-600 leading-tight">
+              {formatPrice(ad.price, ad.currency)}
+            </p>
+            {ad.negotiable && (
+              <span className="text-[9px] font-medium text-green-600 bg-green-50 px-1 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
+            )}
+          </div>
           <h3 className="font-medium text-gray-900 text-xs leading-snug line-clamp-1 mt-0.5">{ad.title}</h3>
           <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-400">
             <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
@@ -127,9 +137,14 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
         <PremiumBadge boostType={boostType} size="sm" />
       </div>
       <div className="p-2">
-        <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
-          {formatPrice(ad.price, ad.currency)}
-        </p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
+            {formatPrice(ad.price, ad.currency)}
+          </p>
+          {ad.negotiable && (
+            <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
+          )}
+        </div>
         <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">
           {ad.title}
         </h3>
