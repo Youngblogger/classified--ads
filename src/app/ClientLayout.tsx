@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { patchFedCmWidgetMode } from '@/lib/fedcm-patch';
 import { Toaster } from 'react-hot-toast';
 import LoginModal from '@/components/ui/LoginModal';
 import RegisterModal from '@/components/ui/RegisterModal';
@@ -16,6 +18,10 @@ interface ClientLayoutProps {
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
   const pathname = usePathname();
+
+  useEffect(() => {
+    patchFedCmWidgetMode();
+  }, []);
 
   const isAdminPage = pathname?.startsWith('/admin');
 

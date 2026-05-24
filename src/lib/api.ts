@@ -19,7 +19,7 @@ class ApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 30000,
+        timeout: 15000,
         withCredentials: true,
       });
 
@@ -182,7 +182,7 @@ class AdminApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 30000,
+        timeout: 15000,
         withCredentials: true,
       });
 

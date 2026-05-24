@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '190991791068-p65o95kslmp106ohlbdafsdthg702tn3.apps.googleusercontent.com';
 
@@ -86,7 +87,7 @@ export default function GoogleOneTap() {
       const handleCredential = async (response: { credential: string }) => {
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-          const res = await fetch(`${apiUrl}/auth/google`, {
+          const res = await fetchWithTimeout(`${apiUrl}/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify({ credential: response.credential }),

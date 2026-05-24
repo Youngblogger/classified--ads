@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 interface GoogleWindow {
   google?: {
@@ -119,7 +120,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
       formData.append('login', email);
       formData.append('password', password);
       
-      const response = await fetch(`${apiUrl}/auth/login`, {
+      const response = await fetchWithTimeout(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -209,7 +210,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const response = await fetch(`${apiUrl}/auth/facebook`, {
+      const response = await fetchWithTimeout(`${apiUrl}/auth/facebook`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -242,7 +243,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const res = await fetch(`${apiUrl}/auth/google`, {
+      const res = await fetchWithTimeout(`${apiUrl}/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -277,7 +278,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const res = await fetch(`${apiUrl}/auth/facebook`, {
+      const res = await fetchWithTimeout(`${apiUrl}/auth/facebook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ access_token: response.accessToken }),

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { X, Mail, Lock, Eye, EyeOff, Loader2, ChevronLeft } from 'lucide-react';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import toast from 'react-hot-toast';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 interface GoogleWindow {
   google?: {
@@ -92,7 +93,7 @@ export default function LoginPage() {
       formData.append('login', email);
       formData.append('password', password);
 
-      const response = await fetch(`${apiUrl}/auth/login`, {
+      const response = await fetchWithTimeout(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -163,7 +164,7 @@ export default function LoginPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const res = await fetch(`${apiUrl}/auth/google`, {
+      const res = await fetchWithTimeout(`${apiUrl}/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

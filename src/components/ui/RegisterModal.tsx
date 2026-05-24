@@ -6,6 +6,7 @@ import { X, Mail, Lock, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import OtpModal from './OtpModal';
 import toast from 'react-hot-toast';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 interface GoogleWindow {
   google?: {
@@ -97,7 +98,7 @@ export default function RegisterModal() {
       formData.append('password', password);
       formData.append('password_confirmation', confirmPassword);
        
-      const response = await fetch(`${apiUrl}/auth/register-otp`, {
+      const response = await fetchWithTimeout(`${apiUrl}/auth/register-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -192,7 +193,7 @@ export default function RegisterModal() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const res = await fetch(`${apiUrl}/auth/google`, {
+      const res = await fetchWithTimeout(`${apiUrl}/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -232,7 +233,7 @@ export default function RegisterModal() {
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const response = await fetch(`${apiUrl}/auth/facebook`, {
+      const response = await fetchWithTimeout(`${apiUrl}/auth/facebook`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
