@@ -18,7 +18,7 @@ import {
 import Image from 'next/image';
 import { adminApi } from '@/lib/api';
 import { getAdImageUrl } from '@/lib/utils';
-import { invalidateSwrCache } from '@/lib/cache-sync';
+import { invalidateSwrCache, notifyCacheInvalidation } from '@/lib/cache-sync';
 import { useQueryClient } from '@tanstack/react-query';
 import { adKeys } from '@/lib/query-keys';
 import toast from 'react-hot-toast';
@@ -51,6 +51,7 @@ export default function AdsApprovalPage() {
     invalidateSwrCache('boosted_ads_listing');
     invalidateSwrCache(/^search/);
     invalidateSwrCache(/^secure-control-9ja/);
+    notifyCacheInvalidation();
   };
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, ImageIcon } from 'lucide-react';
@@ -65,30 +65,27 @@ export default function FavoritesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchFavorites = async () => {
-    const timeoutId = setTimeout(() => {
-      console.log('Favorites fetch timeout - forcing loading to false');
-      setLoading(false);
-    }, 10000);
-    
+  const fetchFavorites = useCallback(async () => {
     try {
       setLoading(true);
       const res = await favoritesApi.getAll();
-      clearTimeout(timeoutId);
       setFavorites(res.data.data || res.data || []);
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.error('Failed to fetch favorites:', error);
-      setFavorites([]);
+    } catch {
+      toast.error('Failed to load favorites');
     } finally {
-      clearTimeout(timeoutId);
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchFavorites();
-  }, []);
+  }, [fetchFavorites]);
+
+  useEffect(() => {
+    const onInvalidate = () => fetchFavorites();
+    window.addEventListener('ilist:cache-invalidate', onInvalidate);
+    return () => window.removeEventListener('ilist:cache-invalidate', onInvalidate);
+  }, [fetchFavorites]);
 
   const handleRemoveFavorite = async (adId: number) => {
     try {

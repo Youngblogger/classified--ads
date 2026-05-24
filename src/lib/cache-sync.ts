@@ -51,15 +51,23 @@ export function syncAdListCaches(queryClient: QueryClient): void {
   queryClient.invalidateQueries({ queryKey: adKeys.infinite() });
   queryClient.invalidateQueries({ queryKey: adKeys.homepage() });
   queryClient.invalidateQueries({ queryKey: adKeys.trending() });
+  queryClient.invalidateQueries({ queryKey: adKeys.boosted() });
+  queryClient.invalidateQueries({ queryKey: adKeys.search() });
+  queryClient.invalidateQueries({ queryKey: adKeys.similar(0) });
   invalidateSwrCache(/^ads\?/);
+  invalidateSwrCache(/^ads\//);
+  invalidateSwrCache(/^ads\/similar/);
   invalidateSwrCache('homepage_data');
   invalidateSwrCache('boosted_ads_listing');
   invalidateSwrCache(/^search\?/);
+  invalidateSwrCache(/^search/);
 }
 
 export function syncAdDetailCache(queryClient: QueryClient, slug: string): void {
   queryClient.invalidateQueries({ queryKey: adKeys.detail(slug) });
   invalidateSwrAdDetail(slug);
+  invalidateSwrCache(/^ads\//);
+  invalidateSwrCache(/^ads\/similar/);
 }
 
 export function syncAdminCaches(queryClient: QueryClient): void {
@@ -140,5 +148,48 @@ export function removeAdFromListCaches(queryClient: QueryClient, adId: number): 
         });
       }
     }
+  }
+}
+
+const BROADCAST_CHANNEL = 'ilist-cache-sync';
+
+export function broadcastCacheInvalidation(eventType: string = 'cache-invalidate'): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const channel = new BroadcastChannel(BROADCAST_CHANNEL);
+    channel.postMessage({ type: eventType, timestamp: Date.now() });
+    channel.close();
+  } catch {
+  }
+}
+
+export function listenForCrossTabSync(onInvalidate: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  try {
+    const channel = new BroadcastChannel(BROADCAST_CHANNEL);
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'cache-invalidate') {
+        onInvalidate();
+      }
+    };
+    channel.addEventListener('message', handler);
+    return () => {
+      channel.removeEventListener('message', handler);
+      channel.close();
+    };
+  } catch {
+    return () => {};
+  }
+}
+
+export function syncAcrossTabs(queryClient: QueryClient): void {
+  broadcastCacheInvalidation();
+  syncAllCaches(queryClient);
+}
+
+export function notifyCacheInvalidation(): void {
+  broadcastCacheInvalidation();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ilist:cache-invalidate'));
   }
 }

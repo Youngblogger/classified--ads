@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
@@ -21,6 +21,7 @@ import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBad
 import toast from 'react-hot-toast';
 import { formatPrice, formatRelativeTime, BACKEND_URL, FALLBACK_IMAGE, getCategoryFallback, getAdImage, getAdImages, getAdImageUrl } from '@/lib/utils';
 import { getAuthToken } from '@/lib/cookies';
+import { useAdDetail } from '@/hooks/useAds';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -128,69 +129,36 @@ export default function AdDetailPage() {
     }
   };
 
+  const { ad: fetchedAd, isLoading: adLoading, isError: adError, error: adFetchError } = useAdDetail(slug && slug !== '[slug]' && slug !== 'undefined' && slug !== 'ad-undefined' && slug !== 'null' && slug !== 'ad-null' ? slug : '');
+
   useEffect(() => {
     if (!slug || slug === '[slug]' || slug === 'undefined' || slug === 'ad-undefined' || slug === 'null' || slug === 'ad-null') {
       setLoading(false);
       setError('Invalid ad URL');
-      return;
     }
+  }, [slug]);
 
-    setCurrentImageIndex(0);
-    setCurrentImageError(false);
-    setThumbnailErrors({});
+  useEffect(() => {
+    if (slug && slug !== '[slug]' && slug !== 'undefined' && slug !== 'ad-undefined' && slug !== 'null' && slug !== 'ad-null') {
+      setCurrentImageIndex(0);
+      setCurrentImageError(false);
+      setThumbnailErrors({});
+    }
+  }, [slug]);
 
-    let isMounted = true;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const fetchAd = async () => {
+  useEffect(() => {
+    if (adLoading) {
       setLoading(true);
       setError(null);
-
-      try {
-        const response = await fetch(`${API_URL}/ads/${slug}`, {
-          headers: { 'Accept': 'application/json' },
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-
-        if (!response.ok) {
-          throw new Error('Ad not found');
-        }
-
-        const data = await response.json();
-        if (!isMounted) return;
-
-
-        if (data && data.data) {
-          setAd(data.data);
-        } else if (data && data.id) {
-          setAd(data);
-        } else {
-          throw new Error('Invalid ad data');
-        }
-        setLoading(false);
-      } catch (err: any) {
-        if (!isMounted) return;
-        console.error('[AdDetailPage] Error fetching ad:', err);
-        const isConnectionError = err.name === 'AbortError' || err.message?.includes('fetch');
-        if (isConnectionError) {
-          setError('Unable to connect to server. This page requires the backend API to be running at http://127.0.0.1:8000 to view ad details.');
-        } else {
-          setError(err.message || 'Ad not found');
-        }
-        setLoading(false);
-      }
-    };
-
-    fetchAd();
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
-  }, [slug]);
+    } else if (adError) {
+      setLoading(false);
+      setError(adFetchError?.message || 'Ad not found');
+    } else if (fetchedAd) {
+      setAd(fetchedAd);
+      setLoading(false);
+      setError(null);
+    }
+  }, [fetchedAd, adLoading, adError, adFetchError]);
 
   // Set page title
   useEffect(() => {

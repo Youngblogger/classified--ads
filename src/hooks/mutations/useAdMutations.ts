@@ -12,6 +12,7 @@ import {
   removeAdFromListCaches,
   invalidateSwrCache,
   invalidateSwrExact,
+  broadcastCacheInvalidation,
 } from '@/lib/cache-sync';
 import { handleMutationError } from '@/lib/query-client';
 import toast from 'react-hot-toast';
@@ -23,6 +24,10 @@ function invalidateSwrQueries(): void {
   invalidateSwrCache(/^search/);
   invalidateSwrCache('categories');
   invalidateSwrCache(/^secure-control-9ja/);
+  broadcastCacheInvalidation();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ilist:cache-invalidate'));
+  }
 }
 
 // ─── Mark Ad as Sold ───────────────────────────────────────────────

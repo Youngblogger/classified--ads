@@ -32,7 +32,7 @@ import {
 import toast from 'react-hot-toast';
 import DynamicField, { CategoryField } from '@/components/forms/DynamicField';
 import PremiumBadge from '@/components/ui/PremiumBadge';
-import { invalidateSwrCache } from '@/lib/cache-sync';
+import { invalidateSwrCache, notifyCacheInvalidation } from '@/lib/cache-sync';
 
 interface AdImage {
   id: number;
@@ -1268,6 +1268,7 @@ export default function AdsModerationPage() {
     invalidateSwrCache('boosted_ads_listing');
     invalidateSwrCache(/^search/);
     invalidateSwrCache(/^secure-control-9ja/);
+    notifyCacheInvalidation();
   }, []);
 
   const handleApprove = async () => {

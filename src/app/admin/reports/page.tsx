@@ -14,7 +14,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
-import { invalidateSwrCache } from '@/lib/cache-sync';
+import { invalidateSwrCache, notifyCacheInvalidation } from '@/lib/cache-sync';
 import toast from 'react-hot-toast';
 
 interface Report {
@@ -41,6 +41,7 @@ export default function ReportsPage() {
     invalidateSwrCache('boosted_ads_listing');
     invalidateSwrCache(/^search/);
     invalidateSwrCache(/^secure-control-9ja/);
+    notifyCacheInvalidation();
   }, []);
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);

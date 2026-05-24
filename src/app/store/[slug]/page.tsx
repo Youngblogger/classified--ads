@@ -106,6 +106,12 @@ export default function StoreProfilePage() {
     fetchStore();
   }, [fetchStore]);
 
+  useEffect(() => {
+    const onInvalidate = () => fetchStore();
+    window.addEventListener('ilist:cache-invalidate', onInvalidate);
+    return () => window.removeEventListener('ilist:cache-invalidate', onInvalidate);
+  }, [fetchStore]);
+
   const handleFollowToggle = async () => {
     if (!store || !isAuthenticated) {
       toast.error('Please login to follow stores');

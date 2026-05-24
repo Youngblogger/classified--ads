@@ -91,6 +91,12 @@ export default function SellerProfilePage() {
   }, [sellerId, isAuthenticated, fetchSellerProfile, fetchFollowStatus]);
 
   useEffect(() => {
+    const onInvalidate = () => { fetchSellerProfile(); fetchReviews(); };
+    window.addEventListener('ilist:cache-invalidate', onInvalidate);
+    return () => window.removeEventListener('ilist:cache-invalidate', onInvalidate);
+  }, [fetchSellerProfile, fetchReviews]);
+
+  useEffect(() => {
     if (seller) {
       fetchReviews();
     }
