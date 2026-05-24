@@ -70,6 +70,8 @@ export default function LocationModal() {
   const [isClosing, setIsClosing] = useState(false);
   const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const gpsContainerRef = useRef<HTMLDivElement>(null);
+  const gpsWatchIdRef = useRef<number | null>(null);
+  const gpsFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -139,6 +141,14 @@ export default function LocationModal() {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
+    }
+    if (gpsWatchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+      gpsWatchIdRef.current = null;
+    }
+    if (gpsFallbackTimerRef.current !== null) {
+      clearTimeout(gpsFallbackTimerRef.current);
+      gpsFallbackTimerRef.current = null;
     }
     closeAllModals();
   }, [closeAllModals]);
@@ -298,20 +308,30 @@ export default function LocationModal() {
     try { sessionStorage.removeItem(CACHED_DETECTION_KEY); } catch {}
 
     let resolved = false;
+    let bestCoords: { latitude: number; longitude: number } | null = null;
+    let bestAccuracy = Infinity;
 
-    // Overall safety timeout: show error if nothing resolves in 25s
-    const safetyTimer = setTimeout(() => {
-      if (resolved) return;
-      resolved = true;
-      console.error('[GPS] Safety timeout — no position after 25s');
-      setDetectedAddress('Could not get accurate GPS fix');
-      setGpsState('error');
-    }, 25000);
+    // Clean up any previous GPS watch
+    if (gpsWatchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+      gpsWatchIdRef.current = null;
+    }
+    if (gpsFallbackTimerRef.current !== null) {
+      clearTimeout(gpsFallbackTimerRef.current);
+      gpsFallbackTimerRef.current = null;
+    }
 
     const processCoords = async (lat: number, lng: number) => {
-      clearTimeout(safetyTimer);
       if (resolved) return;
       resolved = true;
+      if (gpsWatchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        gpsWatchIdRef.current = null;
+      }
+      if (gpsFallbackTimerRef.current !== null) {
+        clearTimeout(gpsFallbackTimerRef.current);
+        gpsFallbackTimerRef.current = null;
+      }
       console.log(`[GPS] Processing: lat=${lat}, lng=${lng}`);
 
       try {
@@ -345,50 +365,82 @@ export default function LocationModal() {
       }
     };
 
-    // Phase 1: Try high-accuracy GPS with 10s timeout
-    navigator.geolocation.getCurrentPosition(
+    const handleError = (err: GeolocationPositionError) => {
+      if (resolved) return;
+      resolved = true;
+      if (gpsWatchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        gpsWatchIdRef.current = null;
+      }
+      if (gpsFallbackTimerRef.current !== null) {
+        clearTimeout(gpsFallbackTimerRef.current);
+        gpsFallbackTimerRef.current = null;
+      }
+      console.error('[GPS] Positioning failed:', err);
+      setGpsState('error');
+      switch (err.code) {
+        case err.PERMISSION_DENIED: setDetectedAddress('Location access denied'); break;
+        case err.POSITION_UNAVAILABLE: setDetectedAddress('Location unavailable'); break;
+        case err.TIMEOUT: setDetectedAddress('Location request timed out'); break;
+        default: setDetectedAddress('An error occurred');
+      }
+    };
+
+    // Use watchPosition to get progressively better accuracy
+    gpsWatchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
-        console.log(`[GPS] High-accuracy result: ${latitude},${longitude} (accuracy: ${accuracy}m)`);
-        if (accuracy < 1000) {
+        if (resolved) return;
+
+        if (accuracy < bestAccuracy) {
+          bestAccuracy = accuracy;
+          bestCoords = { latitude, longitude };
+          console.log(`[GPS] Better fix: ${latitude},${longitude} (accuracy: ${accuracy}m)`);
+        }
+
+        // Good enough accuracy — process immediately
+        if (accuracy < 100) {
+          console.log(`[GPS] Good accuracy (${accuracy}m), processing...`);
           processCoords(latitude, longitude);
-        } else {
-          console.warn(`[GPS] High-accuracy accuracy too poor (${accuracy}m > 1000m)`);
-          // Fall through to Phase 2
-          tryPhase2();
         }
       },
-      (err) => {
-        console.warn(`[GPS] High-accuracy failed (${err.code}), trying low-accuracy...`);
-        tryPhase2();
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      handleError,
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 5000 }
     );
 
-    // Phase 2: Fallback to standard accuracy (10s timeout)
-    const tryPhase2 = () => {
+    // Fallback timer: use best available fix after 20s
+    gpsFallbackTimerRef.current = setTimeout(() => {
       if (resolved) return;
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
-          console.log(`[GPS] Standard result: ${latitude},${longitude} (accuracy: ${accuracy}m)`);
-          processCoords(latitude, longitude);
-        },
-        (err) => {
-          if (resolved) return;
-          resolved = true;
-          console.error('[GPS] All positioning failed:', err);
-          setGpsState('error');
-          switch (err.code) {
-            case err.PERMISSION_DENIED: setDetectedAddress('Location access denied'); break;
-            case err.POSITION_UNAVAILABLE: setDetectedAddress('Location unavailable'); break;
-            case err.TIMEOUT: setDetectedAddress('Location request timed out'); break;
-            default: setDetectedAddress('An error occurred');
-          }
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
-      );
-    };
+      if (bestCoords) {
+        console.log(`[GPS] Fallback timer — using best fix (accuracy: ${bestAccuracy}m)`);
+        processCoords(bestCoords.latitude, bestCoords.longitude);
+      } else {
+        // No fix at all — try a single lower-accuracy attempt
+        console.log('[GPS] No fix from watchPosition, trying single low-accuracy request...');
+        if (gpsWatchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+          gpsWatchIdRef.current = null;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            processCoords(position.coords.latitude, position.coords.longitude);
+          },
+          (err) => {
+            if (resolved) return;
+            resolved = true;
+            console.error('[GPS] Final fallback failed:', err);
+            setGpsState('error');
+            switch (err.code) {
+              case err.PERMISSION_DENIED: setDetectedAddress('Location access denied'); break;
+              case err.POSITION_UNAVAILABLE: setDetectedAddress('Location unavailable'); break;
+              case err.TIMEOUT: setDetectedAddress('Location request timed out'); break;
+              default: setDetectedAddress('An error occurred');
+            }
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 }
+        );
+      }
+    }, 20000);
   }, [reverseGeocode, matchToLocation, autoCloseAfterSuccess, cacheDetection]);
 
   const getGpsErrorDescription = (): string => {
