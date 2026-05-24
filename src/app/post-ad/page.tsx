@@ -2,7 +2,7 @@
 
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
-import PostAdForm from '@/components/forms/PostAdForm';
+import PostAdWizard from '@/components/forms/PostAdWizard';
 import { Check, Shield, Clock, Star } from 'lucide-react';
 
 export default function PostAdPage() {
@@ -21,7 +21,7 @@ export default function PostAdPage() {
                 <h1 className="text-2xl font-bold text-dark mb-2">Post Your Ad</h1>
                 <p className="text-gray-500 mb-8">Fill in the details to list your item for sale</p>
                 
-                <PostAdForm isStandalone={true} />
+                <PostAdWizard />
               </div>
             </div>
 
