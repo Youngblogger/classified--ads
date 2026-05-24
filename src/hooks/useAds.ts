@@ -43,7 +43,7 @@ export function useInfiniteAds(params: Record<string, any> = {}, pageSize: numbe
     getKey,
     fetcher,
     {
-      revalidateOnFocus: false,
+      revalidateOnFocus: true,
       dedupingInterval: 30000,
       revalidateFirstPage: false,
       errorRetryCount: 2,

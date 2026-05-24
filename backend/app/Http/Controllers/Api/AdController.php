@@ -50,12 +50,22 @@ class AdController extends Controller
                 $query->search($request->search);
             }
 
+            $tierService = app(BoostTierService::class);
+            $boostData = $tierService->getBoostedAdsForListing();
+            $boostedIds = $boostData['boosted_ad_ids'] ?? [];
+
+            $query->reorder();
+            if (!empty($boostedIds)) {
+                $idList = implode(',', array_map('intval', $boostedIds));
+                $query->orderByRaw("FIELD(id, {$idList}) DESC");
+            }
+            $query->orderBy('created_at', 'desc');
+
             $totalCount = (clone $query)->count();
             $lastPage = (int) ceil($totalCount / $limit);
 
             $allAds = $query->paginate($limit, ['*'], 'page', $page);
 
-            $tierService = app(BoostTierService::class);
             try {
                 $sortCallback = $tierService->getPrioritySortCallback();
                 $sorted = $allAds->getCollection()->sortByDesc($sortCallback)->values();
