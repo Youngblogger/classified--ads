@@ -465,4 +465,138 @@ class GrowthController extends Controller
 
         return response()->json(['message' => 'Recently viewed cleared']);
     }
+
+    public function postSubmissionBoost(Request $request, int $id, BoostAdService $boostAdService, PaymentService $paymentService)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'plan_type' => 'required|in:silver,gold,platinum',
+            'payment_method' => 'sometimes|in:wallet,paystack',
+        ]);
+
+        $paymentMethod = $validated['payment_method'] ?? 'paystack';
+
+        $ad = \App\Models\Ad::where('id', $id)->where('user_id', $user->id)->first();
+
+        if (!$ad) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Ad not found or unauthorized',
+            ], 404);
+        }
+
+        $plan = \App\Models\BoostPlan::where('type', $validated['plan_type'])->where('is_active', true)->first();
+
+        if (!$plan) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid or inactive boost plan',
+            ], 400);
+        }
+
+        $price = (float) $plan->price;
+        $durationDays = $plan->duration_days;
+
+        if ($paymentMethod === 'wallet') {
+            $wallet = \App\Models\Wallet::where('user_id', $user->id)->first();
+
+            if (!$wallet) {
+                return response()->json(['success' => false, 'error' => 'Wallet not found'], 404);
+            }
+
+            if ($wallet->available_balance < $price) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Insufficient wallet balance. Available: ₦' . number_format($wallet->available_balance, 2) . ', Required: ₦' . number_format($price, 2),
+                    'available_balance' => $wallet->available_balance,
+                    'required_amount' => $price,
+                ], 402);
+            }
+
+            $reference = 'WLB' . date('Ymd') . strtoupper(\Illuminate\Support\Str::random(10));
+
+            $boost = \App\Models\BoostedAd::create([
+                'ad_id' => $ad->id,
+                'user_id' => $user->id,
+                'plan_id' => $plan->id,
+                'boost_type' => $plan->type,
+                'priority_score' => $plan->priority_score,
+                'start_time' => $ad->status === 'active' ? now() : null,
+                'end_time' => $ad->status === 'active' ? now()->addDays($durationDays) : null,
+                'status' => $ad->status === 'active' ? 'active' : 'pending_payment',
+                'payment_reference' => $reference,
+                'paid_from' => 'wallet',
+            ]);
+
+            if ($ad->status === 'active') {
+                event(new \App\Events\AdBoosted($boost));
+            }
+
+            if ($ad->status !== 'active') {
+                $ad->update(['status' => 'active']);
+                $boost->update([
+                    'status' => 'active',
+                    'start_time' => now(),
+                    'end_time' => now()->addDays($durationDays),
+                ]);
+                event(new \App\Events\AdBoosted($boost));
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'boost_id' => $boost->id,
+                    'amount' => $price,
+                    'paid_from' => 'wallet',
+                    'plan' => [
+                        'id' => $plan->id,
+                        'type' => $plan->type,
+                        'name' => $plan->name,
+                        'price' => $plan->price,
+                        'duration_days' => $plan->duration_days,
+                    ],
+                    'message' => 'Boost activated successfully',
+                ],
+            ]);
+        }
+
+        // Paystack flow
+        $result = $paymentService->initializePayment([
+            'user_id' => $user->id,
+            'ad_id' => $ad->id,
+            'amount' => $price,
+            'currency' => 'NGN',
+            'type' => 'boost',
+            'email' => $user->email ?? '',
+            'metadata' => [
+                'action' => 'post_submission_boost',
+                'plan_type' => $plan->type,
+                'plan_id' => $plan->id,
+                'duration_days' => $durationDays,
+                'ad_pending' => $ad->status !== 'active',
+            ],
+        ]);
+
+        if (!$result['success']) {
+            return response()->json($result, 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'payment_intent' => $result['payment_intent']->reference,
+                'authorization_url' => $result['authorization_url'] ?? null,
+                'access_code' => $result['access_code'] ?? null,
+                'amount' => $price,
+                'plan' => [
+                    'id' => $plan->id,
+                    'type' => $plan->type,
+                    'name' => $plan->name,
+                    'price' => $plan->price,
+                    'duration_days' => $plan->duration_days,
+                ],
+            ],
+        ]);
+    }
 }

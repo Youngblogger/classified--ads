@@ -395,6 +395,7 @@ Route::middleware('auth.api')->group(function () {
     // Growth & Monetization
     Route::get('/my-boosts', [GrowthController::class, 'myBoosts']);
     Route::post('/ads/{id}/boost', [GrowthController::class, 'boostAd'])->middleware('throttle:boost');
+    Route::post('/ads/{id}/post-submission-boost', [GrowthController::class, 'postSubmissionBoost'])->middleware('throttle:boost');
     Route::get('/ads/{id}/boost-status', [GrowthController::class, 'getBoostStatus']);
     Route::post('/ads/{id}/boost-renew', [GrowthController::class, 'renewBoost'])->middleware('throttle:boost');
     Route::get('/ads/{id}/boost-renewal-check', [GrowthController::class, 'checkRenewal']);

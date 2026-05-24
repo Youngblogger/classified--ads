@@ -651,6 +651,15 @@ class BoostAdService
         $action = $metadata['action'] ?? 'new_boost';
         $planId = $metadata['plan_id'] ?? null;
 
+        // Activate pending ad for post-submission boosts
+        if (($metadata['ad_pending'] ?? false) && $ad->status !== 'active') {
+            $ad->update(['status' => 'active']);
+            Log::info('Ad activated from pending status after boost payment', [
+                'ad_id' => $ad->id,
+                'payment_reference' => $paymentReference,
+            ]);
+        }
+
         $existingBoost = BoostedAd::where('ad_id', $paymentIntent->ad_id)
             ->active()
             ->where('boost_type', $boostType)

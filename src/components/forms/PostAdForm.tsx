@@ -18,6 +18,7 @@ import DynamicField, { CategoryField } from './DynamicField';
 import structuredCategories from '@/data/structured-categories.json';
 import { usePostAdDraft, clearPostAdDraft, DraftImage } from '@/hooks/usePostAdDraft';
 import { compressImage, CompressedImage } from '@/lib/imageCompression';
+import PostSubmissionModal from '@/components/boost/PostSubmissionModal';
 
 interface StructuredCategory {
   category: string;
@@ -146,6 +147,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [draftRestored, setDraftRestored] = useState(false);
   
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [postedAdId, setPostedAdId] = useState<number | null>(null);
+  const [postedAdSlug, setPostedAdSlug] = useState<string | undefined>(undefined);
+
   const [categories, setCategories] = useState<any[]>([]);
   
   const [title, setTitle] = useState('');
@@ -748,24 +753,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       mutate(key => typeof key === 'string' && key.startsWith('ads?'));
       queryClient.invalidateQueries({ queryKey: adKeys.all });
       
-      // Show success message
-      toast.success(
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <Check className="w-5 h-5 text-green-500" />
-            <p className="font-semibold">Ad posted successfully!</p>
-          </div>
-          <p className="text-sm text-gray-600">Your ad is now live on the homepage!</p>
-        </div>,
-        { duration: 3000 }
-      );
-      
-      // Redirect to homepage after short delay
-      if (isStandalone) {
-        setTimeout(() => {
-          router.push('/');
-        }, 800);
-      }
+      // Show post-submission boost upsell modal
+      setPostedAdId(adId);
+      setPostedAdSlug(adSlug);
+      setShowPostModal(true);
       
       if (onSuccess) {
         onSuccess(adId);
@@ -1516,6 +1507,15 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         selectedStateId={locationId}
         selectedLga={lgaId}
         selectedFullLocation={locationBreadcrumb}
+      />
+
+      {/* Post-Submission Boost Modal */}
+      <PostSubmissionModal
+        isOpen={showPostModal}
+        onClose={() => setShowPostModal(false)}
+        adId={postedAdId || 0}
+        adSlug={postedAdSlug}
+        adTitle={title}
       />
     </div>
   );

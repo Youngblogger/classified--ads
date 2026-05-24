@@ -1,7 +1,7 @@
 'use client';
 
-import PostAdWizard from '@/components/forms/PostAdWizard';
+import PostAdForm from '@/components/forms/PostAdForm';
 
 export default function DashboardPostAdPage() {
-  return <PostAdWizard />;
+  return <PostAdForm />;
 }

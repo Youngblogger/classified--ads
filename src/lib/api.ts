@@ -722,6 +722,8 @@ export const growthApi = {
   myBoosts: () => api.get('/my-boosts'),
   boostAd: (adId: number, data: { boost_type: string; duration_days: number }) =>
     api.post(`/ads/${adId}/boost`, data),
+  postSubmissionBoost: (adId: number, data: { plan_type: string; payment_method?: string }) =>
+    api.post(`/ads/${adId}/post-submission-boost`, data),
   getBoostStatus: (adId: number) => api.get(`/ads/${adId}/boost-status`),
   saveAd: (adId: number) => api.post(`/ads/${adId}/save`),
   unsaveAd: (adId: number) => api.delete(`/ads/${adId}/unsave`),

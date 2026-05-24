@@ -469,3 +469,52 @@ export interface AdPerformance {
   total_whatsapp_clicks: number;
   total_shares: number;
 }
+
+// Boost Flow Types
+export interface BoostPackage {
+  id: number;
+  name: string;
+  type: string;
+  price: number;
+  formatted_price: string;
+  duration_days: number;
+  priority_score: number;
+  badge_label: string;
+  badge_icon: string;
+  color_scheme: {
+    gradient: string;
+    border: string;
+    glow: string;
+    text: string;
+    bg: string;
+    accent: string;
+  };
+  features: string[];
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface BoostOrderRequest {
+  plan_type: 'silver' | 'gold' | 'platinum';
+  payment_method?: 'wallet' | 'paystack';
+}
+
+export interface BoostOrderResponse {
+  success: boolean;
+  data: {
+    payment_intent?: string;
+    authorization_url?: string;
+    access_code?: string;
+    amount: number;
+    plan?: {
+      id: number;
+      type: string;
+      name: string;
+      price: number;
+      duration_days: number;
+    };
+    boost_id?: number;
+    paid_from?: string;
+    message?: string;
+  };
+}
