@@ -32,22 +32,65 @@ interface ImageFile {
 }
 
 interface BoostOption {
-  value: 'top' | 'featured' | 'highlight';
+  value: 'silver' | 'gold' | 'platinum';
   label: string;
+  displayName: string;
   description: string;
-  icon: string;
-  color: string;
+  emoji: string;
+  price: number;
+  duration: number;
+  features: string[];
 }
 
 const BOOST_OPTIONS: BoostOption[] = [
-  { value: 'top', label: 'Top Deal', description: 'Appear at the top of search results', icon: '🚀', color: 'from-blue-500 to-blue-600' },
-  { value: 'featured', label: 'Featured', description: 'Highlighted with a special badge', icon: '⭐', color: 'from-amber-500 to-orange-500' },
-  { value: 'highlight', label: 'Highlight', description: 'Stand out with a colored border', icon: '💎', color: 'from-purple-500 to-purple-600' },
+  {
+    value: 'silver', label: 'Gold', displayName: 'Gold Boost',
+    description: 'Above normal listings, highlighted card, better search ranking',
+    emoji: '👑', price: 2000, duration: 3,
+    features: ['Above normal listings', 'Highlighted ad card', 'Better search ranking', 'Gold badge'],
+  },
+  {
+    value: 'gold', label: 'Platinum', displayName: 'Platinum Boost',
+    description: 'Homepage exposure, priority category, higher search visibility',
+    emoji: '⚜️', price: 5000, duration: 7,
+    features: ['Homepage exposure', 'Priority category placement', 'Higher search visibility', 'Platinum badge', 'More impressions than Gold'],
+  },
+  {
+    value: 'platinum', label: 'Diamond', displayName: 'Diamond VIP',
+    description: 'Top homepage placement, highest search priority, VIP badge',
+    emoji: '💎', price: 10000, duration: 14,
+    features: ['Top homepage placement', 'Highest search priority', 'Diamond animated badge', 'Priority in recommended ads', 'Extra premium styling'],
+  },
 ];
 
-const DURATIONS = [1, 3, 7, 14, 30];
-const DURATION_LABELS: Record<number, string> = {
-  1: '1 day', 3: '3 days', 7: '7 days', 14: '14 days', 30: '30 days',
+const TIER_COLORS: Record<string, { bg: string; border: string; badge: string; btn: string; shadow: string }> = {
+  gold: {
+    bg: 'from-amber-50 to-yellow-50',
+    border: 'border-amber-300',
+    badge: 'from-amber-400 via-yellow-300 to-amber-400',
+    btn: 'from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700',
+    shadow: 'shadow-amber-400/20',
+  },
+  platinum: {
+    bg: 'from-slate-50 to-gray-50',
+    border: 'border-slate-300',
+    badge: 'from-slate-400 via-slate-300 to-slate-400',
+    btn: 'from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700',
+    shadow: 'shadow-slate-400/20',
+  },
+  diamond: {
+    bg: 'from-violet-50 to-purple-50',
+    border: 'border-violet-300',
+    badge: 'from-violet-500 via-purple-400 to-fuchsia-400',
+    btn: 'from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800',
+    shadow: 'shadow-violet-500/20',
+  },
+};
+
+const PLAN_TO_TIER: Record<string, string> = {
+  silver: 'gold',
+  gold: 'platinum',
+  platinum: 'diamond',
 };
 
 const localCategories = [
@@ -99,9 +142,8 @@ export default function PostAdWizard() {
   const { toggleLoginModal } = useUIStore();
 
   const [wizardStep, setWizardStep] = useState<WizardStep>('form');
-  const [isLoading, setIsLoading] = useState(false);
-  const [prices, setPrices] = useState<Record<string, number>>({});
-  const [fetchingPrices, setFetchingPrices] = useState(false);
+  const [isBoostLoading, setIsBoostLoading] = useState(false);
+  const [isSkipLoading, setIsSkipLoading] = useState(false);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -126,8 +168,7 @@ export default function PostAdWizard() {
   const [categories, setCategories] = useState<any[]>(localCategories);
 
   // Boost state
-  const [boostType, setBoostType] = useState<'top' | 'featured' | 'highlight'>('top');
-  const [duration, setDuration] = useState(7);
+  const [boostType, setBoostType] = useState<'silver' | 'gold' | 'platinum'>('silver');
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,24 +188,6 @@ export default function PostAdWizard() {
       } catch {}
     };
     fetchCategories();
-  }, []);
-
-  const fetchBoostPrices = async () => {
-    try {
-      setFetchingPrices(true);
-      const res = await fetch(`${API_URL}/ads/boost-prices`);
-      const data = await res.json();
-      if (data.data?.prices) setPrices(data.data.prices);
-      else setPrices({ top: 5, featured: 10, highlight: 3 });
-    } catch {
-      setPrices({ top: 5, featured: 10, highlight: 3 });
-    } finally {
-      setFetchingPrices(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBoostPrices();
   }, []);
 
   // Pre-fill category & location from last ad
@@ -189,12 +212,6 @@ export default function PostAdWizard() {
     };
     prefetch();
   }, [isAuthenticated]);
-
-  const calculatePrice = (): number => {
-    const basePrice = prices[boostType] || 5;
-    const multiplier = duration >= 30 ? 0.7 : duration >= 14 ? 0.8 : duration >= 7 ? 0.85 : duration >= 3 ? 0.9 : 1.0;
-    return Math.round(basePrice * duration * multiplier * 100) / 100;
-  };
 
   const getCategoryName = (id: number | null): string => {
     if (!id) return '';
@@ -318,12 +335,13 @@ export default function PostAdWizard() {
       toast.error('Please fill in all required fields');
       return;
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setWizardStep('boost');
   };
 
   const handleSkipBoost = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
+    if (isSkipLoading) return;
+    setIsSkipLoading(true);
     try {
       const formData = buildFormData();
       const response = await adsApi.create(formData);
@@ -352,41 +370,35 @@ export default function PostAdWizard() {
       }
       toast.error(errorMsg);
     } finally {
-      setIsLoading(false);
+      setIsSkipLoading(false);
     }
   };
 
   const handleBoostAd = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
+    if (isBoostLoading) return;
+    setIsBoostLoading(true);
     try {
       const formData = buildFormData();
-      const token = getAuthToken();
+      const response = await adsApi.create(formData);
+      const adData = response.data?.data || response.data;
+      const adId = adData?.id;
 
-      formData.append('boost_type', boostType);
-      formData.append('duration_days', String(duration));
+      if (!adId) throw new Error('Ad created but no ID returned');
 
-      const response = await fetch(`${API_URL}/ads/boost-on-publish`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to initiate boost');
-      }
-
-      if (data.data?.authorization_url) {
-        window.location.href = data.data.authorization_url;
-      } else {
-        throw new Error('Payment URL not received');
-      }
+      clearDraft();
+      toast.success('Ad posted! Redirecting to boost...');
+      setTimeout(() => router.push(`/promote/${adId}`), 500);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to process boost');
+      let errorMsg = 'Failed to post ad. Please try again.';
+      if (err.response?.data?.errors) {
+        const firstError = Object.values(err.response.data.errors)[0];
+        if (Array.isArray(firstError) && firstError[0]) errorMsg = firstError[0];
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+      toast.error(errorMsg);
     } finally {
-      setIsLoading(false);
+      setIsBoostLoading(false);
     }
   };
 
@@ -707,125 +719,87 @@ export default function PostAdWizard() {
             <p className="text-gray-500 mt-2">Boost your ad to get more views and sell quicker. Skip if you prefer free posting.</p>
           </div>
 
-          {fetchingPrices ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-            </div>
-          ) : (
-            <>
-              {/* Boost Type Selection */}
-              <div className="mb-6">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Choose boost type</p>
-                <div className="space-y-3">
-                  {BOOST_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setBoostType(option.value)}
-                      className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                        boostType === option.value
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                      }`}
-                    >
-                      <span className="text-2xl">{option.icon}</span>
-                      <div className="flex-1">
-                        <p className="text-base font-semibold text-gray-900">{option.label}</p>
-                        <p className="text-sm text-gray-500">{option.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900">₦{(prices[option.value] || 0).toFixed(2)}</p>
-                        <p className="text-xs text-gray-500">/day</p>
-                      </div>
-                      {boostType === option.value && (
-                        <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Duration Selection */}
-              <div className="mb-6">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Choose duration</p>
-                <div className="flex flex-wrap gap-2">
-                  {DURATIONS.map((d) => {
-                    const discount = d >= 30 ? '-30%' : d >= 14 ? '-20%' : d >= 7 ? '-15%' : d >= 3 ? '-10%' : null;
-                    return (
-                      <button
-                        key={d}
-                        onClick={() => setDuration(d)}
-                        className={`flex flex-col items-center px-4 py-3 rounded-xl border-2 transition-all min-w-[80px] ${
-                          duration === d
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <span className={`text-sm font-semibold ${duration === d ? 'text-primary-700' : 'text-gray-700'}`}>
-                          {DURATION_LABELS[d]}
-                        </span>
-                        {discount && (
-                          <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-1">
-                            {discount}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Price Summary */}
-              <div className="bg-gray-50 rounded-xl p-5 mb-8">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">{BOOST_OPTIONS.find(b => b.value === boostType)?.label}</span>
-                  <span className="text-sm font-medium">₦{prices[boostType]?.toFixed(2)}/day</span>
-                </div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Duration</span>
-                  <span className="text-sm font-medium">{DURATION_LABELS[duration]}</span>
-                </div>
-                <hr className="border-gray-200 my-2" />
-                <div className="flex items-center justify-between">
-                  <span className="text-base font-bold text-gray-900">Total</span>
-                  <span className="text-2xl font-bold text-primary-600">₦{calculatePrice().toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* CTAs */}
-              <div className="space-y-3">
+          {/* Plan Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            {BOOST_OPTIONS.map((plan) => {
+              const isSelected = boostType === plan.value;
+              const tierKey = PLAN_TO_TIER[plan.value] || 'gold';
+              const c = TIER_COLORS[tierKey] || TIER_COLORS.gold;
+              return (
                 <button
-                  onClick={handleBoostAd}
-                  disabled={isLoading}
-                  className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-amber-200"
+                  key={plan.value}
+                  onClick={() => setBoostType(plan.value)}
+                  className={`
+                    relative flex flex-col items-center text-center px-4 py-5 rounded-2xl border-2 transition-all duration-200
+                    ${isSelected
+                      ? `${c.border} bg-gradient-to-b ${c.bg} ${c.shadow} shadow-lg scale-[1.02]`
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+                    }
+                  `}
                 >
-                  {isLoading ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
-                  ) : (
-                    <>
-                      <Zap className="w-5 h-5" />
-                      Boost My Ad — ₦{calculatePrice().toFixed(2)}
-                      <ArrowRight className="w-5 h-5" />
-                    </>
+                  {isSelected && (
+                    <div className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center shadow-md">
+                      <Check className="w-3.5 h-3.5 text-white" />
+                    </div>
                   )}
+                  <span className="text-3xl mb-3 leading-none">{plan.emoji}</span>
+                  <h3 className="text-base font-bold text-gray-900 mb-1">{plan.displayName}</h3>
+                  <div className="text-2xl font-extrabold text-gray-900 mb-1">
+                    ₦{plan.price.toLocaleString()}
+                  </div>
+                  <div className="text-xs font-medium text-gray-500 mb-3">
+                    {plan.duration} day{plan.duration > 1 ? 's' : ''}
+                  </div>
+                  <div className="w-full space-y-1.5 text-left">
+                    {plan.features.map((feature, i) => (
+                      <div key={i} className="flex items-start gap-1.5 text-xs text-gray-600">
+                        <Check className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
                 </button>
+              );
+            })}
+          </div>
 
-                <button
-                  onClick={handleSkipBoost}
-                  disabled={isLoading}
-                  className="w-full py-3.5 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
+          {/* CTAs */}
+          <div className="space-y-3">
+            <button
+              onClick={handleBoostAd}
+              disabled={isBoostLoading}
+              className="w-full py-4 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-xl font-bold text-lg hover:from-violet-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-violet-200"
+            >
+              {isBoostLoading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5" />
+                  Boost My Ad — ₦{BOOST_OPTIONS.find(b => b.value === boostType)!.price.toLocaleString()}
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={handleSkipBoost}
+              disabled={isSkipLoading}
+              className="w-full py-3.5 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSkipLoading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Posting...</>
+              ) : (
+                <>
                   No thanks, publish for free
                   <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </>
-          )}
+                </>
+              )}
+            </button>
+          </div>
 
           {/* Back */}
           <div className="mt-6">
-            <button onClick={() => setWizardStep('form')}
+            <button onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setWizardStep('form'); }}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-semibold rounded-xl transition-all">
               <ArrowLeft className="w-4 h-4" /> Back to form
             </button>

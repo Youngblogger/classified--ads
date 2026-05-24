@@ -58,8 +58,9 @@ export default function PromoteAdPage() {
 
   const fetchAd = useCallback(async () => {
     try {
-      const res = await adsApi.getById(parseInt(adId));
-      setAd(res.data);
+      const isNumeric = /^\d+$/.test(adId);
+      const res = isNumeric ? await adsApi.getById(parseInt(adId)) : await adsApi.getBySlug(adId);
+      setAd(res.data?.data || res.data);
     } catch (err: any) {
       setError('Failed to load ad');
       toast.error('Failed to load ad');
