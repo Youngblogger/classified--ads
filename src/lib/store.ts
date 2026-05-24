@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, AuthState } from '@/types';
 import { setCookie } from './cookies';
 
@@ -140,8 +140,8 @@ export const useGlobalStore = create<GlobalStore>()(
     }),
     {
       name: 'ilist-global-storage',
-      partialize: (state) => ({ selectedLocation: state.selectedLocation }),
-      storage: typeof window !== 'undefined' ? sessionStorage : undefined,
+      partialize: (state) => ({ selectedLocation: state.selectedLocation } as GlobalStore),
+      storage: typeof window !== 'undefined' ? createJSONStorage(() => sessionStorage) : undefined,
     }
   )
 );

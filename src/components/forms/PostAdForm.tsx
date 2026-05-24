@@ -6,6 +6,8 @@ import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRig
 import { useRouter } from 'next/navigation';
 import { adsApi } from '@/lib/api';
 import { mutate } from 'swr';
+import { useQueryClient } from '@tanstack/react-query';
+import { adKeys } from '@/lib/query-keys';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { getPhoneValidationError } from '@/lib/utils';
 import { nigeriaLocations } from '@/lib/nigeriaLocations';
@@ -134,6 +136,7 @@ const localCategories = [
 ];
 
 export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFormProps) {
+  const queryClient = useQueryClient();
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const { toggleLoginModal, toggleRegisterModal } = useUIStore();
@@ -741,8 +744,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       // Clear saved draft
       clearPostAdDraft();
       
-      // Invalidate SWR ad cache so homepage shows new ad instantly
+      // Invalidate SWR and TanStack Query caches so homepage shows new ad instantly
       mutate(key => typeof key === 'string' && key.startsWith('ads?'));
+      queryClient.invalidateQueries({ queryKey: adKeys.all });
       
       // Show success message
       toast.success(

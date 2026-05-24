@@ -14,6 +14,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
+import { invalidateSwrCache } from '@/lib/cache-sync';
 import toast from 'react-hot-toast';
 
 interface Report {
@@ -34,6 +35,13 @@ interface Report {
 }
 
 export default function ReportsPage() {
+  const triggerCacheSync = useCallback(() => {
+    invalidateSwrCache(/^ads\?/);
+    invalidateSwrCache('homepage_data');
+    invalidateSwrCache('boosted_ads_listing');
+    invalidateSwrCache(/^search/);
+    invalidateSwrCache(/^secure-control-9ja/);
+  }, []);
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -97,6 +105,7 @@ export default function ReportsPage() {
       setActionLoading(reportId);
       await adminApi.deleteAd(adId);
       toast.success('Ad deleted successfully');
+      triggerCacheSync();
       fetchReports();
     } catch (error) {
       console.error('Failed to delete ad:', error);

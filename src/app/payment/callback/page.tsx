@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, CheckCircle, XCircle, Zap, Home, ArrowLeft, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
 import { paymentApi } from '@/lib/api';
 import { mutate } from 'swr';
+import { useQueryClient } from '@tanstack/react-query';
+import { adKeys } from '@/lib/query-keys';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import PendingPaymentTimer from '@/components/ui/PendingPaymentTimer';
@@ -13,6 +15,7 @@ const POLL_INTERVAL = 3000;
 const MAX_POLL_ATTEMPTS = 40;
 
 function PaymentCallbackContent() {
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'failed' | 'expired'>('loading');
@@ -59,6 +62,7 @@ function PaymentCallbackContent() {
             toast.success('Boost activated successfully!');
             mutate('boosted_ads_listing');
             mutate('homepage_data');
+            queryClient.invalidateQueries({ queryKey: adKeys.all });
           } else {
             toast.success('Payment successful!');
           }

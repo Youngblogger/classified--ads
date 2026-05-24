@@ -2,8 +2,10 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { mutate as swrMutate } from 'swr';
 import { patchFedCmWidgetMode } from '@/lib/fedcm-patch';
 import { Toaster } from 'react-hot-toast';
+import QueryProvider from '@/providers/QueryProvider';
 import LoginModal from '@/components/ui/LoginModal';
 import RegisterModal from '@/components/ui/RegisterModal';
 import LocationModal from '@/components/ui/LocationModal';
@@ -21,20 +23,17 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
 
   useEffect(() => {
     patchFedCmWidgetMode();
+    (window as any).__swrMutate = swrMutate;
   }, []);
 
   const isAdminPage = pathname?.startsWith('/admin');
 
-  if (isAdminPage) {
-    return (
-      <>
-        {children}
-        <Toaster position="top-right" />
-      </>
-    );
-  }
-
-  return (
+  const content = isAdminPage ? (
+    <>
+      {children}
+      <Toaster position="top-right" />
+    </>
+  ) : (
     <div className="min-h-screen flex flex-col">
       <AuthProvider>
         <Preloader />
@@ -70,4 +69,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
       </AuthProvider>
     </div>
   );
+
+  return <QueryProvider>{content}</QueryProvider>;
 }

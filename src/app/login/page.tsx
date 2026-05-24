@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { X, Mail, Lock, Eye, EyeOff, Loader2, ChevronLeft } from 'lucide-react';
@@ -8,32 +8,11 @@ import { useAuthStore, useUIStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
-interface GoogleWindow {
-  google?: {
-    accounts?: {
-      id?: {
-        initialize: (config: {
-          client_id: string;
-          callback: (response: { credential: string }) => void;
-          context?: string;
-          ux_mode?: string;
-          auto_select?: boolean;
-          use_fedcm_for_prompt?: boolean;
-        }) => void;
-        renderButton: (container: HTMLElement, config: object) => void;
-        prompt: (momentListener?: (res: any) => void) => void;
-        disableAutoSelect: () => void;
-        cancel: () => void;
-      };
-    };
-  };
-}
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '190991791068-p65o95kslmp106ohlbdafsdthg702tn3.apps.googleusercontent.com';
-
-export default function LoginPage() {
-  const router = useRouter();
+function LoginContent() {
+  const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
   const searchParams = useSearchParams();
+  const router = useRouter();
+  interface GoogleWindow { google?: { accounts?: { id?: { initialize: (config: any) => void; renderButton: (container: HTMLElement, config: any) => void } } } }
   const { isAuthenticated, login, setLoading } = useAuthStore();
   const { toggleRegisterModal } = useUIStore();
   const [email, setEmail] = useState('');
@@ -388,5 +367,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -13,6 +13,7 @@ import BoostPlansModal from '@/components/ui/BoostPlansModal';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
 import { Clock, ShieldCheck } from 'lucide-react';
+import { useCloseAd, useDeleteAd, usePauseAd, useReactivateAd, useRenewAd, useBoostAd } from '@/hooks/mutations/useAdMutations';
 
 type StatusFilter = 'all' | 'active' | 'paused' | 'pending' | 'sold' | 'expired';
 
@@ -110,6 +111,13 @@ export default function MyAdsPage() {
   const [reactivating, setReactivating] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  const closeAdMutation = useCloseAd();
+  const deleteAdMutation = useDeleteAd();
+  const pauseAdMutation = usePauseAd();
+  const reactivateAdMutation = useReactivateAd();
+  const renewAdMutation = useRenewAd();
+  const boostAdMutation = useBoostAd();
+
   const fetchAds = useCallback(async () => {
     if (!hasHydrated || currentUserId === undefined) return;
     try {
@@ -150,26 +158,17 @@ export default function MyAdsPage() {
 
   const confirmDelete = async () => {
     if (!deleteModal.adId || !deleteModal.adSlug) return;
-    
     setDeleting(true);
-    const previousAds = [...ads];
-    setAds(prev => prev.filter(ad => ad.id !== deleteModal.adId));
     setDeleteModal({ show: false, adId: null, adSlug: null, adTitle: null });
-    
-    try {
-      try {
-        await adsApi.delete(deleteModal.adSlug);
-      } catch {
-        await adsApi.deleteById(deleteModal.adId);
+    deleteAdMutation.mutate(
+      { slug: deleteModal.adSlug, id: deleteModal.adId },
+      {
+        onSettled: () => {
+          setDeleting(false);
+          fetchAds();
+        },
       }
-      toast.success('Ad deleted successfully');
-    } catch (error) {
-      setAds(previousAds);
-      console.error('Failed to delete ad:', error);
-      toast.error('Failed to delete ad');
-    } finally {
-      setDeleting(false);
-    }
+    );
   };
 
   const handlePromote = (adId: number, adTitle: string, adCategory?: any, adPrice?: any) => {
@@ -184,20 +183,12 @@ export default function MyAdsPage() {
     if (!closeModal.adId) return;
     setClosing(true);
     setCloseModal({ show: false, adId: null, adTitle: null });
-    const previousAds = [...ads];
-    setAds(prev => prev.map(ad => ad.id === closeModal.adId ? { ...ad, status: 'sold' } : ad));
-    try {
-      await adsApi.sold(closeModal.adId);
-      toast.success('Ad marked as sold');
-      fetchAds();
-    } catch (err: any) {
-      setAds(previousAds);
-      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to close ad';
-      toast.error(msg);
-      fetchAds();
-    } finally {
-      setClosing(false);
-    }
+    closeAdMutation.mutate(closeModal.adId, {
+      onSettled: () => {
+        setClosing(false);
+        fetchAds();
+      },
+    });
   };
 
   const handlePauseClick = (adId: number, adTitle: string) => {
@@ -208,17 +199,12 @@ export default function MyAdsPage() {
     if (!pauseModal.adId) return;
     setPausing(true);
     setPauseModal({ show: false, adId: null, adTitle: null });
-    try {
-      await adsApi.pause(pauseModal.adId);
-      toast.success('Ad paused successfully');
-      fetchAds();
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to pause ad';
-      toast.error(msg);
-      fetchAds();
-    } finally {
-      setPausing(false);
-    }
+    pauseAdMutation.mutate(pauseModal.adId, {
+      onSettled: () => {
+        setPausing(false);
+        fetchAds();
+      },
+    });
   };
 
   const handleReactivateClick = (adId: number, adTitle: string) => {
@@ -229,17 +215,12 @@ export default function MyAdsPage() {
     if (!reactivateModal.adId) return;
     setReactivating(true);
     setReactivateModal({ show: false, adId: null, adTitle: null });
-    try {
-      await adsApi.reactivate(reactivateModal.adId);
-      toast.success('Ad reactivated successfully');
-      fetchAds();
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to reactivate ad';
-      toast.error(msg);
-      fetchAds();
-    } finally {
-      setReactivating(false);
-    }
+    reactivateAdMutation.mutate(reactivateModal.adId, {
+      onSettled: () => {
+        setReactivating(false);
+        fetchAds();
+      },
+    });
   };
 
   const handleRenewClick = (adId: number, adTitle: string) => {
@@ -250,17 +231,12 @@ export default function MyAdsPage() {
     if (!renewModal.adId) return;
     setRenewing(true);
     setRenewModal({ show: false, adId: null, adTitle: null });
-    try {
-      await adsApi.renew(renewModal.adId);
-      toast.success('Ad submitted for re-approval');
-      fetchAds();
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to renew ad';
-      toast.error(msg);
-      fetchAds();
-    } finally {
-      setRenewing(false);
-    }
+    renewAdMutation.mutate(renewModal.adId, {
+      onSettled: () => {
+        setRenewing(false);
+        fetchAds();
+      },
+    });
   };
 
   const getStatusCount = (status: StatusFilter) => {

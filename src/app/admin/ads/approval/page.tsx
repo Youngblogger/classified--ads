@@ -18,6 +18,9 @@ import {
 import Image from 'next/image';
 import { adminApi } from '@/lib/api';
 import { getAdImageUrl } from '@/lib/utils';
+import { invalidateSwrCache } from '@/lib/cache-sync';
+import { useQueryClient } from '@tanstack/react-query';
+import { adKeys } from '@/lib/query-keys';
 import toast from 'react-hot-toast';
 
 interface Ad {
@@ -40,6 +43,15 @@ interface Ad {
 }
 
 export default function AdsApprovalPage() {
+  const queryClient = useQueryClient();
+  const triggerCacheSync = () => {
+    queryClient.invalidateQueries({ queryKey: adKeys.all });
+    invalidateSwrCache(/^ads\?/);
+    invalidateSwrCache('homepage_data');
+    invalidateSwrCache('boosted_ads_listing');
+    invalidateSwrCache(/^search/);
+    invalidateSwrCache(/^secure-control-9ja/);
+  };
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -122,6 +134,7 @@ export default function AdsApprovalPage() {
       setActionLoading(adId);
       await adminApi.approveAd(adId);
       toast.success('Ad approved successfully! The ad is now live and visible to users.');
+      triggerCacheSync();
       fetchPendingAds();
     } catch (error) {
       console.error('Failed to approve ad:', error);
@@ -136,6 +149,7 @@ export default function AdsApprovalPage() {
       setActionLoading(adId);
       await adminApi.rejectAd(adId);
       toast.success('Ad rejected. The seller has been notified.');
+      triggerCacheSync();
       fetchPendingAds();
     } catch (error) {
       console.error('Failed to reject ad:', error);
@@ -151,6 +165,7 @@ export default function AdsApprovalPage() {
       setActionLoading(adId);
       await adminApi.deleteAd(adId);
       toast.success('Ad deleted successfully');
+      triggerCacheSync();
       fetchPendingAds();
     } catch (error) {
       console.error('Failed to delete ad:', error);

@@ -32,6 +32,7 @@ import {
 import toast from 'react-hot-toast';
 import DynamicField, { CategoryField } from '@/components/forms/DynamicField';
 import PremiumBadge from '@/components/ui/PremiumBadge';
+import { invalidateSwrCache } from '@/lib/cache-sync';
 
 interface AdImage {
   id: number;
@@ -1261,6 +1262,14 @@ export default function AdsModerationPage() {
     }
   };
 
+  const triggerCacheSync = useCallback(() => {
+    invalidateSwrCache(/^ads\?/);
+    invalidateSwrCache('homepage_data');
+    invalidateSwrCache('boosted_ads_listing');
+    invalidateSwrCache(/^search/);
+    invalidateSwrCache(/^secure-control-9ja/);
+  }, []);
+
   const handleApprove = async () => {
     if (!selectedAd) return;
     try {
@@ -1277,6 +1286,7 @@ export default function AdsModerationPage() {
         toast.success('Ad approved');
         setAds(prev => prev.map(ad => ad.id === selectedAd.id ? { ...ad, status: 'active' } : ad));
         setShowApproveModal(false);
+        triggerCacheSync();
       } else {
         toast.error(data.message || 'Failed to approve');
       }
@@ -1306,6 +1316,7 @@ export default function AdsModerationPage() {
         setAds(prev => prev.map(ad => ad.id === selectedAd.id ? { ...ad, status: 'rejected', moderation_note: rejectReason } : ad));
         setShowRejectModal(false);
         setRejectReason('');
+        triggerCacheSync();
       } else {
         toast.error(data.message || 'Failed to reject');
       }
@@ -1332,6 +1343,7 @@ export default function AdsModerationPage() {
         toast.success('Ad deleted');
         setAds(prev => prev.filter(ad => ad.id !== selectedAd.id));
         setShowDeleteModal(false);
+        triggerCacheSync();
       } else {
         toast.error(data.message || 'Failed to delete');
       }
@@ -1401,6 +1413,7 @@ export default function AdsModerationPage() {
         setAds(prev => prev.filter(ad => !successfulDeletes.includes(ad.id)));
         setSelectedAds(new Set());
         setTotalCount(prev => prev - successfulDeletes.length);
+        triggerCacheSync();
       }
       
       if (successfulDeletes.length < idsToDelete.length) {
