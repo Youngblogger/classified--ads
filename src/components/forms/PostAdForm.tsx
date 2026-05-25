@@ -488,10 +488,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         const thumbUrl = data?.thumbnail_url || result?.thumbnail_url;
         const mediumUrl = data?.medium_url;
         const originalUrl = data?.original_url;
+        const imageHash = data?.image_hash;
         setImages(prev =>
           prev.map(i =>
             i.id === img.id
-              ? { ...i, uploadedUrl: url, thumbnailUrl: thumbUrl, mediumUrl, originalUrl, status: 'completed' as const, progress: 100 }
+              ? { ...i, uploadedUrl: url, thumbnailUrl: thumbUrl, mediumUrl, originalUrl, imageHash, status: 'completed' as const, progress: 100 }
               : i
           )
         );
@@ -620,6 +621,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   };
 
   const validateFile = (file: File): string | null => {
+    if (file.size === 0) {
+      return 'Selected file is empty and cannot be uploaded.';
+    }
     if (!ACCEPTED_FORMATS.includes(file.type)) {
       return 'Invalid format. Use JPG, PNG, WebP, GIF, or HEIC.';
     }
@@ -843,6 +847,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           thumbnail_url: i.thumbnailUrl || i.uploadedUrl!,
           medium_url: i.mediumUrl || i.uploadedUrl!,
           original_url: i.originalUrl || i.uploadedUrl!,
+          image_hash: i.imageHash || null,
         }));
         formData.append('image_urls', JSON.stringify(imageData));
       } else {

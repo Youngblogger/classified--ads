@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdImage;
 use App\Services\ImageProcessingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +28,16 @@ class ImageUploadController extends Controller
         ]);
 
         $file = $request->file('image');
-        $imageHash = md5_file($file->getPathname());
+        $imageHash = hash_file('sha256', $file->getPathname());
+
+        // Server-side duplicate detection
+        $existing = AdImage::where('image_hash', $imageHash)->first();
+        if ($existing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This image has already been uploaded.',
+            ], 409);
+        }
 
         try {
             $result = $this->imageService->processAdImage($file);

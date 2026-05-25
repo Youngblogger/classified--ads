@@ -269,12 +269,14 @@ class AdController extends Controller
                             }
                         }
 
+                        $imageHash = is_string($imageData) ? null : ($imageData['image_hash'] ?? null);
                         AdImage::create([
                             'ad_id' => $ad->id,
                             'url' => $storedMainUrl,
                             'original_url' => $storedOriginalUrl,
                             'thumbnail_url' => $storedThumbnailUrl,
                             'medium_url' => $storedMediumUrl,
+                            'image_hash' => $imageHash,
                             'is_primary' => $index === 0,
                             'sort_order' => $index,
                         ]);

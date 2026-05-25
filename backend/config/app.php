@@ -120,6 +120,8 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
 
+    'temp_upload_lifetime_hours' => env('TEMP_UPLOAD_LIFETIME_HOURS', 24),
+
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),

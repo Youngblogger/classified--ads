@@ -19,6 +19,7 @@ class AdImage extends Model
         'is_primary',
         'sort_order',
         'public_id',
+        'image_hash',
     ];
 
     protected $casts = [

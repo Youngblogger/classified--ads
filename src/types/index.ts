@@ -527,6 +527,7 @@ export interface UploadingImage {
   file: File;
   preview: string;
   hash: string;
+  imageHash?: string;
   status: ImageUploadStatus;
   progress: number;
   retryCount: number;

@@ -105,3 +105,12 @@ Schedule::command('cache:clear --tags=metrics')->daily();
 
 // Prune failed jobs older than 7 days
 Schedule::command('queue:prune-failed --hours=168')->daily();
+
+// Cleanup temporary uploads older than configured threshold (default 24h)
+Schedule::command('uploads:cleanup-temp')->hourly()
+    ->onSuccess(function () {
+        Log::info('Temp upload cleanup completed successfully');
+    })
+    ->onFailure(function () {
+        Log::warning('Temp upload cleanup failed');
+    });
