@@ -49,7 +49,7 @@ interface PostAdFormProps {
   isStandalone?: boolean;
 }
 
-const MAX_IMAGES = 20;
+const MAX_IMAGES = 6;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_FORMATS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
 
@@ -657,7 +657,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       try {
         const fileHash = await hashFile(file);
         if (existingHashes.has(fileHash)) {
-          errors.push(`${file.name}: Duplicate image skipped`);
+          errors.push(`Duplicate image upload`);
           continue;
         }
 
