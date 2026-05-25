@@ -124,7 +124,25 @@ export default function PostSubmissionModal({
     try {
       const res = await growthApi.getBoostPrices();
       const plans = res.data?.data?.plans || res.data?.plans || [];
-      setPackages(plans);
+      const normalized = plans.map((p: any) => ({
+        type: p.type,
+        name: p.name,
+        displayName: p.displayName || p.name,
+        price: p.price,
+        durationDays: p.durationDays || p.duration_days,
+        priorityScore: p.priorityScore || p.priority_score,
+        badgeLabel: p.badgeLabel || p.badge_label,
+        features: p.features || [],
+        colorScheme: p.colorScheme || p.color_scheme || {
+          gradient: 'from-violet-500 to-purple-600',
+          border: 'border-violet-300',
+          glow: 'shadow-violet-500/20',
+          text: 'text-purple-900',
+          bg: 'from-purple-50 to-violet-50',
+          accent: '#8b5cf6',
+        },
+      }));
+      setPackages(normalized);
     } catch {
       // Fallback to static config if API fails
       setPackages([
@@ -520,7 +538,7 @@ export default function PostSubmissionModal({
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Something went wrong
             </h2>
-            <p className="text-gray-500 mb-6">{error || 'Failed to process boost. Please try again.'}</p>
+            <p className="text-gray-500 mb-6">{error || 'An unexpected error occurred. Please try again.'}</p>
             <div className="space-y-3 max-w-sm mx-auto">
               <button
                 onClick={() => { setStep('packages'); setError(null); }}

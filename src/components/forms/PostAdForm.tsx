@@ -1134,7 +1134,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       >
                         <option value="">Select Model</option>
                         {getAvailableModels().map((model) => (
-                          <option key={model} value={model}>{model}</option>
+                          <option key={`${selectedBrand}-${model}`} value={model}>{model}</option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
@@ -1156,7 +1156,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                       >
                         <option value="">Select Configuration</option>
                         {modelPresets.map((preset) => (
-                          <option key={preset} value={preset}>{preset}</option>
+                          <option key={`${selectedBrand}-${selectedModel}-${preset}`} value={preset}>{preset}</option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
