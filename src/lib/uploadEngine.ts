@@ -76,7 +76,6 @@ export function createUploadQueue(maxConcurrency = 3) {
       if (task.retriesLeft > 0) {
         task.retriesLeft--;
         queue.unshift(task);
-        notify({ type: 'failed', id: task.id, error: err });
       } else {
         notify({ type: 'failed', id: task.id, error: err });
         task.onError(err);

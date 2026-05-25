@@ -532,5 +532,7 @@ export interface UploadingImage {
   retryCount: number;
   uploadedUrl?: string;
   thumbnailUrl?: string;
+  mediumUrl?: string;
+  originalUrl?: string;
   errorMessage?: string;
 }

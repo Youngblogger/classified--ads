@@ -238,13 +238,42 @@ class AdController extends Controller
             if ($request->has('image_urls')) {
                 $imageUrls = json_decode($request->input('image_urls'), true);
                 if (is_array($imageUrls)) {
-                    foreach ($imageUrls as $index => $url) {
+                    foreach ($imageUrls as $index => $imageData) {
+                        // Support both string URL and structured { url, thumbnail_url, medium_url } formats
+                        $mainUrl = is_string($imageData) ? $imageData : ($imageData['url'] ?? '');
+                        $thumbnailUrl = is_string($imageData) ? $mainUrl : ($imageData['thumbnail_url'] ?? $mainUrl);
+                        $mediumUrl = is_string($imageData) ? $mainUrl : ($imageData['medium_url'] ?? $mainUrl);
+                        $originalUrl = is_string($imageData) ? $mainUrl : ($imageData['original_url'] ?? $mainUrl);
+
+                        // Move files from temp/ to ads/{id}/ for permanent storage
+                        $storedMainUrl = $mainUrl;
+                        $storedThumbnailUrl = $thumbnailUrl;
+                        $storedMediumUrl = $mediumUrl;
+                        $storedOriginalUrl = $originalUrl;
+
+                        $tempPaths = $this->resolveTempPaths($mainUrl);
+                        if ($tempPaths !== null) {
+                            $adDir = "ads/{$ad->id}";
+                            foreach ($tempPaths as $variant => $tempPath) {
+                                if (Storage::disk('public')->exists($tempPath)) {
+                                    $newPath = str_replace('temp/', "{$adDir}/", $tempPath);
+                                    Storage::disk('public')->copy($tempPath, $newPath);
+                                    Storage::disk('public')->delete($tempPath);
+                                    $variantUrl = url('/storage/' . $newPath);
+                                    if ($variant === 'large') $storedMainUrl = $variantUrl;
+                                    if ($variant === 'original') $storedOriginalUrl = $variantUrl;
+                                    if ($variant === 'medium') $storedMediumUrl = $variantUrl;
+                                    if ($variant === 'thumb') $storedThumbnailUrl = $variantUrl;
+                                }
+                            }
+                        }
+
                         AdImage::create([
                             'ad_id' => $ad->id,
-                            'url' => $url,
-                            'original_url' => $url,
-                            'thumbnail_url' => $url,
-                            'medium_url' => $url,
+                            'url' => $storedMainUrl,
+                            'original_url' => $storedOriginalUrl,
+                            'thumbnail_url' => $storedThumbnailUrl,
+                            'medium_url' => $storedMediumUrl,
                             'is_primary' => $index === 0,
                             'sort_order' => $index,
                         ]);
@@ -634,6 +663,32 @@ class AdController extends Controller
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    private function resolveTempPaths(string $url): ?array
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if (!$path) return null;
+        $path = ltrim($path, '/');
+        // Remove 'storage/' prefix if present
+        if (strpos($path, 'storage/') === 0) {
+            $path = substr($path, 8);
+        }
+        // Only handle temp/ paths
+        if (strpos($path, 'temp/') !== 0) return null;
+
+        $filePart = basename($path);
+        $baseName = pathinfo($filePart, PATHINFO_FILENAME);
+        $uuid = preg_replace('/_(original|large|medium|thumb)$/', '', $baseName);
+
+        if (!$uuid || $uuid === $baseName) return null;
+
+        return [
+            'original' => "temp/{$uuid}_original.webp",
+            'large' => "temp/{$uuid}_large.webp",
+            'medium' => "temp/{$uuid}_medium.webp",
+            'thumb' => "temp/{$uuid}_thumb.webp",
+        ];
     }
 
     private function uploadAdImages(Request $request, Ad $ad, $user): void

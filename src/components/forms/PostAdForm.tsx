@@ -142,8 +142,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const { toggleLoginModal, toggleRegisterModal } = useUIStore();
   const { hasDraft, saveDraftText, saveDraftImages, clearDraft } = usePostAdDraft();
   const [step, setStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [draftRestored, setDraftRestored] = useState(false);
@@ -465,42 +463,49 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     return () => queue.abort();
   }, []);
 
-  const enqueueImageUpload = useCallback((img: UploadingImage, allImages: UploadingImage[]) => {
+  const enqueueImageUpload = useCallback((img: UploadingImage) => {
     if (!queueRef.current) return;
-    const currentImg = allImages.find(i => i.id === img.id);
-    if (!currentImg || currentImg.status === 'completed') return;
-
-    setImages(prev =>
-      prev.map(i => (i.id === img.id ? { ...i, status: 'queued' as const, progress: 0 } : i))
-    );
 
     queueRef.current.enqueue({
       id: img.id,
       file: img.file,
       execute: async (file, onProgress) => {
-        const response = await imageUploadApi.upload(file, onProgress);
+        setImages(prev =>
+          prev.map(i => (i.id === img.id ? { ...i, status: 'uploading' as const, progress: 1 } : i))
+        );
+        const response = await imageUploadApi.upload(file, (pct) => {
+          setImages(prev =>
+            prev.map(i => (i.id === img.id ? { ...i, status: pct >= 100 ? 'processing' as const : 'uploading' as const, progress: pct } : i))
+          );
+          onProgress(pct);
+        });
         return response.data;
       },
       onProgress: (pct) => {},
       onComplete: (result: any) => {
-        const url = result?.data?.url || result?.url;
-        const thumbUrl = result?.data?.thumbnail_url || result?.thumbnail_url;
+        const data = result?.data || result;
+        const url = data?.url || result?.url;
+        const thumbUrl = data?.thumbnail_url || result?.thumbnail_url;
+        const mediumUrl = data?.medium_url;
+        const originalUrl = data?.original_url;
         setImages(prev =>
           prev.map(i =>
             i.id === img.id
-              ? { ...i, uploadedUrl: url, thumbnailUrl: thumbUrl, status: 'completed' as const, progress: 100 }
+              ? { ...i, uploadedUrl: url, thumbnailUrl: thumbUrl, mediumUrl, originalUrl, status: 'completed' as const, progress: 100 }
               : i
           )
         );
       },
-      onError: (error) => {},
+      onError: (error) => {
+        setImages(prev =>
+          prev.map(i =>
+            i.id === img.id ? { ...i, status: 'failed' as const, errorMessage: error.message } : i
+          )
+        );
+      },
       maxRetries: 3,
     });
   }, []);
-
-  const enqueueBatch = useCallback((newImages: UploadingImage[], allImages: UploadingImage[]) => {
-    newImages.forEach(img => enqueueImageUpload(img, allImages));
-  }, [enqueueImageUpload]);
 
   // Fetch category fields when category is selected
   useEffect(() => {
@@ -674,12 +679,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     }
 
     if (newImages.length > 0) {
-      setImages(prev => {
-        const updated = [...prev, ...newImages];
-        // Start uploading the new images via queue
-        newImages.forEach(img => enqueueImageUpload(img, updated));
-        return updated;
-      });
+      setImages(prev => [...prev, ...newImages]);
+      // Queue uploads outside the updater to avoid nested state updates
+      newImages.forEach(img => enqueueImageUpload(img));
     }
   }, [images.length, images, enqueueImageUpload]);
 
@@ -736,13 +738,14 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const handleRetryUpload = (id: string) => {
     setImages(prev => {
       const img = prev.find(i => i.id === id);
-      if (!img) return prev;
-      const updated = prev.map(i =>
+      if (!img || img.status === 'completed') return prev;
+      return prev.map(i =>
         i.id === id ? { ...i, status: 'queued' as const, progress: 0, errorMessage: undefined } : i
       );
-      enqueueImageUpload(img, updated);
-      return updated;
     });
+    // Re-enqueue using the current image from state
+    const img = images.find(i => i.id === id);
+    if (img) enqueueImageUpload(img);
   };
 
   const handleImageClick = () => {
@@ -833,9 +836,15 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       }
       
       // Send uploaded URLs instead of raw files
-      const imageUrls = images.filter(i => i.uploadedUrl).map(i => i.uploadedUrl!);
-      if (imageUrls.length > 0) {
-        formData.append('image_urls', JSON.stringify(imageUrls));
+      const uploadedImages = images.filter(i => i.uploadedUrl);
+      if (uploadedImages.length > 0) {
+        const imageData = uploadedImages.map(i => ({
+          url: i.uploadedUrl!,
+          thumbnail_url: i.thumbnailUrl || i.uploadedUrl!,
+          medium_url: i.mediumUrl || i.uploadedUrl!,
+          original_url: i.originalUrl || i.uploadedUrl!,
+        }));
+        formData.append('image_urls', JSON.stringify(imageData));
       } else {
         images.forEach((img, index) => {
           formData.append('images[]', img.file);
@@ -847,8 +856,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       
       const adSlug = response.data?.slug || response.data?.data?.slug;
       const adId = response.data?.id || response.data?.data?.id;
-      
-      setIsSubmitting(false);
       
       // Reset form
       setStep(1);
@@ -1527,7 +1534,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         ) : (
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={!canSubmit || isSubmitting}
             className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all flex items-center gap-2 disabled:bg-gray-400"
           >
             {isSubmitting ? (
