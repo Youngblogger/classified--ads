@@ -518,3 +518,19 @@ export interface BoostOrderResponse {
     message?: string;
   };
 }
+
+// Upload Image Types
+export type ImageUploadStatus = 'pending' | 'queued' | 'uploading' | 'processing' | 'completed' | 'failed';
+
+export interface UploadingImage {
+  id: string;
+  file: File;
+  preview: string;
+  hash: string;
+  status: ImageUploadStatus;
+  progress: number;
+  retryCount: number;
+  uploadedUrl?: string;
+  thumbnailUrl?: string;
+  errorMessage?: string;
+}

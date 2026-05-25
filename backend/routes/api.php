@@ -338,6 +338,8 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/cloudinary/upload-callback', [CloudinaryController::class, 'uploadCallback']);
     Route::post('/cloudinary/validate-image', [CloudinaryController::class, 'validateImage']);
 });
+Route::post('/uploads/image', [App\Http\Controllers\Api\ImageUploadController::class, 'upload'])->middleware(['auth.api', 'throttle:20,1']);
+
 Route::get('/homepage', [App\Http\Controllers\Api\HomepageController::class, 'index'])->middleware(['throttle:homepage', 'cache-response:600']);
 Route::get('/homepage/clear-cache', [App\Http\Controllers\Api\HomepageController::class, 'clearCache'])->middleware('auth.api');
 

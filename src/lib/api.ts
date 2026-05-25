@@ -716,6 +716,15 @@ export const walletApi = {
   },
 };
 
+// Image Upload API
+export const imageUploadApi = {
+  upload: (file: File, onProgress?: (pct: number) => void) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.upload('/uploads/image', formData, onProgress);
+  },
+};
+
 // Growth & Boost API
 export const growthApi = {
   getBoostPrices: () => api.get('/ads/boost-prices'),

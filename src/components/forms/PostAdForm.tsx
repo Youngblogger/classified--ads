@@ -18,6 +18,11 @@ import DynamicField, { CategoryField } from './DynamicField';
 import structuredCategories from '@/data/structured-categories.json';
 import { usePostAdDraft, clearPostAdDraft, DraftImage } from '@/hooks/usePostAdDraft';
 import { compressImage, CompressedImage } from '@/lib/imageCompression';
+import { imageUploadApi } from '@/lib/api';
+import { hashFile } from '@/lib/imageHasher';
+import { createUploadQueue } from '@/lib/uploadEngine';
+import { UploadingImage } from '@/types';
+import ImageUploadCard from '@/components/ui/ImageUploadCard';
 import PostSubmissionModal from '@/components/boost/PostSubmissionModal';
 
 interface StructuredCategory {
@@ -37,13 +42,7 @@ interface StructuredCategory {
   }>;
 }
 
-interface ImageFile {
-  id: string;
-  file: File;
-  preview: string;
-  uploading?: boolean;
-  error?: string;
-}
+type ImageFile = UploadingImage;
 
 interface PostAdFormProps {
   onSuccess?: (adId: number) => void;
@@ -145,6 +144,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState('');
   const [draftRestored, setDraftRestored] = useState(false);
   
   const [showPostModal, setShowPostModal] = useState(false);
@@ -197,6 +198,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     }
   }, [phone]);
 
+  // Initialize idempotency key for this session
+  useEffect(() => {
+    setIdempotencyKey(`${Date.now()}-${crypto.randomUUID()}`);
+  }, []);
+
   // Restore draft if available and form is empty
   useEffect(() => {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('post-ad-draft') : null;
@@ -230,7 +236,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             file: dataURLToFile(img.base64, img.name, img.type),
             preview: img.base64,
-            uploading: false,
+            hash: '',
+            status: 'completed' as const,
+            progress: 100,
+            retryCount: 0,
           }));
           setImages(restoredImages);
         }
@@ -422,6 +431,76 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const queueRef = useRef<ReturnType<typeof createUploadQueue> | null>(null);
+
+  // Initialize upload queue once
+  useEffect(() => {
+    const queue = createUploadQueue(3);
+    queueRef.current = queue;
+
+    queue.on((event) => {
+      if (event.type === 'progress') {
+        setImages(prev =>
+          prev.map(img =>
+            img.id === event.id ? { ...img, progress: event.pct, status: 'uploading' as const } : img
+          )
+        );
+      } else if (event.type === 'completed') {
+        setImages(prev =>
+          prev.map(img =>
+            img.id === event.id ? { ...img, status: 'completed' as const, progress: 100 } : img
+          )
+        );
+      } else if (event.type === 'failed') {
+        setImages(prev =>
+          prev.map(img =>
+            img.id === event.id
+              ? { ...img, status: 'failed' as const, errorMessage: event.error.message, retryCount: img.retryCount + 1 }
+              : img
+          )
+        );
+      }
+    });
+
+    return () => queue.abort();
+  }, []);
+
+  const enqueueImageUpload = useCallback((img: UploadingImage, allImages: UploadingImage[]) => {
+    if (!queueRef.current) return;
+    const currentImg = allImages.find(i => i.id === img.id);
+    if (!currentImg || currentImg.status === 'completed') return;
+
+    setImages(prev =>
+      prev.map(i => (i.id === img.id ? { ...i, status: 'queued' as const, progress: 0 } : i))
+    );
+
+    queueRef.current.enqueue({
+      id: img.id,
+      file: img.file,
+      execute: async (file, onProgress) => {
+        const response = await imageUploadApi.upload(file, onProgress);
+        return response.data;
+      },
+      onProgress: (pct) => {},
+      onComplete: (result: any) => {
+        const url = result?.data?.url || result?.url;
+        const thumbUrl = result?.data?.thumbnail_url || result?.thumbnail_url;
+        setImages(prev =>
+          prev.map(i =>
+            i.id === img.id
+              ? { ...i, uploadedUrl: url, thumbnailUrl: thumbUrl, status: 'completed' as const, progress: 100 }
+              : i
+          )
+        );
+      },
+      onError: (error) => {},
+      maxRetries: 3,
+    });
+  }, []);
+
+  const enqueueBatch = useCallback((newImages: UploadingImage[], allImages: UploadingImage[]) => {
+    newImages.forEach(img => enqueueImageUpload(img, allImages));
+  }, [enqueueImageUpload]);
 
   // Fetch category fields when category is selected
   useEffect(() => {
@@ -555,8 +634,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     }
 
     const filesToAdd = fileArray.slice(0, remainingSlots);
-    const newImages: ImageFile[] = [];
+    const newImages: UploadingImage[] = [];
     const errors: string[] = [];
+    const existingHashes = new Set(images.map(i => i.hash));
 
     for (const file of filesToAdd) {
       const error = validateFile(file);
@@ -566,16 +646,26 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       }
 
       try {
+        const fileHash = await hashFile(file);
+        if (existingHashes.has(fileHash)) {
+          errors.push(`${file.name}: Duplicate image skipped`);
+          continue;
+        }
+
         const compressed = await compressImage(file);
+        const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         newImages.push({
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id,
           file: compressed.file,
           preview: compressed.preview,
-          uploading: false,
+          hash: fileHash,
+          status: 'queued',
+          progress: 0,
+          retryCount: 0,
         });
       } catch (err) {
         errors.push(`${file.name}: Failed to process image`);
-        console.error('Image compression error:', err);
+        console.error('Image processing error:', err);
       }
     }
 
@@ -584,9 +674,14 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     }
 
     if (newImages.length > 0) {
-      setImages(prev => [...prev, ...newImages]);
+      setImages(prev => {
+        const updated = [...prev, ...newImages];
+        // Start uploading the new images via queue
+        newImages.forEach(img => enqueueImageUpload(img, updated));
+        return updated;
+      });
     }
-  }, [images.length]);
+  }, [images.length, images, enqueueImageUpload]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -638,6 +733,18 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     });
   };
 
+  const handleRetryUpload = (id: string) => {
+    setImages(prev => {
+      const img = prev.find(i => i.id === id);
+      if (!img) return prev;
+      const updated = prev.map(i =>
+        i.id === id ? { ...i, status: 'queued' as const, progress: 0, errorMessage: undefined } : i
+      );
+      enqueueImageUpload(img, updated);
+      return updated;
+    });
+  };
+
   const handleImageClick = () => {
     fileInputRef.current?.click();
   };
@@ -679,10 +786,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     setStep(prev => Math.max(prev - 1, 1));
   };
 
-  const canSubmit = title && description && price && categoryId && locationId && images.length > 0 && condition;
+  const canSubmit = title && description && price && categoryId && locationId && images.length > 0 && condition && images.every(i => i.status === 'completed');
 
   const handleSubmit = async () => {
-    if (isLoading) return;
+    if (isSubmitting) return;
 
     if (!title || !description || !price || !categoryId || !locationId || images.length === 0 || !condition) {
       toast.error('Please fill in all required fields');
@@ -699,7 +806,13 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       return;
     }
 
-    setIsLoading(true);
+    const pendingUploads = images.filter(i => i.status !== 'completed');
+    if (pendingUploads.length > 0) {
+      toast.error(`Please wait for all image uploads to complete (${pendingUploads.length} pending).`);
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       const formData = new FormData();
@@ -708,7 +821,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       formData.append('price', price);
       formData.append('negotiable', negotiable ? '1' : '0');
       formData.append('category_id', String(categoryId));
-      // locationId can be either a numeric ID or a slug
       formData.append('location_id', String(locationId));
       if (selectedStateName) formData.append('state', selectedStateName);
       if (lgaId) formData.append('lga', lgaId);
@@ -716,22 +828,27 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       if (phone) formData.append('phone', phone);
       formData.append('whatsapp', sameAsPhone ? phone : (whatsapp || ''));
       
-      // Add dynamic attributes (always send, even if empty)
       if (Object.keys(attributes).length > 0) {
-        console.log('Posting ad with attributes:', attributes);
+        formData.append('attributes', JSON.stringify(attributes));
       }
-      formData.append('attributes', JSON.stringify(attributes));
       
-      images.forEach((img, index) => {
-        formData.append('images[]', img.file);
-      });
+      // Send uploaded URLs instead of raw files
+      const imageUrls = images.filter(i => i.uploadedUrl).map(i => i.uploadedUrl!);
+      if (imageUrls.length > 0) {
+        formData.append('image_urls', JSON.stringify(imageUrls));
+      } else {
+        images.forEach((img, index) => {
+          formData.append('images[]', img.file);
+        });
+      }
 
+      formData.append('_idempotency_key', idempotencyKey);
       const response = await adsApi.create(formData);
       
       const adSlug = response.data?.slug || response.data?.data?.slug;
       const adId = response.data?.id || response.data?.data?.id;
       
-      setIsLoading(false);
+      setIsSubmitting(false);
       
       // Reset form
       setStep(1);
@@ -766,6 +883,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         onSuccess(adId);
       }
     } catch (err: any) {
+      setIsSubmitting(false);
       console.error('Post ad error:', err);
       console.error('Full error response:', JSON.stringify(err.response?.data, null, 2));
       
@@ -804,7 +922,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       
       toast.error(errorMsg);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -1035,41 +1153,17 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             {images.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mt-4">
                 {images.map((img, index) => (
-                  <div
+                  <ImageUploadCard
                     key={img.id}
-                    draggable
+                    image={img}
+                    index={index}
+                    isDragged={draggedIndex === index}
                     onDragStart={() => handleDragStart(index)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(e) => handleImageDragOver(e, index)}
-                    className={`relative aspect-square rounded-lg overflow-hidden border-2 ${
-                      draggedIndex === index ? 'border-primary-500 opacity-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <Image 
-                      src={img.preview} 
-                      alt="" 
-                      fill
-                      sizes="150px"
-                      className="object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3ENo Preview%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
-                    <div className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
-                      <GripVertical className="w-3 h-3" />
-                    </div>
-                    <button
-                      onClick={() => removeImage(img.id)}
-                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                    {index === 0 && (
-                      <div className="absolute bottom-1 left-1 bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded">
-                        Cover
-                      </div>
-                    )}
-                  </div>
+                    onRemove={removeImage}
+                    onRetry={handleRetryUpload}
+                  />
                 ))}
                 {images.length < MAX_IMAGES && (
                   <div
@@ -1433,10 +1527,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         ) : (
           <button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={isSubmitting}
             className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all flex items-center gap-2 disabled:bg-gray-400"
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Posting...

@@ -235,6 +235,23 @@ class AdController extends Controller
                 $this->uploadAdImages($request, $ad, $user);
             }
 
+            if ($request->has('image_urls')) {
+                $imageUrls = json_decode($request->input('image_urls'), true);
+                if (is_array($imageUrls)) {
+                    foreach ($imageUrls as $index => $url) {
+                        AdImage::create([
+                            'ad_id' => $ad->id,
+                            'url' => $url,
+                            'original_url' => $url,
+                            'thumbnail_url' => $url,
+                            'medium_url' => $url,
+                            'is_primary' => $index === 0,
+                            'sort_order' => $index,
+                        ]);
+                    }
+                }
+            }
+
             $ad->load(['images', 'category', 'location', 'user']);
             event(new AdSaved($ad));
 
