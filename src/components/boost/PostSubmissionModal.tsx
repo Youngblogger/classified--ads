@@ -7,13 +7,13 @@ import {
   Check, X, Zap, Crown, Diamond, Loader2, ArrowRight,
   ExternalLink, LayoutDashboard, Sparkles, TrendingUp, Target,
   Clock, Shield, Star, ChevronRight, PartyPopper, RefreshCw,
-  Eye, MapPin, Tag, ImageIcon
+  Eye, MapPin, Tag, ImageIcon, Wallet, CreditCard, ArrowLeft
 } from 'lucide-react';
-import { growthApi, paymentApi } from '@/lib/api';
+import { growthApi, paymentApi, walletApi } from '@/lib/api';
 import { trackBoostEvent } from '@/lib/analytics';
 import toast from 'react-hot-toast';
 
-type ModalStep = 'initial' | 'packages' | 'processing' | 'success' | 'error';
+type ModalStep = 'initial' | 'packages' | 'payment_method' | 'processing' | 'success' | 'error';
 
 interface BoostPackage {
   type: string;
@@ -96,6 +96,8 @@ export default function PostSubmissionModal({
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
   const [boostResult, setBoostResult] = useState<{
     packageName?: string;
     startDate?: string;
@@ -159,6 +161,22 @@ export default function PostSubmissionModal({
         break;
     }
   }, [step, isOpen, adId]);
+
+  // Fetch wallet balance when entering payment_method step
+  useEffect(() => {
+    if (step === 'payment_method' && walletBalance === null && !walletLoading) {
+      setWalletLoading(true);
+      walletApi.getBalance()
+        .then(res => {
+          const bal = res.data?.available_balance ?? res.data?.balance ?? null;
+          setWalletBalance(bal);
+        })
+        .catch(() => {
+          setWalletBalance(null);
+        })
+        .finally(() => setWalletLoading(false));
+    }
+  }, [step, walletBalance, walletLoading]);
 
   // Track ad_created on mount
   useEffect(() => {
@@ -268,20 +286,69 @@ export default function PostSubmissionModal({
     trackBoostEvent('boost_package_selected', { ad_id: adId, package_type: type, package_price: packages.find(p => p.type === type)?.price });
   };
 
-  const handleContinueToPayment = async () => {
+  const handleContinueToPayment = () => {
     if (!selectedPackage) {
       toast.error('Please select a boost package');
       return;
     }
+    setStep('payment_method');
+  };
+
+  const handlePayWithWallet = async () => {
+    if (!selectedPackage || !selectedPkg) return;
     setStep('processing');
     setLoading(true);
     setError(null);
 
-    trackBoostEvent('payment_started', { ad_id: adId, package_type: selectedPackage, package_price: selectedPkg?.price });
+    trackBoostEvent('payment_started', { ad_id: adId, package_type: selectedPackage, package_price: selectedPkg.price, payment_method: 'wallet' });
 
     try {
       const res = await growthApi.postSubmissionBoost(adId, {
         plan_type: selectedPackage,
+        payment_method: 'wallet',
+      });
+
+      const data = res.data?.data || res.data;
+
+      if (data?.boost_id) {
+        setBoostResult({
+          packageName: selectedPkg.displayName,
+          startDate: new Date().toISOString(),
+          endDate: new Date(Date.now() + selectedPkg.durationDays * 86400000).toISOString(),
+          durationDays: selectedPkg.durationDays,
+          reference: data.reference || data.boost_id,
+          price: selectedPkg.price,
+        });
+        setStep('success');
+        trackBoostEvent('payment_completed', { ad_id: adId, package_type: selectedPackage, duration_days: selectedPkg.durationDays });
+        trackBoostEvent('boost_activated', { ad_id: adId, package_type: selectedPackage, duration_days: selectedPkg.durationDays });
+        toast.success('Boost activated successfully via wallet!');
+      } else {
+        throw new Error('Unexpected response from server');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to process boost. Please try again.';
+      setError(msg);
+      setStep('error');
+      trackBoostEvent('payment_failed', { ad_id: adId, package_type: selectedPackage, error: msg });
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePayWithPaystack = async () => {
+    if (!selectedPackage || !selectedPkg) return;
+    setStep('processing');
+    setLoading(true);
+    setError(null);
+
+    trackBoostEvent('payment_started', { ad_id: adId, package_type: selectedPackage, package_price: selectedPkg.price, payment_method: 'paystack' });
+
+    try {
+      const res = await growthApi.postSubmissionBoost(adId, {
+        plan_type: selectedPackage,
+        payment_method: 'paystack',
       });
 
       const data = res.data?.data || res.data;
@@ -292,23 +359,23 @@ export default function PostSubmissionModal({
         localStorage.setItem('pending_boost_ad_id', String(adId));
         localStorage.setItem('pending_boost_time', String(Date.now()));
         setBoostResult({
-          packageName: selectedPkg?.displayName || selectedPackage,
-          durationDays: selectedPkg?.durationDays,
+          packageName: selectedPkg.displayName,
+          durationDays: selectedPkg.durationDays,
           reference: ref,
-          price: selectedPkg?.price,
+          price: selectedPkg.price,
         });
         window.location.href = data.authorization_url;
       } else if (data?.boost_id) {
         setBoostResult({
-          packageName: selectedPkg?.displayName || selectedPackage,
+          packageName: selectedPkg.displayName,
           startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + (selectedPkg?.durationDays || 7) * 86400000).toISOString(),
-          durationDays: selectedPkg?.durationDays,
-          price: selectedPkg?.price,
+          endDate: new Date(Date.now() + selectedPkg.durationDays * 86400000).toISOString(),
+          durationDays: selectedPkg.durationDays,
+          price: selectedPkg.price,
         });
         setStep('success');
-        trackBoostEvent('payment_completed', { ad_id: adId, package_type: selectedPackage, duration_days: selectedPkg?.durationDays });
-        trackBoostEvent('boost_activated', { ad_id: adId, package_type: selectedPackage, duration_days: selectedPkg?.durationDays });
+        trackBoostEvent('payment_completed', { ad_id: adId, package_type: selectedPackage, duration_days: selectedPkg.durationDays });
+        trackBoostEvent('boost_activated', { ad_id: adId, package_type: selectedPackage, duration_days: selectedPkg.durationDays });
         toast.success('Boost activated successfully!');
       } else {
         throw new Error('Unexpected response from server');
@@ -366,7 +433,7 @@ export default function PostSubmissionModal({
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-label={step === 'initial' ? 'Ad posted successfully' : step === 'packages' ? 'Select boost package' : step === 'success' ? 'Boost activated' : step === 'error' ? 'Error' : 'Processing'}
+      aria-label={step === 'initial' ? 'Ad posted successfully' : step === 'packages' ? 'Select boost package' : step === 'payment_method' ? 'Choose payment method' : step === 'success' ? 'Boost activated' : step === 'error' ? 'Error' : 'Processing'}
     >
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} aria-hidden="true" />
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
@@ -399,14 +466,24 @@ export default function PostSubmissionModal({
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
                 <div className="flex gap-4 p-4">
                   {adImage ? (
-                    <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
-                      <Image
-                        src={adImage}
-                        alt={adTitle || 'Ad preview'}
-                        fill
-                        className="object-cover"
-                        sizes="96px"
-                      />
+                    <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                      {adImage.startsWith('blob:') ? (
+                        <img
+                          src={adImage}
+                          alt={adTitle || 'Ad preview'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={adImage}
+                            alt={adTitle || 'Ad preview'}
+                            fill
+                            className="object-cover"
+                            sizes="96px"
+                          />
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -640,7 +717,137 @@ export default function PostSubmissionModal({
             {/* Trust note */}
             <p className="text-center text-xs text-gray-400 mt-4">
               <Shield className="w-3 h-3 inline-block mr-1" />
-              Your payment is processed securely through Paystack
+              Secured by Paystack &mdash; wallet also available
+            </p>
+          </div>
+        )}
+
+        {/* STEP: Payment Method Selection */}
+        {step === 'payment_method' && selectedPkg && (
+          <div className="p-8 md:p-10">
+            {/* Back button */}
+            <button
+              onClick={() => { setStep('packages'); setError(null); }}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 rounded-lg"
+              aria-label="Back to package selection"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Change package
+            </button>
+
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Wallet className="w-8 h-8 text-emerald-500" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                Choose Payment Method
+              </h2>
+              <p className="text-gray-500">Select how you&apos;d like to pay for your boost</p>
+            </div>
+
+            {/* Selected Package Summary */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl p-5 mb-6 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${selectedPkg.colorScheme.gradient} shadow-sm`}>
+                    {(() => {
+                      const meta = PACKAGE_META[selectedPkg.type];
+                      const Icon = meta?.icon || Zap;
+                      return <Icon className="w-5 h-5 text-white" />;
+                    })()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{PACKAGE_META[selectedPkg.type]?.label || selectedPkg.displayName}</p>
+                    <p className="text-sm text-gray-500">{selectedPkg.durationDays} day{selectedPkg.durationDays > 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-extrabold text-gray-900">{formatPrice(selectedPkg.price)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Options */}
+            <div className="space-y-4 mb-8">
+              {/* Wallet Option */}
+              <button
+                onClick={handlePayWithWallet}
+                disabled={walletLoading}
+                className="w-full text-left p-5 rounded-2xl border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-white hover:border-emerald-300 hover:shadow-md transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-60"
+                aria-label="Pay with wallet balance"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                      <Wallet className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">Wallet Balance</p>
+                      {walletLoading ? (
+                        <p className="text-sm text-gray-400 flex items-center gap-1.5">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Loading balance...
+                        </p>
+                      ) : walletBalance !== null ? (
+                        <p className="text-sm text-gray-500">
+                          Balance: <span className="font-semibold text-gray-700">{formatPrice(walletBalance)}</span>
+                          {walletBalance >= selectedPkg.price ? (
+                            <span className="ml-2 inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                              <Check className="w-3 h-3" /> Sufficient
+                            </span>
+                          ) : (
+                            <span className="ml-2 text-xs text-red-500 font-medium">
+                              Short by {formatPrice(selectedPkg.price - walletBalance)}
+                            </span>
+                          )}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-400">Unable to load balance</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`px-3 py-1.5 rounded-xl text-sm font-bold ${walletBalance !== null && walletBalance >= selectedPkg.price ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                      {walletBalance !== null && walletBalance >= selectedPkg.price ? 'Pay Now' : 'Insufficient'}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              {/* Paystack Option */}
+              <button
+                onClick={handlePayWithPaystack}
+                className="w-full text-left p-5 rounded-2xl border-2 border-violet-200 bg-gradient-to-r from-violet-50 to-white hover:border-violet-300 hover:shadow-md transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                aria-label="Pay with card or bank transfer via Paystack"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
+                      <CreditCard className="w-6 h-6 text-violet-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">Card / Bank Transfer</p>
+                      <p className="text-sm text-gray-500">Pay with debit card, USSD, or bank transfer</p>
+                    </div>
+                  </div>
+                  <div className="px-3 py-1.5 bg-violet-600 text-white rounded-xl text-sm font-bold">
+                    Pay {formatPrice(selectedPkg.price)}
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Skip */}
+            <button
+              onClick={handleSkip}
+              className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+              aria-label="Skip boost for now"
+            >
+              Skip, I&apos;ll do this later
+            </button>
+
+            <p className="text-center text-xs text-gray-400 mt-4">
+              <Shield className="w-3 h-3 inline-block mr-1" />
+              Your payment is processed securely
             </p>
           </div>
         )}
@@ -689,7 +896,7 @@ export default function PostSubmissionModal({
             <p className="text-gray-500 mb-6">{error || 'An unexpected error occurred. Please try again.'}</p>
             <div className="space-y-3 max-w-sm mx-auto">
               <button
-                onClick={() => { setStep('packages'); setError(null); }}
+                onClick={() => { setStep('payment_method'); setError(null); }}
                 className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
                 aria-label="Try again"
               >

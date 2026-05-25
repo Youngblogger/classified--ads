@@ -150,6 +150,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [showPostModal, setShowPostModal] = useState(false);
   const [postedAdId, setPostedAdId] = useState<number | null>(null);
   const [postedAdSlug, setPostedAdSlug] = useState<string | undefined>(undefined);
+  const [postedAdImage, setPostedAdImage] = useState<string | undefined>(undefined);
 
   const [categories, setCategories] = useState<any[]>([]);
   
@@ -742,6 +743,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       setSelectedStateName('');
       setLgaId('');
       setCondition('');
+      // Save ad image before clearing state (for post-submission modal preview)
+      setPostedAdImage(images[0]?.preview);
+      
       setImages([]);
       setAttributes({});
       setCategoryFields([]);
@@ -1516,7 +1520,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         adId={postedAdId || 0}
         adSlug={postedAdSlug}
         adTitle={title}
-        adImage={images[0]?.preview}
+        adImage={postedAdImage}
         adPrice={price}
         adLocation={locationBreadcrumb || undefined}
         adCategory={categoryBreadcrumb || undefined}

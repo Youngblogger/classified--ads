@@ -16,6 +16,7 @@ interface AnalyticsPayload {
   reference?: string;
   duration_days?: number;
   error?: string;
+  payment_method?: string;
   timestamp: number;
 }
 
