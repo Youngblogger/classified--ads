@@ -2,9 +2,16 @@ export type BoostEvent =
   | 'ad_created'
   | 'boost_offer_viewed'
   | 'boost_package_selected'
+  | 'payment_method_selected'
   | 'payment_started'
   | 'payment_completed'
   | 'payment_failed'
+  | 'wallet_payment_started'
+  | 'wallet_payment_success'
+  | 'wallet_payment_failed'
+  | 'paystack_payment_started'
+  | 'paystack_payment_success'
+  | 'paystack_payment_failed'
   | 'boost_activated'
   | 'boost_skipped';
 
