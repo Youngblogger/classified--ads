@@ -236,7 +236,8 @@ class AdController extends Controller
             }
 
             if ($request->has('image_urls')) {
-                $imageUrls = json_decode($request->input('image_urls'), true);
+                $rawImageUrls = $request->input('image_urls');
+                $imageUrls = is_string($rawImageUrls) ? json_decode($rawImageUrls, true) : $rawImageUrls;
                 if (is_array($imageUrls)) {
                     foreach ($imageUrls as $index => $imageData) {
                         // Support both string URL and structured { url, thumbnail_url, medium_url } formats

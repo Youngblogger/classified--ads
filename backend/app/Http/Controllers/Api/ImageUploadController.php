@@ -39,6 +39,7 @@ class ImageUploadController extends Controller
                     'url' => url($result['url']),
                     'thumbnail_url' => url($result['thumbnail_url']),
                     'medium_url' => url($result['medium_url']),
+                    'original_url' => url($result['original_url']),
                     'image_hash' => $imageHash,
                     'width' => $result['width'] ?? 0,
                     'height' => $result['height'] ?? 0,
