@@ -1,13 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Check, X, Zap, Crown, Diamond, Loader2, ArrowRight,
   ExternalLink, LayoutDashboard, Sparkles, TrendingUp, Target,
-  Clock, Shield, Star, ChevronRight, PartyPopper, RefreshCw
+  Clock, Shield, Star, ChevronRight, PartyPopper, RefreshCw,
+  Eye, MapPin, Tag, ImageIcon
 } from 'lucide-react';
 import { growthApi, paymentApi } from '@/lib/api';
+import { trackBoostEvent } from '@/lib/analytics';
 import toast from 'react-hot-toast';
 
 type ModalStep = 'initial' | 'packages' | 'processing' | 'success' | 'error';
@@ -37,6 +40,10 @@ interface PostSubmissionModalProps {
   adId: number;
   adSlug?: string;
   adTitle?: string;
+  adImage?: string;
+  adPrice?: string | number;
+  adLocation?: string;
+  adCategory?: string;
 }
 
 const PACKAGE_META: Record<string, { icon: typeof Zap; label: string; displayName: string; description: string }> = {
@@ -60,6 +67,8 @@ const PACKAGE_META: Record<string, { icon: typeof Zap; label: string; displayNam
   },
 };
 
+const RECOMMENDED_PACKAGE = 'gold';
+
 function getQueryParam(key: string): string | null {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
@@ -72,8 +81,14 @@ export default function PostSubmissionModal({
   adId,
   adSlug,
   adTitle,
+  adImage,
+  adPrice,
+  adLocation,
+  adCategory,
 }: PostSubmissionModalProps) {
   const router = useRouter();
+  const prevStepRef = useRef<ModalStep | null>(null);
+  const packageTrackedRef = useRef(false);
 
   const [step, setStep] = useState<ModalStep>('initial');
   const [packages, setPackages] = useState<BoostPackage[]>([]);
@@ -87,7 +102,70 @@ export default function PostSubmissionModal({
     endDate?: string;
     durationDays?: number;
     reference?: string;
+    price?: number;
   } | null>(null);
+
+  const selectedPkg = packages.find(p => p.type === selectedPackage);
+
+  const verifyPayment = useCallback(async (reference: string) => {
+    setVerifying(true);
+    try {
+      const res = await paymentApi.verifyPayment(reference);
+      const data = res.data;
+
+      if (data?.success || data?.status === 'success' || data?.data?.status === 'success') {
+        const pkg = packages.find(p => p.type === selectedPackage);
+        setBoostResult({
+          packageName: pkg?.displayName || selectedPackage || 'Boost',
+          startDate: new Date().toISOString(),
+          endDate: new Date(Date.now() + (pkg?.durationDays || 7) * 86400000).toISOString(),
+          durationDays: pkg?.durationDays,
+          reference,
+          price: pkg?.price,
+        });
+        setStep('success');
+        trackBoostEvent('payment_completed', { ad_id: adId, package_type: selectedPackage || undefined, reference, duration_days: pkg?.durationDays });
+        trackBoostEvent('boost_activated', { ad_id: adId, package_type: selectedPackage || undefined, reference, duration_days: pkg?.durationDays });
+        toast.success('Payment confirmed! Boost activated successfully.');
+      } else {
+        setError('Payment could not be verified. Please check your dashboard.');
+        setStep('error');
+        trackBoostEvent('payment_failed', { ad_id: adId, package_type: selectedPackage || undefined, reference, error: 'verification_failed' });
+      }
+    } catch {
+      setError('Payment verification failed. Please check your dashboard.');
+      setStep('error');
+      trackBoostEvent('payment_failed', { ad_id: adId, package_type: selectedPackage || undefined, reference, error: 'verification_error' });
+    } finally {
+      setVerifying(false);
+      localStorage.removeItem('pending_boost_ref');
+      localStorage.removeItem('pending_boost_ad_id');
+      localStorage.removeItem('pending_boost_time');
+    }
+  }, [adId, packages, selectedPackage]);
+
+  // Track step changes
+  useEffect(() => {
+    if (!isOpen) return;
+    if (prevStepRef.current === step) return;
+    prevStepRef.current = step;
+
+    switch (step) {
+      case 'initial':
+        trackBoostEvent('boost_offer_viewed', { ad_id: adId });
+        break;
+      case 'packages':
+        packageTrackedRef.current = false;
+        break;
+    }
+  }, [step, isOpen, adId]);
+
+  // Track ad_created on mount
+  useEffect(() => {
+    if (isOpen) {
+      trackBoostEvent('ad_created', { ad_id: adId });
+    }
+  }, [isOpen, adId]);
 
   // Check for pending payment verification on mount
   useEffect(() => {
@@ -108,7 +186,7 @@ export default function PostSubmissionModal({
         localStorage.removeItem('pending_boost_time');
       }
     }
-  }, [isOpen, adId]);
+  }, [isOpen, adId, verifyPayment]);
 
   useEffect(() => {
     if (isOpen) {
@@ -116,6 +194,7 @@ export default function PostSubmissionModal({
       setSelectedPackage(null);
       setError(null);
       setBoostResult(null);
+      packageTrackedRef.current = false;
       fetchPackages();
     }
   }, [isOpen]);
@@ -144,7 +223,6 @@ export default function PostSubmissionModal({
       }));
       setPackages(normalized);
     } catch {
-      // Fallback to static config if API fails
       setPackages([
         {
           type: 'silver', name: 'Silver Boost', displayName: 'Basic Boost',
@@ -168,39 +246,8 @@ export default function PostSubmissionModal({
     }
   };
 
-  const verifyPayment = async (reference: string) => {
-    setVerifying(true);
-    try {
-      const res = await paymentApi.verifyPayment(reference);
-      const data = res.data;
-
-      if (data?.success || data?.status === 'success' || data?.data?.status === 'success') {
-        const pkg = packages.find(p => p.type === selectedPackage);
-        setBoostResult({
-          packageName: pkg?.displayName || selectedPackage || 'Boost',
-          startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + (pkg?.durationDays || 7) * 86400000).toISOString(),
-          durationDays: pkg?.durationDays,
-          reference,
-        });
-        setStep('success');
-        toast.success('Payment confirmed! Boost activated successfully.');
-      } else {
-        setError('Payment could not be verified. Please check your dashboard.');
-        setStep('error');
-      }
-    } catch {
-      setError('Payment verification failed. Please check your dashboard.');
-      setStep('error');
-    } finally {
-      setVerifying(false);
-      localStorage.removeItem('pending_boost_ref');
-      localStorage.removeItem('pending_boost_ad_id');
-      localStorage.removeItem('pending_boost_time');
-    }
-  };
-
-  const handleContinueWithoutBoost = () => {
+  const handleSkip = () => {
+    trackBoostEvent('boost_skipped', { ad_id: adId });
     onClose();
     if (adSlug) {
       router.push(`/ad/${adSlug}`);
@@ -213,6 +260,14 @@ export default function PostSubmissionModal({
     setStep('packages');
   };
 
+  const handleSelectPackage = (type: string) => {
+    setSelectedPackage(type);
+    if (!packageTrackedRef.current) {
+      packageTrackedRef.current = true;
+    }
+    trackBoostEvent('boost_package_selected', { ad_id: adId, package_type: type, package_price: packages.find(p => p.type === type)?.price });
+  };
+
   const handleContinueToPayment = async () => {
     if (!selectedPackage) {
       toast.error('Please select a boost package');
@@ -221,6 +276,8 @@ export default function PostSubmissionModal({
     setStep('processing');
     setLoading(true);
     setError(null);
+
+    trackBoostEvent('payment_started', { ad_id: adId, package_type: selectedPackage, package_price: selectedPkg?.price });
 
     try {
       const res = await growthApi.postSubmissionBoost(adId, {
@@ -235,19 +292,23 @@ export default function PostSubmissionModal({
         localStorage.setItem('pending_boost_ad_id', String(adId));
         localStorage.setItem('pending_boost_time', String(Date.now()));
         setBoostResult({
-          packageName: packages.find(p => p.type === selectedPackage)?.displayName || selectedPackage,
-          durationDays: packages.find(p => p.type === selectedPackage)?.durationDays,
+          packageName: selectedPkg?.displayName || selectedPackage,
+          durationDays: selectedPkg?.durationDays,
           reference: ref,
+          price: selectedPkg?.price,
         });
         window.location.href = data.authorization_url;
       } else if (data?.boost_id) {
         setBoostResult({
-          packageName: packages.find(p => p.type === selectedPackage)?.displayName || selectedPackage,
+          packageName: selectedPkg?.displayName || selectedPackage,
           startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + (packages.find(p => p.type === selectedPackage)?.durationDays || 7) * 86400000).toISOString(),
-          durationDays: packages.find(p => p.type === selectedPackage)?.durationDays,
+          endDate: new Date(Date.now() + (selectedPkg?.durationDays || 7) * 86400000).toISOString(),
+          durationDays: selectedPkg?.durationDays,
+          price: selectedPkg?.price,
         });
         setStep('success');
+        trackBoostEvent('payment_completed', { ad_id: adId, package_type: selectedPackage, duration_days: selectedPkg?.durationDays });
+        trackBoostEvent('boost_activated', { ad_id: adId, package_type: selectedPackage, duration_days: selectedPkg?.durationDays });
         toast.success('Boost activated successfully!');
       } else {
         throw new Error('Unexpected response from server');
@@ -256,6 +317,7 @@ export default function PostSubmissionModal({
       const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to process boost. Please try again.';
       setError(msg);
       setStep('error');
+      trackBoostEvent('payment_failed', { ad_id: adId, package_type: selectedPackage, error: msg });
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -278,6 +340,7 @@ export default function PostSubmissionModal({
 
   const handleClose = () => {
     if (step === 'initial') {
+      trackBoostEvent('boost_skipped', { ad_id: adId });
       if (adSlug) {
         router.push(`/ad/${adSlug}`);
       } else {
@@ -299,21 +362,27 @@ export default function PostSubmissionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={step === 'initial' ? 'Ad posted successfully' : step === 'packages' ? 'Select boost package' : step === 'success' ? 'Boost activated' : step === 'error' ? 'Error' : 'Processing'}
+    >
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} aria-hidden="true" />
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
-        {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 z-10 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+          className="absolute top-4 right-4 z-10 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+          aria-label="Close modal"
         >
           <X className="w-5 h-5 text-gray-500" />
         </button>
 
-        {/* STEP: Initial - Success Message */}
+        {/* STEP: Initial - Success Message with Mini Ad Preview */}
         {step === 'initial' && (
           <div className="p-8 md:p-10">
-            <div className="text-center mb-8">
+            {/* Success Header */}
+            <div className="text-center mb-6">
               <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-200">
                 <PartyPopper className="w-10 h-10 text-white" />
               </div>
@@ -325,33 +394,87 @@ export default function PostSubmissionModal({
               </p>
             </div>
 
-            {/* Value Props */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl p-6 mb-8 space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="w-5 h-5 text-amber-600" />
+            {/* Mini Ad Preview Card */}
+            {(adTitle || adImage || adPrice || adLocation || adCategory) && (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+                <div className="flex gap-4 p-4">
+                  {adImage ? (
+                    <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                      <Image
+                        src={adImage}
+                        alt={adTitle || 'Ad preview'}
+                        fill
+                        className="object-cover"
+                        sizes="96px"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <ImageIcon className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    {adTitle && (
+                      <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 mb-1.5">
+                        {adTitle}
+                      </h3>
+                    )}
+                    {adPrice && (
+                      <p className="text-lg font-bold text-violet-600 mb-1.5">
+                        {formatPrice(Number(adPrice))}
+                      </p>
+                    )}
+                    <div className="space-y-1">
+                      {adCategory && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <Tag className="w-3.5 h-3.5" />
+                          {adCategory}
+                        </div>
+                      )}
+                      {adLocation && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {adLocation}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Get more visibility</p>
-                  <p className="text-sm text-gray-500">Boost your ad to appear higher in search results</p>
+                <div className="border-t border-gray-100 px-4 py-2.5 bg-gray-50/50 flex items-center gap-2 text-xs text-gray-400">
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Your ad is live — boost it to reach more buyers</span>
                 </div>
               </div>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Target className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Reach more buyers</p>
-                  <p className="text-sm text-gray-500">Gain more visibility and reach interested buyers faster</p>
-                </div>
+            )}
+
+            {/* Boost Value Section */}
+            <div className="bg-gradient-to-br from-violet-50 to-purple-50/50 rounded-2xl p-6 mb-8 border border-violet-100/50">
+              <div className="text-center mb-5">
+                <Sparkles className="w-6 h-6 text-violet-600 mx-auto mb-2" />
+                <h3 className="font-bold text-gray-900 text-lg">Get 10x more visibility</h3>
+                <p className="text-sm text-gray-500">Boosted ads sell 73% faster on average</p>
               </div>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-5 h-5 text-purple-600" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-white/80 rounded-xl p-3.5 text-center">
+                  <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <TrendingUp className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <p className="text-xs font-semibold text-gray-900">Priority Placement</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Above normal listings</p>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Stand out from the crowd</p>
-                  <p className="text-sm text-gray-500">Get featured badges and priority placement</p>
+                <div className="bg-white/80 rounded-xl p-3.5 text-center">
+                  <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <Target className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <p className="text-xs font-semibold text-gray-900">More Buyers</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Reach interested buyers</p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3.5 text-center">
+                  <div className="w-9 h-9 bg-violet-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <Sparkles className="w-4 h-4 text-violet-600" />
+                  </div>
+                  <p className="text-xs font-semibold text-gray-900">Stand Out</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Featured badge & badge</p>
                 </div>
               </div>
             </div>
@@ -360,17 +483,19 @@ export default function PostSubmissionModal({
             <div className="space-y-3">
               <button
                 onClick={handleProceedToPackages}
-                className="w-full py-4 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-2xl font-bold text-lg hover:from-violet-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-200 hover:shadow-xl hover:shadow-violet-300 active:scale-[0.98]"
+                className="w-full py-4 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-2xl font-bold text-lg hover:from-violet-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-200 hover:shadow-xl hover:shadow-violet-300 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                aria-label="Boost this ad to increase visibility"
               >
                 <Zap className="w-5 h-5" />
                 Boost This Ad
                 <ArrowRight className="w-5 h-5" />
               </button>
               <button
-                onClick={handleContinueWithoutBoost}
-                className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                onClick={handleSkip}
+                className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                aria-label="Skip boost and go to your ad"
               >
-                Continue Without Boost
+                Skip For Now
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -411,9 +536,14 @@ export default function PostSubmissionModal({
             </div>
 
             {/* Package Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              {packages.map((pkg) => {
+            <div
+              className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+              role="radiogroup"
+              aria-label="Boost package selection"
+            >
+              {packages.map((pkg, index) => {
                 const isSelected = selectedPackage === pkg.type;
+                const isRecommended = pkg.type === RECOMMENDED_PACKAGE;
                 const pkgMeta = PACKAGE_META[pkg.type];
                 const PkgIcon = pkgMeta?.icon || Zap;
                 const cs = pkg.colorScheme;
@@ -421,17 +551,27 @@ export default function PostSubmissionModal({
                 return (
                   <button
                     key={pkg.type}
-                    onClick={() => setSelectedPackage(pkg.type)}
+                    onClick={() => handleSelectPackage(pkg.type)}
+                    role="radio"
+                    aria-checked={isSelected}
+                    aria-label={`${pkgMeta?.label || pkg.displayName} - ${formatPrice(pkg.price)} - ${pkg.durationDays} days`}
                     className={`
                       relative flex flex-col items-center text-center px-5 py-6 rounded-2xl border-2 transition-all duration-200
+                      ${isRecommended ? 'pt-8' : ''}
                       ${isSelected
                         ? `border-violet-400 bg-gradient-to-b from-violet-50 to-white shadow-lg shadow-violet-200/30 scale-[1.02]`
                         : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md hover:-translate-y-0.5'
                       }
                     `}
                   >
+                    {isRecommended && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-600 to-purple-700 text-white text-[10px] font-bold rounded-full shadow-lg shadow-violet-300/50 whitespace-nowrap z-10">
+                        <Star className="w-3 h-3 inline-block -mt-0.5 mr-1" />
+                        Most Popular
+                      </div>
+                    )}
                     {isSelected && (
-                      <div className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-violet-600 rounded-full flex items-center justify-center shadow-md ring-2 ring-white">
+                      <div className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-violet-600 rounded-full flex items-center justify-center shadow-md ring-2 ring-white z-10">
                         <Check className="w-4 h-4 text-white" />
                       </div>
                     )}
@@ -469,17 +609,18 @@ export default function PostSubmissionModal({
               <button
                 onClick={handleContinueToPayment}
                 disabled={!selectedPackage || loading}
-                className="w-full py-4 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-2xl font-bold text-lg hover:from-violet-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-200 hover:shadow-xl hover:shadow-violet-300 active:scale-[0.98]"
+                className="w-full py-4 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-2xl font-bold text-lg hover:from-violet-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-200 hover:shadow-xl hover:shadow-violet-300 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                aria-label={selectedPackage ? `Continue to payment for ${formatPrice(selectedPkg?.price || 0)}` : 'Select a package first'}
               >
                 {loading ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
                 ) : (
                   <>
                     Continue To Payment
-                    {selectedPackage && (
+                    {selectedPackage && selectedPkg && (
                       <>
                         <span className="w-1 h-5 bg-white/30 mx-1" />
-                        {formatPrice(packages.find(p => p.type === selectedPackage)?.price || 0)}
+                        {formatPrice(selectedPkg.price)}
                       </>
                     )}
                     <ArrowRight className="w-5 h-5" />
@@ -487,19 +628,26 @@ export default function PostSubmissionModal({
                 )}
               </button>
               <button
-                onClick={handleContinueWithoutBoost}
+                onClick={handleSkip}
                 disabled={loading}
-                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98]"
+                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                aria-label="Skip boost for now"
               >
                 Skip, I&apos;ll do this later
               </button>
             </div>
+
+            {/* Trust note */}
+            <p className="text-center text-xs text-gray-400 mt-4">
+              <Shield className="w-3 h-3 inline-block mr-1" />
+              Your payment is processed securely through Paystack
+            </p>
           </div>
         )}
 
         {/* STEP: Processing */}
         {step === 'processing' && (
-          <div className="p-8 md:p-10 text-center">
+          <div className="p-8 md:p-10 text-center" role="status" aria-label="Processing your boost">
             <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
               {verifying ? (
                 <RefreshCw className="w-10 h-10 animate-spin text-violet-600" />
@@ -522,7 +670,7 @@ export default function PostSubmissionModal({
               <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl text-sm text-gray-600">
                 <Zap className="w-4 h-4 text-amber-500" />
                 {PACKAGE_META[selectedPackage]?.label || selectedPackage}
-                <span className="text-gray-300 mx-1">•</span>
+                <span className="text-gray-300 mx-1">&bull;</span>
                 {formatPrice(packages.find(p => p.type === selectedPackage)?.price || 0)}
               </div>
             )}
@@ -531,7 +679,7 @@ export default function PostSubmissionModal({
 
         {/* STEP: Error */}
         {step === 'error' && (
-          <div className="p-8 md:p-10 text-center">
+          <div className="p-8 md:p-10 text-center" role="alert">
             <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <X className="w-10 h-10 text-red-500" />
             </div>
@@ -542,13 +690,15 @@ export default function PostSubmissionModal({
             <div className="space-y-3 max-w-sm mx-auto">
               <button
                 onClick={() => { setStep('packages'); setError(null); }}
-                className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl font-semibold transition-all"
+                className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                aria-label="Try again"
               >
                 Try Again
               </button>
               <button
                 onClick={handleGoToDashboard}
-                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-semibold transition-all"
+                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                aria-label="Go to My Ads dashboard"
               >
                 Go to My Ads
               </button>
@@ -608,14 +758,16 @@ export default function PostSubmissionModal({
             <div className="space-y-3">
               <button
                 onClick={handleViewAd}
-                className="w-full py-4 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-2xl font-bold text-lg hover:from-violet-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-200 active:scale-[0.98]"
+                className="w-full py-4 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-2xl font-bold text-lg hover:from-violet-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                aria-label="View your boosted ad"
               >
                 <ExternalLink className="w-5 h-5" />
                 View My Ad
               </button>
               <button
                 onClick={handleGoToDashboard}
-                className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                aria-label="Go to your ads dashboard"
               >
                 <LayoutDashboard className="w-4 h-4" />
                 Go To Dashboard

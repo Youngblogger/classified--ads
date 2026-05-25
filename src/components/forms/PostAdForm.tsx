@@ -1516,6 +1516,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         adId={postedAdId || 0}
         adSlug={postedAdSlug}
         adTitle={title}
+        adImage={images[0]?.preview}
+        adPrice={price}
+        adLocation={locationBreadcrumb || undefined}
+        adCategory={categoryBreadcrumb || undefined}
       />
     </div>
   );
