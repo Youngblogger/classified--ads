@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
@@ -591,9 +591,12 @@ export default function RegisterPage() {
 
               <p className="text-center text-gray-500 text-sm mt-6">
                 Already have an account?{' '}
-                <Link href="/login" className="text-primary-600 font-medium hover:underline">
-                  Sign in
-                </Link>
+                <button
+                onClick={() => useUIStore.getState().toggleLoginModal()}
+                className="text-primary-600 font-medium hover:underline"
+              >
+                Sign in
+              </button>
               </p>
             </>
           ) : (

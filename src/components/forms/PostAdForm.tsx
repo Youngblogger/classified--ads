@@ -809,7 +809,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         sessionStorage.setItem('authRedirect', '/post-ad');
       }
       toast.error('Please login to post an ad.');
-      router.push('/login?redirect=/post-ad');
+      localStorage.setItem('authRedirect', '/post-ad');
+      sessionStorage.setItem('authRedirect', '/post-ad');
+      toggleLoginModal();
       return;
     }
 

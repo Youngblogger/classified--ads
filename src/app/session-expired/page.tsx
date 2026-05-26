@@ -2,8 +2,8 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { Shield, Loader2 } from 'lucide-react';
+import { useUIStore } from '@/lib/store';
 
 function SessionExpiredContent() {
   const router = useRouter();
@@ -16,7 +16,7 @@ function SessionExpiredContent() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.push(isAdmin ? '/admin/login' : '/login');
+          if (isAdmin) { router.push('/admin/login'); } else { useUIStore.getState().toggleLoginModal(); router.push('/'); }
           return 0;
         }
         return prev - 1;
@@ -53,12 +53,12 @@ function SessionExpiredContent() {
             Complete your login below
           </p>
           
-          <Link
-            href={isAdmin ? '/admin/login' : '/login'}
+          <button
+            onClick={() => { if (isAdmin) { window.location.href = '/admin/login'; } else { useUIStore.getState().toggleLoginModal(); window.location.href = '/'; } }}
             className="inline-block w-full py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium transition-colors"
           >
             Continue to Login
-          </Link>
+          </button>
         </div>
         
         <p className="text-slate-400 text-sm mt-6">

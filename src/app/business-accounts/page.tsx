@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Check, Building2, Users, Briefcase, Shield, Zap, BarChart3, Headphones, Globe, Star, Crown, CreditCard, Package, TrendingUp } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 
@@ -124,7 +124,9 @@ export default function BusinessAccountsPage() {
 
   const handleGetStarted = () => {
     if (!isAuthenticated) {
-      router.push('/login?redirect=/business-accounts');
+      localStorage.setItem('authRedirect', '/business-accounts');
+      sessionStorage.setItem('authRedirect', '/business-accounts');
+      useUIStore.getState().toggleLoginModal();
       return;
     }
     router.push('/dashboard/settings?upgrade=business');

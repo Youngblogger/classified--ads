@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, ArrowLeft, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -231,12 +231,12 @@ function VerifyPageContent() {
               Your email has been successfully verified.<br />
               You can now log in to your account.
             </p>
-            <Link
-              href="/login"
+            <button
+              onClick={() => useUIStore.getState().toggleLoginModal()}
               className="inline-block w-full py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors"
             >
               Go to Login
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -341,10 +341,10 @@ function VerifyPageContent() {
         </div>
 
         <div className="text-center mt-6">
-          <Link href="/login" className="flex items-center justify-center gap-2 text-gray-500 hover:text-primary-600">
+          <button onClick={() => useUIStore.getState().toggleLoginModal()} className="flex items-center justify-center gap-2 text-gray-500 hover:text-primary-600">
             <ArrowLeft className="w-4 h-4" />
             Back to login
-          </Link>
+          </button>
         </div>
       </div>
     </div>

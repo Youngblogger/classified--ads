@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import { adsApi, walletApi } from '@/lib/api';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 import PromotionPackages from '@/components/promotion/PromotionPackages';
 import PaymentMethods from '@/components/promotion/PaymentMethods';
@@ -80,7 +80,9 @@ export default function PromoteAdPage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push('/login?redirect=/promote/' + adId);
+      localStorage.setItem('authRedirect', '/promote/' + adId);
+      sessionStorage.setItem('authRedirect', '/promote/' + adId);
+      useUIStore.getState().toggleLoginModal();
       return;
     }
     fetchAd();

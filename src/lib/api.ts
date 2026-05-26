@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { getCookie, setCookie, deleteCookie, getUserToken, getAdminToken, getAuthToken } from '@/lib/cookies';
 import toast from 'react-hot-toast';
+import { useUIStore } from '@/lib/store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -87,7 +88,7 @@ class ApiClient {
               if (!isAlreadyRedirecting) {
                 (window as any).__userAuthRedirecting = true;
                 setTimeout(() => {
-                  window.location.href = '/login';
+                  useUIStore.getState().toggleLoginModal();
                 }, 500);
               }
             }

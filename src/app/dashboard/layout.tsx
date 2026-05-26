@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 import Header from '@/components/home/Header';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
@@ -205,7 +205,7 @@ export default function DashboardLayout({
   useEffect(() => {
     const hasAuth = authUser || localStorage.getItem('authToken') || localStorage.getItem('user-auth-storage');
     if (!hasAuth) {
-      router.push('/login');
+      useUIStore.getState().toggleLoginModal();
     }
   }, [authUser, router]);
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, Check, Star, Zap, Crown, Shield, TrendingUp, Users, Gift, Loader2 } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 import { promotionsApi } from '@/lib/api';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
@@ -149,7 +149,7 @@ export default function PremiumPlansPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => router.push(isAuthenticated ? '/promote-ad' : '/login?redirect=/premium-plans')}
+                onClick={() => { if (isAuthenticated) { router.push('/promote-ad'); } else { localStorage.setItem('authRedirect', '/premium-plans'); sessionStorage.setItem('authRedirect', '/premium-plans'); useUIStore.getState().toggleLoginModal(); } }}
                 className="inline-flex items-center gap-2 px-8 py-4 bg-white text-orange-600 rounded-full font-semibold hover:bg-amber-50 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 View Plans
@@ -261,7 +261,7 @@ export default function PremiumPlansPage() {
                       {plans.map((plan, index) => (
                         <td key={plan.id} className={`p-4 text-center ${index === 0 ? 'bg-white' : index === plans.length - 1 ? 'rounded-br-xl bg-slate-50' : 'bg-slate-50'}`}>
                           <button
-                            onClick={() => router.push(isAuthenticated ? `/promote-ad?plan=${plan.id}` : '/login?redirect=/premium-plans')}
+                            onClick={() => { if (isAuthenticated) { router.push(`/promote-ad?plan=${plan.id}`); } else { localStorage.setItem('authRedirect', '/premium-plans'); sessionStorage.setItem('authRedirect', '/premium-plans'); useUIStore.getState().toggleLoginModal(); } }}
                             className={`px-6 py-2 rounded-full font-semibold transition-all duration-200 ${
                               plan.type === 'premium'
                                 ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:shadow-lg'
@@ -332,7 +332,7 @@ export default function PremiumPlansPage() {
                     )}
 
                     <button
-                      onClick={() => router.push(isAuthenticated ? `/promote-ad?plan=${plan.id}` : '/login?redirect=/premium-plans')}
+                      onClick={() => { if (isAuthenticated) { router.push(`/promote-ad?plan=${plan.id}`); } else { localStorage.setItem('authRedirect', '/premium-plans'); sessionStorage.setItem('authRedirect', '/premium-plans'); useUIStore.getState().toggleLoginModal(); } }}
                       className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 ${
                         plan.type === 'premium'
                           ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:shadow-lg'
@@ -402,7 +402,7 @@ export default function PremiumPlansPage() {
               Use code <span className="font-bold">PROMO20</span> at checkout to get 20% off any promotion plan.
             </p>
             <button
-              onClick={() => router.push(isAuthenticated ? '/promote-ad' : '/login?redirect=/premium-plans')}
+              onClick={() => { if (isAuthenticated) { router.push('/promote-ad'); } else { localStorage.setItem('authRedirect', '/premium-plans'); sessionStorage.setItem('authRedirect', '/premium-plans'); useUIStore.getState().toggleLoginModal(); } }}
               className="inline-flex items-center gap-2 px-8 py-4 bg-white text-orange-600 rounded-full font-semibold hover:bg-amber-50 transition-all duration-300 shadow-lg"
             >
               Claim Your Discount

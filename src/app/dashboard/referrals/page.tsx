@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useUIStore } from '@/lib/store';
 
 interface ReferralStats {
   referral_code: string;
@@ -246,9 +247,9 @@ export default function ReferralsPage() {
           </div>
           <h2 className="text-xl font-semibold mb-2">Login Required</h2>
           <p className="text-gray-600 mb-6">Please login to view your referral code and earn credits.</p>
-          <a href="/login" className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+          <button onClick={() => useUIStore.getState().toggleLoginModal()} className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
             Login Now
-          </a>
+          </button>
         </div>
       </div>
     );

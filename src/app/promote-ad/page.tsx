@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, Loader2, Star, Zap, Shield, TrendingUp, Users, Clock, Check, Crown } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUIStore } from '@/lib/store';
 import { promotionsApi } from '@/lib/api';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
@@ -81,7 +81,9 @@ export default function PromoteAdPage() {
 
   const handlePromoteClick = () => {
     if (!isAuthenticated) {
-      router.push('/login?redirect=/promote-ad');
+      localStorage.setItem('authRedirect', '/promote-ad');
+      sessionStorage.setItem('authRedirect', '/promote-ad');
+      useUIStore.getState().toggleLoginModal();
       return;
     }
     router.push('/dashboard/my-ads?promote=true');
