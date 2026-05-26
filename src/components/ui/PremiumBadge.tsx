@@ -1,7 +1,6 @@
 'use client';
 
-import { getBoostPlan } from '@/lib/boost-config';
-import { BoostPlanIcon } from '@/lib/boost-icons';
+import { getBoostPlan, getBoostPlanLabel } from '@/lib/boost-config';
 
 interface PremiumBadgeProps {
   boostType: string | null | undefined;
@@ -20,12 +19,11 @@ export default function PremiumBadge({ boostType, badgeIcon, size = 'sm', classN
   const plan = getBoostPlan(boostType);
   if (!plan) return null;
 
+  const label = getBoostPlanLabel(boostType);
+
   const pill = (
     <div className={`boost-pill ${plan} ${SIZE_CLASSES[size]} ${className}`}>
-      <span className="boost-icon">
-        <BoostPlanIcon badgeIcon={badgeIcon} boostType={boostType} className="w-3.5 h-3.5" />
-      </span>
-      <span className="font-medium leading-none whitespace-nowrap">{plan.charAt(0).toUpperCase() + plan.slice(1)}</span>
+      <span className="font-medium leading-none whitespace-nowrap">{label}</span>
     </div>
   );
 

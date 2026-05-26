@@ -492,7 +492,7 @@ export default function AdDetailPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
                     {ad.negotiable && (
-                      <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2.5 py-1 rounded-[7px] whitespace-nowrap">Negotiable</span>
+                      <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-[7px] whitespace-nowrap">Negotiable</span>
                     )}
                   </div>
 

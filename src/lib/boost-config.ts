@@ -203,6 +203,28 @@ const PLAN_FROM_TYPE: Record<string, string> = {
   highlight: 'gold',
 };
 
+const BOOST_PLAN_EMOJI_LABELS: Record<string, string> = {
+  diamond: '💎 Diamond',
+  platinum: '🥇 Platinum',
+  gold: '🪙 Gold',
+  silver: '🥈 Silver',
+};
+
+export function getBoostPlanLabel(boostType: string | null | undefined, planName?: string | null): string {
+  if (planName && BOOST_PLAN_EMOJI_LABELS[planName.toLowerCase()]) {
+    return BOOST_PLAN_EMOJI_LABELS[planName.toLowerCase()];
+  }
+  if (!boostType) return 'Boosted';
+  const plan = getBoostPlan(boostType);
+  if (!plan) return '⚡ Boosted';
+  return BOOST_PLAN_EMOJI_LABELS[plan] || '⚡ Boosted';
+}
+
+export function getBoostPlanEmoji(boostType: string | null | undefined, planName?: string | null): string {
+  const label = getBoostPlanLabel(boostType, planName);
+  return label.split(' ')[0] || '⚡';
+}
+
 /** Scorable ad interface for dynamic ranking */
 interface ScorableAd {
   is_boosted?: boolean;

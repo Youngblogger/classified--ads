@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { growthApi, walletApi } from '@/lib/api';
 import { getAuthToken } from '@/lib/cookies';
-import { recommendBoostPlan, BOOST_IMPACT, BOOST_PACKAGES, type PackageDefinition } from '@/lib/boost-config';
+import { recommendBoostPlan, BOOST_IMPACT, BOOST_PACKAGES, getBoostPlanLabel, type PackageDefinition } from '@/lib/boost-config';
 import { trackBoostEvent } from '@/lib/analytics';
 import { useWalletBalance, useInvalidateWallet, WALLET_QUERY_KEY } from '@/hooks/useWallet';
 import { getQueryClient } from '@/lib/query-client';
@@ -28,17 +28,7 @@ const PLAN_TO_TIER: Record<string, string> = {
   platinum: 'diamond',
 };
 
-const TIER_EMOJI: Record<string, string> = {
-  silver: '👑',
-  gold: '⚜️',
-  platinum: '💎',
-};
 
-const TIER_DISPLAY_NAMES: Record<string, string> = {
-  silver: 'Gold',
-  gold: 'Platinum',
-  platinum: 'Diamond',
-};
 
 const TIER_COLORS: Record<string, { bg: string; border: string; badge: string; btn: string; shadow: string }> = {
   gold: {
@@ -64,10 +54,10 @@ const TIER_COLORS: Record<string, { bg: string; border: string; badge: string; b
   },
 };
 
-const PACKAGE_ICON: Record<string, typeof Zap> = {
-  silver: Zap,
-  gold: Crown,
-  platinum: Diamond,
+const PACKAGE_EMOJI: Record<string, string> = {
+  silver: '🥈',
+  gold: '🪙',
+  platinum: '🥇',
 };
 
 const RECOMMENDED_PACKAGE = 'gold';
@@ -271,7 +261,7 @@ export default function BoostAdModal({
         const mapped = data.data.map((p: any) => ({
           type: p.type,
           name: p.name,
-          displayName: p.displayName || TIER_DISPLAY_NAMES[p.type] || p.name,
+          displayName: p.displayName || getBoostPlanLabel(p.type) || p.name,
           description: p.description || '',
           price: p.price,
           durationDays: p.durationDays || p.duration_days,
@@ -773,7 +763,7 @@ export default function BoostAdModal({
                     const isRecommended = !!recommendedPlanKey && PLAN_TO_TIER[pkg.type] === recommendedPlanKey;
                     const isDefaultRecommended = pkg.type === RECOMMENDED_PACKAGE && !recommendedPlanKey;
                     const impactInfo = BOOST_IMPACT[planTierKey];
-                    const PkgIcon = PACKAGE_ICON[pkg.type] || Zap;
+                    const pkgEmoji = PACKAGE_EMOJI[pkg.type] || '⚡';
 
                     return (
                       <button
@@ -781,7 +771,7 @@ export default function BoostAdModal({
                         onClick={() => handleSelectPackage(pkg.type)}
                         role="radio"
                         aria-checked={isSelected}
-                        aria-label={`${TIER_DISPLAY_NAMES[pkg.type] || pkg.displayName} - ${formatPrice(pkg.price)} - ${pkg.durationDays} days`}
+                        aria-label={`${getBoostPlanLabel(pkg.type) || pkg.displayName} - ${formatPrice(pkg.price)} - ${pkg.durationDays} days`}
                         className={`
                           relative flex flex-col items-center text-center px-4 py-5 rounded-2xl border-2 transition-all duration-200
                           ${isDefaultRecommended ? 'pt-8' : ''}
@@ -808,10 +798,10 @@ export default function BoostAdModal({
                             ★ Best Match
                           </div>
                         )}
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 bg-gradient-to-br ${c.badge} shadow-lg`}>
-                          <PkgIcon className="w-6 h-6 text-white" />
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 bg-gradient-to-br ${c.badge} shadow-lg text-xl`}>
+                          {pkgEmoji}
                         </div>
-                        <h3 className="text-base font-bold text-gray-900 mb-1">{TIER_DISPLAY_NAMES[pkg.type] || pkg.displayName}</h3>
+                        <h3 className="text-base font-bold text-gray-900 mb-1">{getBoostPlanLabel(pkg.type) || pkg.displayName}</h3>
                         <div className="text-2xl font-extrabold text-gray-900 mb-1">
                           {formatPrice(pkg.price)}
                         </div>
@@ -1014,7 +1004,7 @@ export default function BoostAdModal({
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500">Package</span>
-                      <span className="font-medium text-gray-900">{TIER_DISPLAY_NAMES[selectedPkg.type] || selectedPkg.displayName}</span>
+                      <span className="font-medium text-gray-900">{getBoostPlanLabel(selectedPkg.type) || selectedPkg.displayName}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500">Duration</span>
@@ -1129,8 +1119,8 @@ export default function BoostAdModal({
               </p>
               {selectedPackage && (
                 <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl text-sm text-gray-600">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  {TIER_DISPLAY_NAMES[selectedPackage] || selectedPackage}
+                  <span className="text-base">{PACKAGE_EMOJI[selectedPackage] || '⚡'}</span>
+                  <span>{getBoostPlanLabel(selectedPackage) || selectedPackage}</span>
                   <span className="text-gray-300 mx-1">&bull;</span>
                   {formatPrice(packages.find(p => p.type === selectedPackage)?.price || 0)}
                 </div>
