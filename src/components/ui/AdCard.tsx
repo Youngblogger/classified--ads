@@ -62,7 +62,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             loading={priority ? 'eager' : 'lazy'}
             priority={priority}
           />
-          <PremiumBadge boostType={boostType} size="sm" />
+          <PremiumBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} size="sm" />
         </div>
         <div className="flex-1 p-2 sm:p-3 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap w-full justify-between">
@@ -77,7 +77,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
             <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
             <span className="truncate">{getLocationDisplay()}</span>
-            {boostType && <PromotedBadge boostType={boostType} className="ml-auto" />}
+            {boostType && <PromotedBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} className="ml-auto" />}
           </div>
         </div>
       </Link>
@@ -99,7 +99,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             loading={priority ? 'eager' : 'lazy'}
             priority={priority}
           />
-          <PremiumBadge boostType={boostType} size="sm" />
+          <PremiumBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} size="sm" />
         </div>
         <div className="p-2">
           <div className="flex items-center gap-1.5 flex-wrap w-full justify-between">
@@ -114,7 +114,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-400">
             <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
             <span className="truncate">{getLocationDisplay()}</span>
-            {boostType && <PromotedBadge boostType={boostType} className="ml-auto" />}
+            {boostType && <PromotedBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} className="ml-auto" />}
           </div>
         </div>
       </Link>
@@ -125,7 +125,8 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
     <Link href={`/ad/${getSlug()}`} className={`bg-white rounded-xl overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group block ${cardBoostClasses}`}>
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         <Image
-          src={showFallback ? getFallbackImage() : imageUrl}
+          key={adImageKey}
+          src={imageSrc}
           alt={ad.title}
           fill
           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
@@ -134,7 +135,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           loading={priority ? 'eager' : 'lazy'}
           priority={priority}
         />
-        <PremiumBadge boostType={boostType} size="sm" />
+        <PremiumBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} size="sm" />
       </div>
       <div className="p-2">
         <div className="flex items-center gap-1.5 flex-wrap w-full justify-between">
@@ -156,7 +157,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
         <div className="flex items-center gap-1 mt-1 text-[10px] sm:text-xs text-gray-400">
           <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{getLocationDisplay()}</span>
-          {boostType && <PromotedBadge boostType={boostType} className="ml-auto" />}
+          {boostType && <PromotedBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} className="ml-auto" />}
         </div>
       </div>
     </Link>

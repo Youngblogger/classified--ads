@@ -33,6 +33,7 @@ interface BoostedAd {
   boost_status?: string | null;
   boost_type?: BoostType | string | null;
   boost_expires_at?: string | null;
+  badge_icon?: string | null;
   created_at?: string;
 }
 
@@ -73,7 +74,7 @@ function AdCard({ ad }: { ad: BoostedAd }) {
           className="object-cover group-hover:scale-105 transition-transform duration-300"
           onError={() => setImgError(true)}
         />
-        <PremiumBadge boostType={ad.boost_type} size="sm" />
+        <PremiumBadge boostType={ad.boost_type} badgeIcon={(ad as any).badge_icon} size="sm" />
         {imageCount > 1 && (
           <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
             <ImageIcon className="w-3 h-3" />

@@ -43,6 +43,7 @@ class AdDetailResource extends JsonResource
             'boost_priority_score' => $boost?->priority_score ?? 0,
             'plan_name' => $boost?->plan?->name,
             'badge_label' => $boost?->badge_label,
+            'badge_icon' => $boost?->plan?->badge_icon,
             'attributes' => $this->attributes ?? [],
             'specifications' => $specs,
             'images' => $this->whenLoaded('images', fn() => $this->images->map(fn($img) => [

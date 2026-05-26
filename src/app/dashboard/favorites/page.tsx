@@ -187,7 +187,7 @@ export default function FavoritesPage() {
                     </div>
                   );
                 })()}
-                <PremiumBadge boostType={(item.ad as any).boost_type} size="sm" />
+                <PremiumBadge boostType={(item.ad as any).boost_type} badgeIcon={(item.ad as any).badge_icon} size="sm" />
               </div>
 
               {/* Content */}

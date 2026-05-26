@@ -34,6 +34,7 @@ class AdListResource extends JsonResource
             'boost_expires_at' => $boost?->end_time?->toIso8601String(),
             'plan_name' => $boost?->plan?->name,
             'badge_label' => $boost?->badge_label,
+            'badge_icon' => $boost?->plan?->badge_icon,
             'boost_priority_score' => $boost?->priority_score ?? 0,
             'image' => $image ? [
                 'id' => $image->id,

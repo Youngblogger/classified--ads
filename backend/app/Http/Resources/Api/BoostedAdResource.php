@@ -15,6 +15,7 @@ class BoostedAdResource extends JsonResource
             'plan_id' => $this->plan_id,
             'plan_name' => $this->plan?->name ?? $this->boost_type,
             'badge_label' => $this->badge_label,
+            'badge_icon' => $this->plan?->badge_icon,
             'priority_score' => $this->priority_score,
             'start_time' => $this->start_time?->toIso8601String(),
             'end_time' => $this->end_time?->toIso8601String(),
@@ -38,6 +39,7 @@ class BoostedAdResource extends JsonResource
                 'price' => $this->plan->price,
                 'duration_days' => $this->plan->duration_days,
                 'badge_label' => $this->plan->badge_label,
+                'badge_icon' => $this->plan->badge_icon,
                 'priority_score' => $this->plan->priority_score,
             ]),
         ];

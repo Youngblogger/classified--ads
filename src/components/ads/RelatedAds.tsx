@@ -79,7 +79,7 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => { if (imgUrl) (e.target as HTMLImageElement).src = fallbackImage; }}
                   />
-                  <PremiumBadge boostType={ad.boost_type} size="sm" />
+                  <PremiumBadge boostType={ad.boost_type} badgeIcon={(ad as any).badge_icon} size="sm" />
                 </div>
                 <div className="p-2">
                   <div className="flex items-center gap-1.5 flex-wrap">

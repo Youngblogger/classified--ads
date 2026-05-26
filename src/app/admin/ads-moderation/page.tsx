@@ -1566,7 +1566,7 @@ export default function AdsModerationPage() {
                             ₦{Number(ad.price).toLocaleString()}
                           </p>
                           {ad.is_boosted && (
-                            <PremiumBadge boostType={ad.boost_type} size="sm" variant="inline" className="mt-0.5" />
+                            <PremiumBadge boostType={ad.boost_type} badgeIcon={(ad as any).badge_icon} size="sm" variant="inline" className="mt-0.5" />
                           )}
                           {ad.edited_by_admin && (
                             <span className="text-xs text-purple-600 flex items-center gap-1">

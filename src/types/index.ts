@@ -101,6 +101,9 @@ export interface Ad {
   boost_expires_at?: string | null;
   boost_end_time?: string | null;
   boost_priority_score?: number;
+  plan_name?: string | null;
+  badge_label?: string | null;
+  badge_icon?: string | null;
   negotiable?: boolean;
 }
 

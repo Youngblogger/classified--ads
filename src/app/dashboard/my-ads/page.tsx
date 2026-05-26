@@ -382,7 +382,7 @@ export default function MyAdsPage() {
                     </div>
                   );
                 })()}
-                <PremiumBadge boostType={(ad as any).boost_type} size="sm" />
+                <PremiumBadge boostType={(ad as any).boost_type} badgeIcon={(ad as any).badge_icon} size="sm" />
                 <div className="absolute top-3 right-3">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${(statusConfig[ad.status as keyof typeof statusConfig]?.class) || 'bg-gray-100 text-gray-800'}`}>
                     {(statusConfig[ad.status as keyof typeof statusConfig]?.label) || ad.status || 'Unknown'}
