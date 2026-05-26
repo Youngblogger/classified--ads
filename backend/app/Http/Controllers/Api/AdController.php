@@ -207,6 +207,23 @@ class AdController extends Controller
                 '_idempotency_key' => 'nullable|string|max:100',
             ]);
 
+            // Server-side idempotency check
+            if (!empty($validated['_idempotency_key'])) {
+                $existingAd = Ad::where('idempotency_key', $validated['_idempotency_key'])->first();
+                if ($existingAd) {
+                    Log::info('Duplicate ad submission prevented by idempotency key', [
+                        'idempotency_key' => $validated['_idempotency_key'],
+                        'existing_ad_id' => $existingAd->id,
+                        'user_id' => $request->user()?->id,
+                    ]);
+                    $existingAd->load(['images', 'category', 'location', 'user']);
+                    return response()->json([
+                        'message' => 'Ad already submitted',
+                        'data' => new AdDetailResource($existingAd),
+                    ], 200);
+                }
+            }
+
             $autoApproval = $this->checkAutoApproval();
             $user = $request->user();
 
@@ -215,7 +232,7 @@ class AdController extends Controller
 
             $t0 = microtime(true);
 
-            $ad = DB::transaction(function () use ($validated, $user, $locationId, $attributes, $autoApproval, $request, $startTime) {
+            $ad = DB::transaction(function () use ($validated, $user, $locationId, $attributes, $autoApproval, $request) {
                 $ad = Ad::create([
                     'user_id' => $user->id,
                     'title' => $validated['title'],
@@ -232,6 +249,7 @@ class AdController extends Controller
                     'whatsapp' => $validated['whatsapp'] ?? null,
                     'slug' => Str::slug($validated['title']) . '-' . time(),
                     'status' => $autoApproval['should_auto_approve'] ? 'active' : 'pending',
+                    'idempotency_key' => $validated['_idempotency_key'] ?? null,
                 ]);
 
                 if ($attributes !== null) {
@@ -316,7 +334,7 @@ class AdController extends Controller
             if ($autoApproval['should_auto_approve']) {
                 try {
                     \App\Jobs\NotifyFollowersOfNewAdJob::dispatch($ad->id, $user->id);
-                    \App\Jobs\CheckSavedSearchesJob::dispatch($ad);
+                    \App\Jobs\CheckSavedSearchesJob::dispatch($ad->id);
                 } catch (\Exception $e) {
                     Log::warning('Failed to dispatch notifications: ' . $e->getMessage());
                 }

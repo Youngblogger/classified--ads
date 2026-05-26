@@ -16,47 +16,70 @@ class CheckSavedSearchesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected Ad $ad;
+    public int $tries = 3;
+    public int $backoff = 60;
 
-    public function __construct(Ad $ad)
+    protected int $adId;
+
+    public function __construct(int $adId)
     {
-        $this->ad = $ad;
+        $this->adId = $adId;
+        $this->onQueue('notifications');
     }
 
     public function handle(): void
     {
         try {
-            $ad = $this->ad;
+            $ad = Ad::find($this->adId);
+            if (!$ad) {
+                Log::warning("CheckSavedSearchesJob: Ad {$this->adId} not found");
+                return;
+            }
+
             $savedSearches = SavedSearch::where('notify_in_app', true)
                 ->orWhere('notify_email', true)
                 ->get();
 
             foreach ($savedSearches as $savedSearch) {
-                if (!$this->matchesSearch($savedSearch, $ad)) {
-                    continue;
-                }
+                try {
+                    if (!$this->matchesSearch($savedSearch, $ad)) {
+                        continue;
+                    }
 
-                if ($savedSearch->frequency === 'instant') {
-                    NotificationService::send(
-                        $savedSearch->user_id,
-                        'saved_search_match',
-                        'New Ad Matching Your Search',
-                        "A new ad '{$ad->title}' matches your saved search '{$savedSearch->name}'.",
-                        [
-                            'saved_search_id' => $savedSearch->id,
-                            'saved_search_name' => $savedSearch->name,
-                            'ad_id' => $ad->id,
-                            'ad_slug' => $ad->slug,
-                            'ad_title' => $ad->title,
-                        ]
-                    );
+                    if ($savedSearch->frequency === 'instant') {
+                        NotificationService::send(
+                            $savedSearch->user_id,
+                            'saved_search_match',
+                            'New Ad Matching Your Search',
+                            "A new ad '{$ad->title}' matches your saved search '{$savedSearch->name}'.",
+                            [
+                                'saved_search_id' => $savedSearch->id,
+                                'saved_search_name' => $savedSearch->name,
+                                'ad_id' => $ad->id,
+                                'ad_slug' => $ad->slug,
+                                'ad_title' => $ad->title,
+                            ]
+                        );
 
-                    $savedSearch->update(['last_notified_at' => now()]);
+                        $savedSearch->update(['last_notified_at' => now()]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error("CheckSavedSearchesJob: Failed to process saved search {$savedSearch->id}", [
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Failed to check saved searches: ' . $e->getMessage());
+            Log::error('CheckSavedSearchesJob failed: ' . $e->getMessage());
+            throw $e;
         }
+    }
+
+    public function failed(\Throwable $exception): void
+    {
+        Log::error("CheckSavedSearchesJob failed for ad {$this->adId} after {$this->tries} attempts", [
+            'error' => $exception->getMessage(),
+        ]);
     }
 
     protected function matchesSearch(SavedSearch $savedSearch, Ad $ad): bool

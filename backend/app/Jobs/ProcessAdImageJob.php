@@ -19,7 +19,7 @@ class ProcessAdImageJob implements ShouldQueue
 
     public int $tries = 3;
     public int $timeout = 60;
-    public int $maxConcurrentProcesses = 3;
+    public int $backoff = 30;
 
     public function __construct(
         public int $adId,
@@ -45,7 +45,7 @@ class ProcessAdImageJob implements ShouldQueue
             }
 
             $fullTempPath = Storage::disk('public')->path($this->tempPath);
-            
+
             if (!file_exists($fullTempPath)) {
                 Log::error("Temp file not found: {$fullTempPath}");
                 throw new \Exception("Temp file not found");

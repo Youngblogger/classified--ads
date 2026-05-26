@@ -15,7 +15,7 @@ class Ad extends Model
         'views', 'clicks_count', 'whatsapp_clicks', 'share_count', 'phone', 'whatsapp', 'expires_at', 'lga', 'state',
         'tags', 'ai_summary', 'image_validation', 'verification_status', 'processing_status',
         'ai_category_id', 'ai_confidence', 'is_auto_categorized', 'rejection_reason', 'processed_at', 'price',
-        'edited_by_admin', 'is_seeded', 'quality_score', 'is_flagged', 'quality_flags', 'last_quality_check',
+        'edited_by_admin', 'is_seeded', 'quality_score', 'is_flagged', 'quality_flags', 'last_quality_check', 'idempotency_key',
     ];
 
     protected $casts = [
