@@ -207,20 +207,26 @@ class AdController extends Controller
                 '_idempotency_key' => 'nullable|string|max:100',
             ]);
 
-            // Server-side idempotency check
+            // Server-side idempotency check (safe if column doesn't exist)
             if (!empty($validated['_idempotency_key'])) {
-                $existingAd = Ad::where('idempotency_key', $validated['_idempotency_key'])->first();
-                if ($existingAd) {
-                    Log::info('Duplicate ad submission prevented by idempotency key', [
-                        'idempotency_key' => $validated['_idempotency_key'],
-                        'existing_ad_id' => $existingAd->id,
-                        'user_id' => $request->user()?->id,
+                try {
+                    $existingAd = Ad::where('idempotency_key', $validated['_idempotency_key'])->first();
+                    if ($existingAd) {
+                        Log::info('Duplicate ad submission prevented by idempotency key', [
+                            'idempotency_key' => $validated['_idempotency_key'],
+                            'existing_ad_id' => $existingAd->id,
+                            'user_id' => $request->user()?->id,
+                        ]);
+                        $existingAd->load(['images', 'category', 'location', 'user']);
+                        return response()->json([
+                            'message' => 'Ad already submitted',
+                            'data' => new AdDetailResource($existingAd),
+                        ], 200);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Idempotency key check failed (column may not exist yet)', [
+                        'error' => $e->getMessage(),
                     ]);
-                    $existingAd->load(['images', 'category', 'location', 'user']);
-                    return response()->json([
-                        'message' => 'Ad already submitted',
-                        'data' => new AdDetailResource($existingAd),
-                    ], 200);
                 }
             }
 
