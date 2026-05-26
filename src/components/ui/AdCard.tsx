@@ -70,7 +70,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               {formatPrice(ad.price, ad.currency)}
             </p>
             {ad.negotiable && (
-              <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
+              <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-[7px] whitespace-nowrap">Negotiable</span>
             )}
           </div>
           <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">{ad.title}</h3>
@@ -107,7 +107,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               {formatPrice(ad.price, ad.currency)}
             </p>
             {ad.negotiable && (
-              <span className="text-[9px] font-medium text-green-600 bg-green-50 px-1 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
+              <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-[7px] whitespace-nowrap">Negotiable</span>
             )}
           </div>
           <h3 className="font-medium text-gray-900 text-xs leading-snug line-clamp-1 mt-0.5">{ad.title}</h3>
@@ -142,7 +142,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             {formatPrice(ad.price, ad.currency)}
           </p>
           {ad.negotiable && (
-            <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
+            <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-[7px] whitespace-nowrap">Negotiable</span>
           )}
         </div>
         <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">
