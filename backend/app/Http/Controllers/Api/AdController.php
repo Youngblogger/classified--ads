@@ -20,6 +20,7 @@ use App\Services\CloudinaryService;
 use App\Services\ImageProcessingService;
 use App\Services\AdImageCacheService;
 use App\Jobs\Cloudinary\DeleteCloudinaryFileJob;
+use App\Jobs\ProcessAdImageJob;
 use App\Events\AdSaved;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -187,6 +188,8 @@ class AdController extends Controller
 
     public function store(Request $request)
     {
+        $startTime = microtime(true);
+
         try {
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
@@ -201,6 +204,7 @@ class AdController extends Controller
                 'phone' => 'required|string|max:20',
                 'whatsapp' => 'nullable|string|max:20',
                 'attributes' => 'nullable|string',
+                '_idempotency_key' => 'nullable|string|max:100',
             ]);
 
             $autoApproval = $this->checkAutoApproval();
@@ -209,82 +213,104 @@ class AdController extends Controller
             $locationId = $this->resolveLocationId($validated['location_id'] ?? null);
             $attributes = $this->resolveAttributes($validated['attributes'] ?? null);
 
-            $ad = Ad::create([
-                'user_id' => $user->id,
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'short_description' => substr($validated['description'], 0, 150),
-                'price' => $validated['price'],
-                'currency' => $validated['currency'] ?? 'NGN',
-                'category_id' => $validated['category_id'],
-                'location_id' => $locationId,
-                'state' => $validated['state'] ?? null,
-                'lga' => $validated['lga'] ?? null,
-                'condition' => $validated['condition'],
-                'phone' => $validated['phone'],
-                'whatsapp' => $validated['whatsapp'] ?? null,
-                'slug' => Str::slug($validated['title']) . '-' . time(),
-                'status' => $autoApproval['should_auto_approve'] ? 'active' : 'pending',
-            ]);
+            $t0 = microtime(true);
 
-            if ($attributes !== null) {
-                DB::table('ads')->where('id', $ad->id)->update(['attributes' => $attributes]);
-            }
+            $ad = DB::transaction(function () use ($validated, $user, $locationId, $attributes, $autoApproval, $request, $startTime) {
+                $ad = Ad::create([
+                    'user_id' => $user->id,
+                    'title' => $validated['title'],
+                    'description' => $validated['description'],
+                    'short_description' => substr($validated['description'], 0, 150),
+                    'price' => $validated['price'],
+                    'currency' => $validated['currency'] ?? 'NGN',
+                    'category_id' => $validated['category_id'],
+                    'location_id' => $locationId,
+                    'state' => $validated['state'] ?? null,
+                    'lga' => $validated['lga'] ?? null,
+                    'condition' => $validated['condition'],
+                    'phone' => $validated['phone'],
+                    'whatsapp' => $validated['whatsapp'] ?? null,
+                    'slug' => Str::slug($validated['title']) . '-' . time(),
+                    'status' => $autoApproval['should_auto_approve'] ? 'active' : 'pending',
+                ]);
 
-            if ($request->hasFile('images')) {
-                $this->uploadAdImages($request, $ad, $user);
-            }
+                if ($attributes !== null) {
+                    DB::table('ads')->where('id', $ad->id)->update(['attributes' => $attributes]);
+                }
 
-            if ($request->has('image_urls')) {
-                $rawImageUrls = $request->input('image_urls');
-                $imageUrls = is_string($rawImageUrls) ? json_decode($rawImageUrls, true) : $rawImageUrls;
-                if (is_array($imageUrls)) {
-                    foreach ($imageUrls as $index => $imageData) {
-                        // Support both string URL and structured { url, thumbnail_url, medium_url } formats
-                        $mainUrl = is_string($imageData) ? $imageData : ($imageData['url'] ?? '');
-                        $thumbnailUrl = is_string($imageData) ? $mainUrl : ($imageData['thumbnail_url'] ?? $mainUrl);
-                        $mediumUrl = is_string($imageData) ? $mainUrl : ($imageData['medium_url'] ?? $mainUrl);
-                        $originalUrl = is_string($imageData) ? $mainUrl : ($imageData['original_url'] ?? $mainUrl);
+                if ($request->has('image_urls')) {
+                    $rawImageUrls = $request->input('image_urls');
+                    $imageUrls = is_string($rawImageUrls) ? json_decode($rawImageUrls, true) : $rawImageUrls;
+                    if (is_array($imageUrls)) {
+                        foreach ($imageUrls as $index => $imageData) {
+                            $mainUrl = is_string($imageData) ? $imageData : ($imageData['url'] ?? '');
+                            $thumbnailUrl = is_string($imageData) ? $mainUrl : ($imageData['thumbnail_url'] ?? $mainUrl);
+                            $mediumUrl = is_string($imageData) ? $mainUrl : ($imageData['medium_url'] ?? $mainUrl);
+                            $originalUrl = is_string($imageData) ? $mainUrl : ($imageData['original_url'] ?? $mainUrl);
 
-                        // Move files from temp/ to ads/{id}/ for permanent storage
-                        $storedMainUrl = $mainUrl;
-                        $storedThumbnailUrl = $thumbnailUrl;
-                        $storedMediumUrl = $mediumUrl;
-                        $storedOriginalUrl = $originalUrl;
+                            $storedMainUrl = $mainUrl;
+                            $storedThumbnailUrl = $thumbnailUrl;
+                            $storedMediumUrl = $mediumUrl;
+                            $storedOriginalUrl = $originalUrl;
 
-                        $tempPaths = $this->resolveTempPaths($mainUrl);
-                        if ($tempPaths !== null) {
-                            $adDir = "ads/{$ad->id}";
-                            foreach ($tempPaths as $variant => $tempPath) {
-                                if (Storage::disk('public')->exists($tempPath)) {
-                                    $newPath = str_replace('temp/', "{$adDir}/", $tempPath);
-                                    Storage::disk('public')->copy($tempPath, $newPath);
-                                    Storage::disk('public')->delete($tempPath);
-                                    $variantUrl = url('/storage/' . $newPath);
-                                    if ($variant === 'large') $storedMainUrl = $variantUrl;
-                                    if ($variant === 'original') $storedOriginalUrl = $variantUrl;
-                                    if ($variant === 'medium') $storedMediumUrl = $variantUrl;
-                                    if ($variant === 'thumb') $storedThumbnailUrl = $variantUrl;
+                            $tempPaths = $this->resolveTempPaths($mainUrl);
+                            if ($tempPaths !== null) {
+                                $adDir = "ads/{$ad->id}";
+                                foreach ($tempPaths as $variant => $tempPath) {
+                                    if (Storage::disk('public')->exists($tempPath)) {
+                                        $newPath = str_replace('temp/', "{$adDir}/", $tempPath);
+                                        Storage::disk('public')->copy($tempPath, $newPath);
+                                        Storage::disk('public')->delete($tempPath);
+                                        $variantUrl = url('/storage/' . $newPath);
+                                        if ($variant === 'large') $storedMainUrl = $variantUrl;
+                                        if ($variant === 'original') $storedOriginalUrl = $variantUrl;
+                                        if ($variant === 'medium') $storedMediumUrl = $variantUrl;
+                                        if ($variant === 'thumb') $storedThumbnailUrl = $variantUrl;
+                                    }
                                 }
                             }
-                        }
 
-                        $imageHash = is_string($imageData) ? null : ($imageData['image_hash'] ?? null);
-                        AdImage::create([
-                            'ad_id' => $ad->id,
-                            'url' => $storedMainUrl,
-                            'original_url' => $storedOriginalUrl,
-                            'thumbnail_url' => $storedThumbnailUrl,
-                            'medium_url' => $storedMediumUrl,
-                            'image_hash' => $imageHash,
-                            'is_primary' => $index === 0,
-                            'sort_order' => $index,
-                        ]);
+                            $imageHash = is_string($imageData) ? null : ($imageData['image_hash'] ?? null);
+                            AdImage::create([
+                                'ad_id' => $ad->id,
+                                'url' => $storedMainUrl,
+                                'original_url' => $storedOriginalUrl,
+                                'thumbnail_url' => $storedThumbnailUrl,
+                                'medium_url' => $storedMediumUrl,
+                                'image_hash' => $imageHash,
+                                'is_primary' => $index === 0,
+                                'sort_order' => $index,
+                            ]);
+                        }
                     }
                 }
-            }
+
+                // Handle raw file uploads ASYNC via job
+                if ($request->hasFile('images')) {
+                    foreach ($request->file('images') as $index => $image) {
+                        $uuid = (string) Str::uuid();
+                        $tempPath = $image->store("temp/{$uuid}", 'public');
+                        ProcessAdImageJob::dispatch(
+                            $ad->id,
+                            $tempPath,
+                            $index,
+                            $index === 0
+                        );
+                    }
+                }
+
+                return $ad;
+            });
+
+            $t1 = microtime(true);
+            Log::info('Ad created in DB', [
+                'ad_id' => $ad->id,
+                'db_time_ms' => round(($t1 - $t0) * 1000, 2),
+            ]);
 
             $ad->load(['images', 'category', 'location', 'user']);
+
+            $t2 = microtime(true);
             event(new AdSaved($ad));
 
             if ($autoApproval['should_auto_approve']) {
@@ -294,6 +320,22 @@ class AdController extends Controller
                 } catch (\Exception $e) {
                     Log::warning('Failed to dispatch notifications: ' . $e->getMessage());
                 }
+            }
+
+            $t3 = microtime(true);
+            $totalTime = round(($t3 - $startTime) * 1000, 2);
+            Log::info('Ad creation completed', [
+                'ad_id' => $ad->id,
+                'total_time_ms' => $totalTime,
+                'event_time_ms' => round(($t3 - $t2) * 1000, 2),
+                'num_images' => $ad->images->count(),
+            ]);
+
+            if ($totalTime > 3000) {
+                Log::warning('Ad creation exceeded 3s threshold', [
+                    'ad_id' => $ad->id,
+                    'total_time_ms' => $totalTime,
+                ]);
             }
 
             return response()->json([
@@ -306,8 +348,11 @@ class AdController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['error' => 'Validation failed', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Failed to create ad: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to create ad'], 500);
+            Log::error('Failed to create ad: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request_time_ms' => round((microtime(true) - $startTime) * 1000, 2),
+            ]);
+            return response()->json(['error' => 'Failed to create ad. Please try again.'], 500);
         }
     }
 

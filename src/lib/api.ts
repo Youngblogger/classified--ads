@@ -20,7 +20,7 @@ class ApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+        timeout: 30000,
         withCredentials: true,
       });
 
@@ -151,7 +151,8 @@ class ApiClient {
   async upload<T = any>(
     url: string,
     formData: FormData,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    timeoutOverride?: number
   ): Promise<AxiosResponse<T>> {
     const token = getUserToken();
     return this.client.post<T>(url, formData, {
@@ -165,6 +166,7 @@ class ApiClient {
           onProgress(progress);
         }
       },
+      ...(timeoutOverride ? { timeout: timeoutOverride } : {}),
     });
   }
 }
@@ -183,7 +185,7 @@ class AdminApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+        timeout: 30000,
         withCredentials: true,
       });
 
@@ -374,7 +376,7 @@ export const adsApi = {
   getFeatured: (limit?: number) => api.get('/ads/featured', { params: { limit } }),
   getRecent: (limit?: number) => api.get('/ads/recent', { params: { limit } }),
   getSimilar: (adId: number, limit?: number) => api.get(`/ads/${adId}/similar`, { params: { limit } }),
-  create: (data: FormData) => api.upload('/ads', data),
+  create: (data: FormData) => api.upload('/ads', data, undefined, 120000),
   update: (id: number, data: FormData) => api.upload(`/ads/${id}`, data),
   delete: (slug: string) => api.delete(`/ads/${slug}`),
   deleteById: (id: number) => api.delete(`/ads/${id}`),
@@ -715,7 +717,7 @@ export const imageUploadApi = {
   upload: (file: File, onProgress?: (pct: number) => void) => {
     const formData = new FormData();
     formData.append('image', file);
-    return api.upload('/uploads/image', formData, onProgress);
+    return api.upload('/uploads/image', formData, onProgress, 60000);
   },
 };
 

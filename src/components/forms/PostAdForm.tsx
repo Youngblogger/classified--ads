@@ -142,6 +142,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const { toggleLoginModal, toggleRegisterModal } = useUIStore();
   const { hasDraft, saveDraftText, saveDraftImages, clearDraft } = usePostAdDraft();
   const [step, setStep] = useState(1);
+  const [submissionStep, setSubmissionStep] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [draftRestored, setDraftRestored] = useState(false);
@@ -795,6 +796,13 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
   const canSubmit = title && description && price && categoryId && locationId && images.length > 0 && condition && images.every(i => i.status === 'completed');
 
+  const SUBMISSION_STEPS = [
+    { key: 'validating', label: 'Validating listing...' },
+    { key: 'preparing_images', label: 'Preparing images...' },
+    { key: 'uploading', label: 'Uploading your listing...' },
+    { key: 'finalizing', label: 'Finalizing your listing...' },
+  ];
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
@@ -822,8 +830,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     }
 
     setIsSubmitting(true);
+    setSubmissionStep('validating');
 
     try {
+      setSubmissionStep('preparing_images');
       const formData = new FormData();
       formData.append('title', title);
       formData.append('description', description);
@@ -859,8 +869,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       }
 
       formData.append('_idempotency_key', idempotencyKey);
+      
+      setSubmissionStep('uploading');
       const response = await adsApi.create(formData);
       
+      setSubmissionStep('finalizing');
       const adSlug = response.data?.slug || response.data?.data?.slug;
       const adId = response.data?.id || response.data?.data?.id;
       
@@ -888,6 +901,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       mutate(key => typeof key === 'string' && key.startsWith('ads?'));
       queryClient.invalidateQueries({ queryKey: adKeys.all });
       
+      setSubmissionStep(null);
+      setIsSubmitting(false);
+      
       // Show post-submission boost upsell modal
       setPostedAdId(adId);
       setPostedAdSlug(adSlug);
@@ -897,46 +913,42 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         onSuccess(adId);
       }
     } catch (err: any) {
+      setSubmissionStep(null);
       setIsSubmitting(false);
+      
+      let errorMsg = 'Failed to post ad. Please try again.';
+      const duration = err.response?.duration || err.duration;
+      const durationHint = duration ? ` (${Math.round(duration)}ms elapsed)` : '';
+      
       console.error('Post ad error:', err);
       console.error('Full error response:', JSON.stringify(err.response?.data, null, 2));
       
-      let errorMsg = 'Failed to post ad. Please try again.';
-      
       if (err.response?.data?.errors) {
         const errors = err.response.data.errors;
-        console.error('Validation errors object:', errors);
         const firstError = Object.values(errors)[0];
         if (Array.isArray(firstError) && firstError[0]) {
-          errorMsg = firstError[0];
+          errorMsg = firstError[0] + durationHint;
         }
       } else if (err.response?.data?.message) {
-        errorMsg = err.response.data.message;
+        errorMsg = err.response.data.message + durationHint;
       } else if (err.response?.data?.error) {
-        errorMsg = err.response.data.error;
-      } else if (err.response?.data?.errors) {
-        const errors = err.response.data.errors;
-        const firstError = Object.values(errors)[0];
-        if (Array.isArray(firstError) && firstError[0]) {
-          errorMsg = firstError[0];
-        }
+        errorMsg = err.response.data.error + durationHint;
       } else if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
         errorMsg = 'Cannot connect to server. Please ensure the backend is running on Laragon.';
       } else if (err.code === 'ECONNABORTED') {
-        errorMsg = 'Request timed out. Please try again.';
+        errorMsg = 'Request timed out. The server took too long to respond. Please try again.';
       } else if (err.response?.status === 401) {
         errorMsg = 'Please login to post an ad.';
         toggleLoginModal();
       } else if (err.response?.status === 422) {
-        console.error('Validation errors:', JSON.stringify(err.response?.data?.errors, null, 2));
-        errorMsg = 'Validation error: ' + JSON.stringify(err.response?.data?.errors);
+        errorMsg = 'Validation error: Please check your input and try again.';
+      } else if (err.response?.status === 429) {
+        errorMsg = 'You are posting too frequently. Please wait a moment and try again.';
       } else if (err.response?.status === 500) {
         errorMsg = 'Server error. Please try again later.';
       }
       
       toast.error(errorMsg);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -1542,12 +1554,12 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           <button
             onClick={handleSubmit}
             disabled={!canSubmit || isSubmitting}
-            className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all flex items-center gap-2 disabled:bg-gray-400"
+            className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Posting...
+                {SUBMISSION_STEPS.find(s => s.key === submissionStep)?.label || 'Posting...'}
               </>
             ) : (
               <>
@@ -1556,6 +1568,32 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               </>
             )}
           </button>
+        )}
+        
+        {/* Submission progress overlay */}
+        {isSubmitting && (
+          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-green-200">
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Posting your ad</h3>
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-3 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-green-400 to-emerald-500 h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: submissionStep === 'validating' ? '15%' :
+                           submissionStep === 'preparing_images' ? '35%' :
+                           submissionStep === 'uploading' ? '65%' :
+                           submissionStep === 'finalizing' ? '90%' : '50%',
+                  }}
+                />
+              </div>
+              <p className="text-sm text-gray-500 text-center">
+                {SUBMISSION_STEPS.find(s => s.key === submissionStep)?.label || 'Please wait...'}
+              </p>
+            </div>
+          </div>
         )}
       </div>
 
