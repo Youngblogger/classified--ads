@@ -2,6 +2,10 @@
 
 import { supabase } from './supabase';
 
+const VERIFICATION_BUCKET = 'verification-documents';
+const ALLOWED_DOC_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const MAX_DOC_SIZE = 10 * 1024 * 1024; // 10MB
+
 export async function submitVerificationRequest(data: {
   user_id: string;
   verification_type: string;
@@ -11,35 +15,38 @@ export async function submitVerificationRequest(data: {
   business_document?: File;
 }) {
   const uploadFile = async (file: File, prefix: string) => {
+    if (!ALLOWED_DOC_TYPES.includes(file.type)) {
+      throw new Error('Invalid file type. Allowed: JPEG, PNG, WebP, PDF');
+    }
+    if (file.size > MAX_DOC_SIZE) {
+      throw new Error('File too large. Maximum size: 10MB');
+    }
     const ext = file.name.split('.').pop();
-    const path = `verifications/${data.user_id}/${prefix}_${Date.now()}.${ext}`;
+    const path = `verifications/${data.user_id}/${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
     const { error } = await supabase.storage
-      .from('listing-images')
+      .from(VERIFICATION_BUCKET)
       .upload(path, file);
     if (error) throw error;
-    const { data: urlData } = supabase.storage
-      .from('listing-images')
-      .getPublicUrl(path);
-    return urlData.publicUrl;
+    return path; // Store path, generate signed URL only when viewed
   };
 
   try {
-    let frontUrl: string | null = null;
-    let backUrl: string | null = null;
-    let selfieUrl: string | null = null;
-    let businessDocUrl: string | null = null;
+    let frontPath: string | null = null;
+    let backPath: string | null = null;
+    let selfiePath: string | null = null;
+    let businessDocPath: string | null = null;
 
     if (data.document_front) {
-      frontUrl = await uploadFile(data.document_front, 'front');
+      frontPath = await uploadFile(data.document_front, 'front');
     }
     if (data.document_back) {
-      backUrl = await uploadFile(data.document_back, 'back');
+      backPath = await uploadFile(data.document_back, 'back');
     }
     if (data.selfie) {
-      selfieUrl = await uploadFile(data.selfie, 'selfie');
+      selfiePath = await uploadFile(data.selfie, 'selfie');
     }
     if (data.business_document) {
-      businessDocUrl = await uploadFile(data.business_document, 'business');
+      businessDocPath = await uploadFile(data.business_document, 'business');
     }
 
     const { data: result, error } = await supabase
@@ -48,10 +55,10 @@ export async function submitVerificationRequest(data: {
         user_id: data.user_id,
         verification_type: data.verification_type,
         status: 'pending',
-        document_front_url: frontUrl,
-        document_back_url: backUrl,
-        selfie_url: selfieUrl,
-        business_document_url: businessDocUrl,
+        document_front_url: frontPath,
+        document_back_url: backPath,
+        selfie_url: selfiePath,
+        business_document_url: businessDocPath,
       })
       .select()
       .single();
@@ -64,6 +71,39 @@ export async function submitVerificationRequest(data: {
   } catch (err: any) {
     return { request: null, error: { message: err.message || 'Upload failed' } };
   }
+}
+
+export async function getVerificationDocumentUrl(storagePath: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from(VERIFICATION_BUCKET)
+    .createSignedUrl(storagePath, 3600);
+  if (error || !data) return null;
+  return data.signedUrl;
+}
+
+export async function getVerificationDocumentUrls(request: {
+  document_front_url: string | null;
+  document_back_url: string | null;
+  selfie_url: string | null;
+  business_document_url: string | null;
+}): Promise<{
+  document_front_url: string | null;
+  document_back_url: string | null;
+  selfie_url: string | null;
+  business_document_url: string | null;
+}> {
+  const [front, back, selfie, business] = await Promise.all([
+    request.document_front_url ? getVerificationDocumentUrl(request.document_front_url) : null,
+    request.document_back_url ? getVerificationDocumentUrl(request.document_back_url) : null,
+    request.selfie_url ? getVerificationDocumentUrl(request.selfie_url) : null,
+    request.business_document_url ? getVerificationDocumentUrl(request.business_document_url) : null,
+  ]);
+  return {
+    document_front_url: front,
+    document_back_url: back,
+    selfie_url: selfie,
+    business_document_url: business,
+  };
 }
 
 export async function getVerificationRequests(userId: string) {

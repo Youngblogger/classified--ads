@@ -4,11 +4,21 @@ import { supabase } from './supabase';
 
 const BUCKET_NAME = 'listing-images';
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export async function uploadListingImage(
   listingId: string,
   file: File,
   onProgress?: (progress: number) => void
 ) {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { url: null, thumbnailUrl: null, path: null, error: { message: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' } };
+  }
+  if (file.size > MAX_IMAGE_SIZE) {
+    return { url: null, thumbnailUrl: null, path: null, error: { message: 'File too large. Maximum size: 10MB' } };
+  }
+
   const fileExt = file.name.split('.').pop();
   const filePath = `listings/${listingId}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
 
@@ -18,6 +28,8 @@ export async function uploadListingImage(
       cacheControl: '3600',
       upsert: false,
     });
+
+  if (onProgress) onProgress(100);
 
   if (uploadError) {
     return { url: null, thumbnailUrl: null, path: null, error: { message: uploadError.message } };
@@ -58,17 +70,14 @@ export async function deleteListingImage(imageId: string, storagePath: string) {
     .from(BUCKET_NAME)
     .remove([storagePath]);
 
-  if (storageError) {
-    console.error('[Supabase Storage] Failed to delete file:', storageError.message);
-  }
-
   const { error: dbError } = await supabase
     .from('listing_images')
     .delete()
     .eq('id', imageId);
 
-  if (dbError) {
-    return { error: { message: dbError.message } };
+  const combinedError = storageError?.message || dbError?.message;
+  if (combinedError) {
+    return { error: { message: combinedError } };
   }
 
   return { error: null };
@@ -82,7 +91,7 @@ export async function deleteListingImagesByPath(paths: string[]) {
     .remove(paths);
 
   if (storageError) {
-    console.error('[Supabase Storage] Failed to delete files:', storageError.message);
+    return { error: { message: storageError.message } };
   }
 
   return { error: null };

@@ -95,9 +95,11 @@ export interface Database {
       listing_status: 'active' | 'inactive' | 'sold' | 'expired' | 'draft' | 'pending' | 'rejected'
       verification_status: 'pending' | 'approved' | 'rejected' | 'not_submitted'
       boost_plan_type: 'gold' | 'platinum' | 'diamond'
+      boost_status: 'active' | 'expired' | 'cancelled'
       report_status: 'pending' | 'resolved' | 'dismissed'
       transaction_status: 'pending' | 'completed' | 'failed' | 'refunded'
       transaction_type: 'credit' | 'debit'
+      user_role: 'user' | 'admin' | 'superadmin'
     }
   }
 }
@@ -111,11 +113,13 @@ export interface Profile {
   avatar_url: string | null
   is_verified: boolean
   verification_status: verification_status
+  role: user_role
   created_at: string
   updated_at: string
 }
 
 type verification_status = Database['public']['Enums']['verification_status']
+type user_role = Database['public']['Enums']['user_role']
 
 export interface ProfileInsert {
   id: string
@@ -126,6 +130,7 @@ export interface ProfileInsert {
   avatar_url?: string | null
   is_verified?: boolean
   verification_status?: verification_status
+  role?: user_role
   created_at?: string
   updated_at?: string
 }
@@ -138,6 +143,7 @@ export interface ProfileUpdate {
   avatar_url?: string | null
   is_verified?: boolean
   verification_status?: verification_status
+  role?: user_role
   updated_at?: string
 }
 
@@ -497,6 +503,7 @@ export interface NotificationUpdate {
 }
 
 type boost_plan_type = Database['public']['Enums']['boost_plan_type']
+type boost_status = Database['public']['Enums']['boost_status']
 
 export interface BoostPlan {
   id: string
@@ -553,7 +560,7 @@ export interface BoostedListing {
   user_id: string
   plan_id: string
   boost_type: boost_plan_type
-  status: string
+  status: boost_status
   start_date: string
   end_date: string
   payment_amount: number
@@ -570,7 +577,7 @@ export interface BoostedListingInsert {
   user_id: string
   plan_id: string
   boost_type: boost_plan_type
-  status?: string
+  status?: boost_status
   start_date: string
   end_date: string
   payment_amount: number
@@ -582,7 +589,7 @@ export interface BoostedListingInsert {
 }
 
 export interface BoostedListingUpdate {
-  status?: string
+  status?: boost_status
   payment_status?: string
   auto_renew?: boolean
   updated_at?: string

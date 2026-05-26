@@ -20,11 +20,13 @@ export function getSupabaseClient() {
     return supabaseClient;
   }
 
-  supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+  const isBrowser = typeof window !== 'undefined';
+
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
+      autoRefreshToken: isBrowser,
+      persistSession: isBrowser,
+      detectSessionInUrl: isBrowser,
       storageKey: 'ilist-supabase-auth',
     },
     realtime: {
@@ -49,7 +51,7 @@ export function getServiceRoleClient() {
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error('[Supabase] Missing SUPABASE_SERVICE_ROLE_KEY for admin operations');
   }
-  return createClient(supabaseUrl, serviceRoleKey, {
+  return createClient<Database>(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -17,55 +18,56 @@ const AUTH_ROUTES = [
   '/auth/verify',
 ];
 
+function redirectToLogin(request: NextRequest) {
+  const loginUrl = new URL('/', request.url);
+  loginUrl.searchParams.set('login', 'required');
+  return NextResponse.redirect(loginUrl);
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
+  if (!isProtected && !isAuthRoute) {
+    return NextResponse.next();
+  }
+
   const hasSupabaseConfig = supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://your-project-id.supabase.co';
 
+  let hasSupabaseSession = false;
+
   if (hasSupabaseConfig) {
-    const supabaseAuthCookie = request.cookies.get('ilist-supabase-auth')?.value;
-    const hasSession = !!supabaseAuthCookie;
+    const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+          });
+        },
+      },
+    });
 
-    if (isProtected && !hasSession) {
-      const legacyToken = request.cookies.get('token')?.value;
-      const userAuthStorage = request.cookies.get('user-auth-storage')?.value;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    hasSupabaseSession = !!session;
+  }
 
-      if (!legacyToken && !userAuthStorage) {
-        if (pathname.startsWith('/dashboard')) {
-          const loginUrl = new URL('/', request.url);
-          loginUrl.searchParams.set('login', 'required');
-          return NextResponse.redirect(loginUrl);
-        }
-        if (pathname.startsWith('/post-ad') || pathname.startsWith('/ad/edit') || pathname.startsWith('/promote')) {
-          const loginUrl = new URL('/', request.url);
-          loginUrl.searchParams.set('login', 'required');
-          return NextResponse.redirect(loginUrl);
-        }
-      }
-    }
+  const legacyToken = request.cookies.get('token')?.value;
+  const userAuthStorage = request.cookies.get('user-auth-storage')?.value;
+  const hasLegacySession = !!legacyToken || !!userAuthStorage;
 
-    if (isAuthRoute && hasSession) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-  } else {
-    const legacyToken = request.cookies.get('token')?.value;
-    const userAuthStorage = request.cookies.get('user-auth-storage')?.value;
-    const hasLegacySession = !!legacyToken || !!userAuthStorage;
+  const hasSession = hasSupabaseSession || (hasSupabaseConfig ? false : hasLegacySession);
 
-    if (isProtected && !hasLegacySession) {
-      if (pathname.startsWith('/dashboard') || pathname.startsWith('/post-ad') || pathname.startsWith('/ad/edit') || pathname.startsWith('/promote')) {
-        const loginUrl = new URL('/', request.url);
-        loginUrl.searchParams.set('login', 'required');
-        return NextResponse.redirect(loginUrl);
-      }
-    }
+  if (isProtected && !hasSession) {
+    return redirectToLogin(request);
+  }
 
-    if (isAuthRoute && hasLegacySession) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
+  if (isAuthRoute && hasSession) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();

@@ -9,6 +9,8 @@ type ConversationCallback = (conversation: Conversation) => void;
 type NotificationCallback = (notification: Notification) => void;
 type TypingCallback = (data: { conversation_id: string; user_id: string }) => void;
 
+const typingChannels = new Map<string, RealtimeChannel>();
+
 export function subscribeToConversation(
   conversationId: string,
   callbacks: {
@@ -63,8 +65,17 @@ interface TypingData {
   user_id: string;
 }
 
-export function sendTypingIndicator(conversationId: string, userId: string) {
+function getTypingChannel(conversationId: string): RealtimeChannel {
+  const existing = typingChannels.get(conversationId);
+  if (existing) return existing;
   const channel = supabase.channel(`conversation:${conversationId}`);
+  channel.subscribe();
+  typingChannels.set(conversationId, channel);
+  return channel;
+}
+
+export function sendTypingIndicator(conversationId: string, userId: string) {
+  const channel = getTypingChannel(conversationId);
   channel.send({
     type: 'broadcast',
     event: 'typing',
@@ -73,7 +84,7 @@ export function sendTypingIndicator(conversationId: string, userId: string) {
 }
 
 export function sendStopTypingIndicator(conversationId: string, userId: string) {
-  const channel = supabase.channel(`conversation:${conversationId}`);
+  const channel = getTypingChannel(conversationId);
   channel.send({
     type: 'broadcast',
     event: 'stop_typing',
@@ -193,6 +204,9 @@ export function subscribeToListingUpdates(
 
 export function unsubscribeChannel(channel: RealtimeChannel) {
   supabase.removeChannel(channel);
+  typingChannels.forEach((value, key) => {
+    if (value === channel) typingChannels.delete(key);
+  });
 }
 
 export function subscribeToTableChanges(

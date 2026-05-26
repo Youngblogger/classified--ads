@@ -15,35 +15,48 @@ const MESSAGE_SELECT = `
   sender:profiles(id, full_name, username, avatar_url)
 `;
 
-export async function getConversations(userId: string) {
+export async function getConversations(userId: string, page = 1, perPage = 20) {
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+
   const { data, error } = await supabase
     .from('conversations')
     .select(CONVERSATION_SELECT)
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
     .order('last_message_at', { ascending: false })
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (error) {
     return { conversations: [], error: { message: error.message } };
   }
 
-  const conversationsWithUnread = await Promise.all(
-    (data || []).map(async (conv) => {
-      const { count } = await supabase
-        .from('messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('conversation_id', conv.id)
-        .eq('is_read', false)
-        .neq('sender_id', userId);
+  if (!data || data.length === 0) {
+    return { conversations: [], error: null };
+  }
 
-      return {
-        ...conv,
-        unread_count: count || 0,
-      };
-    })
-  );
+  const convIds = data.map(c => c.id);
 
-  return { conversations: conversationsWithUnread, error: null };
+  const { data: unreadMessages } = await supabase
+    .from('messages')
+    .select('conversation_id')
+    .in('conversation_id', convIds)
+    .eq('is_read', false)
+    .neq('sender_id', userId);
+
+  const unreadMap = new Map<string, number>();
+  if (unreadMessages) {
+    for (const msg of unreadMessages) {
+      unreadMap.set(msg.conversation_id, (unreadMap.get(msg.conversation_id) || 0) + 1);
+    }
+  }
+
+  const conversations = data.map(conv => ({
+    ...conv,
+    unread_count: unreadMap.get(conv.id) || 0,
+  }));
+
+  return { conversations, error: null };
 }
 
 export async function getMessages(conversationId: string, page = 1, perPage = 50) {
@@ -172,26 +185,14 @@ export async function markConversationAsRead(conversationId: string, userId: str
 }
 
 export async function getUnreadMessageCount(userId: string) {
-  const { data, error } = await supabase
-    .from('conversations')
-    .select('id')
-    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
-
-  if (error || !data || data.length === 0) {
-    return { count: 0, error: null };
-  }
-
-  const convIds = data.map(c => c.id);
-
-  const { count, error: countError } = await supabase
+  const { count, error } = await supabase
     .from('messages')
     .select('id', { count: 'exact', head: true })
-    .in('conversation_id', convIds)
-    .eq('is_read', false)
-    .neq('sender_id', userId);
+    .neq('sender_id', userId)
+    .eq('is_read', false);
 
-  if (countError) {
-    return { count: 0, error: { message: countError.message } };
+  if (error) {
+    return { count: 0, error: { message: error.message } };
   }
 
   return { count: count || 0, error: null };

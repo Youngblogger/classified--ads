@@ -5,9 +5,18 @@ import { useAuthStore } from './store';
 import { signInWithEmail, signUpWithEmail, signOut, getCurrentSession, getProfile, createProfile } from './supabase-auth';
 import type { User } from '@/types';
 
+function uuidToNumericId(uuid: string): number {
+  let hash = 5381;
+  for (let i = 0; i < uuid.length; i++) {
+    hash = ((hash << 5) + hash) + uuid.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return Math.abs(hash) || 1;
+}
+
 function mapSupabaseUserToAppUser(sbUser: any, profile?: any): User {
   return {
-    id: parseInt(sbUser.id.replace(/-/g, '').substring(0, 9), 16) || 0,
+    id: uuidToNumericId(sbUser.id),
     name: profile?.full_name || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
     email: sbUser.email || '',
     phone: profile?.phone || '',
@@ -16,7 +25,7 @@ function mapSupabaseUserToAppUser(sbUser: any, profile?: any): User {
     created_at: sbUser.created_at || new Date().toISOString(),
     verified: profile?.is_verified || false,
     email_verified_at: sbUser.email_confirmed_at || null,
-    role: 'user',
+    role: profile?.role || 'user',
     is_verified_seller: profile?.is_verified || false,
   };
 }

@@ -100,69 +100,26 @@ export async function adminUpdateListingStatus(
   return { error: null };
 }
 
-export async function adminGetAnalytics(params?: {
-  startDate?: string;
-  endDate?: string;
-}) {
-  const { data: totalUsers, error: usersErr } = await supabase
-    .from('profiles')
-    .select('id', { count: 'exact', head: true });
+export async function adminGetAnalytics() {
+  const { data, error } = await supabase.rpc('get_admin_analytics');
 
-  const { data: totalListings, error: listingsErr } = await supabase
-    .from('listings')
-    .select('id', { count: 'exact', head: true });
-
-  const { data: activeListings, error: activeErr } = await supabase
-    .from('listings')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'active');
-
-  const { data: pendingListings, error: pendingErr } = await supabase
-    .from('listings')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'pending');
-
-  const { data: totalViews, error: viewsErr } = await supabase
-    .from('listing_views')
-    .select('id', { count: 'exact', head: true });
-
-  const { data: totalFavorites, error: favErr } = await supabase
-    .from('listing_favorites')
-    .select('id', { count: 'exact', head: true });
-
-  const { data: pendingVerifications, error: verErr } = await supabase
-    .from('verification_requests')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'pending');
-
-  const { data: pendingReports, error: repErr } = await supabase
-    .from('reports')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'pending');
-
-  const { data: totalRevenue, error: revErr } = await supabase
-    .from('transactions')
-    .select('amount')
-    .eq('type', 'credit')
-    .eq('status', 'completed');
-
-  if (usersErr || listingsErr) {
-    return { analytics: null, error: { message: 'Failed to load analytics' } };
+  if (error || !data) {
+    return { analytics: null, error: { message: error?.message || 'Failed to load analytics' } };
   }
 
-  const totalRevenueAmount = ((totalRevenue as any[]) || []).reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+  const result = data as any;
 
   return {
     analytics: {
-      total_users: (totalUsers as any)?.count || 0,
-      total_listings: (totalListings as any)?.count || 0,
-      active_listings: (activeListings as any)?.count || 0,
-      pending_listings: (pendingListings as any)?.count || 0,
-      total_views: (totalViews as any)?.count || 0,
-      total_favorites: (totalFavorites as any)?.count || 0,
-      pending_verifications: (pendingVerifications as any)?.count || 0,
-      pending_reports: (pendingReports as any)?.count || 0,
-      total_revenue: totalRevenueAmount,
+      total_users: Number(result.total_users) || 0,
+      total_listings: Number(result.total_listings) || 0,
+      active_listings: Number(result.active_listings) || 0,
+      pending_listings: Number(result.pending_listings) || 0,
+      total_views: Number(result.total_views) || 0,
+      total_favorites: Number(result.total_favorites) || 0,
+      pending_verifications: Number(result.pending_verifications) || 0,
+      pending_reports: Number(result.pending_reports) || 0,
+      total_revenue: Number(result.total_revenue) || 0,
     },
     error: null,
   };

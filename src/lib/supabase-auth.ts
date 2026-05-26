@@ -147,12 +147,22 @@ export async function createProfile(profile: {
   return { profile: data as Profile, error: null };
 }
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 export async function uploadAvatar(userId: string, file: File) {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { url: null, error: { message: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' } };
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    return { url: null, error: { message: 'File too large. Maximum size: 5MB' } };
+  }
+
   const fileExt = file.name.split('.').pop();
-  const filePath = `avatars/${userId}/${Date.now()}.${fileExt}`;
+  const filePath = `avatars/${userId}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
 
   const { error: uploadError } = await supabase.storage
-    .from('listing-images')
+    .from('avatars')
     .upload(filePath, file);
 
   if (uploadError) {
@@ -160,7 +170,7 @@ export async function uploadAvatar(userId: string, file: File) {
   }
 
   const { data } = supabase.storage
-    .from('listing-images')
+    .from('avatars')
     .getPublicUrl(filePath);
 
   const { error: updateError } = await supabase
@@ -175,10 +185,18 @@ export async function uploadAvatar(userId: string, file: File) {
   return { url: data.publicUrl, error: null };
 }
 
-export async function sendVerificationEmail() {
+export async function sendVerificationEmail(email?: string) {
+  if (!email) {
+    const { user } = await getCurrentUser();
+    if (!user?.email) {
+      return { data: null, error: { message: 'No email available to send verification' } };
+    }
+    email = user.email;
+  }
+
   const { data, error } = await supabase.auth.resend({
     type: 'signup',
-    email: '',
+    email,
   });
 
   if (error) {
