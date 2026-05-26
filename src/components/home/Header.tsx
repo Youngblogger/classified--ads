@@ -1209,7 +1209,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
               {variant === 'home' && (
               <Link
                 href="/post-ad"
-                className="hidden md:flex items-center md:px-4 lg:px-6 md:py-2 lg:py-2.5 mr-2 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-[7px] font-bold md:text-sm lg:text-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border-2 border-accent-400"
+                className="hidden md:flex items-center px-4 py-2 ml-1 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-lg font-semibold text-sm transition-all duration-200 border-2 border-accent-400/50"
               >
                 SELL
               </Link>
