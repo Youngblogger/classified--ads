@@ -375,3 +375,83 @@ export const TIER_INFO = {
     ],
   },
 } as const;
+
+export interface PackageDefinition {
+  type: 'silver' | 'gold' | 'platinum';
+  name: string;
+  displayName: string;
+  description: string;
+  price: number;
+  durationDays: number;
+  priorityScore: number;
+  badgeLabel: string;
+  features: string[];
+  iconName: string;
+  recommendedLabel: string;
+}
+
+export const BOOST_PACKAGES: PackageDefinition[] = [
+  {
+    type: 'silver',
+    name: 'Gold Boost',
+    displayName: 'Gold Boost',
+    description: 'Priority placement & increased visibility',
+    price: 2000,
+    durationDays: 3,
+    priorityScore: 1000,
+    badgeLabel: 'Gold',
+    features: [
+      'Appears above normal listings',
+      'Highlighted ad card',
+      'Better search ranking',
+      'Gold badge',
+      'Increased impressions',
+    ],
+    iconName: 'Zap',
+    recommendedLabel: 'Best Match',
+  },
+  {
+    type: 'gold',
+    name: 'Platinum Boost',
+    displayName: 'Platinum Boost',
+    description: 'Higher search ranking & featured badge',
+    price: 5000,
+    durationDays: 7,
+    priorityScore: 2000,
+    badgeLabel: 'Platinum',
+    features: [
+      'Homepage exposure',
+      'Priority category placement',
+      'Higher search visibility',
+      'Platinum badge',
+      'More impressions than Gold',
+    ],
+    iconName: 'Crown',
+    recommendedLabel: 'Most Popular',
+  },
+  {
+    type: 'platinum',
+    name: 'Diamond VIP',
+    displayName: 'Diamond VIP',
+    description: 'Maximum visibility & top ranking placement',
+    price: 10000,
+    durationDays: 14,
+    priorityScore: 3000,
+    badgeLabel: 'Diamond',
+    features: [
+      'Top homepage placement',
+      'Always pinned above lower tiers',
+      'Highest search priority',
+      'Diamond animated badge',
+      'Priority in recommended ads',
+      'Increased click visibility',
+      'Extra premium styling',
+    ],
+    iconName: 'Diamond',
+    recommendedLabel: 'Best Value',
+  },
+];
+
+export function getDefaultPackage(type: string): PackageDefinition | undefined {
+  return BOOST_PACKAGES.find(p => p.type === type);
+}

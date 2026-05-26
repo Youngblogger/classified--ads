@@ -6,7 +6,7 @@ import { Eye, MousePointerClick, MessageCircle, Heart, Clock, Zap, ChevronRight,
 import { getBoostConfig, getBoostPrice } from '@/lib/boost-config';
 import { getAdImageUrl } from '@/lib/utils';
 import Image from 'next/image';
-import BoostPlansModal from '@/components/ui/BoostPlansModal';
+import BoostAdModal from '@/components/ui/BoostAdModal';
 
 interface AdImage {
   id?: number;
@@ -175,7 +175,7 @@ export default function ActiveBoostList({ items, onRenew }: ActiveBoostListProps
       </div>
 
       {extendModal && (
-        <BoostPlansModal
+        <BoostAdModal
           adId={extendModal.adId}
           adTitle={extendModal.adTitle}
           isOpen={extendModal.show}

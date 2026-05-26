@@ -9,7 +9,7 @@ import { getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import BoostPlansModal from '@/components/ui/BoostPlansModal';
+import BoostAdModal from '@/components/ui/BoostAdModal';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
 import { Clock, ShieldCheck } from 'lucide-react';
@@ -825,7 +825,7 @@ export default function MyAdsPage() {
         </div>
       )}
 
-      <BoostPlansModal
+      <BoostAdModal
         adId={boostModal.adId ?? 0}
         adTitle={boostModal.adTitle ?? ''}
         isOpen={boostModal.show}

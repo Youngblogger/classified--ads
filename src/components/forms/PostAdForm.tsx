@@ -23,7 +23,7 @@ import { hashFile } from '@/lib/imageHasher';
 import { createUploadQueue } from '@/lib/uploadEngine';
 import { UploadingImage } from '@/types';
 import ImageUploadCard from '@/components/ui/ImageUploadCard';
-import PostSubmissionModal from '@/components/boost/PostSubmissionModal';
+import BoostAdModal from '@/components/ui/BoostAdModal';
 
 interface StructuredCategory {
   category: string;
@@ -1622,7 +1622,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       />
 
       {/* Post-Submission Boost Modal */}
-      <PostSubmissionModal
+      <BoostAdModal
         isOpen={showPostModal}
         onClose={() => setShowPostModal(false)}
         adId={postedAdId || 0}
@@ -1632,6 +1632,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         adPrice={price}
         adLocation={locationBreadcrumb || undefined}
         adCategory={categoryBreadcrumb || undefined}
+        showInitialStep={true}
       />
     </div>
   );
