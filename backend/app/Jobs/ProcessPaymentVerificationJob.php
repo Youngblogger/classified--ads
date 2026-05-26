@@ -35,7 +35,7 @@ class ProcessPaymentVerificationJob implements ShouldQueue
 
         try {
             $reference = $intent->reference;
-            $secretKey = env('PAYSTACK_SECRET_KEY');
+            $secretKey = config('services.paystack.secret_key');
 
             $response = Http::withToken($secretKey)
                 ->get("https://api.paystack.co/transaction/verify/{$reference}");

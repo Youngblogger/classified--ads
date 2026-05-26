@@ -696,7 +696,7 @@ class AdController extends Controller
 
     private function uploadAdImages(Request $request, Ad $ad, $user): void
     {
-        $useCloudinary = !empty(env('CLOUDINARY_URL'));
+        $useCloudinary = !empty(config('services.cloudinary.url'));
         $imageService = app(ImageProcessingService::class);
 
         foreach ($request->file('images') as $index => $image) {

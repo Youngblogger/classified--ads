@@ -104,7 +104,7 @@ class WalletController extends Controller
 
             // Create pending transaction with expiry
             $expiresAt = now()->addMinutes(
-                (int) env('PENDING_PAYMENT_EXPIRY_MINUTES', 15)
+                (int) config('app.pending_payment_expiry_minutes', 15)
             );
             Transaction::create([
                 'user_id' => $user->id,

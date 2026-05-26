@@ -17,12 +17,12 @@ class PendingPaymentExpiryService
 
     protected function getApiKey(): string
     {
-        return config('services.paystack.secret_key') ?? env('PAYSTACK_SECRET_KEY');
+        return config('services.paystack.secret_key');
     }
 
     public function getExpiryMinutes(): int
     {
-        return (int) env('PENDING_PAYMENT_EXPIRY_MINUTES', self::EXPIRY_MINUTES);
+        return (int) config('app.pending_payment_expiry_minutes', self::EXPIRY_MINUTES);
     }
 
     public function getExpiresAt(\Carbon\Carbon $createdAt = null): \Carbon\Carbon

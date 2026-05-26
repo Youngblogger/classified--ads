@@ -15,10 +15,10 @@ class CdnService
 
     public function __construct()
     {
-        $this->provider = env('CDN_PROVIDER', 'cloudflare');
-        $this->distributionId = env('CDN_DISTRIBUTION_ID');
-        $this->apiKey = env('CDN_API_KEY');
-        $this->email = env('CDN_EMAIL');
+        $this->provider = config('app.cdn_provider', 'cloudflare');
+        $this->distributionId = config('app.cdn_distribution_id');
+        $this->apiKey = config('app.cdn_api_key');
+        $this->email = config('app.cdn_email');
     }
 
     public function invalidateAdCache(int $adId, ?string $categorySlug = null): void
@@ -134,7 +134,7 @@ class CdnService
     {
         if (!$this->apiKey || !$this->email) return;
 
-        $zoneId = env('CDN_ZONE_ID');
+        $zoneId = config('app.cdn_zone_id');
         if (!$zoneId) return;
 
         $chunks = array_chunk($paths, 30);
@@ -169,7 +169,7 @@ class CdnService
 
     private function purgeFastly(array $paths): void
     {
-        $serviceId = env('FASTLY_SERVICE_ID');
+        $serviceId = config('app.fastly_service_id');
         if (!$serviceId) return;
 
         Http::withToken($this->apiKey)->purge("https://api.fastly.com/service/{$serviceId}/purge");

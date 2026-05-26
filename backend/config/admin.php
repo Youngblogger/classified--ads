@@ -44,7 +44,7 @@ return [
     | If empty, all IPs are allowed.
     |
     */
-    'allowed_ips' => array_filter(explode(',', env('ADMIN_ALLOWED_IPS', ''))),
+    'allowed_ips' => array_filter(explode(',', env('ADMIN_ALLOWED_IPS', '127.0.0.1,::1'))),
 
     /*
     |--------------------------------------------------------------------------

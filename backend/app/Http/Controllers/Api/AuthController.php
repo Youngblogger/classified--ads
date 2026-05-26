@@ -338,7 +338,7 @@ class AuthController extends Controller
     {
         $googleClientId = config('services.google.client_id');
         $googleClientSecret = config('services.google.client_secret');
-        $appUrl = env('FRONTEND_URL', 'http://localhost:3000');
+        $appUrl = config('app.frontend_url');
 
         if (!$googleClientId) {
             return response()->json(['message' => 'Google OAuth not configured'], 500);
@@ -522,7 +522,7 @@ class AuthController extends Controller
     {
         $facebookClientId = config('services.facebook.client_id');
         $facebookClientSecret = config('services.facebook.client_secret');
-        $appUrl = env('FRONTEND_URL', 'http://localhost:3000');
+        $appUrl = config('app.frontend_url');
 
         if (!$facebookClientId) {
             return response()->json(['message' => 'Facebook OAuth not configured'], 500);

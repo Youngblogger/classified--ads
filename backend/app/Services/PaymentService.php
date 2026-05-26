@@ -23,20 +23,18 @@ class PaymentService
 
     protected function getApiKey(): string
     {
-        return config('services.paystack.secret_key') ?? env('PAYSTACK_SECRET_KEY');
+        return config('services.paystack.secret_key');
     }
 
     protected function getPublicKey(): string
     {
-        return config('services.paystack.public_key') ?? env('PAYSTACK_PUBLIC_KEY');
+        return config('services.paystack.public_key');
     }
 
     protected function getWebhookSecret(): string
     {
         return config('services.paystack.webhook_secret')
-            ?? config('services.paystack.secret_key')
-            ?? env('PAYSTACK_WEBHOOK_SECRET')
-            ?? env('PAYSTACK_SECRET_KEY');
+            ?? config('services.paystack.secret_key');
     }
 
     public function initializePayment(array $data): array
@@ -70,7 +68,7 @@ class PaymentService
                 'status' => 'pending',
                 'gateway' => self::GATEWAY,
                 'metadata' => $metadata,
-                'expires_at' => now()->addMinutes((int) env('PENDING_PAYMENT_EXPIRY_MINUTES', 15)),
+                'expires_at' => now()->addMinutes((int) config('app.pending_payment_expiry_minutes', 15)),
             ]);
 
             $response = Http::withToken($this->getApiKey())

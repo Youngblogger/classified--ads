@@ -29,7 +29,7 @@ class NotificationService
 
     protected static function emitToSocket($userId, $notification)
     {
-        $socketUrl = env('SOCKET_URL', 'http://localhost:3001');
+        $socketUrl = config('app.socket_url', 'http://localhost:3001');
         
         try {
             Http::timeout(2)->post("{$socketUrl}/emit-notification", [

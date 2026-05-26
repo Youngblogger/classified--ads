@@ -122,6 +122,22 @@ return [
 
     'temp_upload_lifetime_hours' => env('TEMP_UPLOAD_LIFETIME_HOURS', 24),
 
+    'socket_url' => env('SOCKET_URL', 'http://localhost:3006'),
+
+    'pending_payment_expiry_minutes' => env('PENDING_PAYMENT_EXPIRY_MINUTES', 15),
+
+    'cdn_provider' => env('CDN_PROVIDER', 'cloudflare'),
+
+    'cdn_distribution_id' => env('CDN_DISTRIBUTION_ID'),
+
+    'cdn_api_key' => env('CDN_API_KEY'),
+
+    'cdn_email' => env('CDN_EMAIL'),
+
+    'cdn_zone_id' => env('CDN_ZONE_ID'),
+
+    'fastly_service_id' => env('FASTLY_SERVICE_ID'),
+
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),

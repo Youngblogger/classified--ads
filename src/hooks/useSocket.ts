@@ -104,7 +104,6 @@ export function useSocket({
     if (registeredEvents.current.has('connect')) return;
 
     socket.on('connect', () => {
-      console.log(`[Socket] Connected: ${socket.id}`);
       setIsConnected(true);
       setSocketError(null);
       setReconnecting(false);
@@ -115,7 +114,6 @@ export function useSocket({
     });
 
     socket.on('disconnect', (reason) => {
-      console.log(`[Socket] Disconnected: ${reason}`);
       setIsConnected(false);
       if (reason === 'io server disconnect' || reason === 'transport close') {
         setSocketError('Disconnected from server');
@@ -129,13 +127,11 @@ export function useSocket({
     });
 
     socket.on('reconnect_attempt', (attempt) => {
-      console.log(`[Socket] Reconnect attempt ${attempt}`);
       setReconnecting(true);
       setReconnectAttempt(attempt);
     });
 
     socket.on('reconnect', (attempt) => {
-      console.log(`[Socket] Reconnected after ${attempt} attempts`);
       setReconnecting(false);
       setReconnectAttempt(0);
       setSocketError(null);

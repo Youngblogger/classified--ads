@@ -233,7 +233,7 @@ class AntiAbuseService
     {
         $whitelist = Cache::get(self::CACHE_PREFIX . 'ip_whitelist', []);
         if (empty($whitelist)) {
-            $whitelist = explode(',', env('ADMIN_ALLOWED_IPS', '127.0.0.1,::1'));
+            $whitelist = config('admin.allowed_ips', ['127.0.0.1', '::1']);
             Cache::put(self::CACHE_PREFIX . 'ip_whitelist', $whitelist, 86400);
         }
         return $whitelist;
