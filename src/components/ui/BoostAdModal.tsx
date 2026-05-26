@@ -14,6 +14,8 @@ import { growthApi, walletApi } from '@/lib/api';
 import { getAuthToken } from '@/lib/cookies';
 import { recommendBoostPlan, BOOST_IMPACT, BOOST_PACKAGES, type PackageDefinition } from '@/lib/boost-config';
 import { trackBoostEvent } from '@/lib/analytics';
+import { useWalletBalance, useInvalidateWallet, WALLET_QUERY_KEY } from '@/hooks/useWallet';
+import { getQueryClient } from '@/lib/query-client';
 import toast from 'react-hot-toast';
 
 type ModalStep = 'initial' | 'packages' | 'payment_method' | 'processing' | 'success' | 'error';
@@ -132,8 +134,9 @@ export default function BoostAdModal({
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [walletLoading, setWalletLoading] = useState(false);
+  const invalidateWallet = useInvalidateWallet();
+  const { data: walletData, isLoading: walletLoading } = useWalletBalance();
+  const walletBalance = walletData?.availableBalance ?? null;
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'wallet' | 'paystack' | null>(null);
   const [boostStatus, setBoostStatus] = useState<{ has_active_boost: boolean; active_boost?: any; can_renew: boolean; renewal_info?: any } | null>(null);
   const [boostResult, setBoostResult] = useState<{
@@ -172,8 +175,7 @@ export default function BoostAdModal({
     setError(null);
     setBoostResult(null);
     setBoostStatus(null);
-    setWalletBalance(null);
-    setWalletLoading(false);
+    invalidateWallet();
     packageTrackedRef.current = false;
     prevStepRef.current = null;
 
@@ -194,19 +196,12 @@ export default function BoostAdModal({
     }
   }, [step, isOpen, adId]);
 
-  // Fetch wallet balance when entering payment_method step
+  // Revalidate wallet balance when entering payment_method step
   useEffect(() => {
-    if (step === 'payment_method' && walletBalance === null && !walletLoading) {
-      setWalletLoading(true);
-      walletApi.getBalance()
-        .then(res => {
-          const bal = res.data?.available_balance ?? res.data?.data?.available_balance ?? res.data?.balance ?? res.data?.data?.balance ?? null;
-          setWalletBalance(bal !== null && bal !== undefined ? Number(bal) : null);
-        })
-        .catch(() => setWalletBalance(null))
-        .finally(() => setWalletLoading(false));
+    if (step === 'payment_method') {
+      invalidateWallet();
     }
-  }, [step, walletBalance, walletLoading]);
+  }, [step, invalidateWallet]);
 
   // Check for pending payment verification on mount
   useEffect(() => {
@@ -392,6 +387,15 @@ export default function BoostAdModal({
     const paymentMethod = selectedPaymentMethod;
 
     if (paymentMethod === 'wallet') {
+      // Revalidate balance from backend before confirming
+      const freshData = await getQueryClient().fetchQuery({ queryKey: WALLET_QUERY_KEY, queryFn: async () => { const res = await walletApi.getBalance(); return { balance: Number(res.data?.balance ?? 0), availableBalance: Number(res.data?.available_balance ?? res.data?.balance ?? 0), pendingBalance: Number(res.data?.pending_balance ?? 0) }; } });
+      if (freshData.availableBalance < selectedPkg.price) {
+        setError('Insufficient wallet balance. Please fund your wallet or choose another payment method.');
+        setStep('error');
+        setLoading(false);
+        trackBoostEvent('wallet_insufficient_on_confirm', { ad_id: adId, package_type: selectedPackage, available: freshData.availableBalance, required: selectedPkg.price });
+        return;
+      }
       trackBoostEvent('wallet_payment_started', { ad_id: adId, package_type: selectedPackage, package_price: selectedPkg.price });
     } else {
       trackBoostEvent('paystack_payment_started', { ad_id: adId, package_type: selectedPackage, package_price: selectedPkg.price });
@@ -419,6 +423,7 @@ export default function BoostAdModal({
       const responseData = data.data || data;
 
       if (paymentMethod === 'wallet' && (responseData?.boost_id || res.ok)) {
+        invalidateWallet();
         setBoostResult({
           packageName: selectedPkg.displayName,
           startDate: new Date().toISOString(),

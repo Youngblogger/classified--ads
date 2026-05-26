@@ -17,7 +17,9 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { promotionsApi } from '@/lib/api';
+import { promotionsApi, walletApi } from '@/lib/api';
+import { useInvalidateWallet, WALLET_QUERY_KEY } from '@/hooks/useWallet';
+import { getQueryClient } from '@/lib/query-client';
 import toast from 'react-hot-toast';
 
 export type PaymentMethod = 'card' | 'bank' | 'ussd' | 'wallet';
@@ -190,6 +192,7 @@ export default function PaymentMethods({
           paymentData: response.data,
         });
         
+        invalidateWallet();
         if (response.data.authorization_url) {
           window.location.href = response.data.authorization_url;
         } else if (response.data.payment?.reference) {
@@ -264,6 +267,16 @@ export default function PaymentMethods({
   const handleWalletPayment = async () => {
     if (!adId || !planId) return;
 
+    // Revalidate balance from backend before confirming
+    const freshData = await getQueryClient().fetchQuery({
+      queryKey: WALLET_QUERY_KEY,
+      queryFn: async () => { const res = await walletApi.getBalance(); return { balance: Number(res.data?.balance ?? 0), availableBalance: Number(res.data?.available_balance ?? res.data?.balance ?? 0), pendingBalance: Number(res.data?.pending_balance ?? 0) }; },
+    });
+    if (freshData.availableBalance < planPrice) {
+      toast.error('Insufficient wallet balance. Please fund your wallet and try again.');
+      return;
+    }
+
     setPaymentState({ processing: true, error: null, status: 'processing', paymentData: null });
 
     try {
@@ -280,10 +293,9 @@ export default function PaymentMethods({
           status: 'completed',
           paymentData: response.data,
         });
+        invalidateWallet();
         onPaymentSuccess?.();
         toast.success('Payment successful! Your ad is now promoted.');
-      } else {
-        throw new Error(response.data.message || 'Wallet payment failed');
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Failed to process wallet payment';
@@ -297,6 +309,7 @@ export default function PaymentMethods({
       try {
         const res = await promotionsApi.verifyPayment(reference);
         if (res.data.success) {
+          invalidateWallet();
           setPaymentState({
             processing: false,
             error: null,
@@ -315,6 +328,8 @@ export default function PaymentMethods({
     setTimeout(() => clearInterval(interval), 120000);
   }, [onPaymentSuccess]);
 
+  const invalidateWallet = useInvalidateWallet();
+
   const checkBankPayment = useCallback(async () => {
     if (!paymentState.paymentData?.payment?.reference) return;
     
@@ -322,6 +337,7 @@ export default function PaymentMethods({
     try {
       const res = await promotionsApi.verifyPayment(paymentState.paymentData.payment.reference);
       if (res.data.success) {
+        invalidateWallet();
         setPaymentState({
           processing: false,
           error: null,
@@ -338,7 +354,7 @@ export default function PaymentMethods({
     } finally {
       setCheckingPayment(false);
     }
-  }, [paymentState.paymentData, onPaymentSuccess]);
+  }, [paymentState.paymentData, onPaymentSuccess, invalidateWallet]);
 
   const checkUssdPayment = useCallback(async () => {
     if (!paymentState.paymentData?.payment?.reference) return;
@@ -347,6 +363,7 @@ export default function PaymentMethods({
     try {
       const res = await promotionsApi.verifyPayment(paymentState.paymentData.payment.reference);
       if (res.data.success) {
+        invalidateWallet();
         setPaymentState({
           processing: false,
           error: null,
@@ -363,7 +380,7 @@ export default function PaymentMethods({
     } finally {
       setCheckingPayment(false);
     }
-  }, [paymentState.paymentData, onPaymentSuccess]);
+  }, [paymentState.paymentData, onPaymentSuccess, invalidateWallet]);
 
   useEffect(() => {
     if (selectedMethod === 'bank' && !paymentState.paymentData) {

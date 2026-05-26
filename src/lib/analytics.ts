@@ -13,7 +13,8 @@ export type BoostEvent =
   | 'paystack_payment_success'
   | 'paystack_payment_failed'
   | 'boost_activated'
-  | 'boost_skipped';
+  | 'boost_skipped'
+  | 'wallet_insufficient_on_confirm';
 
 interface AnalyticsPayload {
   name: BoostEvent;
@@ -24,6 +25,8 @@ interface AnalyticsPayload {
   duration_days?: number;
   error?: string;
   payment_method?: string;
+  available?: number;
+  required?: number;
   timestamp: number;
 }
 

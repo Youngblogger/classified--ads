@@ -105,7 +105,7 @@ export default function WalletPage() {
     }
   }, [fetchWallet]);
 
-  const balance = parseFloat(wallet?.balance || '0');
+  const balance = parseFloat(wallet?.balance || '0') - parseFloat(wallet?.pending_balance || '0');
   const totalTransactions = transactions.length;
 
   return (

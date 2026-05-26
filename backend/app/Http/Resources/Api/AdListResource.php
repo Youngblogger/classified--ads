@@ -19,6 +19,7 @@ class AdListResource extends JsonResource
             'price' => (float) $this->price,
             'currency' => $this->currency ?? 'NGN',
             'condition' => $this->condition,
+            'negotiable' => (bool) $this->negotiable,
             'short_description' => $this->short_description,
             'state' => $this->state,
             'lga' => $this->lga,

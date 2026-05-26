@@ -489,7 +489,12 @@ export default function AdDetailPage() {
               <div className="bg-white rounded-2xl shadow-sm px-4 sm:px-6 pt-1 pb-3 -mt-2 space-y-[2px]">
                 {/* Price */}
                 <div className="flex flex-row justify-between items-center gap-2 sm:gap-4">
-                  <span className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
+                    {ad.negotiable && (
+                      <span className="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full whitespace-nowrap">Negotiable</span>
+                    )}
+                  </div>
 
                   {/* Mobile buttons - on the right side on mobile, hidden on desktop */}
                   <div className="flex sm:hidden items-center gap-1">

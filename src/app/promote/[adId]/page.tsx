@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, XCircle } from 'lucide-react';
 import Image from 'next/image';
-import { adsApi, walletApi } from '@/lib/api';
+import { adsApi } from '@/lib/api';
 import { useAuthStore, useUIStore } from '@/lib/store';
+import { useWalletBalance } from '@/hooks/useWallet';
 import toast from 'react-hot-toast';
 import PromotionPackages from '@/components/promotion/PromotionPackages';
 import PaymentMethods from '@/components/promotion/PaymentMethods';
@@ -46,7 +47,8 @@ export default function PromoteAdPage() {
   const [ad, setAd] = useState<AdData | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
-  const [walletBalance, setWalletBalance] = useState(0);
+  const { data: walletData } = useWalletBalance();
+  const walletBalance = walletData?.availableBalance ?? 0;
   
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -69,15 +71,6 @@ export default function PromoteAdPage() {
     }
   }, [adId]);
 
-  const fetchWalletBalance = useCallback(async () => {
-    try {
-      const res = await walletApi.getBalance();
-      setWalletBalance(parseFloat(res.data.balance) || 0);
-    } catch (err) {
-      console.error('Failed to fetch wallet:', err);
-    }
-  }, []);
-
   useEffect(() => {
     if (!isAuthenticated) {
       localStorage.setItem('authRedirect', '/promote/' + adId);
@@ -86,8 +79,7 @@ export default function PromoteAdPage() {
       return;
     }
     fetchAd();
-    fetchWalletBalance();
-  }, [adId, isAuthenticated, router, fetchAd, fetchWalletBalance]);
+  }, [adId, isAuthenticated, router, fetchAd]);
 
   const handleSelectPlan = (plan: Plan) => {
     setSelectedPlan(plan);
