@@ -303,7 +303,7 @@ export default function HomePage() {
               </div>
             ) : recentAds.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-1.5 sm:gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-1.5 sm:gap-2">
                   {buildUnifiedFeed(recentAds).map((ad: any) => (
                     <AdCard key={`ad-${ad.id}`} ad={ad} />
                   ))}
