@@ -28,7 +28,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const resetLocation = useCallback(() => {
     const globalStore = useGlobalStore.getState();
     if (globalStore.selectedLocation) {
-      console.log('Resetting location to default due to inactivity');
       globalStore.setSelectedLocation(null);
     }
   }, []);
@@ -142,7 +141,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       if (!isAuthenticated) {
         const { selectedLocation, setSelectedLocation } = useGlobalStore.getState();
         if (selectedLocation) {
-          console.log('[Auth] Logged-out user detected, resetting location to All Nigeria');
           setSelectedLocation(null);
         }
       }

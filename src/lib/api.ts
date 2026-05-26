@@ -375,14 +375,7 @@ export const adsApi = {
   getRecent: (limit?: number) => api.get('/ads/recent', { params: { limit } }),
   getSimilar: (adId: number, limit?: number) => api.get(`/ads/${adId}/similar`, { params: { limit } }),
   create: (data: FormData) => api.upload('/ads', data),
-  update: (id: number, data: FormData) => {
-    const token = getAuthToken() || getCookie('token');
-    return api.post(`/ads/${id}`, data, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-  },
+  update: (id: number, data: FormData) => api.upload(`/ads/${id}`, data),
   delete: (slug: string) => api.delete(`/ads/${slug}`),
   deleteById: (id: number) => api.delete(`/ads/${id}`),
   incrementViews: (id: number) => api.post(`/ads/${id}/views`),
@@ -754,10 +747,10 @@ export const paymentApi = {
 
 // Admin Bank Transfers API
 export const adminBankTransfersApi = {
-  getTransfers: (status?: string) => api.get('/admin/bank-transfers', { params: { status } }),
-  getStats: () => api.get('/admin/bank-transfers/stats'),
-  approve: (id: number) => api.post(`/admin/bank-transfers/${id}/approve`),
-  reject: (id: number, note?: string) => api.post(`/admin/bank-transfers/${id}/reject`, { note }),
+  getTransfers: (status?: string) => adminApiClient.get(`${STEALTH_PREFIX}/bank-transfers`, { params: { status } }),
+  getStats: () => adminApiClient.get(`${STEALTH_PREFIX}/bank-transfers/stats`),
+  approve: (id: number) => adminApiClient.post(`${STEALTH_PREFIX}/bank-transfers/${id}/approve`),
+  reject: (id: number, note?: string) => adminApiClient.post(`${STEALTH_PREFIX}/bank-transfers/${id}/reject`, { note }),
 };
 
 // ========================

@@ -294,8 +294,6 @@ export default function LocationModal() {
   }, [selectAndClose]);
 
   const handleDetectLocation = useCallback(async () => {
-    console.log('[GPS] Starting precise location detection...');
-
     if (!navigator.geolocation) {
       setGpsState('error');
       setDetectedAddress('Geolocation is not supported by your browser');
@@ -332,12 +330,9 @@ export default function LocationModal() {
         clearTimeout(gpsFallbackTimerRef.current);
         gpsFallbackTimerRef.current = null;
       }
-      console.log(`[GPS] Processing: lat=${lat}, lng=${lng}`);
-
       try {
         const geo = await reverseGeocode(lat, lng);
         if (geo) {
-          console.log('[GEO] Reverse geocode result:', geo);
           const matched = matchToLocation(geo);
           const address = geo.formattedAddress;
 
@@ -395,12 +390,9 @@ export default function LocationModal() {
         if (accuracy < bestAccuracy) {
           bestAccuracy = accuracy;
           bestCoords = { latitude, longitude };
-          console.log(`[GPS] Better fix: ${latitude},${longitude} (accuracy: ${accuracy}m)`);
         }
 
-        // Good enough accuracy — process immediately
         if (accuracy < 100) {
-          console.log(`[GPS] Good accuracy (${accuracy}m), processing...`);
           processCoords(latitude, longitude);
         }
       },
@@ -412,11 +404,8 @@ export default function LocationModal() {
     gpsFallbackTimerRef.current = setTimeout(() => {
       if (resolved) return;
       if (bestCoords) {
-        console.log(`[GPS] Fallback timer — using best fix (accuracy: ${bestAccuracy}m)`);
         processCoords(bestCoords.latitude, bestCoords.longitude);
       } else {
-        // No fix at all — try a single lower-accuracy attempt
-        console.log('[GPS] No fix from watchPosition, trying single low-accuracy request...');
         if (gpsWatchIdRef.current !== null) {
           navigator.geolocation.clearWatch(gpsWatchIdRef.current);
           gpsWatchIdRef.current = null;
