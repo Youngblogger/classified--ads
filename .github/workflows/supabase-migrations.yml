@@ -1,0 +1,387 @@
+name: Supabase Autonomous Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/seed.sql'
+      - 'supabase/verify_deployment.sql'
+      - '.github/workflows/supabase-migrations.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+# CRITICAL: Prevent concurrent migration runs (migration lock)
+concurrency:
+  group: supabase-migrations
+  cancel-in-progress: false
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  STAGING_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_REF }}
+  PRODUCTION_PROJECT_REF: ${{ secrets.PRODUCTION_SUPABASE_PROJECT_REF }}
+
+jobs:
+  # ==========================================
+  # STAGE 1: VALIDATION (BLOCKING)
+  # ==========================================
+  validate:
+    name: '🧪 Validate Migrations'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      has_migrations: ${{ steps.check_migrations.outputs.has_migrations }}
+      latest_migration: ${{ steps.get_latest_migration.outputs.latest_migration }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for migration changes
+        id: check_migrations
+        run: |
+          if [ -n "$(git diff --name-only HEAD~1 -- supabase/migrations/ 2>/dev/null)" ] || \
+             [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "has_migrations=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_migrations=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get latest migration filename
+        id: get_latest_migration
+        if: steps.check_migrations.outputs.has_migrations == 'true'
+        run: |
+          LATEST=$(ls -1 supabase/migrations/*.sql 2>/dev/null | sort | tail -1)
+          echo "latest_migration=$(basename "$LATEST")" >> "$GITHUB_OUTPUT"
+          echo "Detected latest migration: $(basename "$LATEST")"
+
+      - name: Setup Supabase CLI
+        if: steps.check_migrations.outputs.has_migrations == 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # ----- VALIDATION 1: SQL Syntax -----
+      - name: '🔍 Validate SQL syntax'
+        if: steps.check_migrations.outputs.has_migrations == 'true'
+        run: |
+          for f in supabase/migrations/*.sql; do
+            echo "Validating: $f"
+            supabase db lint --file "$f" || {
+              echo "❌ SQL syntax error in: $f"
+              exit 1
+            }
+          done
+          echo "✅ All SQL files pass syntax validation"
+
+      # ----- VALIDATION 2: Naming convention -----
+      - name: '🔍 Validate migration filenames'
+        if: steps.check_migrations.outputs.has_migrations == 'true'
+        run: |
+          ERROR=false
+          for f in supabase/migrations/*.sql; do
+            BASENAME=$(basename "$f")
+            echo "$BASENAME" | grep -E '^\d{14}_.+\.sql$' || {
+              echo "❌ INVALID FILENAME: $BASENAME"
+              echo "   Must match: YYYYMMDDHHMMSS_description.sql"
+              ERROR=true
+            }
+          done
+          if [ "$ERROR" = true ]; then exit 1; fi
+          echo "✅ All migration filenames valid"
+
+      # ----- VALIDATION 3: No duplicate timestamps -----
+      - name: '🔍 Check for duplicate migration timestamps'
+        if: steps.check_migrations.outputs.has_migrations == 'true'
+        run: |
+          for f in supabase/migrations/*.sql; do
+            TS=$(basename "$f" | cut -c1-14)
+            COUNT=$(ls supabase/migrations/ | grep -c "^${TS}")
+            if [ "$COUNT" -gt 1 ]; then
+              echo "❌ DUPLICATE TIMESTAMP: $TS appears $COUNT times"
+              ls supabase/migrations/ | grep "^${TS}"
+              exit 1
+            fi
+          done
+          echo "✅ No duplicate timestamps"
+
+      # ----- VALIDATION 4: Rollback file exists for non-rollback migrations -----
+      - name: '🔍 Verify rollback coverage'
+        if: steps.check_migrations.outputs.has_migrations == 'true'
+        run: |
+          for f in supabase/migrations/*.sql; do
+            BASENAME=$(basename "$f")
+            # Skip rollback files themselves
+            if echo "$BASENAME" | grep -q "rollback"; then continue; fi
+            # Skip initial schema (foundational - no rollback)
+            if echo "$BASENAME" | grep -q "0001_initial"; then continue; fi
+            # Check if corresponding rollback exists
+            TIMESTAMP=$(echo "$BASENAME" | cut -c1-14)
+            ROLLBACK_COUNT=$(ls supabase/migrations/ | grep -c "${TIMESTAMP}_rollback")
+            if [ "$ROLLBACK_COUNT" -eq 0 ]; then
+              echo "⚠️  WARNING: No rollback migration found for $BASENAME"
+              echo "   Consider creating: ${TIMESTAMP}_rollback_<description>.sql"
+            fi
+          done
+          echo "✅ Rollback coverage check complete"
+
+  # ==========================================
+  # STAGE 2: STAGING DEPLOYMENT (AUTOMATIC)
+  # ==========================================
+  deploy-staging:
+    name: '🟡 Deploy to Staging'
+    needs: validate
+    if: needs.validate.outputs.has_migrations == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_SUPABASE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link staging project
+        run: supabase link --project-ref "${{ secrets.STAGING_SUPABASE_PROJECT_REF }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # ----- DRIFT DETECTION BEFORE DEPLOY -----
+      - name: '📊 Check for schema drift before deploy'
+        id: drift_check
+        run: |
+          supabase db diff --linked > /tmp/drift_output.txt 2>&1
+          if [ $? -ne 0 ]; then
+            echo "⚠️  WARNING: Schema drift detected. Running in degraded mode."
+            cat /tmp/drift_output.txt
+            echo "drift_detected=true" >> "$GITHUB_OUTPUT"
+          else
+            DIFF_CONTENT=$(cat /tmp/drift_output.txt)
+            if [ -z "$DIFF_CONTENT" ] || [ "$DIFF_CONTENT" = "No differences found." ]; then
+              echo "✅ No schema drift detected"
+              echo "drift_detected=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "⚠️  WARNING: Schema drift detected between migrations and database"
+              cat /tmp/drift_output.txt
+              echo "drift_detected=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      # ----- DRY RUN -----
+      - name: '🔄 Dry-run migrations'
+        run: |
+          supabase db push --dry-run || {
+            echo "❌ Migration dry-run failed!"
+            echo "   Check for conflicts or incompatible changes."
+            exit 1
+          }
+          echo "✅ Migration dry-run passed"
+
+      # ----- APPLY MIGRATIONS -----
+      - name: '🚀 Apply migrations to staging'
+        id: apply_staging
+        run: |
+          supabase db push || {
+            echo "❌ Migration FAILED on staging"
+            echo "latest_failed_migration=${{ needs.validate.outputs.latest_migration }}" >> "$GITHUB_OUTPUT"
+            exit 1
+          }
+          echo "✅ Migrations applied successfully to staging"
+          echo "migration_success=true" >> "$GITHUB_OUTPUT"
+
+      # ----- POST-DEPLOY VERIFICATION -----
+      - name: '🧪 Run post-deploy verification'
+        id: verify_staging
+        if: steps.apply_staging.outputs.migration_success == 'true'
+        run: |
+          supabase db execute < supabase/verify_deployment.sql || {
+            echo "❌ Post-deployment verification FAILED"
+            echo "verification_passed=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          }
+          echo "✅ Post-deployment verification passed"
+          echo "verification_passed=true" >> "$GITHUB_OUTPUT"
+
+      # ----- VERIFY AFTER DEPLOY -----
+      - name: '📊 Verify schema integrity'
+        if: steps.apply_staging.outputs.migration_success == 'true'
+        run: |
+          supabase db diff --linked || {
+            echo "❌ Schema integrity check failed after migration"
+            exit 1
+          }
+          echo "✅ Schema integrity verified"
+
+      # ----- AUTO-ROLLBACK ON VERIFICATION FAILURE -----
+      - name: '🔁 Auto-rollback on verification failure'
+        if: failure() && steps.apply_staging.outcome == 'success'
+        run: |
+          ROLLBACK_FILE=""
+          LATEST="${{ needs.validate.outputs.latest_migration }}"
+          TIMESTAMP=$(echo "$LATEST" | cut -c1-14)
+          for f in supabase/migrations/*.sql; do
+            if echo "$(basename "$f")" | grep -q "${TIMESTAMP}_rollback"; then
+              ROLLBACK_FILE="$f"
+              break
+            fi
+          done
+
+          if [ -n "$ROLLBACK_FILE" ]; then
+            echo "🔄 Applying rollback: $ROLLBACK_FILE"
+            cat "$ROLLBACK_FILE" | supabase db execute || {
+              echo "❌ AUTO-ROLLBACK FAILED - Manual intervention required"
+              echo "   Restore from backup and reapply stable migrations"
+              exit 1
+            }
+            echo "✅ Rollback applied successfully"
+          else
+            echo "⚠️  No rollback file found for $LATEST"
+            echo "   Manual rollback required"
+          fi
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  # ==========================================
+  # STAGE 3: PRODUCTION DEPLOYMENT (GATED)
+  # ==========================================
+  deploy-production:
+    name: '🟢 Deploy to Production'
+    needs: [validate, deploy-staging]
+    if: |
+      always() &&
+      needs.deploy-staging.result == 'success' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_SUPABASE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link production project
+        run: supabase link --project-ref "${{ secrets.PRODUCTION_SUPABASE_PROJECT_REF }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # ----- DRIFT DETECTION BEFORE PRODUCTION DEPLOY -----
+      - name: '📊 Check for schema drift before production deploy'
+        run: |
+          supabase db diff --linked > /tmp/prod_drift.txt 2>&1
+          DIFF_CONTENT=$(cat /tmp/prod_drift.txt)
+          if [ -z "$DIFF_CONTENT" ] || [ "$DIFF_CONTENT" = "No differences found." ]; then
+            echo "✅ No schema drift detected in production"
+          else
+            echo "⚠️  WARNING: Schema drift detected in production"
+            cat /tmp/prod_drift.txt
+          fi
+
+      # ----- DRY RUN ON PRODUCTION -----
+      - name: '🔄 Dry-run migrations on production'
+        run: |
+          supabase db push --dry-run || {
+            echo "❌ Production migration dry-run failed!"
+            exit 1
+          }
+          echo "✅ Production dry-run passed"
+
+      # ----- APPLY TO PRODUCTION -----
+      - name: '🚀 Apply migrations to production'
+        id: apply_production
+        run: |
+          supabase db push || {
+            echo "❌ Migration FAILED on production"
+            echo "latest_failed_migration=${{ needs.validate.outputs.latest_migration }}" >> "$GITHUB_OUTPUT"
+            exit 1
+          }
+          echo "✅ Migrations applied successfully to production"
+          echo "migration_success=true" >> "$GITHUB_OUTPUT"
+
+      # ----- POST-DEPLOY VERIFICATION -----
+      - name: '🧪 Run post-deploy verification on production'
+        if: steps.apply_production.outputs.migration_success == 'true'
+        run: |
+          supabase db execute < supabase/verify_deployment.sql || {
+            echo "❌ Post-deployment verification FAILED on production"
+            echo "verification_passed=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          }
+          echo "✅ Production post-deployment verification passed"
+          echo "verification_passed=true" >> "$GITHUB_OUTPUT"
+
+      # ----- VERIFY SCHEMA INTEGRITY -----
+      - name: '📊 Verify production schema integrity'
+        if: steps.apply_production.outputs.migration_success == 'true'
+        run: |
+          supabase db diff --linked || {
+            echo "❌ Production schema integrity check failed"
+            exit 1
+          }
+          echo "✅ Production schema integrity verified"
+
+      # ----- AUTO-ROLLBACK ON PRODUCTION FAILURE -----
+      - name: '🔁 Auto-rollback on production failure'
+        if: failure() && steps.apply_production.outcome == 'success'
+        run: |
+          ROLLBACK_FILE=""
+          LATEST="${{ needs.validate.outputs.latest_migration }}"
+          TIMESTAMP=$(echo "$LATEST" | cut -c1-14)
+          for f in supabase/migrations/*.sql; do
+            if echo "$(basename "$f")" | grep -q "${TIMESTAMP}_rollback"; then
+              ROLLBACK_FILE="$f"
+              break
+            fi
+          done
+
+          if [ -n "$ROLLBACK_FILE" ]; then
+            echo "🔄 Applying production rollback: $ROLLBACK_FILE"
+            cat "$ROLLBACK_FILE" | supabase db execute || {
+              echo "❌ PRODUCTION AUTO-ROLLBACK FAILED - CRITICAL"
+              echo "   Restore from backup immediately"
+              exit 1
+            }
+            echo "✅ Production rollback applied successfully"
+          else
+            echo "⚠️  No rollback file found - manual intervention required"
+          fi
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # ----- SUCCESS NOTIFICATION -----
+      - name: '✅ Notify deployment success'
+        if: success()
+        run: |
+          echo "🎉 Production migration deployed successfully!"
+          echo "   Latest migration: ${{ needs.validate.outputs.latest_migration }}"
+          echo "   Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+      # ----- FAILURE NOTIFICATION -----
+      - name: '❌ Notify deployment failure'
+        if: failure()
+        run: |
+          echo "🔥 PRODUCTION MIGRATION FAILED"
+          echo "   Migration: ${{ needs.validate.outputs.latest_migration }}"
+          echo "   Action required: Investigate and rollback if needed"

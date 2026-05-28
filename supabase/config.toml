@@ -1,0 +1,40 @@
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+major_version = 15
+
+[db.pooler]
+enabled = false
+
+[studio]
+enabled = true
+port = 54323
+
+[analytics]
+enabled = true
+port = 54327
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://lqioagvxzqkqoxixcfbf.supabase.co"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+
+[auth.external]
+enabled = false
+
+[edge_runtime]
+enabled = false
+policy = "per_worker"
+
+[storage]
+enabled = true
+
+[realtime]
+enabled = true
