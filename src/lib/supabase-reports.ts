@@ -27,7 +27,8 @@ export async function getUserReports(userId: string) {
     .from('reports')
     .select('*')
     .eq('reporter_id', userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(50);
 
   if (error) {
     return { reports: [], error: { message: error.message } };

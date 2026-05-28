@@ -62,188 +62,7 @@ export function getCloudinarySizes(defaultWidth = 800): string {
   return `(max-width: 640px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 768px, ${defaultWidth}px`;
 }
 
-export const CATEGORY_FALLBACK_IMAGES: Record<string, string[]> = {
-  Vehicles: [
-    'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1580273916550-e323be2ed5f6?w=800&h=600&fit=crop',
-  ],
-  Cars: [
-    'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1580273916550-e323be2ed5f6?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=600&fit=crop',
-  ],
-  Motorcycles: [
-    'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=800&h=600&fit=crop',
-  ],
-  'Mobile Phones': [
-    'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800&h=600&fit=crop',
-  ],
-  'Mobile Phones & Tablets': [
-    'https://images.unsplash.com/photo-1598327105666-5b89351aff70?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600&fit=crop',
-  ],
-  Electronics: [
-    'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=800&h=600&fit=crop',
-  ],
-  Laptops: [
-    'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1588702547923-b3c1859b71fa?w=800&h=600&fit=crop',
-  ],
-  TVs: [
-    'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1461151304267-38535e780c79?w=800&h=600&fit=crop',
-  ],
-  Gaming: [
-    'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=800&h=600&fit=crop',
-  ],
-  Fashion: [
-    'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&h=600&fit=crop',
-  ],
-  Shoes: [
-    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=800&h=600&fit=crop',
-  ],
-  Property: [
-    'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-  ],
-  Apartments: [
-    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
-  ],
-  Land: [
-    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1623854767748-1d9fd5bc3c60?w=800&h=600&fit=crop',
-  ],
-  Furniture: [
-    'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=800&h=600&fit=crop',
-  ],
-  Appliances: [
-    'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=800&h=600&fit=crop',
-  ],
-  Refrigerators: [
-    'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=800&h=600&fit=crop',
-  ],
-  Cameras: [
-    'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&h=600&fit=crop',
-  ],
-  Tablets: [
-    'https://images.unsplash.com/photo-1585790050230-5dd28404ccb9?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1561154464-82e9adf32764?w=800&h=600&fit=crop',
-  ],
-  Sports: [
-    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=600&fit=crop',
-  ],
-  'Gym Equipment': [
-    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
-  ],
-  'Baby & Kids': [
-    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1596461404969-9ae70f3bf014?w=800&h=600&fit=crop',
-  ],
-  Toys: [
-    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1596461404969-9ae70f3bf014?w=800&h=600&fit=crop',
-  ],
-  Baby: [
-    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1520106212299-d99c443e4568?w=800&h=600&fit=crop',
-  ],
-  'Health & Beauty': [
-    'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
-  ],
-  Services: [
-    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=600&fit=crop',
-  ],
-  Pets: [
-    'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=600&fit=crop',
-  ],
-  Generators: [
-    'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1626806819282-2c1dc01a5e0c?w=800&h=600&fit=crop',
-  ],
-};
 
-export function getCategoryFallback(category: string | { name?: string; slug?: string } | null | undefined): string {
-  if (!category) return FALLBACK_IMAGE;
-  
-  const catName = typeof category === 'string' ? category : (category.name || category.slug || '');
-  const normalizedCat = catName.toLowerCase().trim();
-  
-  for (const [key, images] of Object.entries(CATEGORY_FALLBACK_IMAGES)) {
-    if (normalizedCat.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedCat)) {
-      return images[0];
-    }
-  }
-  
-  const phoneMatch = normalizedCat.match(/phone|mobile|smartphone|tablet|ipad|android|iphone|samsung|tecno|infinix|oppo|vivo|xiaomi/);
-  if (phoneMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Mobile Phones'][0];
-  }
-  
-  const carMatch = normalizedCat.match(/car|vehicle|motor|toyota|honda|mercedes|bmw|lexus|ford|jeep|suv/);
-  if (carMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Cars'][0];
-  }
-  
-  const laptopMatch = normalizedCat.match(/laptop|macbook|notebook|computer|asus|dell|hp|lenovo/);
-  if (laptopMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Laptops'][0];
-  }
-  
-  const tvMatch = normalizedCat.match(/tv|television|samsung tv|smart tv|led|lcd/);
-  if (tvMatch) {
-    return CATEGORY_FALLBACK_IMAGES['TVs'][0];
-  }
-  
-  const gamingMatch = normalizedCat.match(/ps5|ps4|playstation|xbox|gaming|console|nintendo/);
-  if (gamingMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Gaming'][0];
-  }
-  
-  const fashionMatch = normalizedCat.match(/fashion|shoe|clothing|shirt|dress|ankara|fabric|wear/);
-  if (fashionMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Fashion'][0];
-  }
-  
-  const propertyMatch = normalizedCat.match(/property|house|apartment|land|rent|sale|estate|flat/);
-  if (propertyMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Property'][0];
-  }
-  
-  const furnitureMatch = normalizedCat.match(/furniture|sofa|chair|table|bed|desk|cabinet/);
-  if (furnitureMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Furniture'][0];
-  }
-  
-  const applianceMatch = normalizedCat.match(/fridge|refrigerator|freezer|ac|air.?condition|washer|washing|microwave|oven/);
-  if (applianceMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Appliances'][0];
-  }
-  
-  const cameraMatch = normalizedCat.match(/camera|canon|nikon|sony|photo|dslr/);
-  if (cameraMatch) {
-    return CATEGORY_FALLBACK_IMAGES['Cameras'][0];
-  }
-  
-  return FALLBACK_IMAGE;
-}
 
 export async function validateImageUrl(url: string): Promise<boolean> {
   if (!url) return false;
@@ -259,10 +78,9 @@ export async function validateImageUrl(url: string): Promise<boolean> {
   }
 }
 
-export function getValidImages(images: any[], category?: string | { name?: string; slug?: string } | null): string[] {
+export function getValidImages(images: any[]): string[] {
   if (!images || !Array.isArray(images) || images.length === 0) {
-    const fallback = getCategoryFallback(category);
-    return fallback ? [fallback] : [];
+    return [FALLBACK_IMAGE];
   }
   
   const validUrls: string[] = [];
@@ -276,8 +94,7 @@ export function getValidImages(images: any[], category?: string | { name?: strin
   }
   
   if (validUrls.length === 0) {
-    const fallback = getCategoryFallback(category);
-    return fallback ? [fallback] : [];
+    return [FALLBACK_IMAGE];
   }
   
   return validUrls;
@@ -300,41 +117,11 @@ export function getAdImageUrl(img: any): string {
     return url;
   }
   
-  if (url.startsWith('/storage/')) {
-    return `${BACKEND_URL}${url}`;
-  }
-  
-  if (url.startsWith('storage/')) {
-    return `${BACKEND_URL}/${url}`;
-  }
-  
   if (url.startsWith('/')) {
     return url;
   }
   
-  if (url.startsWith('json_dataset/')) {
-    const filename = url.replace('json_dataset/', '').replace(/^images\//, '');
-    return `/images/${filename}`;
-  }
-  
-  if (url.includes('json_dataset')) {
-    return '/images/' + url.split('/').pop();
-  }
-  
-  if (url.startsWith('ads/') || url.startsWith('vehicles/') || url.startsWith('properties/') || url.startsWith('electronics/') || url.startsWith('fashion/')) {
-    const filename = url.split('/').pop();
-    return `/images/${filename}`;
-  }
-  
-  if (!url.includes('/') && !url.includes(':')) {
-    return `/images/${url}`;
-  }
-  
-  if (url.startsWith('/')) {
-    return url;
-  }
-  
-  return `${BACKEND_URL}/storage/${url}`;
+  return url;
 }
 
 export function getPrimaryImageUrl(images: any[]): string {

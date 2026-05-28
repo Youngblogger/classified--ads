@@ -128,10 +128,10 @@ export default function VerificationsPage() {
         adminApiClient.get(`${STEALTH_PREFIX}/verifications`, { params }),
         adminApiClient.get(`${STEALTH_PREFIX}/verifications/stats`),
       ]);
-      const data = listRes.data;
-      setPersonalVerifications(data.data || data || []);
+      const data = (listRes.data as any) || {};
+      setPersonalVerifications(data.data || []);
       if (data.last_page) setPersonalTotalPages(data.last_page);
-      const statsData = statsRes.data;
+      const statsData = (statsRes.data as any) || {};
       setPersonalStats(statsData.data || statsData);
     } catch (error: any) {
       console.error('Failed to fetch verifications:', error);
@@ -151,10 +151,10 @@ export default function VerificationsPage() {
         adminApiClient.get(`${STEALTH_PREFIX}/business-verifications`, { params }),
         adminApiClient.get(`${STEALTH_PREFIX}/business-verifications/stats`),
       ]);
-      const data = listRes.data;
-      setBusinessVerifications(data.data || data || []);
+      const data = (listRes.data as any) || {};
+      setBusinessVerifications(data.data || []);
       if (data.last_page) setBusinessTotalPages(data.last_page);
-      const statsData = statsRes.data;
+      const statsData = (statsRes.data as any) || {};
       setBusinessStats(statsData.data || statsData);
     } catch (error: any) {
       console.error('Failed to fetch business verifications:', error);
@@ -335,6 +335,7 @@ export default function VerificationsPage() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Type</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Document Type</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Status</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Risk</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Submitted</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Actions</th>
             </tr>
@@ -344,7 +345,7 @@ export default function VerificationsPage() {
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : personalVerifications.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
+                <td colSpan={8} className="px-4 py-12 text-center">
                   <Shield className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                   <p className="text-gray-500">No verifications found</p>
                 </td>
@@ -374,6 +375,21 @@ export default function VerificationsPage() {
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${personalStatusColors[v.status] || 'bg-gray-100 text-gray-700'}`}>
                         {v.status.replace(/_/g, ' ')}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {v.status === 'pending' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-green-700 bg-green-50 rounded-full">
+                          <CheckCircle className="w-2.5 h-2.5" />
+                          Auto-verify candidate
+                        </span>
+                      ) : v.status === 'rejected' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-red-700 bg-red-50 rounded-full" title={v.reason || 'Manual review failed'}>
+                          <AlertTriangle className="w-2.5 h-2.5" />
+                          Flagged
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-400">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">{formatDate(v.created_at)}</td>
                     <td className="px-4 py-3">
@@ -428,6 +444,7 @@ export default function VerificationsPage() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Owner</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">CAC Number</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Status</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Risk</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Submitted</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Actions</th>
             </tr>
@@ -437,7 +454,7 @@ export default function VerificationsPage() {
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : businessVerifications.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
+                <td colSpan={8} className="px-4 py-12 text-center">
                   <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                   <p className="text-gray-500">No business verifications found</p>
                 </td>
@@ -460,6 +477,21 @@ export default function VerificationsPage() {
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${businessStatusColors[bv.status] || 'bg-gray-100 text-gray-700'}`}>
                       {bv.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {bv.status === 'pending' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-green-700 bg-green-50 rounded-full">
+                        <CheckCircle className="w-2.5 h-2.5" />
+                        Auto-verify candidate
+                      </span>
+                    ) : bv.status === 'rejected' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-red-700 bg-red-50 rounded-full" title={bv.reason || 'Manual review failed'}>
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                        Flagged
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">{formatDate(bv.created_at)}</td>
                   <td className="px-4 py-3">

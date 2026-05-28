@@ -9,7 +9,7 @@ import type { SellerReview } from '@/types';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface SellerReviewCardProps {
   review: SellerReview;
@@ -44,7 +44,7 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || '';
     if (url.startsWith('/storage/')) {
       return `${baseUrl}${url}`;
     }

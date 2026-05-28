@@ -57,7 +57,7 @@ export default function BannersPage() {
       setLoading(true);
       const res = await adminApi.getBanners();
       console.log('Banners response:', res.data);
-      const bannersData = res.data.data || res.data || [];
+      const bannersData = (res.data as any)?.data ?? [];
       setBanners(bannersData);
     } catch (error: any) {
       console.error('Failed to fetch banners:', error);

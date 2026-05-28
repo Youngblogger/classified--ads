@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Star, MapPin, Calendar, CheckCircle, MessageCircle, Phone, ChevronLeft, Loader2, UserPlus, UserMinus } from 'lucide-react';
+import { Star, MapPin, Calendar, CheckCircle, MessageCircle, Phone, ChevronLeft, Loader2, UserPlus, UserMinus, BadgeCheck, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
@@ -11,6 +11,8 @@ import SellerRatingSummary from '@/components/reviews/SellerRatingSummary';
 import SellerReviewCard from '@/components/reviews/SellerReviewCard';
 import SellerReviewModal from '@/components/reviews/SellerReviewModal';
 import AdCard from '@/components/ui/AdCard';
+import SellerTrustCard from '@/components/verification/SellerTrustCard';
+import FraudRiskIndicator from '@/components/verification/FraudRiskIndicator';
 import { sellerReviewsApi, followApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/lib/store';
@@ -40,9 +42,9 @@ export default function SellerProfilePage() {
   const fetchSellerProfile = useCallback(async () => {
     try {
       const profileRes = await sellerReviewsApi.getSellerProfile(sellerId);
-      setSeller(profileRes.data);
+      setSeller((profileRes.data as any)?.data ?? null);
       
-      const adsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/ads?user_id=${sellerId}&status=active`);
+      const adsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/ads?user_id=${sellerId}&status=active`);
       if (adsRes.ok) {
         const adsData = await adsRes.json();
         setAds(adsData.data || []);
@@ -61,8 +63,8 @@ export default function SellerProfilePage() {
     setReviewsLoading(true);
     try {
       const response = await sellerReviewsApi.getReviews(sellerId, { sort: reviewSort });
-      setReviews(response.data.data || []);
-      setReviewsMeta(response.data.meta || {});
+      setReviews((response.data as any)?.data ?? []);
+      setReviewsMeta((response.data as any)?.meta ?? {});
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
       if (error?.response?.status !== 404) {
@@ -77,9 +79,9 @@ export default function SellerProfilePage() {
     if (!isAuthenticated) return;
     try {
       const response = await followApi.getUserStats(sellerId);
-      setIsFollowing(response.data.is_following);
-      setFollowersCount(response.data.followers_count);
-      setFollowingCount(response.data.following_count);
+      setIsFollowing((response.data as any)?.data?.is_following ?? false);
+      setFollowersCount((response.data as any)?.data?.followers_count ?? 0);
+      setFollowingCount((response.data as any)?.data?.following_count ?? 0);
     } catch (error) {
       console.error('Error fetching follow status:', error);
     }
@@ -116,9 +118,9 @@ export default function SellerProfilePage() {
     setFollowLoading(true);
     try {
       const response = await followApi.follow(sellerId);
-      setIsFollowing(response.data.is_following);
-      setFollowersCount(response.data.followers_count);
-      if (response.data.is_following) {
+      setIsFollowing((response.data as any)?.data?.is_following ?? false);
+      setFollowersCount((response.data as any)?.data?.followers_count ?? 0);
+      if ((response.data as any)?.data?.is_following) {
         toast.success(`You're now following ${seller?.seller?.name}`);
       } else {
         toast.success(`Unfollowed ${seller?.seller?.name}`);
@@ -135,7 +137,7 @@ export default function SellerProfilePage() {
     let url = typeof img === 'string' ? img : img.url || img.avatar || img.google_avatar || img.facebook_avatar || '';
     if (!url) return '';
     if (url.startsWith('http')) return url;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || '';
     return url.startsWith('/storage/') ? `${baseUrl}${url}` : `${baseUrl}/storage/${url}`;
   };
 
@@ -203,16 +205,21 @@ export default function SellerProfilePage() {
                         </span>
                       </div>
                     )}
-                    {seller.seller?.verified && (
-                      <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
-                        <CheckCircle className="w-5 h-5 text-white" />
+                    {(seller.seller?.is_verified_seller || seller.seller?.verified) && (
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#1d9bf0] rounded-full flex items-center justify-center border-2 border-white shadow-lg" style={{ filter: 'drop-shadow(0 0 4px rgba(29,155,240,0.5))' }}>
+                        <CheckCircle className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
                       </div>
                     )}
                   </div>
-                  <h1 className="text-xl font-bold text-dark mt-4">{seller.seller?.name}</h1>
-                  {seller.seller?.verified && (
-                    <span className="inline-flex items-center gap-1 text-sm text-blue-500 font-medium mt-1">
-                      <CheckCircle className="w-4 h-4" />
+                  <h1 className="text-xl font-bold text-dark mt-4 flex items-center justify-center gap-1.5">
+                    {seller.seller?.name}
+                    {(seller.seller?.is_verified_seller || seller.seller?.verified) && (
+                      <BadgeCheck className="w-5 h-5 text-[#1d9bf0]" strokeWidth={2.5} style={{ filter: 'drop-shadow(0 0 3px rgba(29,155,240,0.5))' }} />
+                    )}
+                  </h1>
+                  {(seller.seller?.is_verified_seller || seller.seller?.verified) && (
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#1d9bf0] mt-1" style={{ filter: 'drop-shadow(0 0 2px rgba(29,155,240,0.3))' }}>
+                      <BadgeCheck className="w-4 h-4" strokeWidth={2.5} />
                       Verified Seller
                     </span>
                   )}
@@ -228,7 +235,7 @@ export default function SellerProfilePage() {
                   </div>
                 </div>
 
-                <div className="space-y-3 text-sm">
+                <div className="space-y-2 text-sm">
                   {seller.seller?.location && (
                     <div className="flex items-center gap-2 text-gray-600">
                       <MapPin className="w-4 h-4" />
@@ -240,13 +247,35 @@ export default function SellerProfilePage() {
                     <span>Member since {seller.member_since}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
-                    <span className="text-gray-400">|</span>
+                    <ShoppingBag className="w-4 h-4" />
                     <span>{seller.ads_count} active ads</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Star className="w-4 h-4 text-amber-500" />
+                    <span>{seller.rating?.average_rating > 0 ? `${seller.rating.average_rating.toFixed(1)} / 5` : 'No ratings yet'}</span>
+                    <span className="text-gray-400">({seller.rating?.total_reviews || 0} reviews)</span>
+                  </div>
+                  <div className="pt-2">
+                    <FraudRiskIndicator
+                      seller={seller.seller || {}}
+                      stats={{
+                        total_reviews: seller.rating?.total_reviews,
+                        active_ads: seller.ads_count,
+                      }}
+                      compact
+                    />
                   </div>
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                  <SellerRatingSummary sellerId={sellerId} refreshKey={refreshKey} />
+                <div className="mt-6">
+                  <SellerTrustCard
+                    seller={seller.seller || {}}
+                    stats={{
+                      average_rating: seller.rating?.average_rating,
+                      total_reviews: seller.rating?.total_reviews,
+                      active_ads: seller.ads_count,
+                    }}
+                  />
                 </div>
 
                 <div className="mt-6 space-y-3">

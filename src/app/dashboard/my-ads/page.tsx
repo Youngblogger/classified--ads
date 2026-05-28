@@ -124,7 +124,7 @@ export default function MyAdsPage() {
       setLoading(true);
       const params = statusFilter === 'all' ? {} : { status: statusFilter };
       const res = await adsApi.getMyAds(params);
-      const fetchedAds = res.data.data || res.data || [];
+      const fetchedAds = (res.data as any)?.data ?? [];
       const ownedAds = fetchedAds.filter((ad: any) => {
         const adUserId = ad.user_id ?? ad.user?.id ?? null;
         if (adUserId === null) return false;

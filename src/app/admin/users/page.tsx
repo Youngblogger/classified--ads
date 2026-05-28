@@ -82,13 +82,13 @@ export default function UsersPage() {
       
       if (reset) {
         setUsers(newUsers);
-        setTotalUsers(data.total || newUsers.length);
+        setTotalUsers((data as any).meta?.total || newUsers.length);
       } else {
         setUsers(prev => [...prev, ...newUsers]);
       }
       
       // Check if there are more pages
-      const totalPages = data.last_page || 1;
+      const totalPages = (data as any).last_page || (data as any).meta?.last_page || 1;
       setHasMore(pageToFetch < totalPages);
       
     } catch (error) {

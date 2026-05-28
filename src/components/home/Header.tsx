@@ -18,12 +18,13 @@ import {
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
 import { cn, BACKEND_URL } from '@/lib/utils';
+import { getCategoryIcon } from '@/lib/categoryIcons';
 
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useSocket } from '@/hooks/useSocket';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface ApiLocation {
   id: number;
@@ -40,77 +41,8 @@ interface ApiCategory {
   children?: ApiCategory[];
 }
 
-const categoryIconMap: Record<string, any> = {
-  Car,
-  Home,
-  Smartphone,
-  Laptop,
-  Shirt,
-  Sofa,
-  Briefcase,
-  Wrench,
-  Dog,
-  Heart,
-  Baby,
-  Dumbbell,
-};
-
-function getCategoryIcon(iconName?: string) {
-  if (iconName) {
-    const icon = categoryIconMap[iconName];
-    if (icon) return icon;
-  }
-  return Car;
-}
-
-function getEmojiForCategory(name?: string): string {
-  if (!name) return '📦';
-  const nameLower = name.toLowerCase();
-  if (nameLower.includes('phone') || nameLower.includes('mobile') || nameLower.includes('tablet')) return '📱';
-  if (nameLower.includes('vehicle') || nameLower.includes('car') || nameLower.includes('automotive') || nameLower.includes('bicycle')) return '🚗';
-  if (nameLower.includes('property') || nameLower.includes('estate') || nameLower.includes('real estate') || nameLower.includes('land') || nameLower.includes('house')) return '🏠';
-  if (nameLower.includes('electronic') || nameLower.includes('computer') || nameLower.includes('laptop') || nameLower.includes('tv') || nameLower.includes('camera')) return '💻';
-  if (nameLower.includes('fashion') || nameLower.includes('clothing') || nameLower.includes('apparel') || nameLower.includes('shoe') || nameLower.includes('bag')) return '👕';
-  if (nameLower.includes('service') || nameLower.includes('professional')) return '🛠️';
-  if (nameLower.includes('furniture') || nameLower.includes('home')) return '🛋️';
-  if (nameLower.includes('repair') || nameLower.includes('maintenance')) return '🔧';
-  if (nameLower.includes('health') || nameLower.includes('beauty') || nameLower.includes('spa')) return '💄';
-  if (nameLower.includes('sport') || nameLower.includes('fitness') || nameLower.includes('gym')) return '⚽';
-  if (nameLower.includes('baby') || nameLower.includes('kid') || nameLower.includes('children')) return '👶';
-  if (nameLower.includes('job') || nameLower.includes('employment')) return '💼';
-  if (nameLower.includes('agriculture') || nameLower.includes('farm') || nameLower.includes('garden')) return '🌾';
-  if (nameLower.includes('shop') || nameLower.includes('store')) return '🛒';
-  if (nameLower.includes('food') || nameLower.includes('catering') || nameLower.includes('restaurant')) return '🍔';
-  if (nameLower.includes('music') || nameLower.includes('instrument')) return '🎵';
-  return '📦';
-}
-
 const RECENT_SEARCHES_KEY = 'ilist_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
-
-const ICON_MAP: Record<string, any> = {
-  Car,
-  Home,
-  Smartphone,
-  Laptop,
-  Shirt,
-  Sofa,
-  Briefcase,
-  Wrench,
-  Dog,
-  Heart,
-  Baby,
-  Dumbbell,
-  TreePine,
-  Gamepad2,
-  BookOpen,
-  Building2,
-  GraduationCap,
-};
-
-function getIconComponent(iconName?: string): any {
-  return ICON_MAP[iconName || 'Car'] || Car;
-}
 
 function getFullAvatarUrl(user: any): string | null {
   if (!user) return null;
@@ -549,7 +481,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   const fetchRecentMessages = async () => {
     try {
       const res = await messagesApi.getConversations();
-      const conversations = res.data?.data || res.data || [];
+      const conversations = (res.data as any)?.data ?? [];
       setRecentMessages(conversations.slice(0, 5));
       const unreadCount = conversations.filter((c: any) => c.unread_count > 0).length;
       setUnreadMessagesCount(unreadCount);
@@ -691,12 +623,13 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
           <div className={cn('flex items-center justify-between gap-4', variant === 'home' ? 'h-14' : 'h-12')}>
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
-              <img 
+              <Image 
                 src="/icons/iList-white.png" 
                 alt="iList" 
-                width={120}
-                height={40}
-                className="h-10 w-auto"
+                width={120} 
+                height={40} 
+                className="h-10 w-auto" 
+                priority
               />
             </Link>
 
@@ -817,7 +750,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                                   onClick={() => handleSearchResultClick('category', cat)}
                                   className="w-full flex items-center gap-3 px-3 py-3 hover:bg-accent-50 rounded-xl transition-colors text-left"
                                 >
-                                  <span className="text-2xl">{getEmojiForCategory(cat.name)}</span>
+                                  {(() => { const Icon = getCategoryIcon(cat.icon); return <Icon className="w-5 h-5 text-primary-600" />; })()}
                                   <span className="text-sm text-slate-700 flex-1">{cat.name}</span>
                                   <ArrowRight className="w-4 h-4 text-slate-300" />
                                 </button>

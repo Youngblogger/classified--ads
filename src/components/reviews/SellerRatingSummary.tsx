@@ -23,7 +23,7 @@ export default function SellerRatingSummary({
     const fetchSummary = async () => {
       try {
         const response = await sellerReviewsApi.getRatingSummary(sellerId);
-        setSummary(response.data);
+        setSummary((response.data as any)?.data ?? null);
       } catch (error) {
         console.error('Error fetching seller rating summary:', error);
       } finally {

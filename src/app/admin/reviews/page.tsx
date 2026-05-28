@@ -81,7 +81,7 @@ export default function ReviewsManagementPage() {
   const [actionType, setActionType] = useState<'approve' | 'reject' | 'delete' | null>(null);
   const [actionReason, setActionReason] = useState('');
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
   const STEALTH_PREFIX = '/secure-control-9ja';
 
   const getAdminToken = () => {
@@ -107,9 +107,6 @@ export default function ReviewsManagementPage() {
   const getAvatarUrl = (url: string | null | undefined): string => {
     if (!url) return '';
     let avatarUrl = url;
-    if (avatarUrl.startsWith('/storage/')) {
-      avatarUrl = `http://127.0.0.1:8000${avatarUrl}`;
-    }
     return avatarUrl;
   };
 

@@ -165,12 +165,12 @@ export default function SellerReviewsPage() {
       });
 
       const responseData = response.data;
-      const reviewsData = responseData.data || responseData.reviews || responseData || [];
+      const reviewsData = (responseData as any)?.data || (responseData as any)?.reviews || [];
       const newReviews = Array.isArray(reviewsData) ? reviewsData : [];
       const meta = {
-        total: responseData.total,
-        current_page: responseData.current_page,
-        last_page: responseData.last_page,
+        total: (responseData as any)?.total,
+        current_page: (responseData as any)?.current_page,
+        last_page: (responseData as any)?.last_page,
       };
       
       const uniqueReviews = newReviews.filter((review: Review) => {
@@ -207,11 +207,11 @@ export default function SellerReviewsPage() {
       const rawData = response.data;
       
       // Backend returns { seller: {...}, rating: {...}, ads_count: X, member_since: X }
-      const sellerData = rawData.seller || rawData;
+      const sellerData = (rawData as any)?.data?.seller || (rawData as any)?.data || rawData;
       setSeller(sellerData);
       
-      if (rawData.rating?.distribution) {
-        setDistribution(rawData.rating.distribution);
+      if ((rawData as any)?.data?.rating?.distribution) {
+        setDistribution((rawData as any).data.rating.distribution);
       }
     } catch (error) {
       console.error('Error fetching seller profile:', error);

@@ -25,7 +25,7 @@ export default function FontsPage() {
   const fetchFonts = async () => {
     try {
       const response = await adminApi.getFonts();
-      setFonts(response.data);
+      setFonts(response.data.data);
     } catch (error) {
       console.error('Error fetching fonts:', error);
     } finally {

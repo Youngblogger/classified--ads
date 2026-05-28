@@ -13,10 +13,7 @@ export function getSupabaseClient() {
     if (typeof window !== 'undefined') {
       console.warn('[Supabase] Missing environment variables NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY');
     }
-    supabaseClient = createClient(
-      supabaseUrl || 'https://placeholder.supabase.co',
-      supabaseAnonKey || 'placeholder-key'
-    );
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
     return supabaseClient;
   }
 
@@ -26,8 +23,9 @@ export function getSupabaseClient() {
     auth: {
       autoRefreshToken: isBrowser,
       persistSession: isBrowser,
-      detectSessionInUrl: isBrowser,
+      detectSessionInUrl: false,
       storageKey: 'ilist-supabase-auth',
+      flowType: 'pkce',
     },
     realtime: {
       params: {
@@ -37,6 +35,16 @@ export function getSupabaseClient() {
     global: {
       headers: {
         'X-Client-Info': 'ilist-marketplace@1.0.0',
+      },
+      fetch: async (url, options) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return response;
       },
     },
   });
@@ -55,6 +63,18 @@ export function getServiceRoleClient() {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+    },
+    global: {
+      fetch: async (url, options) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return response;
+      },
     },
   });
 }

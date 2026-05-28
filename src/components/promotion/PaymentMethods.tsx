@@ -184,7 +184,7 @@ export default function PaymentMethods({
         payment_method: 'card',
       });
 
-      if (response.data.success) {
+      if ((response.data as any)?.data?.message) {
         setPaymentState({
           processing: false,
           error: null,
@@ -193,13 +193,13 @@ export default function PaymentMethods({
         });
         
         invalidateWallet();
-        if (response.data.authorization_url) {
-          window.location.href = response.data.authorization_url;
-        } else if (response.data.payment?.reference) {
-          pollPaymentStatus(response.data.payment.reference);
+        if ((response.data as any)?.data?.authorization_url) {
+          window.location.href = (response.data as any)?.data?.authorization_url;
+        } else if ((response.data as any)?.data?.payment?.reference) {
+          pollPaymentStatus((response.data as any)?.data?.payment.reference);
         }
       } else {
-        throw new Error(response.data.message || 'Payment initialization failed');
+        throw new Error((response.data as any)?.data?.message || 'Payment initialization failed');
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Failed to process card payment';
@@ -220,7 +220,7 @@ export default function PaymentMethods({
         payment_method: 'bank',
       });
 
-      if (response.data.success) {
+      if ((response.data as any)?.data?.message) {
         setPaymentState({
           processing: false,
           error: null,
@@ -228,7 +228,7 @@ export default function PaymentMethods({
           paymentData: response.data,
         });
       } else {
-        throw new Error(response.data.message || 'Failed to create virtual account');
+        throw new Error((response.data as any)?.data?.message || 'Failed to create virtual account');
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Failed to create virtual account';
@@ -248,7 +248,7 @@ export default function PaymentMethods({
         payment_method: 'ussd',
       });
 
-      if (response.data.success) {
+      if ((response.data as any)?.data?.message) {
         setPaymentState({
           processing: false,
           error: null,
@@ -256,7 +256,7 @@ export default function PaymentMethods({
           paymentData: response.data,
         });
       } else {
-        throw new Error(response.data.message || 'Failed to initiate USSD payment');
+        throw new Error((response.data as any)?.data?.message || 'Failed to initiate USSD payment');
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Failed to initiate USSD payment';
@@ -270,7 +270,7 @@ export default function PaymentMethods({
     // Revalidate balance from backend before confirming
     const freshData = await getQueryClient().fetchQuery({
       queryKey: WALLET_QUERY_KEY,
-      queryFn: async () => { const res = await walletApi.getBalance(); return { balance: Number(res.data?.balance ?? 0), availableBalance: Number(res.data?.available_balance ?? res.data?.balance ?? 0), pendingBalance: Number(res.data?.pending_balance ?? 0) }; },
+      queryFn: async () => { const res = await walletApi.getBalance(); return { balance: Number((res.data as any)?.data?.balance ?? 0), availableBalance: Number((res.data as any)?.data?.available_balance ?? (res.data as any)?.data?.balance ?? 0), pendingBalance: Number((res.data as any)?.data?.pending_balance ?? 0) }; },
     });
     if (freshData.availableBalance < planPrice) {
       toast.error('Insufficient wallet balance. Please fund your wallet and try again.');
@@ -286,7 +286,7 @@ export default function PaymentMethods({
         payment_method: 'wallet',
       });
 
-      if (response.data.success) {
+      if ((response.data as any)?.data?.message) {
         setPaymentState({
           processing: false,
           error: null,
@@ -308,7 +308,7 @@ export default function PaymentMethods({
     const poll = async () => {
       try {
         const res = await promotionsApi.verifyPayment(reference);
-        if (res.data.success) {
+        if ((res.data as any)?.data?.message) {
           invalidateWallet();
           setPaymentState({
             processing: false,
@@ -336,7 +336,7 @@ export default function PaymentMethods({
     setCheckingPayment(true);
     try {
       const res = await promotionsApi.verifyPayment(paymentState.paymentData.payment.reference);
-      if (res.data.success) {
+      if ((res.data as any)?.data?.message) {
         invalidateWallet();
         setPaymentState({
           processing: false,
@@ -362,7 +362,7 @@ export default function PaymentMethods({
     setCheckingPayment(true);
     try {
       const res = await promotionsApi.verifyPayment(paymentState.paymentData.payment.reference);
-      if (res.data.success) {
+      if ((res.data as any)?.data?.message) {
         invalidateWallet();
         setPaymentState({
           processing: false,

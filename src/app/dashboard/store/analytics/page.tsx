@@ -43,7 +43,7 @@ export default function StoreAnalyticsPage() {
     try {
       setLoading(true);
       const res = await storeApi.getAnalytics(period);
-      const d = res.data.data || res.data;
+      const d = (res.data as any)?.data || res.data || {};
       setData({
         total_views: d.total_views || 0,
         unique_visitors: d.unique_visitors || 0,
@@ -76,7 +76,7 @@ export default function StoreAnalyticsPage() {
     setExporting(true);
     try {
       const res = await storeApi.getAnalytics(period);
-      const d = res.data.data || res.data;
+      const d = (res.data as any)?.data || res.data || {};
       const csvData = [
         ['Metric', 'Value'],
         ['Total Views', d.total_views || 0],

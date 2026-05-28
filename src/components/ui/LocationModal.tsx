@@ -40,7 +40,7 @@ interface CachedDetection {
   timestamp: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const CACHED_DETECTION_KEY = 'ilist-cached-detection';
 const SELECTED_LOCATION_KEY = 'ilist-selected-location';
 const CACHE_TTL = 30 * 60 * 1000;

@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore, useGlobalStore } from '@/lib/store';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
+const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000;
 
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
@@ -24,6 +24,8 @@ function setCookie(name: string, value: string, days: number) {
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
+  const authInitRef = useRef(false);
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   const resetLocation = useCallback(() => {
     const globalStore = useGlobalStore.getState();
@@ -44,16 +46,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     inactivityTimer.current = setTimeout(resetLocation, LOCATION_RESET_TIMEOUT);
   }, [clearInactivityTimer, resetLocation]);
 
-  // Inactivity timer for location reset
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
-
-    const handleActivity = () => {
-      startInactivityTimer();
-    };
-
+    const handleActivity = () => startInactivityTimer();
     startInactivityTimer();
 
     activityEvents.forEach(event => {
@@ -66,76 +63,68 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         window.removeEventListener(event, handleActivity);
       });
     };
-  }, [startInactivityTimer, clearInactivityTimer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Auth restoration
+  // Single source of truth for Supabase auth state
   useEffect(() => {
+    if (authInitRef.current) return;
+    authInitRef.current = true;
     setMounted(true);
-    
-    try {
-      if (typeof window !== 'undefined' && window.self === window.top) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const refCode = urlParams.get('ref');
-        if (refCode && !getCookie('referrer')) {
-          setCookie('referrer', refCode, 30);
-        }
-      }
 
-      const justLoggedOut = sessionStorage.getItem('just_logged_out');
-      if (justLoggedOut === 'true') {
-        sessionStorage.removeItem('just_logged_out');
+    const justLoggedOut = sessionStorage.getItem('just_logged_out');
+    if (justLoggedOut === 'true') {
+      sessionStorage.removeItem('just_logged_out');
+      return;
+    }
+
+    // Restore session on mount
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        const store = useAuthStore.getState();
+        if (store.isAuthenticated) store.logout();
         return;
       }
-      
-      const authStorage = localStorage.getItem('user-auth-storage');
-      let zustandAuth = null;
-      if (authStorage) {
-        try {
-          zustandAuth = JSON.parse(authStorage);
-        } catch (e) {
-          console.error('Failed to parse user-auth-storage:', e);
+      supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data: profile }) => {
+        if (profile) {
+          useAuthStore.getState().login(
+            { ...profile, id: user.id, email: user.email },
+            'supabase-session'
+          );
+        }
+      });
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
+        supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
+          if (profile) {
+            useAuthStore.getState().login(
+              { ...profile, id: session.user.id, email: session.user.email },
+              session.access_token
+            );
+          }
+        });
+      } else if (event === 'SIGNED_OUT') {
+        const { isAuthenticated } = useAuthStore.getState();
+        if (isAuthenticated) {
+          useAuthStore.getState().logout();
         }
       }
+    });
 
-      let tokenToRestore = null;
-      let userToRestore = null;
-      
-      if (zustandAuth?.state?.token && zustandAuth?.state?.user) {
-        tokenToRestore = zustandAuth.state.token;
-        userToRestore = zustandAuth.state.user;
-      }
+    subscriptionRef.current = subscription;
 
-      if (tokenToRestore && userToRestore) {
-        fetch(`${API_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${tokenToRestore}` }
-        })
-        .then(res => {
-          if (!res.ok) throw new Error('Invalid token');
-          return res.json();
-        })
-        .then(userData => {
-          const freshUser = {
-            ...userData,
-            full_avatar_url: userData.full_avatar_url || 
-              (userData.avatar ? `http://127.0.0.1:8000/storage/${userData.avatar}` : null) ||
-              userData.google_avatar ||
-              userData.facebook_avatar,
-          };
-          useAuthStore.getState().login(freshUser, tokenToRestore);
-        })
-        .catch(() => {
-          useAuthStore.getState().logout();
-        });
-      }
-    } catch (e) {
-      // Ignore errors when in restricted context
-    }
+    return () => {
+      subscription?.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reset selected location to All Nigeria when a logged-out user visits
   useEffect(() => {
     if (!mounted) return;
-
     const timer = setTimeout(() => {
       const { isAuthenticated } = useAuthStore.getState();
       if (!isAuthenticated) {
@@ -145,7 +134,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         }
       }
     }, 300);
-
     return () => clearTimeout(timer);
   }, [mounted]);
 

@@ -4,10 +4,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
-import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getCategoryFallback, getAdMainImage, getAdMainImageWithCacheBust, getImageVersionBuster } from '@/lib/utils';
-import { useState, memo, useCallback, useRef } from 'react';
+import { formatPrice, FALLBACK_IMAGE, getAdMainImage, getAdMainImageWithCacheBust } from '@/lib/utils';
+import { useState, memo, useCallback } from 'react';
 import PremiumBadge from './PremiumBadge';
 import PromotedBadge from './PromotedBadge';
+import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import { getBoostCardClasses } from '@/lib/boost-config';
 
 interface AdCardProps {
@@ -25,11 +26,6 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
     return (ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`;
   }, [ad.slug, ad.id]);
 
-  const getFallbackImage = useCallback(() => {
-    const catName = typeof ad.category === 'object' ? ad.category?.name || ad.category?.slug : ad.category;
-    return getCategoryFallback(catName || '');
-  }, [ad.category]);
-
   const handleImageError = useCallback(() => {
     setImgError(true);
   }, []);
@@ -37,7 +33,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   const showFallback = !imageUrl || imgError;
   const boostType = (ad as any).boost_type;
   const cardBoostClasses = getBoostCardClasses(boostType);
-  const imageSrc = showFallback ? getFallbackImage() : getAdMainImageWithCacheBust(ad);
+  const imageSrc = showFallback ? FALLBACK_IMAGE : getAdMainImageWithCacheBust(ad);
   const adImageKey = `ad-img-${ad.id}-${imgError ? 'fallback' : 'original'}`;
 
   const getLocationDisplay = () => {
@@ -63,6 +59,11 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             priority={priority}
           />
           <PremiumBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} size="sm" />
+          {(ad as any).user?.is_verified && (
+            <div className="absolute top-1 right-1">
+              <VerifiedSellerBadge size="sm" />
+            </div>
+          )}
         </div>
         <div className="flex-1 p-2 sm:p-3 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap w-full justify-between">
@@ -100,6 +101,11 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
             priority={priority}
           />
           <PremiumBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} size="sm" />
+            {(ad as any).user?.is_verified && (
+              <div className="absolute top-1 right-1">
+                <VerifiedSellerBadge size="sm" />
+              </div>
+            )}
         </div>
         <div className="p-2">
           <div className="flex items-center gap-1.5 flex-wrap w-full justify-between">
@@ -136,6 +142,11 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           priority={priority}
         />
         <PremiumBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} size="sm" />
+          {(ad as any).user?.is_verified && (
+            <div className="absolute top-1 right-1">
+              <VerifiedSellerBadge size="sm" />
+            </div>
+          )}
       </div>
       <div className="p-2">
         <div className="flex items-center gap-1.5 flex-wrap w-full justify-between">

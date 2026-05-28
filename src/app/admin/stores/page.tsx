@@ -50,9 +50,9 @@ export default function StoresPage() {
       if (search) params.search = search;
       if (statusFilter !== 'all') params.status = statusFilter;
       if (verifiedFilter !== 'all') params.is_verified = verifiedFilter === 'verified' ? true : false;
-      const res = await adminApiClient.get(`${STEALTH_PREFIX}/stores`, { params });
-      const data = res.data;
-      setStores(data.data || data || []);
+      const res: any = await adminApiClient.get(`${STEALTH_PREFIX}/stores`, { params });
+      const data = res.data || { data: [] };
+      setStores(data.data || []);
       if (data.last_page) setTotalPages(data.last_page);
     } catch (error: any) {
       console.error('Failed to fetch stores:', error);
@@ -127,7 +127,7 @@ export default function StoresPage() {
   const getImageUrl = (url: string | undefined): string => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace('/api', '');
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace('/api', '');
     return `${baseUrl}/storage/${url.replace(/^\/+/, '')}`;
   };
 

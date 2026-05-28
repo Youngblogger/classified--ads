@@ -60,64 +60,12 @@ interface SearchBarProps {
 
 const RECENT_SEARCHES_KEY = 'recent_searches';
 const MAX_RECENT_SEARCHES = 10;
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-const defaultTrending = [
-  { term: 'iPhone', count: 150 },
-  { term: 'Toyota Camry', count: 120 },
-  { term: 'Laptop', count: 95 },
-  { term: 'House for rent', count: 85 },
-  { term: 'Samsung Galaxy', count: 70 },
-];
-
-const categoryIconMap: Record<string, string> = {
-  smartphone: '📱',
-  laptop: '💻',
-  car: '🚗',
-  home: '🏠',
-  briefcase: '💼',
-  shirt: '👕',
-  couch: '🛋️',
-  sparkles: '💄',
-  baby: '👶',
-  gamepad2: '🎮',
-  plant: '🌾',
-  wrench: '🔧',
-  factory: '🏭',
-  graduationCap: '📚',
-  partyPopper: '🎉',
-  utensils: '🍽️',
-  truck: '🚚',
-  dumbbell: '🏋️',
-  music: '🎵',
-  pawPrint: '🐾',
-  plane: '✈️',
-  bookOpen: '📖',
-};
-
-function getCategoryIcon(icon: string | undefined, categoryName?: string): string {
-  if (categoryName) {
-    const nameLower = categoryName.toLowerCase();
-    if (nameLower.includes('phone') || nameLower.includes('mobile') || nameLower.includes('tablet')) return '📱';
-    if (nameLower.includes('vehicle') || nameLower.includes('car') || nameLower.includes('automotive') || nameLower.includes('bicycle')) return '🚗';
-    if (nameLower.includes('property') || nameLower.includes('estate') || nameLower.includes('real estate') || nameLower.includes('land') || nameLower.includes('house')) return '🏠';
-    if (nameLower.includes('electronic') || nameLower.includes('computer') || nameLower.includes('laptop') || nameLower.includes('tv') || nameLower.includes('camera')) return '💻';
-    if (nameLower.includes('fashion') || nameLower.includes('clothing') || nameLower.includes('apparel') || nameLower.includes('shoe') || nameLower.includes('bag')) return '👕';
-    if (nameLower.includes('service') || nameLower.includes('professional')) return '🛠️';
-    if (nameLower.includes('furniture') || nameLower.includes('home')) return '🛋️';
-    if (nameLower.includes('repair') || nameLower.includes('maintenance')) return '🔧';
-    if (nameLower.includes('health') || nameLower.includes('beauty') || nameLower.includes('spa')) return '💄';
-    if (nameLower.includes('sport') || nameLower.includes('fitness') || nameLower.includes('gym')) return '⚽';
-    if (nameLower.includes('baby') || nameLower.includes('kid') || nameLower.includes('children')) return '👶';
-    if (nameLower.includes('job') || nameLower.includes('employment')) return '💼';
-    if (nameLower.includes('agriculture') || nameLower.includes('farm') || nameLower.includes('garden')) return '🌾';
-    if (nameLower.includes('shop') || nameLower.includes('store')) return '🛒';
-    if (nameLower.includes('food') || nameLower.includes('catering') || nameLower.includes('restaurant')) return '🍔';
-    if (nameLower.includes('music') || nameLower.includes('instrument')) return '🎵';
-  }
+function getCategoryIcon(icon: string | undefined): string {
   if (!icon) return '📦';
-  return categoryIconMap[icon] || '📦';
+  return icon;
 }
 
 function highlightMatch(text: string, query: string): React.ReactNode {
@@ -469,7 +417,7 @@ export default function SearchBar({
                   onClick={() => handleResultClick('category', cat)}
                   className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
                 >
-                  <span className="text-xl">{getCategoryIcon(cat.icon, cat.name)}</span>
+                  <span className="text-xl">{getCategoryIcon(cat.icon)}</span>
                   <span className="text-sm text-gray-900">
                     {highlightMatch(cat.name, query)}
                   </span>
@@ -540,7 +488,7 @@ export default function SearchBar({
           <p className="text-xs font-semibold text-gray-500 px-3 py-2 uppercase flex items-center gap-1">
             <TrendingUp className="w-3 h-3" /> Trending
           </p>
-          {(results?.trending || defaultTrending).map((item, idx) => (
+          {(results?.trending || []).map((item, idx) => (
             <button
               key={idx}
               onClick={() => {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { Search, TrendingUp, Loader2, RefreshCw, BarChart3 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const fetcher = (url: string) => fetch(url).then(r => r.json()).catch(() => null);
 
 interface SearchTerm {

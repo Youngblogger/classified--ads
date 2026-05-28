@@ -82,8 +82,8 @@ export default function MessagesPage() {
   const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await messagesApi.getConversations().catch(() => ({ data: { data: [] } }));
-      let data = res.data?.data || res.data || [];
+      const res = await messagesApi.getConversations();
+      let data = (res.data as any)?.data || (res.data as any) || [];
       
       if (filter === 'reported') {
         data = data.filter((c: Conversation) => c.is_reported || (c.report_count || 0) > 0);
@@ -104,11 +104,12 @@ export default function MessagesPage() {
     try {
       const res = await adminApi.getDashboard().catch(() => ({ data: null }));
       if (res.data) {
+        const d = res.data as any;
         setStats({
-          total_conversations: res.data.total_conversations || 0,
-          active_today: res.data.active_today || 0,
-          reported_count: res.data.reported_conversations || 0,
-          messages_today: res.data.messages_today || 0,
+          total_conversations: d.total_conversations || 0,
+          active_today: d.active_today || 0,
+          reported_count: d.reported_conversations || 0,
+          messages_today: d.messages_today || 0,
         });
       }
     } catch (error) {
@@ -120,7 +121,7 @@ export default function MessagesPage() {
     try {
       setLoadingMessages(true);
       const res = await messagesApi.getMessages(conversationId);
-      setMessages(res.data.data || res.data || []);
+      setMessages((res.data?.data ?? []) as Message[]);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
       toast.error('Failed to load messages');

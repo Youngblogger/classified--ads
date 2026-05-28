@@ -10,7 +10,7 @@ import { AdGridSkeleton } from '@/components/ui/Skeleton';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 
 import { useAuthStore } from '@/lib/store';
-import { useInfiniteAds } from '@/hooks/useAds';
+import { useInfiniteAds, useCategories } from '@/hooks/useAds';
 import AdCard from '@/components/ui/AdCard';
 import { getBoostPlan, isBoostExpired, calculateBoostScore } from '@/lib/boost-config';
 
@@ -73,17 +73,11 @@ function buildUnifiedFeed(ads: any[]): any[] {
   return result;
 }
 
-const FEATURED_CATEGORIES = [
-  { name: 'Mobile Phones', icon: '📱', count: '2.3k' },
-  { name: 'Vehicles', icon: '🚗', count: '1.5k' },
-  { name: 'Property', icon: '🏠', count: '980' },
-  { name: 'Electronics', icon: '💻', count: '1.8k' },
-  { name: 'Fashion', icon: '👗', count: '1.4k' },
-  { name: 'Jobs', icon: '💼', count: '760' },
-];
+const CATEGORY_COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F97316', '#EC4899', '#06B6D4', '#EF4444', '#F59E0B', '#6366F1', '#14B8A6', '#A855F7', '#F43F5E', '#84CC16', '#0EA5E9', '#D946EF'];
 
 export default function HomePage() {
   const { isAuthenticated, user } = useAuthStore();
+  const { categories: supabaseCategories, isLoading: catLoading } = useCategories();
   const ITEMS_PER_PAGE = 12;
 
   const {
@@ -236,38 +230,26 @@ export default function HomePage() {
         {/* Mobile Categories Showcase */}
         <section className="block md:hidden px-3 pt-1 pb-1">
           <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory -mx-3 px-3 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
-            {[
-              { name: 'Phones & Tablets', color: '#3B82F6', count: '2.3k' },
-              { name: 'Vehicles', color: '#10B981', count: '1.5k' },
-              { name: 'Property', color: '#8B5CF6', count: '980' },
-              { name: 'Electronics', color: '#F97316', count: '1.8k' },
-              { name: 'Fashion', color: '#EC4899', count: '1.4k' },
-              { name: 'Jobs', color: '#06B6D4', count: '760' },
-              { name: 'Appliances', color: '#EF4444', count: '620' },
-              { name: 'Services', color: '#F59E0B', count: '890' },
-            ].map((cat) => (
+            {catLoading ? (
+              [...Array(6)].map((_, i) => (
+                <div key={i} className="snap-start shrink-0 w-[80px] flex flex-col items-center gap-1 bg-white rounded-xl py-2 px-1.5 border border-gray-100/80 shadow-sm animate-pulse">
+                  <div className="w-9 h-9 rounded-lg bg-gray-200" />
+                  <div className="h-3 bg-gray-200 rounded w-12" />
+                </div>
+              ))
+            ) : supabaseCategories.slice(0, 8).map((cat: any, i: number) => (
               <Link
-                key={cat.name}
-                href={`/ads?category=${cat.name.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-')}`}
+                key={cat.id}
+                href={`/ads?category=${cat.slug}`}
                 className="snap-start shrink-0 w-[80px] flex flex-col items-center gap-1 bg-white rounded-xl py-2 px-1.5 border border-gray-100/80 shadow-sm active:scale-95 transition-all duration-150"
               >
                 <div
-                  className="w-9 h-9 rounded-lg overflow-hidden shadow-sm flex items-center justify-center"
-                  style={{ backgroundColor: cat.color }}
+                  className="w-9 h-9 rounded-lg overflow-hidden shadow-sm flex items-center justify-center text-white text-xs font-bold"
+                  style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    {cat.name === 'Phones & Tablets' && <><rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" /></>}
-                    {cat.name === 'Vehicles' && <><path d="M5 17h14M5 17a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.5l2-3h7l2 3H21a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2M5 17a2 2 0 1 0 4 0M19 17a2 2 0 1 0-4 0" /></>}
-                    {cat.name === 'Property' && <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></>}
-                    {cat.name === 'Electronics' && <><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></>}
-                    {cat.name === 'Fashion' && <><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></>}
-                    {cat.name === 'Jobs' && <><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></>}
-                    {cat.name === 'Appliances' && <><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" /></>}
-                    {cat.name === 'Services' && <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>}
-                  </svg>
+                  {cat.name.charAt(0)}
                 </div>
                 <span className="text-[10px] font-semibold text-gray-800 text-center leading-tight line-clamp-2">{cat.name}</span>
-                <span className="text-[8px] text-gray-400 font-medium">{cat.count}</span>
               </Link>
             ))}
           </div>

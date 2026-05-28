@@ -1,5 +1,3 @@
-'use server';
-
 import { supabase } from './supabase';
 
 export interface TrustScoreParams {

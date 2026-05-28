@@ -44,17 +44,19 @@ export default function WriteReviewModal({ sellerId, sellerName, isOpen, onClose
           console.log('Checking eligibility for seller:', sellerId);
           const eligibility = await sellerReviewsApi.canReview(sellerId);
           console.log('Eligibility response:', eligibility.data);
-          setCanReview(eligibility.data.allowed);
-          setCheckError(eligibility.data.allowed ? '' : eligibility.data.reason);
+          const canReviewData = (eligibility.data as any)?.data;
+          setCanReview(canReviewData?.can_review ?? false);
+          setCheckError(canReviewData?.can_review ? '' : (canReviewData?.reason || ''));
           
-          if (eligibility.data.allowed) {
+          if (canReviewData?.can_review) {
             try {
               const review = await sellerReviewsApi.getMyReview(sellerId);
               console.log('Review response:', review.data);
-              if (review.data?.review) {
-                setExistingReview(review.data.review);
-                setRating(review.data.review.rating);
-                setComment(review.data.review.comment || '');
+              const existingReviewData = (review.data as any)?.data;
+              if (existingReviewData) {
+                setExistingReview(existingReviewData);
+                setRating(existingReviewData.rating);
+                setComment(existingReviewData.comment || '');
               }
             } catch (reviewErr: any) {
               console.log('No existing review or error:', reviewErr);

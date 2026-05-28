@@ -25,15 +25,15 @@ function VerifyEmailContent() {
     const verifyEmail = async () => {
       try {
         const res = await emailVerificationApi.verify(token);
-        if (res.data.success) {
+        if ((res.data as any)?.success || (res.data as any)?.data?.message) {
           setStatus('success');
-          setMessage(res.data.message || 'Your email address has been verified successfully.');
+          setMessage((res.data as any)?.message || (res.data as any)?.data?.message || 'Your email address has been verified successfully.');
           if (refreshUser) {
             await refreshUser();
           }
         } else {
           setStatus('error');
-          setMessage(res.data.message || 'Verification failed.');
+          setMessage((res.data as any)?.message || (res.data as any)?.data?.message || 'Verification failed.');
         }
       } catch (err: any) {
         setStatus('error');

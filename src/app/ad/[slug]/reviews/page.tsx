@@ -10,7 +10,7 @@ import WriteReviewModal from '@/components/reviews/WriteReviewModal';
 import { Star, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface Review {
   id: number;

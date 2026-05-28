@@ -87,7 +87,7 @@ export default function BoostManagerPage() {
       setLoading(true);
       setError(null);
       const res = await growthApi.myBoosts();
-      setData(res.data.data);
+      setData((res.data as any)?.data ?? []);
     } catch (err: any) {
       console.error('Failed to load boost data:', err);
       setError('Failed to load boost data. Please try again.');

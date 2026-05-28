@@ -42,7 +42,7 @@ export function trackBoostEvent(event: BoostEvent, payload?: Partial<AnalyticsPa
   }
 
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
     fetch(`${apiUrl}/analytics/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -7,7 +7,6 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 const PROTECTED_ROUTES = [
   '/dashboard',
-  '/post-ad',
   '/ad/edit',
   '/promote',
 ];
@@ -19,9 +18,7 @@ const AUTH_ROUTES = [
 ];
 
 function redirectToLogin(request: NextRequest) {
-  const loginUrl = new URL('/', request.url);
-  loginUrl.searchParams.set('login', 'required');
-  return NextResponse.redirect(loginUrl);
+  return NextResponse.redirect(new URL('/', request.url));
 }
 
 export async function middleware(request: NextRequest) {
@@ -35,8 +32,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const hasSupabaseConfig = supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://your-project-id.supabase.co';
-
-  let hasSupabaseSession = false;
+  let hasSession = false;
 
   if (hasSupabaseConfig) {
     const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -53,14 +49,8 @@ export async function middleware(request: NextRequest) {
     });
 
     const { data: { session } } = await supabaseClient.auth.getSession();
-    hasSupabaseSession = !!session;
+    hasSession = !!session;
   }
-
-  const legacyToken = request.cookies.get('token')?.value;
-  const userAuthStorage = request.cookies.get('user-auth-storage')?.value;
-  const hasLegacySession = !!legacyToken || !!userAuthStorage;
-
-  const hasSession = hasSupabaseSession || (hasSupabaseConfig ? false : hasLegacySession);
 
   if (isProtected && !hasSession) {
     return redirectToLogin(request);

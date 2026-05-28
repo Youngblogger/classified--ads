@@ -111,7 +111,8 @@ export async function getVerificationRequests(userId: string) {
     .from('verification_requests')
     .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(20);
 
   if (error) {
     return { requests: [], error: { message: error.message } };

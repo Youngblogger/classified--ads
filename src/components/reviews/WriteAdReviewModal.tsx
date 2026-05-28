@@ -5,7 +5,7 @@ import { Star, X, Loader2 } from 'lucide-react';
 import { getAuthToken } from '@/lib/cookies';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface WriteAdReviewModalProps {
   adId: number;

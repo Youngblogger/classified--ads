@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import {
   Facebook,
   Instagram,
   ArrowRight,
   Search
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const XIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -17,20 +19,21 @@ const XIcon = ({ className }: { className?: string }) => (
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function Footer() {
+  const [categoryLinks, setCategoryLinks] = useState<{ label: string; href: string }[]>([]);
+
+  useEffect(() => {
+    supabase.from('categories').select('name, slug').order('sort_order').limit(8).then(({ data }) => {
+      if (data && data.length > 0) {
+        setCategoryLinks(data.map((c: any) => ({ label: c.name, href: `/ads?category=${c.slug}` })));
+      }
+    });
+  }, []);
+
   const companyLinks = [
     { label: 'About Us', href: '/about' },
     { label: 'Careers', href: '/careers' },
     { label: 'Blog', href: '/blog' },
     { label: 'Press', href: '/press' },
-  ];
-
-  const categoryLinks = [
-    { label: 'Vehicles', href: '/ads?category=vehicles' },
-    { label: 'Property', href: '/ads?category=property' },
-    { label: 'Mobile Phones', href: '/ads?category=mobile-phones' },
-    { label: 'Electronics', href: '/ads?category=electronics' },
-    { label: 'Jobs', href: '/ads?category=jobs' },
-    { label: 'Fashion', href: '/ads?category=fashion' },
   ];
 
   const supportLinks = [

@@ -2,23 +2,22 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   X, ChevronRight, Menu, ChevronLeft, Search, TrendingUp, Star,
-  Clock, Sparkles, Zap, Award, Flame, Eye, History,
-  ArrowUpDown, Hash, Tag, Package
+  Sparkles, Zap, Award, Flame
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { API_URL } from '@/lib/config';
+import { supabase } from '@/lib/supabase';
 import { getCategoryIcon } from '@/lib/categoryIcons';
-import useSWR from 'swr';
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   icon?: string;
   image?: string;
-  parent_id?: number | null;
+  parent_id?: string | null;
   ad_count?: number;
   level?: number;
   is_featured?: boolean;
@@ -34,9 +33,6 @@ interface MegaMenuData {
   trending: Category[];
   recently_added: Category[];
 }
-
-const fetcher = (url: string) =>
-  fetch(url).then(r => r.json()).then(r => r.data || []);
 
 const STORAGE_KEY = 'recently_viewed_cats';
 const MAX_RECENT = 8;
@@ -58,21 +54,6 @@ function addRecentlyViewed(cat: Category): void {
   } catch { /* ignore */ }
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  vehicles: '\u{1F697}', cars: '\u{1F697}', suvs: '\u{1F697}', sedans: '\u{1F697}',
-  'mobile-phones': '\u{1F4F1}', smartphones: '\u{1F4F1}', tablets: '\u{1F4FA}',
-  property: '\u{1F3E0}',
-  electronics: '\u{1F4BB}', laptops: '\u{1F4BB}', tvs: '\u{1F4FA}', cameras: '\u{1F4F7}',
-  fashion: '\u{1F455}',
-  'home-furniture': '\u{1F6CF}', furniture: '\u{1F6CF}',
-  services: '\u{1F6E0}',
-  jobs: '\u{1F4BC}',
-  'health-beauty': '\u{1F484}',
-  sports: '\u{26BD}',
-  'baby-kids': '\u{1F476}',
-  pets: '\u{1F436}', dogs: '\u{1F436}', cats: '\u{1F431}',
-};
-
 const CATEGORY_BG: Record<string, string> = {
   vehicles: 'bg-emerald-50', 'mobile-phones': 'bg-blue-50',
   property: 'bg-violet-50', electronics: 'bg-amber-50',
@@ -81,19 +62,6 @@ const CATEGORY_BG: Record<string, string> = {
   'health-beauty': 'bg-rose-50', sports: 'bg-green-50',
   'baby-kids': 'bg-yellow-50', pets: 'bg-lime-50',
 };
-
-function getIcon(slug?: string, name?: string): string {
-  if (slug) {
-    const lower = slug.toLowerCase();
-    for (const [key, icon] of Object.entries(CATEGORY_ICONS))
-      if (lower === key || lower.includes(key)) return icon;
-  }
-  if (name) {
-    for (const [key, icon] of Object.entries(CATEGORY_ICONS))
-      if (name.toLowerCase().includes(key)) return icon;
-  }
-  return '\u{1F4E6}';
-}
 
 function getBg(name?: string): string {
   if (!name) return 'bg-gray-50';
@@ -240,17 +208,36 @@ export default function EnterpriseSidebar() {
   const [showSearch, setShowSearch] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState<Category[]>([]);
   const [focusedCatIndex, setFocusedCatIndex] = useState(-1);
+  const [apiData, setApiData] = useState<MegaMenuData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const subPanelRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: apiData, isLoading } = useSWR<MegaMenuData>(
-    `${API_URL}/categories/mega-menu`,
-    (url: string) => fetch(url).then(r => r.json()).then(r => r.data as MegaMenuData),
-    { revalidateOnFocus: false, dedupingInterval: 60000 }
-  );
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const { data: parents } = await supabase.from('categories').select('*').is('parent_id', null).order('sort_order').limit(20);
+      const tree: Category[] = [];
+      for (const p of parents || []) {
+        const { data: subs } = await supabase.from('subcategories').select('*').eq('category_id', p.id).order('sort_order');
+        tree.push({
+          id: p.id, name: p.name, slug: p.slug, icon: p.icon || undefined, image: p.image || undefined,
+          ad_count: 0, children: (subs || []).map(s => ({
+            id: s.id, name: s.name, slug: s.slug, parent_id: p.id, ad_count: 0,
+          })),
+        });
+      }
+      if (mounted) {
+        setApiData({ tree, featured: [], trending: [], recently_added: [] });
+        setIsLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => { setRecentlyViewed(getRecentlyViewed()); }, []);
 
@@ -263,7 +250,7 @@ export default function EnterpriseSidebar() {
   }, [tree]);
 
   const parentLookup = useMemo(() => {
-    const map = new Map<number, Category>();
+    const map = new Map<number | string, Category>();
     const walk = (cats: Category[], parent?: Category) => {
       for (const cat of cats) {
         if (parent) map.set(cat.id, parent);
@@ -391,7 +378,7 @@ export default function EnterpriseSidebar() {
     }
   }, [mobileBreadcrumbs]);
   const handleMobileBack = useCallback(() => setMobileBreadcrumbs(prev => prev.slice(0, -1)), []);
-  const handleSearchResult = useCallback((cat: Category) => {
+  const handleSearchResult = useCallback((_cat: Category) => {
     setSearchQuery('');
     setShowSearch(false);
     closeAll();
@@ -443,8 +430,8 @@ export default function EnterpriseSidebar() {
     const dim = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7';
     if (cat.image) {
       return (
-        <span className={cn('flex-shrink-0 flex items-center justify-center rounded-lg overflow-hidden', dim)}>
-          <img src={cat.image} alt="" className="w-full h-full object-cover" loading="lazy" />
+        <span className={cn('flex-shrink-0 flex items-center justify-center rounded-lg overflow-hidden relative', dim)}>
+          <Image src={cat.image} alt="" fill className="object-cover" sizes="28px" />
         </span>
       );
     }
@@ -458,12 +445,10 @@ export default function EnterpriseSidebar() {
 
   return (
     <>
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-[200] bg-black/40 lg:hidden" onClick={() => { setMobileOpen(false); setMobileBreadcrumbs([]); }} />
       )}
 
-      {/* Mobile drawer */}
       <div className={cn(
         'fixed top-0 left-0 bottom-0 z-[201] w-[300px] max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-out lg:hidden flex flex-col',
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
@@ -501,7 +486,6 @@ export default function EnterpriseSidebar() {
         </div>
       </div>
 
-      {/* Tablet toggle */}
       <button onClick={() => setTabletOpen(!tabletOpen)}
         className="hidden md:flex lg:hidden fixed left-3 z-40 w-10 h-10 bg-white rounded-xl shadow-md border border-gray-200 items-center justify-center hover:bg-gray-50 transition-colors"
         style={{ top: '130px' }} aria-label="Categories">
@@ -535,7 +519,6 @@ export default function EnterpriseSidebar() {
         </div>
       </div>
 
-      {/* Desktop sidebar */}
       <aside
         ref={sidebarRef}
         onMouseLeave={handleCatLeave}
@@ -548,7 +531,6 @@ export default function EnterpriseSidebar() {
         <div className="bg-white rounded-xl border border-gray-100/80 shadow-sm flex flex-col overflow-hidden"
           style={{ maxHeight: 'calc(100vh - 104px - 32px)' }}
         >
-          {/* Header with search toggle */}
           <div className="px-3 py-2.5 border-b border-gray-50 flex items-center justify-between flex-shrink-0">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">All Categories</h3>
             <button
@@ -560,7 +542,6 @@ export default function EnterpriseSidebar() {
             </button>
           </div>
 
-          {/* Inline search */}
           {showSearch && (
             <div className="px-3 py-2 border-b border-gray-50 flex-shrink-0">
               <div className="relative">
@@ -585,7 +566,6 @@ export default function EnterpriseSidebar() {
                 )}
               </div>
 
-              {/* Search results */}
               {searchQuery && (
                 <div className="mt-2 max-h-48 overflow-y-auto space-y-0.5">
                   {searchResults.length === 0 ? (
@@ -611,7 +591,6 @@ export default function EnterpriseSidebar() {
             </div>
           )}
 
-          {/* Category list - fills remaining space */}
           <div
             className="flex-1 overflow-y-auto"
             style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}
@@ -679,7 +658,6 @@ export default function EnterpriseSidebar() {
         </div>
       </aside>
 
-      {/* Mega Panel - Level 2 (vertical nav list) */}
       {displayCat && subs.length > 0 && (
         <div
           ref={subPanelRef}
@@ -693,7 +671,6 @@ export default function EnterpriseSidebar() {
             maxHeight: `${Math.min(panelPos.maxHeight, window.innerHeight - 128)}px`,
           }}
         >
-          {/* Header */}
           <Link
             href={`/ads?category=${displayCat.slug}`}
             onClick={() => addRecentlyViewed(displayCat)}
@@ -711,7 +688,6 @@ export default function EnterpriseSidebar() {
             </div>
           </Link>
 
-          {/* Vertical nav list */}
           <div className="overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
             {subs.map(sub => (
               <Link
@@ -725,7 +701,6 @@ export default function EnterpriseSidebar() {
               </Link>
             ))}
 
-            {/* Trending */}
             {trending.length > 0 && (
               <div className="px-3 py-2 border-t border-gray-100 bg-gray-50/40">
                 <div className="flex items-center gap-1.5 mb-1.5">
@@ -750,9 +725,6 @@ export default function EnterpriseSidebar() {
           </div>
         </div>
       )}
-
-
-
     </>
   );
 }

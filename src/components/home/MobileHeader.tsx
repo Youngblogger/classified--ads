@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, Bell, User, ChevronDown, Menu, X } from 'lucide-react';
 import { useGlobalStore, useUIStore, useAuthStore } from '@/lib/store';
@@ -79,7 +80,7 @@ export default function MobileHeader() {
         <div className="flex items-center justify-between h-12 px-3">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <img src="/icons/iList-white.png" alt="iList" className="h-7 w-auto" />
+            <Image src="/icons/iList-white.png" alt="iList" width={28} height={28} className="h-7 w-auto" priority />
           </Link>
 
           {/* Right Actions */}
@@ -119,7 +120,7 @@ export default function MobileHeader() {
                         {(() => {
                           const avatarUrl = getUserAvatarUrl(user);
                           return avatarUrl ? (
-                            <img src={avatarUrl} alt="" className="object-cover w-full h-full" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            <Image src={avatarUrl} alt="" fill className="object-cover" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} sizes="32px" />
                           ) : (
                             <span className="text-white font-semibold text-xs">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                           );

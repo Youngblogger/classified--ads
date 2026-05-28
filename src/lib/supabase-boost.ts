@@ -97,7 +97,8 @@ export async function getUserBoostedListings(userId: string) {
       listing:listings(id, title, slug, price, images:listing_images(*), status)
     `)
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(50);
 
   if (error) {
     return { boosts: [], error: { message: error.message } };

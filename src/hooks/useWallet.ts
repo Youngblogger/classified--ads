@@ -11,9 +11,9 @@ export function useWalletBalance() {
     queryFn: async () => {
       const res = await walletApi.getBalance();
       return {
-        balance: Number(res.data?.balance ?? 0),
-        availableBalance: Number(res.data?.available_balance ?? res.data?.balance ?? 0),
-        pendingBalance: Number(res.data?.pending_balance ?? 0),
+        balance: Number(res.data?.data?.balance ?? 0),
+        availableBalance: Number(res.data?.data?.balance ?? 0),
+        pendingBalance: 0,
       };
     },
     staleTime: 30_000,

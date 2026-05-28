@@ -83,14 +83,14 @@ export default function StoreProfilePage() {
       setLoading(true);
       setError('');
       const res = await storeApi.getBySlug(slug);
-      const data = res.data.data || res.data;
+      const data = (res.data as any)?.data ?? null;
       setStore(data);
       setFollowerCount(data.followers_count || 0);
 
       if (isAuthenticated && data.user_id !== authUser?.id) {
         try {
           const followRes = await storeApi.checkFollow(data.id);
-          setIsFollowing(followRes.data.is_following || followRes.data.following || false);
+          setIsFollowing((followRes.data as any)?.data?.is_following || (followRes.data as any)?.data?.following || false);
         } catch {}
       }
     } catch (err: any) {

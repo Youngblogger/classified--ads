@@ -46,6 +46,7 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: 'User Management', href: '/admin/users', icon: Users },
+  { name: 'Verifications', href: '/admin/verifications', icon: Shield },
   { name: 'Ad Quality & Moderation', href: '/admin/ads-moderation', icon: CheckCircle },
   { name: 'Ad Approval Settings', href: '/admin/ads/approval', icon: CheckCircle },
   { name: 'Categories', href: '/admin/categories', icon: FolderTree },
@@ -113,7 +114,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/secure-control-9ja/auth/logout`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/secure-control-9ja/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -273,7 +274,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setInitialTokenChecked(true);
         setAuthChecked(true);
         
-        adminApiClient.get('/secure-control-9ja/auth/me').then(response => {
+        adminApiClient.get('/secure-control-9ja/auth/me').then((response: any) => {
           if (response.data?.user?.role !== 'admin') {
             adminLogout();
             setIsVerified(false);
@@ -296,7 +297,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       try {
         setNotificationsLoading(true);
         const adminToken = localStorage.getItem('admin_token');
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/secure-control-9ja/notifications`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/secure-control-9ja/notifications`, {
           headers: {
             'Authorization': `Bearer ${adminToken}`,
             'Accept': 'application/json',

@@ -84,7 +84,7 @@ export default function ReferralsPage() {
     }, 10000);
     
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
       const token = localStorage.getItem('authToken');
       
       console.log('Token exists:', !!token);
@@ -165,7 +165,7 @@ export default function ReferralsPage() {
 
     setApplyingCode(true);
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
       const token = localStorage.getItem('authToken');
       const res = await fetch(`${API_URL}/referral/apply`, {
         method: 'POST',
@@ -195,7 +195,7 @@ export default function ReferralsPage() {
   const spendCredits = async (featureId: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const res = await fetch('http://localhost:8000/api/credits/use', {
+      const res = await fetch('', {
         method: 'POST',
         headers: {
           'Accept': 'application/json',

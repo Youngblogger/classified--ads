@@ -1,74 +1,57 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/lib/store';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { Loader2 } from 'lucide-react';
 
 function GoogleCallbackContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { login } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const exchangeCodeForToken = async () => {
-      const code = searchParams.get('code');
-      const errorParam = searchParams.get('error');
-      const errorDescription = searchParams.get('error_description');
+    let cancelled = false;
 
-      if (errorParam || errorDescription) {
-        setError(errorDescription || errorParam || 'Authentication failed');
-        return;
-      }
-
-      if (!code) {
-        setError('No authorization code received');
-        return;
-      }
-
+    async function handleCallback() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-        const response = await fetch(`${apiUrl}/auth/google`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({ code }),
-        });
+        const queryParams = new URLSearchParams(window.location.search);
+        const code = queryParams.get('code');
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to authenticate with Google');
+        if (code) {
+          await supabase.auth.exchangeCodeForSession(code);
         }
 
-        login(data.user, data.token);
-        
-        const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
-        localStorage.removeItem('authRedirect');
-        sessionStorage.removeItem('authRedirect');
-        window.location.href = redirectTo;
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
-        setError(errorMessage);
-      }
-    };
+        for (let i = 0; i < 10; i++) {
+          if (cancelled) return;
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
+            localStorage.removeItem('authRedirect');
+            sessionStorage.removeItem('authRedirect');
+            if (!cancelled) window.location.href = redirectTo;
+            return;
+          }
+          if (i < 9) await new Promise(r => setTimeout(r, 1500));
+        }
 
-    exchangeCodeForToken();
-  }, [searchParams, login, router]);
+        setError('Authentication completed but session could not be established. Please try again.');
+      } catch {
+        setError('An error occurred during authentication. Please try again.');
+      }
+    }
+
+    handleCallback();
+    return () => { cancelled = true; };
+  }, []);
 
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="text-red-500 mb-4 text-lg">Authentication Failed</div>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="text-primary-600 hover:text-primary-700"
-          >
-            Go back to home
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="text-red-500 mb-4 text-lg font-semibold">Authentication Failed</div>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button onClick={() => router.push('/')} className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors">
+            Go to Home
           </button>
         </div>
       </div>
@@ -78,7 +61,8 @@ function GoogleCallbackContent() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
-        <p className="text-gray-600">Completing Google login...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600 mx-auto mb-4" />
+        <p className="text-gray-600">Completing Google login, please wait...</p>
       </div>
     </div>
   );
@@ -88,6 +72,7 @@ export default function GoogleCallbackPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600 mx-auto mb-4" />
         <p className="text-gray-600">Loading...</p>
       </div>
     }>

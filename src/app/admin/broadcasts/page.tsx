@@ -46,7 +46,7 @@ export default function BroadcastsPage() {
     try {
       setLoading(true);
       const res = await adminApi.getBroadcasts();
-      setBroadcasts(res.data.data || res.data || []);
+      setBroadcasts((res.data as any)?.data ?? []);
     } catch (error) {
       console.error('Failed to fetch broadcasts:', error);
       toast.error('Failed to load broadcasts');

@@ -9,7 +9,7 @@ import { useSocket } from '@/hooks/useSocket';
 import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 function getStorageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -194,7 +194,7 @@ export default function MessagesPage() {
     onMessageRead: handleMessageRead,
   });
 
-  const { joinConversation, leaveConversation, sendMessage, isUserOnline, markRead } = socket;
+  const { joinConversation, leaveConversation, sendMessage, isUserOnline, markRead } = socket as any;
 
   const fetchConversations = async () => {
     try {
@@ -214,7 +214,7 @@ export default function MessagesPage() {
     try {
       setLoadingMessages(true);
       const res = await messagesApi.getMessages(conversationId);
-      const data = res.data?.data || res.data || [];
+      const data = ((res.data as any)?.data ?? []) as any[];
       setMessages(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
@@ -461,7 +461,7 @@ export default function MessagesPage() {
       
       // Update optimistic message with real one
       setMessages(prev => prev.map(msg => 
-        msg.id === tempId ? { ...newMessage, status: 'sent' } : msg
+        msg.id === tempId ? { ...(newMessage as any), status: 'sent' } as Message : msg
       ));
 
       sendMessage({
@@ -630,9 +630,9 @@ export default function MessagesPage() {
 
     try {
       const res = await messagesApi.sendMessage(selectedConversation.id, messageInput.trim());
-      const newMessage = res.data;
+      const newMessage = (res.data as any)?.data || res.data;
       
-      sendMessage({
+      (sendMessage as any)({
         conversationId: selectedConversation.id.toString(),
         message: newMessage,
         receiverId: receiverId,
@@ -679,9 +679,9 @@ export default function MessagesPage() {
     try {
       const messageType = file.type.startsWith('image/') ? 'image' : 'file';
       const res = await messagesApi.sendMessage(selectedConversation.id, `Sent a ${messageType}`, file, messageType);
-      const newMessage = res.data;
+      const newMessage = (res.data as any)?.data || res.data;
 
-      sendMessage({
+      (sendMessage as any)({
         conversationId: selectedConversation.id.toString(),
         message: newMessage,
         receiverId: receiverId,

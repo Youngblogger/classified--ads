@@ -30,7 +30,7 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
         const fetchCategories = async () => {
           try {
             const data = await categoriesApi.getAll();
-            const categoriesArray = data.data?.data || data.data || data;
+            const categoriesArray = (data.data as any)?.data ?? [];
             setCategories(categoriesArray);
             setFilteredCategories(categoriesArray);
           } catch (error) {
@@ -129,93 +129,8 @@ export default function CategoryPopup({ isOpen, onClose }: CategoryPopupProps) {
   });
 
   const getCategoryIcon = (slug: string, icon?: string) => {
-    // Use stored icon if available and not a Lucide icon name
-    if (icon && !icon.includes('-') && !/^[a-z]+$/.test(icon)) {
-      return icon;
-    }
-    
-    // Try to find icon by slug match
-    const icons: Record<string, string> = {
-      'electronics': '📱',
-      'computers-laptops': '💻',
-      'vehicles': '🚗',
-      'property': '🏠',
-      'jobs': '💼',
-      'fashion': '👕',
-      'phones-accessories': '📞',
-      'home-furniture': '🛋️',
-      'beauty-health': '💄',
-      'health-beauty': '💄',
-      'babies-kids': '👶',
-      'baby-kids': '👶',
-      'pets': '🐾',
-      'pets-animals': '🐾',
-      'sports': '🏋️',
-      'sports-fitness': '🏋️',
-      'mobile-phones': '📱',
-      'gaming': '🎮',
-      'agriculture': '🌾',
-      'services': '🔧',
-      'industrial-equipment': '🏭',
-      'education': '📚',
-      'events-entertainment': '🎉',
-      'food-catering': '🍽️',
-      'logistics-delivery': '🚚',
-      'freelance-remote-work': '💻',
-      'music-instruments': '🎵',
-      'repair-services': '🛠️',
-      'travel-tourism': '✈️',
-      'books-media': '📖',
-      'office-products': '📎',
-      'automotive': '🚙',
-      'real-estate': '🏢',
-      'agriculture-farming': '🌱',
-      'music-entertainment': '🎧',
-      'insurance-finance': '💰',
-      'telecommunications': '📡',
-      'security-safety': '🛡️',
-      'art-collectibles': '🎨',
-      'wedding-events': '💒',
-      'religious-items': '✝️',
-      'veterinary-pet-care': '🏥',
-      'medical-healthcare': '⚕️',
-      'legal-services': '⚖️',
-      'media-advertising': '📢',
-      'energy-utilities': '⚡',
-      'construction-building': '🏗️',
-      'hair-beauty': '💅',
-      'printing-publishing': '🖨️',
-      'car-rentals-transport': '🚌',
-      'ngo-charity': '❤️',
-      'wholesale-bulk': '📦',
-      'movers-storage': '🏠',
-      'catering-restaurants': '🍴',
-      'photography-video': '📷',
-      'cleaning-services': '🧹',
-      'maintenance-services': '🔨',
-      'import-export': '🚢',
-      'wellness-spa': '🧖',
-      'consulting-professional': '👔',
-      'hobbies-interests': '🎯',
-      'technology-it': '🤖',
-      'fashion-style': '👔',
-      'business-opportunities': '💡',
-      'tools-equipment': '🔧',
-      'wine-spirits': '🍷',
-      'coffee-tea': '☕',
-      'supermarkets-groceries': '🛒',
-      'laundry-dry-cleaning': '👔',
-      'petrol-gas': '⛽',
-      'marine-boats': '⚓',
-      'aviation-aerospace': '🛫',
-      'mining-quarrying': '⛏️',
-      'oil-gas': '🛢️',
-      'textiles-fabrics': '🧵',
-      'leather-goods': '👜',
-      'packaging-labels': '📦',
-      'chemicals-industrial': '🧪',
-    };
-    return icons[slug] || '📁';
+    if (icon) return icon;
+    return '📁';
   };
 
   if (!isOpen) return null;

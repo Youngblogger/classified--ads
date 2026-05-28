@@ -14,7 +14,7 @@ import { useSearchInfinite } from '@/hooks/useAds';
 import { useDebounce } from '@/hooks/useDebounce';
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const fetcher = async (url: string) => {
   try {
     const response = await fetch(url);

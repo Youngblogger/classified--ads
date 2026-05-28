@@ -87,10 +87,10 @@ export default function PaymentsPage() {
         adminApi.getFinancialSummary(),
       ]);
 
-      const payments = paymentsRes.data?.data || paymentsRes.data || [];
+      const payments = (paymentsRes.data as any)?.data || (paymentsRes.data as any) || [];
       setPayments(Array.isArray(payments) ? payments : []);
-      if (summaryRes.data?.summary) {
-        setSummary(summaryRes.data.summary);
+      if ((summaryRes.data as any)?.summary) {
+        setSummary((summaryRes.data as any).summary);
       }
     } catch (error) {
       console.error('Failed to fetch payments:', error);

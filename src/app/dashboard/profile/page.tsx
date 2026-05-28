@@ -22,7 +22,7 @@ import {
   Key, Smartphone, Loader2, Info, Gift, Activity, Globe, Wifi, WifiOff
 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const BACKEND_URL = API_URL.replace('/api', '');
 
 type TabId = 'overview' | 'info' | 'photo' | 'security' | 'activity' | 'account';

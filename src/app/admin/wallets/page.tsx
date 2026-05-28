@@ -63,9 +63,9 @@ export default function WalletsPage() {
         adminApi.getWallets().catch(() => ({ data: { data: [] } })),
         adminApi.getAdminWallet().catch(() => ({ data: { wallet: null } })),
       ]);
-      setWallets(walletsRes.data.data || walletsRes.data || []);
-      if (adminWalletRes.data?.wallet) {
-        setAdminWallet(adminWalletRes.data.wallet);
+      setWallets((walletsRes.data as any)?.data ?? []);
+      if ((adminWalletRes.data as any)?.wallet) {
+        setAdminWallet((adminWalletRes.data as any).wallet);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -81,7 +81,7 @@ export default function WalletsPage() {
       // Using getWallets with params if supported, otherwise just use wallets data
       const res = await adminApi.getWallets({ user_id: walletId.toString() });
       // For now, just show transactions from the API response if available
-      setTransactions(res.data.transactions || []);
+      setTransactions((res.data as any)?.transactions ?? []);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     } finally {

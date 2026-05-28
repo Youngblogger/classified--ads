@@ -69,7 +69,7 @@ export default function FavoritesPage() {
     try {
       setLoading(true);
       const res = await favoritesApi.getAll();
-      setFavorites(res.data.data || res.data || []);
+      setFavorites((res.data as any)?.data ?? []);
     } catch {
       toast.error('Failed to load favorites');
     } finally {

@@ -520,7 +520,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
       setFieldsLoading(true);
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}/categories/${categoryId}/fields`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/categories/${categoryId}/fields`);
         const data = await response.json();
         if (data.flat && Array.isArray(data.flat)) {
           setCategoryFields(data.flat);
@@ -574,7 +574,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     // Fetch categories from API
     const fetchCategories = async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
         const catsRes = await fetch(`${API_URL}/categories`);
         const catsData = await catsRes.json();
         
@@ -812,13 +812,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     }
 
     if (!isAuthenticated) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('authRedirect', '/post-ad');
-        sessionStorage.setItem('authRedirect', '/post-ad');
-      }
-      toast.error('Please login to post an ad.');
       localStorage.setItem('authRedirect', '/post-ad');
       sessionStorage.setItem('authRedirect', '/post-ad');
+      toast.error('Please login to post an ad.');
       toggleLoginModal();
       return;
     }
@@ -874,8 +870,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       const response = await adsApi.create(formData);
       
       setSubmissionStep('finalizing');
-      const adSlug = response.data?.slug || response.data?.data?.slug;
-      const adId = response.data?.id || response.data?.data?.id;
+      const adSlug = (response.data as any)?.data?.slug || (response.data as any)?.slug;
+      const adId = (response.data as any)?.data?.id || (response.data as any)?.id;
       
       // Reset form
       setStep(1);

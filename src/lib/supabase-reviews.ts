@@ -28,7 +28,8 @@ export async function getUserReviews(userId: string) {
     .select('*, reviewer:profiles(id, full_name, username, avatar_url)')
     .eq('target_user_id', userId)
     .eq('is_approved', true)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(50);
 
   if (error) {
     return { reviews: [], error: { message: error.message } };
@@ -43,7 +44,8 @@ export async function getListingReviews(listingId: string) {
     .select('*, reviewer:profiles(id, full_name, username, avatar_url)')
     .eq('listing_id', listingId)
     .eq('is_approved', true)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(50);
 
   if (error) {
     return { reviews: [], error: { message: error.message } };

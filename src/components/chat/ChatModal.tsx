@@ -1,16 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Mic, Square, Play, Pause, Trash2, ImageIcon } from 'lucide-react';
+import { X, Mic, Square, Play, Pause, Trash2, ImageIcon, Star } from 'lucide-react';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
-import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 import Image from 'next/image';
 import { useAuthStore } from '@/lib/store';
 import { useSocket } from '@/hooks/useSocket';
 import { messagesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const BACKEND_URL = API_URL.replace('/api', '');
 
 // Get image URL - handles all URL formats from backend
@@ -94,8 +93,10 @@ interface ChatModalProps {
   sellerAvatar?: string;
   sellerVerified?: boolean;
   isVerifiedSeller?: boolean;
-  isVerifiedBusiness?: boolean;
   conversationId?: number;
+  sellerRating?: number;
+  sellerResponseTime?: string;
+  sellerTotalSales?: number;
 }
 
 export default function ChatModal({
@@ -108,8 +109,10 @@ export default function ChatModal({
   sellerAvatar,
   sellerVerified,
   isVerifiedSeller,
-  isVerifiedBusiness,
   conversationId: initialConversationId,
+  sellerRating,
+  sellerResponseTime,
+  sellerTotalSales,
 }: ChatModalProps) {
   const { user, isAuthenticated } = useAuthStore();
   const [conversationId, setConversationId] = useState<number | null>(initialConversationId || null);
@@ -221,7 +224,7 @@ export default function ChatModal({
           adId,
           ''
         );
-        setConversationId(response.data.conversation_id);
+        setConversationId((response.data as any)?.data?.conversation_id);
       } catch (error: any) {
         console.error('Error creating conversation:', error);
         console.error('Error response data:', error.response?.data);
@@ -240,7 +243,7 @@ export default function ChatModal({
     setIsLoading(true);
     try {
       const response = await messagesApi.getMessages(conversationId);
-      const fetchedMessages = response.data.data || response.data || [];
+      const fetchedMessages = (response.data as any)?.data ?? [];
       
       // Deduplicate messages based on ID and content
       const deduplicated = fetchedMessages.reduce((acc: Message[], msg: any) => {
@@ -431,8 +434,8 @@ export default function ChatModal({
       URL.revokeObjectURL(audioUrlToSend);
 
       // Update conversation ID if new
-      if (!conversationId && response.data.conversation_id) {
-        setConversationId(response.data.conversation_id);
+      if (!conversationId && (response.data as any)?.data?.conversation_id) {
+        setConversationId((response.data as any)?.data?.conversation_id);
       }
 
 
@@ -443,32 +446,32 @@ export default function ChatModal({
         const withoutTemp = prev.filter(msg => msg.id !== tempId);
         
         // Check if the real message already exists (from socket)
-        const exists = withoutTemp.some(msg => msg.id === response.data.id && response.data.id > 0);
+        const exists = withoutTemp.some(msg => msg.id === (response.data as any)?.data?.id && (response.data as any)?.data?.id > 0);
         if (exists) {
           // Update existing message if needed
           return withoutTemp.map(msg => 
-            msg.id === response.data.id ? { 
+            msg.id === (response.data as any)?.data?.id ? { 
               ...msg, 
-              ...response.data, 
+              ...(response.data as any)?.data,
               status: 'sent',
-              message_type: response.data.message_type || 'voice',
-              audio_url: response.data.audio_url || response.data.attachment_url,
-              attachment_url: response.data.attachment_url || response.data.audio_url
+              message_type: (response.data as any)?.data?.message_type || 'voice',
+              audio_url: (response.data as any)?.data?.audio_url || (response.data as any)?.data?.attachment_url,
+              attachment_url: (response.data as any)?.data?.attachment_url || (response.data as any)?.data?.audio_url
             } : msg
           );
         }
         
         // Add the real message
         return [...withoutTemp, { 
-          ...response.data, 
+          ...(response.data as any)?.data,
           status: 'sent',
-          message_type: response.data.message_type || 'voice',
-          audio_url: response.data.audio_url || response.data.attachment_url,
-          attachment_url: response.data.attachment_url || response.data.audio_url
+          message_type: (response.data as any)?.data?.message_type || 'voice',
+          audio_url: (response.data as any)?.data?.audio_url || (response.data as any)?.data?.attachment_url,
+          attachment_url: (response.data as any)?.data?.attachment_url || (response.data as any)?.data?.audio_url
         }];
       });
 
-      const convIdForSocket = response.data.conversation_id?.toString() || conversationId?.toString() || '-1';
+      const convIdForSocket = (response.data as any)?.data?.conversation_id?.toString() || conversationId?.toString() || '-1';
       sendMessage({
         conversationId: convIdForSocket,
         message: response.data,
@@ -593,8 +596,8 @@ export default function ChatModal({
 
 
       // Update conversation ID if this was a new conversation
-      if (!conversationId && response.data.conversation_id) {
-        setConversationId(response.data.conversation_id);
+      if (!conversationId && (response.data as any)?.data?.conversation_id) {
+        setConversationId((response.data as any)?.data?.conversation_id);
       }
 
       // Update message with real data and remove any duplicate messages that might have been added by socket
@@ -603,23 +606,23 @@ export default function ChatModal({
         const withoutTemp = prev.filter(msg => msg.id !== tempId);
         
         // Then check if the real message already exists (from socket)
-        const exists = withoutTemp.some(msg => msg.id === response.data.id && response.data.id > 0);
+        const exists = withoutTemp.some(msg => msg.id === (response.data as any)?.data?.id && (response.data as any)?.data?.id > 0);
         if (exists) {
           // Update existing message if needed
           return withoutTemp.map(msg => 
-            msg.id === response.data.id ? { ...msg, ...response.data, status: 'sent' } : msg
+            msg.id === (response.data as any)?.data?.id ? { ...msg, ...(response.data as any)?.data, status: 'sent' } : msg
           );
         }
         
         // Add the real message
-        return [...withoutTemp, { ...response.data, status: 'sent' }];
+        return [...withoutTemp, { ...(response.data as any)?.data, status: 'sent' }];
       });
 
       // Send socket notification
-      const convIdForSocket = response.data.conversation_id?.toString() || conversationId?.toString() || '-1';
+      const convIdForSocket = (response.data as any)?.data?.conversation_id?.toString() || conversationId?.toString() || '-1';
       sendMessage({
         conversationId: convIdForSocket,
-        message: response.data,
+        message: (response.data as any)?.data,
         receiverId: sellerId,
         senderId: currentUserId!,
       });
@@ -644,29 +647,29 @@ export default function ChatModal({
       );
 
       // Update conversation ID if new
-      if (!conversationId && response.data.conversation_id) {
-        setConversationId(response.data.conversation_id);
+      if (!conversationId && (response.data as any)?.data?.conversation_id) {
+        setConversationId((response.data as any)?.data?.conversation_id);
       }
 
       // Check for duplicates and add the message
       setMessages(prev => {
         // Check if message already exists (from socket)
-        const exists = prev.some(msg => msg.id === response.data.id && response.data.id > 0);
+        const exists = prev.some(msg => msg.id === (response.data as any)?.data?.id && (response.data as any)?.data?.id > 0);
         if (exists) {
           // Update existing message if needed
           return prev.map(msg => 
-            msg.id === response.data.id ? { 
+            msg.id === (response.data as any)?.data?.id ? { 
               ...msg, 
-              ...response.data, 
-              message_type: response.data.message_type || 'image',
+              ...(response.data as any)?.data,
+              message_type: (response.data as any)?.data?.message_type || 'image',
             } : msg
           );
         }
         
         // Add the new message
         const newMessage = {
-          ...response.data,
-          message_type: response.data.message_type || 'image',
+          ...(response.data as any)?.data,
+          message_type: (response.data as any)?.data?.message_type || 'image',
         };
         return [...prev, newMessage];
       });
@@ -715,7 +718,6 @@ export default function ChatModal({
             <div className="flex items-center gap-1">
               <h3 className="font-semibold text-[#111b21] text-sm sm:text-base truncate">{sellerName}</h3>
               {(isVerifiedSeller || sellerVerified) && <VerifiedSellerBadge size="sm" />}
-              {isVerifiedBusiness && <BusinessVerifiedBadge size="sm" />}
             </div>
             <p className="text-xs text-[#667781] truncate">Ad: {adTitle}</p>
           </div>

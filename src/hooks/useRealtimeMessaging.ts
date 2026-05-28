@@ -2,35 +2,38 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 interface UseRealtimeMessagingOptions {
-  userId?: number | null;
+  userId?: number | string | null;
   conversationId?: string | null;
   onNewMessage?: (message: any) => void;
-  onMessageRead?: (data: { messageId: number; conversationId: number }) => void;
-  onUserTyping?: (data: { conversationId: string; userId: number }) => void;
+  onMessageRead?: (data: { messageId: number | string; conversationId: number | string }) => void;
+  onUserTyping?: (data: { conversationId: string; userId: number | string }) => void;
   onNotification?: (notification: any) => void;
 }
 
-const channels = new Map<string, { channel: RealtimeChannel; subscribed: boolean }>();
+const channelRegistry = new Map<string, { channel: RealtimeChannel; refCount: number }>();
 
-function getOrCreateChannel(key: string): RealtimeChannel {
-  const existing = channels.get(key);
-  if (existing) return existing.channel;
-
+function acquireChannel(key: string): RealtimeChannel {
+  const existing = channelRegistry.get(key);
+  if (existing) {
+    existing.refCount++;
+    return existing.channel;
+  }
   const channel = supabase.channel(key);
-  channels.set(key, { channel, subscribed: false });
+  channelRegistry.set(key, { channel, refCount: 1 });
   return channel;
 }
 
-function markSubscribed(key: string) {
-  const entry = channels.get(key);
-  if (entry) entry.subscribed = true;
-}
-
-function isSubscribed(key: string): boolean {
-  return channels.get(key)?.subscribed ?? false;
+function releaseChannel(key: string) {
+  const entry = channelRegistry.get(key);
+  if (!entry) return;
+  entry.refCount--;
+  if (entry.refCount <= 0) {
+    supabase.removeChannel(entry.channel);
+    channelRegistry.delete(key);
+  }
 }
 
 export function useRealtimeMessaging({
@@ -42,119 +45,123 @@ export function useRealtimeMessaging({
   onNotification,
 }: UseRealtimeMessagingOptions) {
   const [onlineUsers] = useState<number[]>([]);
+  const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const callbacksRef = useRef({ onNewMessage, onMessageRead, onUserTyping, onNotification });
   callbacksRef.current = { onNewMessage, onMessageRead, onUserTyping, onNotification };
+  const cleanupRef = useRef<(() => void)[]>([]);
 
   // Subscribe to conversation messages
   useEffect(() => {
     if (!conversationId) return;
 
-    const channelKey = `conversation:${conversationId}`;
+    const key = `conversation:${conversationId}`;
+    let subscribed = false;
 
-    if (isSubscribed(channelKey)) return;
+    const setup = async () => {
+      const channel = acquireChannel(key);
 
-    const channel = getOrCreateChannel(channelKey);
-    channel
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
-        (payload) => {
-          const message = payload.new as any;
-          callbacksRef.current.onNewMessage?.(message);
-        }
-      )
-      .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
-        (payload) => {
-          const message = payload.new as any;
-          callbacksRef.current.onMessageRead?.({
-            messageId: message.id,
-            conversationId: message.conversation_id,
+      if (!subscribed) {
+        channel
+          .on('postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+            (payload: RealtimePostgresChangesPayload<any>) => {
+              callbacksRef.current.onNewMessage?.(payload.new);
+            }
+          )
+          .on('postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+            (payload: RealtimePostgresChangesPayload<any>) => {
+              const msg = payload.new;
+              callbacksRef.current.onMessageRead?.({
+                messageId: msg.id,
+                conversationId: msg.conversation_id,
+              });
+            }
+          )
+          .on('broadcast', { event: 'typing' }, (payload) => {
+            callbacksRef.current.onUserTyping?.(payload.payload as any);
+          })
+          .on('broadcast', { event: 'stop_typing' }, (payload) => {
+            callbacksRef.current.onUserTyping?.({ ...(payload.payload as any), stopped: true });
           });
-        }
-      )
-      .on('broadcast', { event: 'typing' }, (payload) => {
-        callbacksRef.current.onUserTyping?.(payload.payload as any);
-      })
-      .subscribe();
 
-    markSubscribed(channelKey);
-
-    return () => {
-      const entry = channels.get(channelKey);
-      if (entry) {
-        supabase.removeChannel(entry.channel);
-        channels.delete(channelKey);
+        channel.subscribe((subStatus) => {
+          setStatus(subStatus === 'SUBSCRIBED' ? 'connected' : 'connecting');
+        });
+        subscribed = true;
       }
     };
+
+    setup();
+
+    cleanupRef.current.push(() => {
+      releaseChannel(key);
+    });
+
+    return () => {
+      releaseChannel(key);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
   // Subscribe to notifications
   useEffect(() => {
     if (!userId) return;
 
-    const channelKey = `notifications:${userId}`;
+    const key = `notifications:${userId}`;
 
-    if (isSubscribed(channelKey)) return;
-
-    const channel = getOrCreateChannel(channelKey);
+    const channel = acquireChannel(key);
     channel
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<any>) => {
           callbacksRef.current.onNotification?.(payload.new);
         }
       )
       .subscribe();
 
-    markSubscribed(channelKey);
+    cleanupRef.current.push(() => {
+      releaseChannel(key);
+    });
 
     return () => {
-      const entry = channels.get(channelKey);
-      if (entry) {
-        supabase.removeChannel(entry.channel);
-        channels.delete(channelKey);
-      }
+      releaseChannel(key);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
-
-  const sendTyping = useCallback((data: { conversationId: string; userId: number }) => {
-    const key = `conversation:${data.conversationId}`;
-    let channel = getOrCreateChannel(key);
-    if (!isSubscribed(key)) {
-      channel.subscribe();
-      markSubscribed(key);
-    }
-    channel.send({ type: 'broadcast', event: 'typing', payload: data });
-  }, []);
-
-  const stopTyping = useCallback((data: { conversationId: string; userId: number }) => {
-    const key = `conversation:${data.conversationId}`;
-    let channel = getOrCreateChannel(key);
-    if (!isSubscribed(key)) {
-      channel.subscribe();
-      markSubscribed(key);
-    }
-    channel.send({ type: 'broadcast', event: 'stop_typing', payload: data });
-  }, []);
-
-  const markRead = useCallback((_data: { conversationId: string; messageId: number }) => {
-    // Mark as read via API — handled in the calling component
-  }, []);
 
   // Cleanup all channels on unmount
   useEffect(() => {
     return () => {
-      channels.forEach((entry, key) => {
-        supabase.removeChannel(entry.channel);
-      });
-      channels.clear();
+      cleanupRef.current.forEach(fn => fn());
+      cleanupRef.current = [];
     };
   }, []);
 
+  const sendTyping = useCallback((data: { conversationId: string; userId: number | string }) => {
+    if (!data.conversationId) return;
+    const key = `conversation:${data.conversationId}`;
+    const channel = acquireChannel(key);
+    channel.send({ type: 'broadcast', event: 'typing', payload: data });
+    releaseChannel(key);
+  }, []);
+
+  const stopTyping = useCallback((data: { conversationId: string; userId: number | string }) => {
+    if (!data.conversationId) return;
+    const key = `conversation:${data.conversationId}`;
+    const channel = acquireChannel(key);
+    channel.send({ type: 'broadcast', event: 'stop_typing', payload: data });
+    releaseChannel(key);
+  }, []);
+
+  const markRead = useCallback((_data: { conversationId: string; messageId: number | string }) => {
+    // Mark as read via API
+  }, []);
+
   return {
-    isConnected: true,
+    isConnected: status === 'connected',
     onlineUsers,
-    isUserOnline: useCallback((_userId: number) => false, []),
+    isUserOnline: useCallback((_userId: number | string) => false, []),
     socketError: null,
     reconnecting: false,
     reconnectAttempt: 0,
@@ -162,4 +169,11 @@ export function useRealtimeMessaging({
     stopTyping,
     markRead,
   };
+}
+
+export function cleanupAllChannels() {
+  channelRegistry.forEach((entry, key) => {
+    supabase.removeChannel(entry.channel);
+  });
+  channelRegistry.clear();
 }

@@ -61,7 +61,7 @@ export default function PromotionPackages({ selectedPlan, onSelectPlan }: Promot
     try {
       setLoading(true);
       const response = await promotionsApi.getPlans();
-      const plansData = response.data.plans || [];
+      const plansData = (response.data as any)?.data || (response.data as any)?.plans || [];
       setPlans(plansData.map((plan: any) => {
         let features: string[] = [];
         if (Array.isArray(plan.features)) {

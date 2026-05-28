@@ -44,7 +44,7 @@ export default function ReviewsPage() {
       setLoading(true);
       const res = await reviewsApi.getMyReviews();
       clearTimeout(timeoutId);
-      const data = res.data?.data || res.data || [];
+      const data = (res.data as any)?.data ?? [];
       setReviews(data);
     } catch (error) {
       clearTimeout(timeoutId);

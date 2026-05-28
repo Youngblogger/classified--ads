@@ -65,8 +65,8 @@ export default function SubcategoriesPage() {
         adminApi.getCategories(),
         adminApi.getCategories(),
       ]);
-      setSubcategories(subcategoriesRes.data.data || subcategoriesRes.data || []);
-      setCategories(categoriesRes.data.data || categoriesRes.data || []);
+      setSubcategories((subcategoriesRes.data as any)?.data ?? []);
+      setCategories((categoriesRes.data as any)?.data ?? []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast.error('Failed to load data');

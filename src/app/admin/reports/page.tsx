@@ -57,7 +57,7 @@ export default function ReportsPage() {
         params.status = statusFilter;
       }
       const res = await adminApi.getReports(params);
-      setReports(res.data.data || res.data || []);
+      setReports((res.data as any)?.data ?? []);
     } catch (error) {
       console.error('Failed to fetch reports:', error);
       toast.error('Failed to load reports');

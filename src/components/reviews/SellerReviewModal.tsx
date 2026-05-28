@@ -39,7 +39,8 @@ export default function SellerReviewModal({
         setLoadingPermission(true);
         try {
           const response = await sellerReviewsApi.canReview(sellerId);
-          setCanReview(response.data);
+          const canReviewData = (response.data as any)?.data;
+          setCanReview(canReviewData ? { allowed: canReviewData.can_review ?? false, reason: '', requires: [] } : null);
         } catch (error) {
           console.error('Error checking review permission:', error);
           setCanReview({ allowed: false, reason: 'Unable to check review permissions', requires: [] });
@@ -51,10 +52,11 @@ export default function SellerReviewModal({
       const loadExistingReview = async () => {
         try {
           const response = await sellerReviewsApi.getMyReview(sellerId);
-          if (response.data && response.data.review) {
-            setExistingReview(response.data.review);
-            setRating(response.data.review.rating);
-            setComment(response.data.review.comment || '');
+          const existingData = (response.data as any)?.data;
+          if (existingData) {
+            setExistingReview(existingData);
+            setRating(existingData.rating);
+            setComment(existingData.comment || '');
           }
         } catch (error) {
           console.error('Error loading existing review:', error);

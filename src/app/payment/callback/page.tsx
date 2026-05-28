@@ -50,9 +50,9 @@ function PaymentCallbackContent() {
       try {
         const response = await paymentApi.verifyPayment(ref);
 
-        if (response.data.success) {
+        if ((response.data as any).success || (response.data as any)?.data?.message) {
           if (pollRef.current) clearInterval(pollRef.current);
-          const payment = response.data.payment;
+          const payment = (response.data as any).payment;
           const type = payment?.type || 'unknown';
           setPaymentType(type as any);
           if (payment?.ad_id) setAdId(payment.ad_id);
@@ -67,14 +67,14 @@ function PaymentCallbackContent() {
             toast.success('Payment successful!');
           }
         } else {
-          const code = response.data.code;
+          const code = (response.data as any).code;
 
           if (code === 'pending') {
             setMessage('Payment still processing...');
           } else if (code === 'validation_failed') {
             if (pollRef.current) clearInterval(pollRef.current);
             setStatus('failed');
-            setMessage(response.data.message || 'Payment validation failed');
+            setMessage((response.data as any).message || (response.data as any)?.data?.message || 'Payment validation failed');
           } else if (code === 'gateway_error') {
             setMessage('Contacting payment gateway...');
           }

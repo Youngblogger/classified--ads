@@ -1,18 +1,17 @@
 /** @type {import('next').NextConfig} */
 
 const isProduction = process.env.NODE_ENV === 'production';
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-const backendHost = new URL(apiUrl).hostname;
-const backendPort = new URL(apiUrl).port || '8000';
-const backendOrigin = `${new URL(apiUrl).protocol}//${backendHost}${backendPort ? ':' + backendPort : ''}`;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : '';
+const supabaseWildcard = supabaseUrl ? supabaseUrl.replace(/\/\/[^.]*\./, '//*.') : 'https://*.supabase.co';
 
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://connect.facebook.net;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
-  img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://source.unsplash.com https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com ${backendOrigin} http://127.0.0.1:8000;
+  img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://source.unsplash.com https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com ${supabaseOrigin};
   font-src 'self' data: https://fonts.gstatic.com;
-  connect-src 'self' ${backendOrigin} http://localhost:8000 http://localhost:3006 ws://localhost:3006 https://accounts.google.com;
+  connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://localhost:3006 ws://localhost:3006 https://accounts.google.com ${supabaseOrigin} ${supabaseWildcard} wss://*.supabase.co;
   frame-src https://accounts.google.com https://connect.facebook.net;
   object-src 'none';
   base-uri 'self';
@@ -110,6 +109,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'platform-lookaside.fbsbx.com' },
+      { protocol: 'https', hostname: '*.supabase.co' },
       { protocol: 'http', hostname: '127.0.0.1', port: '8000', pathname: '/**' },
       { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/**' },
     ],

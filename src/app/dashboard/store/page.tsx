@@ -74,7 +74,7 @@ export default function DashboardStorePage() {
     try {
       setLoading(true);
       const res = await storeApi.getMyStore();
-      const data = res.data.data || res.data;
+      const data = (res.data as any)?.data || res.data;
       if (data && data.id) {
         setStore(data);
         setForm({

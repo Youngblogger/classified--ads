@@ -80,7 +80,7 @@ interface Location {
   lgas?: { id: number; name: string }[];
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const STEALTH_PREFIX = '/secure-control-9ja';
 
 const getToken = () => {
@@ -931,7 +931,7 @@ function ReplaceImagesModal({
       return url;
     }
     // Otherwise, prepend the storage base URL
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace('/api', '');
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace('/api', '');
     return `${baseUrl}/storage/${url}`;
   };
 
@@ -1364,7 +1364,7 @@ export default function AdsModerationPage() {
       return url;
     }
     // Otherwise, prepend the storage base URL
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace('/api', '');
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace('/api', '');
     return `${baseUrl}/storage/${url}`;
   };
 

@@ -65,7 +65,7 @@ export default function AdminLoginPage() {
       const hashedSecret = secretKey ? await hashSecret(secretKey) : '';
 
       console.log('Attempting login with:', email);
-      console.log('API URL:', 'http://localhost:8000/api');
+      console.log('API URL:', '');
       
       const response = await api.post('/secure-control-9ja/auth/login', {
         login: email,

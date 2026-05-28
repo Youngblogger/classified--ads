@@ -102,7 +102,7 @@ export default function SavedSearchesPage() {
       setError(null);
       const res = await savedSearchesApi.getAll();
       clearTimeout(timeoutId);
-      setSearches(res.data.data || res.data || []);
+      setSearches((res.data as any)?.data ?? []);
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.error('Failed to fetch saved searches:', err);
@@ -180,7 +180,7 @@ export default function SavedSearchesPage() {
     setSearchResults({ id: search.id, name: search.name, results: [], loading: true });
     try {
       const res = await savedSearchesApi.search(search.id);
-      const data = res.data.data || res.data || [];
+      const data = (res.data as any)?.data ?? [];
       setSearchResults(prev => prev ? { ...prev, results: Array.isArray(data) ? data : [], loading: false } : null);
     } catch (err: any) {
       toast.error('Failed to run search');

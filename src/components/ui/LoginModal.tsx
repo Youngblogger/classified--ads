@@ -1,35 +1,13 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
+import { authApi } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
-import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
-
-interface GoogleWindow {
-  google?: {
-    accounts?: {
-      id?: {
-        initialize: (config: {
-          client_id: string;
-          callback: (response: { credential: string }) => void;
-          context?: string;
-          ux_mode?: string;
-          auto_select?: boolean;
-          use_fedcm_for_prompt?: boolean;
-        }) => void;
-        renderButton: (container: HTMLElement, config: object) => void;
-        prompt: (momentListener?: (res: any) => void) => void;
-        disableAutoSelect: () => void;
-        cancel: () => void;
-      };
-    };
-  };
-}
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '190991791068-p65o95kslmp106ohlbdafsdthg702tn3.apps.googleusercontent.com';
 
 function hasStoredToken(): boolean {
   if (typeof window === 'undefined') return false;
@@ -81,7 +59,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
   
-  const googleInitializedRef = useRef(false);
   const [usedEmails, setUsedEmails] = useState<string[]>([]);
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -115,72 +92,24 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const formData = new URLSearchParams();
-      formData.append('login', email);
-      formData.append('password', password);
-      
-      const response = await fetchWithTimeout(`${apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-        },
-        body: formData,
-      });
+      const result = await authApi.login(email, password);
+      const data = (result.data as any)?.data;
 
-      const data = await response.json();
-
-      if (data.requires_verification) {
-        router.push(`/auth/verify?email=${encodeURIComponent(data.email || email)}&user_id=${data.user_id}&from_login=true`);
-        setLoading(false);
-        return;
+      if (!data || !data.user || !data.token) {
+        throw new Error('Invalid response from server');
       }
 
-      if (!response.ok) {
-        if (data.code === 'email_not_verified') {
-          setError(
-            <span>
-              Please verify your email first.{' '}
-              <a 
-                href={`/auth/verify?email=${encodeURIComponent(data.email || email)}`} 
-                className="text-primary-600 font-semibold hover:underline"
-              >
-                Verify now
-              </a>
-            </span>
-          );
-          setIsSubmitting(false);
-          setLoading(false);
-          return;
-        }
-        throw new Error(data.message || data.login?.[0] || 'Login failed');
-      }
-
-      const userName = data.user?.name || 'there';
-      
       login(data.user, data.token);
-      
-      if (typeof window !== 'undefined' && email) {
-        const usedEmails = JSON.parse(localStorage.getItem('used-emails') || '[]');
-        if (!usedEmails.includes(email)) {
-          usedEmails.push(email);
-          localStorage.setItem('used-emails', JSON.stringify(usedEmails.slice(-5)));
-        }
-        
-        if (rememberMe) {
-          localStorage.setItem('remember-email', email);
-        } else {
-          localStorage.removeItem('remember-email');
-        }
-      }
+
+      const storedRedirect = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect');
       closeAllModals();
-      resetForm();
-      
-      window.scrollTo(0, 0);
-      window.location.href = redirectUrl || '/';
+      if (storedRedirect && storedRedirect !== window.location.pathname) {
+        localStorage.removeItem('authRedirect');
+        sessionStorage.removeItem('authRedirect');
+        router.push(storedRedirect);
+      }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Invalid credentials';
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -199,167 +128,59 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
     resetForm();
   };
 
-  const handleFacebookLogin = async () => {
-    setFacebookLoading(true);
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
     setError('');
 
     try {
-      if (typeof window !== 'undefined' && redirectUrl) {
+      if (redirectUrl) {
         localStorage.setItem('authRedirect', redirectUrl);
         sessionStorage.setItem('authRedirect', redirectUrl);
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const response = await fetchWithTimeout(`${apiUrl}/auth/facebook`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to initiate Facebook login');
-      }
-
-      if (data.url) {
+      if (error) throw error;
+      if (data?.url) {
         window.location.href = data.url;
       } else {
         throw new Error('No redirect URL received');
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Facebook login failed';
-      setError(errorMessage);
-      setFacebookLoading(false);
+      setError(err instanceof Error ? err.message : 'Google login failed');
+      setGoogleLoading(false);
     }
   };
 
-  const FACEBOOK_APP_ID = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || 'your_facebook_app_id';
-
-  const handleGoogleCredential = useCallback(async (response: { credential: string }) => {
-    setGoogleLoading(true);
-    setError('');
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const res = await fetchWithTimeout(`${apiUrl}/auth/google`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Google login failed');
-      }
-
-      login(data.user, data.token);
-      closeAllModals();
-      
-      if (redirectUrl) {
-        window.scrollTo(0, 0);
-        window.location.href = redirectUrl;
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Google login failed');
-    } finally {
-      setGoogleLoading(false);
-    }
-  }, [login, redirectUrl, closeAllModals]);
-
-  const handleFacebookCredential = async (response: any) => {
+  const handleFacebookLogin = async () => {
     setFacebookLoading(true);
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const res = await fetchWithTimeout(`${apiUrl}/auth/facebook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ access_token: response.accessToken }),
+      if (redirectUrl) {
+        localStorage.setItem('authRedirect', redirectUrl);
+        sessionStorage.setItem('authRedirect', redirectUrl);
+      }
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: { redirectTo: `${window.location.origin}/auth/facebook/callback` },
       });
 
-      const data = await res.json();
-      if (res.ok && data.token) {
-        login(data.user, data.token);
-        closeAllModals();
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No redirect URL received');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Facebook login failed');
-    } finally {
       setFacebookLoading(false);
     }
   };
-
-  // Load Google script once on mount
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (document.getElementById('google-gsi-script')) return;
-
-    const script = document.createElement('script');
-    script.id = 'google-gsi-script';
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-  }, []);
-
-  // Render Google sign-in button when modal opens
-  useEffect(() => {
-    if (!isLoginModalOpen) return;
-
-    type GoogleId = NonNullable<NonNullable<NonNullable<GoogleWindow['google']>['accounts']>['id']>;
-    const renderButton = (gw: GoogleId) => {
-      const container = document.getElementById('google-signin-button');
-      if (container) {
-        container.innerHTML = '';
-        gw.renderButton(container, {
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-          text: 'continue_with',
-          shape: 'rectangular',
-          logo_alignment: 'left',
-        });
-      }
-    };
-
-    const gw = (window as unknown as GoogleWindow).google?.accounts?.id;
-    if (!gw) {
-      const retry = setTimeout(() => {
-        const gw2 = (window as unknown as GoogleWindow).google?.accounts?.id;
-        if (gw2) {
-          if (!googleInitializedRef.current) {
-            googleInitializedRef.current = true;
-            gw2.initialize({
-              client_id: GOOGLE_CLIENT_ID,
-              callback: handleGoogleCredential,
-              auto_select: false,
-        use_fedcm_for_prompt: false,
-      });
-        }
-          renderButton(gw2);
-        }
-      }, 1000);
-      return () => clearTimeout(retry);
-    }
-
-    if (!googleInitializedRef.current) {
-      googleInitializedRef.current = true;
-      gw.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleCredential,
-        auto_select: false,
-        use_fedcm_for_prompt: false,
-      });
-    }
-    renderButton(gw);
-  }, [isLoginModalOpen, handleGoogleCredential]);
 
   if (!isLoginModalOpen) return null;
 
@@ -394,15 +215,23 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
             )}
 
             {/* Google Login - at top */}
-            <div className="mb-3">
-              <div id="google-signin-button" className="w-full"></div>
-              {googleLoading && (
-                <div className="flex items-center justify-center gap-2 mt-2 text-sm text-gray-500">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Signing in with Google...
-                </div>
+            <button
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium text-gray-700 w-full mb-3"
+            >
+              {googleLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <svg viewBox="0 0 24 24" className="w-5 h-5">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
               )}
-            </div>
+              Continue with Google
+            </button>
 
             {/* Facebook */}
             <button 

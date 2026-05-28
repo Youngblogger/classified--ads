@@ -91,7 +91,7 @@ export default function WatermarkSettingsPage() {
     try {
       const response = await adminApi.getWatermarkSettings();
       if (response.data) {
-        setSettings(response.data);
+        setSettings((response.data as any)?.data || response.data);
       }
     } catch (error) {
       console.error('Error fetching watermark settings:', error);
@@ -129,8 +129,9 @@ export default function WatermarkSettingsPage() {
     setUploadingLogo(true);
     try {
       const response = await adminApi.uploadWatermarkLogo(file);
-      if (response.data.logo_url) {
-        setSettings(prev => ({ ...prev, logo_url: response.data.logo_url }));
+      if ((response.data as any)?.logo_url || (response.data as any)?.data?.url) {
+        const logoUrl = (response.data as any)?.logo_url || (response.data as any)?.data?.url || '';
+        setSettings(prev => ({ ...prev, logo_url: logoUrl }));
         setMessage({ type: 'success', text: 'Logo uploaded successfully!' });
       }
     } catch (error) {

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { SWRConfig } from 'swr';
 import { mutate as swrMutate } from 'swr';
 import { patchFedCmWidgetMode } from '@/lib/fedcm-patch';
 import { Toaster } from 'react-hot-toast';
@@ -12,7 +13,7 @@ import LocationModal from '@/components/ui/LocationModal';
 import Preloader from '@/components/ui/Preloader';
 import AuthProvider from '@/components/providers/AuthProvider';
 import BottomNav from '@/components/ui/BottomNav';
-import GoogleOneTap from '@/components/auth/GoogleOneTap';
+
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -40,7 +41,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
         {children}
         <div className="md:hidden h-12" />
         <BottomNav />
-        <GoogleOneTap />
         <LoginModal />
         <RegisterModal />
         <LocationModal />
@@ -70,5 +70,11 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
     </div>
   );
 
-  return <QueryProvider>{content}</QueryProvider>;
+  return (
+    <QueryProvider>
+      <SWRConfig value={{ dedupingInterval: 5000, errorRetryCount: 2 }}>
+        {content}
+      </SWRConfig>
+    </QueryProvider>
+  );
 }

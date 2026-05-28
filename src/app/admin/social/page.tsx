@@ -128,7 +128,7 @@ export default function SocialPostsPage() {
       console.log('Fetching posts from:', `/secure-control-9ja/social/posts?${params}`);
       const response = await api.get(`/secure-control-9ja/social/posts?${params}`);
       console.log('Posts response:', response.data);
-      setPosts(response.data.data || response.data || []);
+      setPosts((response.data as any)?.data ?? []);
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } }; message?: string; status?: number };
       console.error('Failed to fetch posts:', error);
@@ -144,7 +144,7 @@ export default function SocialPostsPage() {
       console.log('Fetching scheduled posts from:', '/secure-control-9ja/social/scheduled');
       const response = await api.get('/secure-control-9ja/social/scheduled');
       console.log('Scheduled posts response:', response.data);
-      setScheduledPosts(response.data.data || response.data || []);
+      setScheduledPosts((response.data as any)?.data ?? []);
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } }; message?: string; status?: number };
       console.error('Failed to fetch scheduled posts:', error);

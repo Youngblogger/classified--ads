@@ -1,5 +1,3 @@
-'use server';
-
 import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import { supabase } from './supabase';
 

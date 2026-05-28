@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Shield, Smartphone, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { authApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -37,8 +38,8 @@ export default function TwoFactorAuth() {
     setSetupError('');
     try {
       const res = await authApi.setup2FA();
-      setQrCode(res.data?.qr_code || '');
-      setSecret(res.data?.secret || '');
+      setQrCode((res.data as any)?.data?.qr_code || '');
+      setSecret((res.data as any)?.data?.secret || '');
       setStatus('setting_up');
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Failed to setup 2FA';
@@ -120,7 +121,7 @@ export default function TwoFactorAuth() {
           </p>
           {qrCode && (
             <div className="flex justify-center">
-              <img src={qrCode} alt="2FA QR Code" className="w-48 h-48 border-2 border-gray-200 rounded-xl p-2" />
+              <Image src={qrCode} alt="2FA QR Code" width={192} height={192} className="border-2 border-gray-200 rounded-xl p-2" priority />
             </div>
           )}
           {secret && (

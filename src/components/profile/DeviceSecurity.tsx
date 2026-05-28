@@ -25,19 +25,9 @@ interface AuditLog {
   type: 'login' | 'logout' | 'password_change' | 'profile_update' | 'security_change' | 'suspicious';
 }
 
-const MOCK_SESSIONS: Session[] = [
-  { id: '1', device: 'Windows PC', device_type: 'desktop', browser: 'Chrome 124', os: 'Windows 11', ip: '102.89.22.1', location: 'Lagos, NG', last_active: 'Now', current: true },
-  { id: '2', device: 'iPhone 15', device_type: 'mobile', browser: 'Safari', os: 'iOS 17.4', ip: '102.89.22.1', location: 'Lagos, NG', last_active: '2 hours ago', current: false },
-  { id: '3', device: 'MacBook Pro', device_type: 'desktop', browser: 'Firefox 125', os: 'macOS 14.4', ip: '197.210.28.4', location: 'Abuja, NG', last_active: '3 days ago', current: false },
-];
+const EMPTY_SESSIONS: Session[] = [];
 
-const MOCK_AUDIT: AuditLog[] = [
-  { id: 'a1', action: 'Login', details: 'Successful login from Chrome on Windows', ip: '102.89.22.1', device: 'Chrome / Windows', timestamp: '2 minutes ago', type: 'login' },
-  { id: 'a2', action: 'Profile Update', details: 'Changed profile photo', ip: '102.89.22.1', device: 'Chrome / Windows', timestamp: '1 hour ago', type: 'profile_update' },
-  { id: 'a3', action: 'Password Change', details: 'Password was changed', ip: '102.89.22.1', device: 'Chrome / Windows', timestamp: '1 week ago', type: 'password_change' },
-  { id: 'a4', action: 'Login', details: 'Successful login from Safari on iPhone', ip: '102.89.22.1', device: 'Safari / iOS', timestamp: '2 weeks ago', type: 'login' },
-  { id: 'a5', action: 'Suspicious Login', details: 'Login attempt from unrecognized device (Firefox, Abuja)', ip: '197.210.28.4', device: 'Firefox / macOS', timestamp: '3 days ago', type: 'suspicious' },
-];
+const EMPTY_AUDIT: AuditLog[] = [];
 
 function getDeviceIcon(type: string) {
   if (type === 'mobile') return Smartphone;
@@ -69,7 +59,7 @@ function getAuditColor(type: string) {
 }
 
 export function DeviceSessions() {
-  const [sessions] = useState<Session[]>(MOCK_SESSIONS);
+  const [sessions] = useState<Session[]>(EMPTY_SESSIONS);
   const [showLogoutAll, setShowLogoutAll] = useState(false);
 
   return (
@@ -143,7 +133,7 @@ export function DeviceSessions() {
 }
 
 export function AuditLogs() {
-  const [logs] = useState<AuditLog[]>(MOCK_AUDIT);
+  const [logs] = useState<AuditLog[]>(EMPTY_AUDIT);
   const [filter, setFilter] = useState<string>('all');
 
   const filtered = filter === 'all' ? logs : logs.filter(l => l.type === filter);

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent, ClipboardEvent, ChangeEvent } from 'react';
 import { X, Phone, Mail, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface OtpModalProps {
   isOpen: boolean;
@@ -93,31 +94,20 @@ export default function OtpModal({ isOpen, onClose, phone = '', email = '', onVe
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const response = await fetch(`${apiUrl}/auth/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          email: isEmailVerification ? email : undefined,
-          phone: isEmailVerification ? undefined : phone,
-          otp: code,
-        }),
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email || '',
+        phone: isEmailVerification ? undefined : phone,
+        token: code,
+        type: isEmailVerification ? 'email' : 'sms',
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.otp?.[0] || 'Verification failed');
-      }
+      if (error) throw new Error(error.message);
 
       setSuccess(true);
-      
-      // Pass token and user data to callback if available
+      const token = data?.session?.access_token || '';
+      const user = data?.user ? { id: data.user.id, email: data.user.email, ...data.user.user_metadata } : undefined;
       setTimeout(() => {
-        onVerified(data.token && data.user ? { token: data.token, user: data.user } : undefined);
+        onVerified(token && user ? { token, user } : undefined);
       }, 1000);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid verification code';
@@ -136,22 +126,11 @@ export default function OtpModal({ isOpen, onClose, phone = '', email = '', onVe
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-      const response = await fetch(`${apiUrl}/auth/resend-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ email: isEmailVerification ? email : undefined, phone: isEmailVerification ? undefined : phone }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to resend code');
+      if (isEmailVerification && email) {
+        await supabase.auth.resend({ type: 'signup', email });
+      } else if (phone) {
+        await supabase.auth.resend({ type: 'sms', phone });
       }
-
       setResendTimer(60);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to resend code';

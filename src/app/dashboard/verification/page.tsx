@@ -234,9 +234,9 @@ export default function VerificationCenterPage() {
     try {
       const res = await emailVerificationApi.status();
       const data = res.data;
-      if (data.success) {
-        setEmailStatus(data.status);
-        setEmailCooldown(data.cooldown_remaining || 0);
+      if ((data as any).success || (data as any).verified) {
+        setEmailStatus((data as any).status);
+        setEmailCooldown((data as any).cooldown_remaining || 0);
       }
     } catch {
       // ignore
@@ -295,7 +295,7 @@ export default function VerificationCenterPage() {
     setEmailSubmitting(true);
     try {
       const res = await emailVerificationApi.send(user.email);
-      toast.success(res.data?.message || 'Verification email sent successfully. Please check your inbox.');
+      toast.success((res.data as any)?.data?.message || 'Verification email sent successfully. Please check your inbox.');
       setEmailStatus('pending');
       setEmailCooldown(60);
       setLastEmailSentAt(new Date().toISOString());
@@ -315,7 +315,7 @@ export default function VerificationCenterPage() {
     setEmailSubmitting(true);
     try {
       const res = await emailVerificationApi.resend();
-      toast.success(res.data?.message || 'Verification email sent successfully.');
+      toast.success((res.data as any)?.data?.message || 'Verification email sent successfully.');
       setEmailCooldown(60);
       setLastEmailSentAt(new Date().toISOString());
     } catch (err: any) {

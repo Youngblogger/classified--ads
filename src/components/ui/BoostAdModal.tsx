@@ -20,7 +20,7 @@ import toast from 'react-hot-toast';
 
 type ModalStep = 'initial' | 'packages' | 'payment_method' | 'processing' | 'success' | 'error';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const PLAN_TO_TIER: Record<string, string> = {
   silver: 'gold',
@@ -378,7 +378,7 @@ export default function BoostAdModal({
 
     if (paymentMethod === 'wallet') {
       // Revalidate balance from backend before confirming
-      const freshData = await getQueryClient().fetchQuery({ queryKey: WALLET_QUERY_KEY, queryFn: async () => { const res = await walletApi.getBalance(); return { balance: Number(res.data?.balance ?? 0), availableBalance: Number(res.data?.available_balance ?? res.data?.balance ?? 0), pendingBalance: Number(res.data?.pending_balance ?? 0) }; } });
+      const freshData = await getQueryClient().fetchQuery({ queryKey: WALLET_QUERY_KEY, queryFn: async () => { const res = await walletApi.getBalance(); return { balance: Number((res.data as any)?.data?.balance ?? 0), availableBalance: Number((res.data as any)?.data?.available_balance ?? (res.data as any)?.data?.balance ?? 0), pendingBalance: Number((res.data as any)?.data?.pending_balance ?? 0) }; } });
       if (freshData.availableBalance < selectedPkg.price) {
         setError('Insufficient wallet balance. Please fund your wallet or choose another payment method.');
         setStep('error');

@@ -9,7 +9,7 @@ export default function TestReferralPage() {
     const token = localStorage.getItem('authToken');
     console.log('Token:', token ? 'found' : 'not found');
     
-    fetch('http://localhost:8000/api/referral/my-code', {
+    fetch('', {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     })
     .then(r => r.json())

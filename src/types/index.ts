@@ -14,6 +14,12 @@ export interface User {
   location_id?: number;
   created_at: string;
   verified: boolean;
+  is_verified?: boolean;
+  trust_score?: number;
+  rating_avg?: number;
+  review_count?: number;
+  completed_transactions?: number;
+  response_rate?: number;
   email_verified_at?: string;
   phone_verified_at?: string;
   role?: string;

@@ -2,328 +2,21 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { X, ChevronRight, Menu, ChevronLeft } from 'lucide-react';
+import { X, ChevronRight, Menu, ChevronLeft, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { API_URL } from '@/lib/config';
-import useSWR from 'swr';
+import { getCategoryIcon } from '@/lib/categoryIcons';
+import { supabase } from '@/lib/supabase';
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   icon?: string;
   image?: string;
-  parent_id?: number;
+  parent_id?: string;
   ad_count?: number;
   children?: Category[];
 }
-
-const fetcher = (url: string) =>
-  fetch(url).then(r => r.json()).then(r => Array.isArray(r) ? r : r.data || []);
-
-const CAT_IDS = { m: 0 }; let ci = 101; function nx() { const id = ci; ci++; return id; }
-const fallbackCategories: Category[] = [
-  { id: 1, name: 'Vehicles', slug: 'vehicles', ad_count: 3200, children: [
-    { id: nx(), name: 'Cars', slug: 'cars', parent_id: 1, ad_count: 1500, children: [
-      { id: nx(), name: 'Toyota', slug: 'toyota', parent_id: 1 },
-      { id: nx(), name: 'Honda', slug: 'honda', parent_id: 1 },
-      { id: nx(), name: 'Lexus', slug: 'lexus', parent_id: 1 },
-      { id: nx(), name: 'Mercedes-Benz', slug: 'mercedes-benz', parent_id: 1 },
-      { id: nx(), name: 'BMW', slug: 'bmw', parent_id: 1 },
-      { id: nx(), name: 'Hyundai', slug: 'hyundai', parent_id: 1 },
-      { id: nx(), name: 'Kia', slug: 'kia', parent_id: 1 },
-      { id: nx(), name: 'Nissan', slug: 'nissan', parent_id: 1 },
-      { id: nx(), name: 'Ford', slug: 'ford', parent_id: 1 },
-      { id: nx(), name: 'Chevrolet', slug: 'chevrolet', parent_id: 1 },
-      { id: nx(), name: 'Volkswagen', slug: 'volkswagen', parent_id: 1 },
-      { id: nx(), name: 'Audi', slug: 'audi', parent_id: 1 },
-      { id: nx(), name: 'Porsche', slug: 'porsche', parent_id: 1 },
-      { id: nx(), name: 'Tesla', slug: 'tesla', parent_id: 1 },
-      { id: nx(), name: 'Mazda', slug: 'mazda', parent_id: 1 },
-      { id: nx(), name: 'Subaru', slug: 'subaru', parent_id: 1 },
-      { id: nx(), name: 'Jeep', slug: 'jeep', parent_id: 1 },
-      { id: nx(), name: 'Land Rover', slug: 'land-rover', parent_id: 1 },
-      { id: nx(), name: 'Peugeot', slug: 'peugeot', parent_id: 1 },
-      { id: nx(), name: 'Other Brands', slug: 'other-car-brands', parent_id: 1 },
-    ]},
-    { id: nx(), name: 'SUVs', slug: 'suvs', parent_id: 1, ad_count: 320 },
-    { id: nx(), name: 'Sedans', slug: 'sedans', parent_id: 1, ad_count: 280 },
-    { id: nx(), name: 'Hatchbacks', slug: 'hatchbacks', parent_id: 1, ad_count: 180 },
-    { id: nx(), name: 'Coupes', slug: 'coupes', parent_id: 1, ad_count: 60 },
-    { id: nx(), name: 'Convertibles', slug: 'convertibles', parent_id: 1, ad_count: 40 },
-    { id: nx(), name: 'Pick-Up Trucks', slug: 'pickup-trucks', parent_id: 1, ad_count: 120 },
-    { id: nx(), name: 'Trucks & Trailers', slug: 'trucks-trailers', parent_id: 1, ad_count: 180 },
-    { id: nx(), name: 'Buses', slug: 'buses', parent_id: 1, ad_count: 50 },
-    { id: nx(), name: 'Vans', slug: 'vans', parent_id: 1, ad_count: 70 },
-    { id: nx(), name: 'Motorcycles', slug: 'motorcycles', parent_id: 1, ad_count: 450 },
-    { id: nx(), name: 'Scooters', slug: 'scooters', parent_id: 1, ad_count: 90 },
-    { id: nx(), name: 'Tricycles', slug: 'tricycles', parent_id: 1, ad_count: 60 },
-    { id: nx(), name: 'Heavy Equipment', slug: 'heavy-equipment', parent_id: 1, ad_count: 100 },
-    { id: nx(), name: 'Forklifts', slug: 'forklifts', parent_id: 1, ad_count: 35 },
-    { id: nx(), name: 'Tractors', slug: 'tractors', parent_id: 1, ad_count: 45 },
-    { id: nx(), name: 'Vehicle Parts', slug: 'vehicle-parts', parent_id: 1, ad_count: 320 },
-    { id: nx(), name: 'Vehicle Accessories', slug: 'vehicle-accessories', parent_id: 1, ad_count: 250 },
-    { id: nx(), name: 'Tires & Rims', slug: 'tires-rims', parent_id: 1, ad_count: 160 },
-    { id: nx(), name: 'Watercraft & Boats', slug: 'watercraft-boats', parent_id: 1, ad_count: 90 },
-    { id: nx(), name: 'Auto Repair Services', slug: 'auto-repair', parent_id: 1, ad_count: 110 },
-    { id: nx(), name: 'Car Rentals', slug: 'car-rentals', parent_id: 1, ad_count: 75 },
-  ]},
-  { id: 2, name: 'Mobile Phones & Tablets', slug: 'mobile-phones', ad_count: 3500, children: [
-    { id: nx(), name: 'Smartphones', slug: 'smartphones', parent_id: 2, ad_count: 2200 },
-    { id: nx(), name: 'Android Phones', slug: 'android-phones', parent_id: 2, ad_count: 1200 },
-    { id: nx(), name: 'iPhones', slug: 'iphones', parent_id: 2, ad_count: 800 },
-    { id: nx(), name: 'Tablets', slug: 'tablets', parent_id: 2, ad_count: 450 },
-    { id: nx(), name: 'iPads', slug: 'ipads', parent_id: 2, ad_count: 280 },
-    { id: nx(), name: 'Smartwatches', slug: 'smartwatches', parent_id: 2, ad_count: 200 },
-    { id: nx(), name: 'Phone Accessories', slug: 'phone-accessories', parent_id: 2, ad_count: 600 },
-    { id: nx(), name: 'Chargers', slug: 'chargers', parent_id: 2, ad_count: 180 },
-    { id: nx(), name: 'USB Cables', slug: 'usb-cables', parent_id: 2, ad_count: 140 },
-    { id: nx(), name: 'Earbuds', slug: 'earbuds', parent_id: 2, ad_count: 220 },
-    { id: nx(), name: 'Bluetooth Speakers', slug: 'bluetooth-speakers', parent_id: 2, ad_count: 150 },
-    { id: nx(), name: 'Power Banks', slug: 'power-banks', parent_id: 2, ad_count: 170 },
-    { id: nx(), name: 'Phone Cases', slug: 'phone-cases', parent_id: 2, ad_count: 190 },
-    { id: nx(), name: 'Screen Protectors', slug: 'screen-protectors', parent_id: 2, ad_count: 110 },
-    { id: nx(), name: 'Phone Parts', slug: 'phone-parts', parent_id: 2, ad_count: 90 },
-    { id: nx(), name: 'Batteries', slug: 'phone-batteries', parent_id: 2, ad_count: 80 },
-    { id: nx(), name: 'SIM Devices', slug: 'sim-devices', parent_id: 2, ad_count: 120 },
-    { id: nx(), name: 'Gaming Phones', slug: 'gaming-phones', parent_id: 2, ad_count: 60 },
-    { id: nx(), name: 'Foldable Phones', slug: 'foldable-phones', parent_id: 2, ad_count: 35 },
-    { id: nx(), name: 'Mobile Routers', slug: 'mobile-routers', parent_id: 2, ad_count: 40 },
-  ]},
-  { id: 3, name: 'Electronics', slug: 'electronics', ad_count: 2400, children: [
-    { id: nx(), name: 'TVs', slug: 'tvs', parent_id: 3, ad_count: 400 },
-    { id: nx(), name: 'Smart TVs', slug: 'smart-tvs', parent_id: 3, ad_count: 300 },
-    { id: nx(), name: 'Home Audio', slug: 'home-audio', parent_id: 3, ad_count: 180 },
-    { id: nx(), name: 'Speakers', slug: 'speakers', parent_id: 3, ad_count: 220 },
-    { id: nx(), name: 'Headphones', slug: 'headphones', parent_id: 3, ad_count: 200 },
-    { id: nx(), name: 'Computers', slug: 'computers', parent_id: 3, ad_count: 350 },
-    { id: nx(), name: 'Laptops', slug: 'laptops', parent_id: 3, ad_count: 700 },
-    { id: nx(), name: 'Desktop Computers', slug: 'desktops', parent_id: 3, ad_count: 250 },
-    { id: nx(), name: 'Monitors', slug: 'monitors', parent_id: 3, ad_count: 150 },
-    { id: nx(), name: 'Printers', slug: 'printers', parent_id: 3, ad_count: 100 },
-    { id: nx(), name: 'Scanners', slug: 'scanners', parent_id: 3, ad_count: 40 },
-    { id: nx(), name: 'Networking Devices', slug: 'networking-devices', parent_id: 3, ad_count: 80 },
-    { id: nx(), name: 'Routers', slug: 'routers', parent_id: 3, ad_count: 110 },
-    { id: nx(), name: 'CCTV Cameras', slug: 'cctv-cameras', parent_id: 3, ad_count: 130 },
-    { id: nx(), name: 'Security Systems', slug: 'security-systems', parent_id: 3, ad_count: 90 },
-    { id: nx(), name: 'Projectors', slug: 'projectors', parent_id: 3, ad_count: 60 },
-    { id: nx(), name: 'Gaming Consoles', slug: 'gaming-consoles', parent_id: 3, ad_count: 300 },
-    { id: nx(), name: 'Drones', slug: 'drones', parent_id: 3, ad_count: 70 },
-    { id: nx(), name: 'Cameras', slug: 'cameras', parent_id: 3, ad_count: 250 },
-    { id: nx(), name: 'Photography Equipment', slug: 'photography-equipment', parent_id: 3, ad_count: 140 },
-    { id: nx(), name: 'Smart Home Devices', slug: 'smart-home', parent_id: 3, ad_count: 120 },
-    { id: nx(), name: 'Electronic Accessories', slug: 'electronic-accessories', parent_id: 3, ad_count: 200 },
-  ]},
-  { id: 4, name: 'Baby & Kids', slug: 'baby-kids', ad_count: 600, children: [
-    { id: nx(), name: 'Baby Clothing', slug: 'baby-clothing', parent_id: 4, ad_count: 120 },
-    { id: nx(), name: 'Kids Clothing', slug: 'kids-clothing', parent_id: 4, ad_count: 180 },
-    { id: nx(), name: 'Baby Shoes', slug: 'baby-shoes', parent_id: 4, ad_count: 60 },
-    { id: nx(), name: 'Kids Shoes', slug: 'kids-shoes', parent_id: 4, ad_count: 90 },
-    { id: nx(), name: 'Toys', slug: 'toys', parent_id: 4, ad_count: 250 },
-    { id: nx(), name: 'Educational Toys', slug: 'educational-toys', parent_id: 4, ad_count: 100 },
-    { id: nx(), name: 'Baby Gear', slug: 'baby-gear', parent_id: 4, ad_count: 150 },
-    { id: nx(), name: 'Strollers', slug: 'strollers', parent_id: 4, ad_count: 80 },
-    { id: nx(), name: 'Car Seats', slug: 'car-seats', parent_id: 4, ad_count: 60 },
-    { id: nx(), name: 'Baby Feeding', slug: 'baby-feeding', parent_id: 4, ad_count: 70 },
-    { id: nx(), name: 'Baby Bathing', slug: 'baby-bathing', parent_id: 4, ad_count: 50 },
-    { id: nx(), name: 'Diapers', slug: 'diapers', parent_id: 4, ad_count: 110 },
-    { id: nx(), name: 'School Supplies', slug: 'school-supplies', parent_id: 4, ad_count: 80 },
-    { id: nx(), name: 'Baby Furniture', slug: 'baby-furniture', parent_id: 4, ad_count: 90 },
-    { id: nx(), name: 'Baby Safety', slug: 'baby-safety', parent_id: 4, ad_count: 40 },
-    { id: nx(), name: 'Maternity Products', slug: 'maternity', parent_id: 4, ad_count: 70 },
-    { id: nx(), name: 'Kids Bags', slug: 'kids-bags', parent_id: 4, ad_count: 50 },
-    { id: nx(), name: 'Baby Carriers', slug: 'baby-carriers', parent_id: 4, ad_count: 45 },
-    { id: nx(), name: 'Baby Walkers', slug: 'baby-walkers', parent_id: 4, ad_count: 35 },
-    { id: nx(), name: 'Kids Accessories', slug: 'kids-accessories', parent_id: 4, ad_count: 60 },
-  ]},
-  { id: 5, name: 'Fashion', slug: 'fashion', ad_count: 1900, children: [
-    { id: nx(), name: "Men's Clothing", slug: 'men-clothing', parent_id: 5, ad_count: 500 },
-    { id: nx(), name: "Women's Clothing", slug: 'women-clothing', parent_id: 5, ad_count: 700 },
-    { id: nx(), name: 'Unisex Clothing', slug: 'unisex-clothing', parent_id: 5, ad_count: 200 },
-    { id: nx(), name: 'Native Wear', slug: 'native-wear', parent_id: 5, ad_count: 180 },
-    { id: nx(), name: 'Corporate Wear', slug: 'corporate-wear', parent_id: 5, ad_count: 120 },
-    { id: nx(), name: 'Shoes', slug: 'shoes', parent_id: 5, ad_count: 400 },
-    { id: nx(), name: 'Sneakers', slug: 'sneakers', parent_id: 5, ad_count: 250 },
-    { id: nx(), name: 'Sandals', slug: 'sandals', parent_id: 5, ad_count: 100 },
-    { id: nx(), name: 'Bags', slug: 'bags', parent_id: 5, ad_count: 200 },
-    { id: nx(), name: 'Watches', slug: 'watches', parent_id: 5, ad_count: 150 },
-    { id: nx(), name: 'Jewelry', slug: 'jewelry', parent_id: 5, ad_count: 120 },
-    { id: nx(), name: 'Wedding Wear', slug: 'wedding-wear', parent_id: 5, ad_count: 80 },
-    { id: nx(), name: 'Fashion Accessories', slug: 'fashion-accessories', parent_id: 5, ad_count: 150 },
-    { id: nx(), name: 'Caps & Hats', slug: 'caps-hats', parent_id: 5, ad_count: 60 },
-    { id: nx(), name: 'Belts', slug: 'belts', parent_id: 5, ad_count: 50 },
-    { id: nx(), name: 'Sunglasses', slug: 'sunglasses', parent_id: 5, ad_count: 80 },
-    { id: nx(), name: 'Underwear', slug: 'underwear', parent_id: 5, ad_count: 100 },
-    { id: nx(), name: 'Sleepwear', slug: 'sleepwear', parent_id: 5, ad_count: 70 },
-    { id: nx(), name: 'Sportswear', slug: 'sportswear', parent_id: 5, ad_count: 130 },
-    { id: nx(), name: 'Luxury Fashion', slug: 'luxury-fashion', parent_id: 5, ad_count: 40 },
-  ]},
-  { id: 6, name: 'Home, Furniture & Appliances', slug: 'home-furniture', ad_count: 1100, children: [
-    { id: nx(), name: 'Furniture', slug: 'furniture', parent_id: 6, ad_count: 350 },
-    { id: nx(), name: 'Home Decor', slug: 'home-decor', parent_id: 6, ad_count: 150 },
-    { id: nx(), name: 'Kitchen Appliances', slug: 'kitchen-appliances', parent_id: 6, ad_count: 200 },
-    { id: nx(), name: 'Large Appliances', slug: 'large-appliances', parent_id: 6, ad_count: 180 },
-    { id: nx(), name: 'Small Appliances', slug: 'small-appliances', parent_id: 6, ad_count: 140 },
-    { id: nx(), name: 'Bedding', slug: 'bedding', parent_id: 6, ad_count: 120 },
-    { id: nx(), name: 'Lighting', slug: 'lighting', parent_id: 6, ad_count: 100 },
-    { id: nx(), name: 'Home Accessories', slug: 'home-accessories', parent_id: 6, ad_count: 90 },
-    { id: nx(), name: 'Cookware', slug: 'cookware', parent_id: 6, ad_count: 110 },
-    { id: nx(), name: 'Dining & Glassware', slug: 'dining-glassware', parent_id: 6, ad_count: 80 },
-    { id: nx(), name: 'Storage & Organization', slug: 'storage-organization', parent_id: 6, ad_count: 100 },
-    { id: nx(), name: 'Home Improvement', slug: 'home-improvement', parent_id: 6, ad_count: 130 },
-    { id: nx(), name: 'Gardening Tools', slug: 'gardening-tools', parent_id: 6, ad_count: 70 },
-    { id: nx(), name: 'DIY Materials', slug: 'diy-materials', parent_id: 6, ad_count: 60 },
-    { id: nx(), name: 'Cleaning Equipment', slug: 'cleaning-equipment', parent_id: 6, ad_count: 90 },
-    { id: nx(), name: 'Curtains & Blinds', slug: 'curtains-blinds', parent_id: 6, ad_count: 50 },
-  ]},
-  { id: 7, name: 'Health & Beauty', slug: 'health-beauty', ad_count: 700, children: [
-    { id: nx(), name: 'Skincare', slug: 'skincare', parent_id: 7, ad_count: 180 },
-    { id: nx(), name: 'Face Care', slug: 'face-care', parent_id: 7, ad_count: 120 },
-    { id: nx(), name: 'Body Care', slug: 'body-care', parent_id: 7, ad_count: 100 },
-    { id: nx(), name: 'Makeup', slug: 'makeup', parent_id: 7, ad_count: 200 },
-    { id: nx(), name: 'Hair Products', slug: 'haircare', parent_id: 7, ad_count: 150 },
-    { id: nx(), name: 'Hair Extensions', slug: 'hair-extensions', parent_id: 7, ad_count: 80 },
-    { id: nx(), name: 'Fragrances', slug: 'fragrances', parent_id: 7, ad_count: 100 },
-    { id: nx(), name: 'Oral Care', slug: 'oral-care', parent_id: 7, ad_count: 50 },
-    { id: nx(), name: 'Personal Care', slug: 'personal-care', parent_id: 7, ad_count: 120 },
-    { id: nx(), name: 'Beauty Tools', slug: 'beauty-tools', parent_id: 7, ad_count: 70 },
-    { id: nx(), name: 'Salon Equipment', slug: 'salon-equipment', parent_id: 7, ad_count: 60 },
-    { id: nx(), name: 'Spa Equipment', slug: 'spa-equipment', parent_id: 7, ad_count: 45 },
-    { id: nx(), name: 'Vitamins', slug: 'vitamins', parent_id: 7, ad_count: 90 },
-    { id: nx(), name: 'Supplements', slug: 'supplements', parent_id: 7, ad_count: 110 },
-    { id: nx(), name: 'Weight Management', slug: 'weight-management', parent_id: 7, ad_count: 60 },
-    { id: nx(), name: 'Feminine Care', slug: 'feminine-care', parent_id: 7, ad_count: 70 },
-    { id: nx(), name: 'Grooming Tools', slug: 'grooming-tools', parent_id: 7, ad_count: 65 },
-    { id: nx(), name: 'Medical Beauty Devices', slug: 'medical-beauty-devices', parent_id: 7, ad_count: 30 },
-    { id: nx(), name: 'Organic Beauty', slug: 'organic-beauty', parent_id: 7, ad_count: 55 },
-    { id: nx(), name: 'Wellness Products', slug: 'wellness-products', parent_id: 7, ad_count: 40 },
-  ]},
-  { id: 8, name: 'Jobs', slug: 'jobs', ad_count: 950, children: [
-    { id: nx(), name: 'Technology Jobs', slug: 'tech-jobs', parent_id: 8, ad_count: 200 },
-    { id: nx(), name: 'Driver Jobs', slug: 'driver-jobs', parent_id: 8, ad_count: 120 },
-    { id: nx(), name: 'Office Jobs', slug: 'office-jobs', parent_id: 8, ad_count: 150 },
-    { id: nx(), name: 'Hotel Jobs', slug: 'hotel-jobs', parent_id: 8, ad_count: 80 },
-    { id: nx(), name: 'Construction Jobs', slug: 'construction-jobs', parent_id: 8, ad_count: 100 },
-    { id: nx(), name: 'Healthcare Jobs', slug: 'healthcare-jobs', parent_id: 8, ad_count: 90 },
-    { id: nx(), name: 'Security Jobs', slug: 'security-jobs', parent_id: 8, ad_count: 60 },
-    { id: nx(), name: 'Sales Jobs', slug: 'sales-jobs', parent_id: 8, ad_count: 130 },
-    { id: nx(), name: 'Marketing Jobs', slug: 'marketing-jobs', parent_id: 8, ad_count: 110 },
-    { id: nx(), name: 'Customer Service Jobs', slug: 'customer-service-jobs', parent_id: 8, ad_count: 95 },
-    { id: nx(), name: 'Engineering Jobs', slug: 'engineering-jobs', parent_id: 8, ad_count: 85 },
-    { id: nx(), name: 'Remote Jobs', slug: 'remote-jobs', parent_id: 8, ad_count: 140 },
-    { id: nx(), name: 'Part-Time Jobs', slug: 'part-time-jobs', parent_id: 8, ad_count: 160 },
-    { id: nx(), name: 'Internship Jobs', slug: 'internship-jobs', parent_id: 8, ad_count: 70 },
-    { id: nx(), name: 'Freelance Jobs', slug: 'freelance-jobs', parent_id: 8, ad_count: 90 },
-    { id: nx(), name: 'Teaching Jobs', slug: 'teaching-jobs', parent_id: 8, ad_count: 80 },
-    { id: nx(), name: 'Factory Jobs', slug: 'factory-jobs', parent_id: 8, ad_count: 75 },
-    { id: nx(), name: 'Logistics Jobs', slug: 'logistics-jobs', parent_id: 8, ad_count: 65 },
-    { id: nx(), name: 'Finance Jobs', slug: 'finance-jobs', parent_id: 8, ad_count: 70 },
-    { id: nx(), name: 'Human Resources Jobs', slug: 'hr-jobs', parent_id: 8, ad_count: 55 },
-  ]},
-  { id: 9, name: 'Pets', slug: 'pets', ad_count: 400, children: [
-    { id: nx(), name: 'Dogs', slug: 'dogs', parent_id: 9, ad_count: 120 },
-    { id: nx(), name: 'Puppies', slug: 'puppies', parent_id: 9, ad_count: 80 },
-    { id: nx(), name: 'Cats', slug: 'cats', parent_id: 9, ad_count: 90 },
-    { id: nx(), name: 'Kittens', slug: 'kittens', parent_id: 9, ad_count: 50 },
-    { id: nx(), name: 'Birds', slug: 'birds', parent_id: 9, ad_count: 30 },
-    { id: nx(), name: 'Fish', slug: 'fish', parent_id: 9, ad_count: 40 },
-    { id: nx(), name: 'Rabbits', slug: 'rabbits', parent_id: 9, ad_count: 25 },
-    { id: nx(), name: 'Livestock Pets', slug: 'livestock', parent_id: 9, ad_count: 35 },
-    { id: nx(), name: 'Pet Food', slug: 'pet-food', parent_id: 9, ad_count: 100 },
-    { id: nx(), name: 'Pet Accessories', slug: 'pet-accessories', parent_id: 9, ad_count: 80 },
-    { id: nx(), name: 'Pet Healthcare', slug: 'pet-healthcare', parent_id: 9, ad_count: 45 },
-    { id: nx(), name: 'Aquariums', slug: 'aquariums', parent_id: 9, ad_count: 35 },
-    { id: nx(), name: 'Pet Toys', slug: 'pet-toys', parent_id: 9, ad_count: 55 },
-    { id: nx(), name: 'Pet Grooming', slug: 'pet-grooming', parent_id: 9, ad_count: 40 },
-    { id: nx(), name: 'Pet Services', slug: 'pet-services', parent_id: 9, ad_count: 30 },
-    { id: nx(), name: 'Pet Housing', slug: 'pet-housing', parent_id: 9, ad_count: 25 },
-    { id: nx(), name: 'Reptiles', slug: 'reptiles', parent_id: 9, ad_count: 15 },
-    { id: nx(), name: 'Exotic Pets', slug: 'exotic-pets', parent_id: 9, ad_count: 10 },
-    { id: nx(), name: 'Pet Training', slug: 'pet-training', parent_id: 9, ad_count: 20 },
-    { id: nx(), name: 'Veterinary Services', slug: 'vet-services', parent_id: 9, ad_count: 35 },
-  ]},
-  { id: 10, name: 'Property', slug: 'property', ad_count: 1500, children: [
-    { id: nx(), name: 'Apartments for Rent', slug: 'apartments-rent', parent_id: 10, ad_count: 400 },
-    { id: nx(), name: 'Apartments for Sale', slug: 'apartments-sale', parent_id: 10, ad_count: 250 },
-    { id: nx(), name: 'Houses for Rent', slug: 'houses-rent', parent_id: 10, ad_count: 380 },
-    { id: nx(), name: 'Houses for Sale', slug: 'houses-sale', parent_id: 10, ad_count: 320 },
-    { id: nx(), name: 'Lands & Plots', slug: 'land-plots', parent_id: 10, ad_count: 350 },
-    { id: nx(), name: 'Commercial Property', slug: 'commercial-property', parent_id: 10, ad_count: 200 },
-    { id: nx(), name: 'Office Spaces', slug: 'office-spaces', parent_id: 10, ad_count: 120 },
-    { id: nx(), name: 'Shops', slug: 'shops', parent_id: 10, ad_count: 150 },
-    { id: nx(), name: 'Warehouses', slug: 'warehouses', parent_id: 10, ad_count: 80 },
-    { id: nx(), name: 'Event Centers', slug: 'event-centers', parent_id: 10, ad_count: 60 },
-    { id: nx(), name: 'Hotels', slug: 'hotels', parent_id: 10, ad_count: 50 },
-    { id: nx(), name: 'Hostels', slug: 'hostels', parent_id: 10, ad_count: 70 },
-    { id: nx(), name: 'Short Let', slug: 'short-let', parent_id: 10, ad_count: 150 },
-    { id: nx(), name: 'Co-working Spaces', slug: 'coworking-spaces', parent_id: 10, ad_count: 40 },
-    { id: nx(), name: 'Factories', slug: 'factories', parent_id: 10, ad_count: 30 },
-    { id: nx(), name: 'Farms', slug: 'farms', parent_id: 10, ad_count: 45 },
-    { id: nx(), name: 'Mixed-Use Property', slug: 'mixed-use-property', parent_id: 10, ad_count: 35 },
-    { id: nx(), name: 'Beach Property', slug: 'beach-property', parent_id: 10, ad_count: 25 },
-    { id: nx(), name: 'Luxury Property', slug: 'luxury-property', parent_id: 10, ad_count: 40 },
-    { id: nx(), name: 'Property Services', slug: 'property-services', parent_id: 10, ad_count: 55 },
-  ]},
-  { id: 11, name: 'Services', slug: 'services', ad_count: 850, children: [
-    { id: nx(), name: 'Cleaning Services', slug: 'cleaning-services', parent_id: 11, ad_count: 110 },
-    { id: nx(), name: 'Laundry Services', slug: 'laundry-services', parent_id: 11, ad_count: 70 },
-    { id: nx(), name: 'Repair Services', slug: 'repair-services', parent_id: 11, ad_count: 90 },
-    { id: nx(), name: 'Plumbing Services', slug: 'plumbing-services', parent_id: 11, ad_count: 60 },
-    { id: nx(), name: 'Electrical Services', slug: 'electrical-services', parent_id: 11, ad_count: 55 },
-    { id: nx(), name: 'Digital Services', slug: 'digital-services', parent_id: 11, ad_count: 130 },
-    { id: nx(), name: 'Web Design', slug: 'web-design', parent_id: 11, ad_count: 80 },
-    { id: nx(), name: 'Graphic Design', slug: 'graphic-design', parent_id: 11, ad_count: 75 },
-    { id: nx(), name: 'Programming Services', slug: 'programming-services', parent_id: 11, ad_count: 60 },
-    { id: nx(), name: 'Photography Services', slug: 'photography-services', parent_id: 11, ad_count: 50 },
-    { id: nx(), name: 'Videography Services', slug: 'videography-services', parent_id: 11, ad_count: 40 },
-    { id: nx(), name: 'Delivery Services', slug: 'delivery-services', parent_id: 11, ad_count: 85 },
-    { id: nx(), name: 'Beauty Services', slug: 'beauty-services', parent_id: 11, ad_count: 65 },
-    { id: nx(), name: 'Catering Services', slug: 'catering-services', parent_id: 11, ad_count: 55 },
-    { id: nx(), name: 'Event Planning', slug: 'event-planning', parent_id: 11, ad_count: 80 },
-    { id: nx(), name: 'Building Services', slug: 'building-services', parent_id: 11, ad_count: 45 },
-    { id: nx(), name: 'Interior Design', slug: 'interior-design', parent_id: 11, ad_count: 35 },
-    { id: nx(), name: 'Moving Services', slug: 'moving-services', parent_id: 11, ad_count: 50 },
-    { id: nx(), name: 'Printing Services', slug: 'printing-services', parent_id: 11, ad_count: 30 },
-    { id: nx(), name: 'Consulting Services', slug: 'consulting-services', parent_id: 11, ad_count: 40 },
-  ]},
-  { id: 12, name: 'Sports & Outdoors', slug: 'sports', ad_count: 550, children: [
-    { id: nx(), name: 'Gym Equipment', slug: 'gym-equipment', parent_id: 12, ad_count: 180 },
-    { id: nx(), name: 'Fitness Accessories', slug: 'fitness-accessories', parent_id: 12, ad_count: 100 },
-    { id: nx(), name: 'Treadmills', slug: 'treadmills', parent_id: 12, ad_count: 60 },
-    { id: nx(), name: 'Dumbbells', slug: 'dumbbells', parent_id: 12, ad_count: 50 },
-    { id: nx(), name: 'Bicycles', slug: 'bicycles', parent_id: 12, ad_count: 80 },
-    { id: nx(), name: 'Camping Gear', slug: 'camping-gear', parent_id: 12, ad_count: 70 },
-    { id: nx(), name: 'Hiking Equipment', slug: 'hiking-equipment', parent_id: 12, ad_count: 40 },
-    { id: nx(), name: 'Outdoor Furniture', slug: 'outdoor-furniture', parent_id: 12, ad_count: 55 },
-    { id: nx(), name: 'Football Equipment', slug: 'football-equipment', parent_id: 12, ad_count: 65 },
-    { id: nx(), name: 'Basketball Equipment', slug: 'basketball-equipment', parent_id: 12, ad_count: 45 },
-    { id: nx(), name: 'Swimming Equipment', slug: 'swimming-equipment', parent_id: 12, ad_count: 50 },
-    { id: nx(), name: 'Boxing Equipment', slug: 'boxing-equipment', parent_id: 12, ad_count: 35 },
-    { id: nx(), name: 'Indoor Games', slug: 'indoor-games', parent_id: 12, ad_count: 60 },
-    { id: nx(), name: 'Jerseys', slug: 'jerseys', parent_id: 12, ad_count: 90 },
-    { id: nx(), name: 'Sports Shoes', slug: 'sports-shoes', parent_id: 12, ad_count: 100 },
-    { id: nx(), name: 'Yoga Equipment', slug: 'yoga-equipment', parent_id: 12, ad_count: 40 },
-    { id: nx(), name: 'Fishing Equipment', slug: 'fishing-equipment', parent_id: 12, ad_count: 45 },
-    { id: nx(), name: 'Running Equipment', slug: 'running-equipment', parent_id: 12, ad_count: 35 },
-    { id: nx(), name: 'Outdoor Cooking', slug: 'outdoor-cooking', parent_id: 12, ad_count: 30 },
-    { id: nx(), name: 'Travel Accessories', slug: 'travel-accessories', parent_id: 12, ad_count: 55 },
-  ]},
-];
-
-const CATEGORY_ICONS: Record<string, string> = {
-  vehicles: '\u{1F697}', cars: '\u{1F697}', motorcycles: '\u{1F3CD}', suvs: '\u{1F697}', sedans: '\u{1F697}',
-  'mobile-phones': '\u{1F4F1}', smartphones: '\u{1F4F1}', tablets: '\u{1F4FA}',
-  property: '\u{1F3E0}', houses: '\u{1F3E0}', land: '\u{1F3D4}', apartments: '\u{1F3E0}', 'short-let': '\u{1F3E0}',
-  electronics: '\u{1F4BB}', laptops: '\u{1F4BB}', tvs: '\u{1F4FA}', cameras: '\u{1F4F7}', headphones: '\u{1F50A}',
-  fashion: '\u{1F455}',
-  'home-furniture': '\u{1F6CF}', furniture: '\u{1F6CF}',
-  services: '\u{1F6E0}',
-  jobs: '\u{1F4BC}',
-  'health-beauty': '\u{1F484}',
-  sports: '\u{26BD}',
-  'baby-kids': '\u{1F476}',
-  pets: '\u{1F436}', dogs: '\u{1F436}', cats: '\u{1F431}',
-};
 
 const CATEGORY_BG: Record<string, string> = {
   vehicles: 'bg-emerald-50', cars: 'bg-emerald-50',
@@ -339,20 +32,6 @@ const CATEGORY_BG: Record<string, string> = {
   'baby-kids': 'bg-yellow-50',
   pets: 'bg-lime-50',
 };
-
-function getIcon(slug?: string, name?: string): string {
-  if (slug) {
-    const lower = slug.toLowerCase();
-    for (const [key, icon] of Object.entries(CATEGORY_ICONS))
-      if (lower === key || lower.includes(key)) return icon;
-  }
-  if (name) {
-    const lower = name.toLowerCase();
-    for (const [key, icon] of Object.entries(CATEGORY_ICONS))
-      if (lower === key || lower.includes(key)) return icon;
-  }
-  return '\u{1F4E6}';
-}
 
 function getCategoryBg(name?: string): string {
   if (!name) return 'bg-gray-50';
@@ -391,23 +70,46 @@ export default function CategorySidebar() {
   const [tabletOpen, setTabletOpen] = useState(false);
   const [mobileBreadcrumbs, setMobileBreadcrumbs] = useState<Category[]>([]);
   const [panelPos, setPanelPos] = useState({ top: 0, left: 0, maxHeight: 400 });
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const subPanelRef = useRef<HTMLDivElement>(null);
   const childPanelRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const { data: apiCats, isLoading } = useSWR<Category[]>(
-    `${API_URL}/categories`,
-    fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: fallbackCategories }
-  );
-
-  const categories = apiCats && apiCats.length > 0 ? apiCats : fallbackCategories;
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const { data: parents } = await supabase.from('categories').select('*').is('parent_id', null).order('sort_order');
+      if (!mounted) return;
+      const allCats: Category[] = [];
+      for (const parent of parents || []) {
+        const { data: subs } = await supabase.from('subcategories').select('*').eq('category_id', parent.id).order('sort_order');
+        allCats.push({
+          id: parent.id,
+          name: parent.name,
+          slug: parent.slug,
+          icon: parent.icon || undefined,
+          image: parent.image || undefined,
+          ad_count: 0,
+          children: (subs || []).map(s => ({
+            id: s.id, name: s.name, slug: s.slug, parent_id: parent.id, ad_count: 0,
+          })),
+        });
+      }
+      if (mounted) {
+        setCategories(allCats);
+        setIsLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   const rootCats = useCallback(() => {
     if (!Array.isArray(categories)) return [];
-    return categories.filter(c => c.parent_id == null);
+    return categories.filter(c => !c.parent_id);
   }, [categories]);
 
   const getChildren = useCallback((cat: Category): Category[] => {
@@ -614,11 +316,14 @@ export default function CategorySidebar() {
     ? rootCats()
     : getChildren(mobileBreadcrumbs[mobileBreadcrumbs.length - 1]);
 
-  const renderIcon = (cat: Category) => (
-    <span className={cn('flex-shrink-0 w-7 h-7 flex items-center justify-center text-sm rounded-lg', getCategoryBg(cat.name))}>
-      {getIcon(cat.slug, cat.name)}
-    </span>
-  );
+  const renderIcon = (cat: Category) => {
+    const IconComp = getCategoryIcon(cat.icon);
+    return (
+      <span className={cn('flex-shrink-0 w-7 h-7 flex items-center justify-center text-sm rounded-lg', getCategoryBg(cat.name))}>
+        <IconComp className="w-4 h-4" />
+      </span>
+    );
+  };
 
   const renderPanelItem = (item: Category, isSub?: boolean) => (
     <div
@@ -648,12 +353,10 @@ export default function CategorySidebar() {
 
   return (
     <>
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-[200] bg-black/40 lg:hidden" onClick={() => { setMobileOpen(false); setMobileBreadcrumbs([]); }} />
       )}
 
-      {/* Mobile drawer */}
       <div className={cn(
         'fixed top-0 left-0 bottom-0 z-[201] w-[300px] max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-out lg:hidden flex flex-col',
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
@@ -690,7 +393,6 @@ export default function CategorySidebar() {
         </div>
       </div>
 
-      {/* Tablet toggle */}
       <button onClick={() => setTabletOpen(!tabletOpen)}
         className="hidden md:flex lg:hidden fixed left-3 z-40 w-10 h-10 bg-white rounded-xl shadow-md border border-gray-200 items-center justify-center hover:bg-gray-50 transition-colors"
         style={{ top: '130px' }} aria-label="Categories">
@@ -724,7 +426,6 @@ export default function CategorySidebar() {
         </div>
       </div>
 
-      {/* Desktop sidebar */}
       <aside
         ref={sidebarRef}
         onMouseLeave={handleCatLeave}
@@ -782,7 +483,6 @@ export default function CategorySidebar() {
         </div>
       </aside>
 
-      {/* Level 2 - Subcategory panel */}
       {displayCat && subs.length > 0 && (
         <div
           ref={subPanelRef}
@@ -813,7 +513,6 @@ export default function CategorySidebar() {
         </div>
       )}
 
-      {/* Level 3 - Child panel */}
       {displaySub && children.length > 0 && (
         <div
           ref={childPanelRef}

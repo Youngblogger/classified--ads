@@ -88,6 +88,16 @@ export interface Database {
         Insert: AuditLogInsert
         Update: AuditLogUpdate
       }
+      user_verifications: {
+        Row: UserVerification
+        Insert: UserVerificationInsert
+        Update: UserVerificationUpdate
+      }
+      fraud_signals: {
+        Row: FraudSignal
+        Insert: FraudSignalInsert
+        Update: FraudSignalUpdate
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -114,6 +124,13 @@ export interface Profile {
   is_verified: boolean
   verification_status: verification_status
   role: user_role
+  trust_score: number | null
+  response_rate: number | null
+  response_time_avg: number | null
+  completed_transactions: number | null
+  rating_avg: number | null
+  review_count: number | null
+  account_age_days: number | null
   created_at: string
   updated_at: string
 }
@@ -776,6 +793,77 @@ export interface AuditLogInsert {
 export interface AuditLogUpdate {
   old_values?: Json | null
   new_values?: Json | null
+}
+
+export interface UserVerification {
+  id: string
+  user_id: string
+  status: string
+  document_type: string | null
+  document_number: string | null
+  document_url: string | null
+  kyc_provider: string | null
+  kyc_reference: string | null
+  face_match_score: number | null
+  fraud_score: number | null
+  verified_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface UserVerificationInsert {
+  id?: string
+  user_id: string
+  status?: string
+  document_type?: string | null
+  document_number?: string | null
+  document_url?: string | null
+  kyc_provider?: string | null
+  kyc_reference?: string | null
+  face_match_score?: number | null
+  fraud_score?: number | null
+  verified_at?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export interface UserVerificationUpdate {
+  status?: string
+  document_type?: string | null
+  document_number?: string | null
+  document_url?: string | null
+  kyc_provider?: string | null
+  kyc_reference?: string | null
+  face_match_score?: number | null
+  fraud_score?: number | null
+  verified_at?: string | null
+  updated_at?: string
+}
+
+export interface FraudSignal {
+  id: string
+  user_id: string
+  signal_type: string
+  signal_value: string | null
+  score: number | null
+  metadata: Json | null
+  created_at: string
+}
+
+export interface FraudSignalInsert {
+  id?: string
+  user_id: string
+  signal_type: string
+  signal_value?: string | null
+  score?: number | null
+  metadata?: Json | null
+  created_at?: string
+}
+
+export interface FraudSignalUpdate {
+  signal_value?: string | null
+  score?: number | null
+  metadata?: Json | null
 }
 
 export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']

@@ -69,7 +69,7 @@ export default function BankTransferDetails({
       setChecking(true);
       const response = await promotionsApi.verifyPayment(reference);
 
-      if (response.data.success) {
+      if ((response.data as any)?.data?.message) {
         setStatus('paid');
         onSuccess();
       }

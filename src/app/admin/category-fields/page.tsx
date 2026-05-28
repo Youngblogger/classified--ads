@@ -6,9 +6,7 @@ import {
   Plus,
   Edit,
   Trash2,
-  Loader2,
   X,
-  ChevronDown,
   GripVertical
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
@@ -64,7 +62,7 @@ export default function CategoryFieldsPage() {
   const fetchCategories = async () => {
     try {
       const res = await adminApi.getCategories();
-      const cats = res.data.data || res.data || [];
+      const cats = (res.data as any)?.data ?? [];
       setCategories(cats);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
@@ -79,7 +77,7 @@ export default function CategoryFieldsPage() {
         params.category_id = selectedCategory;
       }
       const res = await adminApi.getCategoryFields(params);
-      setFields(res.data.flat || res.data || []);
+      setFields(res.data || []);
     } catch (error) {
       console.error('Failed to fetch fields:', error);
       toast.error('Failed to load fields');
