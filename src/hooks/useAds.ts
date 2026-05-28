@@ -56,6 +56,11 @@ async function fetchFromSupabase(endpoint: string): Promise<any> {
     return (boosted || []).map(transformAd);
   }
 
+  if (endpoint.startsWith('ads?')) {
+    const params = Object.fromEntries(new URLSearchParams(endpoint.replace('ads?', '')));
+    return adsApi.getAll(params).then(r => r.data);
+  }
+
   if (endpoint.startsWith('ads/')) {
     const slug = endpoint.replace('ads/', '');
     if (slug && slug.length > 0 && !slug.includes('?')) {

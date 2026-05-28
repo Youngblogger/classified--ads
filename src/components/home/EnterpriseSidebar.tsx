@@ -219,17 +219,22 @@ export default function EnterpriseSidebar() {
   useEffect(() => {
     let mounted = true;
     async function load() {
-      const { data: parents } = await supabase.from('categories').select('*').is('parent_id', null).order('sort_order').limit(20);
-      const tree: Category[] = [];
-      for (const p of parents || []) {
-        const { data: subs } = await supabase.from('subcategories').select('*').eq('category_id', p.id).order('sort_order');
-        tree.push({
-          id: p.id, name: p.name, slug: p.slug, icon: p.icon || undefined, image: p.image || undefined,
-          ad_count: 0, children: (subs || []).map(s => ({
-            id: s.id, name: s.name, slug: s.slug, parent_id: p.id, ad_count: 0,
-          })),
-        });
-      }
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*, subcategories(*)')
+        .is('parent_id', null)
+        .order('sort_order');
+      if (error) console.error('[EnterpriseSidebar] category load error:', error.message);
+      const tree: Category[] = (data || []).map((cat: any) => ({
+        id: cat.id, name: cat.name, slug: cat.slug, icon: cat.icon || undefined,
+        image: cat.image || undefined, ad_count: cat.ad_count || 0,
+        is_featured: cat.is_featured || false, is_trending: cat.is_trending || false,
+        category_badge: cat.category_badge || undefined,
+        children: (cat.subcategories || []).map((s: any) => ({
+          id: s.id, name: s.name, slug: s.slug, parent_id: cat.id, ad_count: s.ad_count || 0,
+          icon: s.icon || undefined, image: s.image || undefined,
+        })),
+      }));
       if (mounted) {
         setApiData({ tree, featured: [], trending: [], recently_added: [] });
         setIsLoading(false);
