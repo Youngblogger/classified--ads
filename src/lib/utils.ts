@@ -215,7 +215,7 @@ export function getAdMainImage(ad: any): string {
 
 export function getAdMainImageWithCacheBust(ad: any): string {
   const url = getAdMainImage(ad);
-  if (!url || url === FALLBACK_IMAGE) return url;
+  if (!url || url === FALLBACK_IMAGE || url.startsWith('/')) return url;
   const ts = getImageTimestamp(ad);
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}_cb=${ts}`;

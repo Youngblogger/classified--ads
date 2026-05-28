@@ -1,10 +1,11 @@
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || supabaseUrl;
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export const config = {
   api: {
-    baseUrl: supabaseUrl,
-    backendUrl: supabaseUrl,
+    baseUrl: apiBaseUrl,
+    backendUrl: apiBaseUrl,
     timeout: 30000,
     retryCount: 2,
   },
