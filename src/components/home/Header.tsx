@@ -464,14 +464,24 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
 
   const hasValidToken = useCallback(() => {
     if (typeof window === 'undefined') return false;
+    let token: string | null = null;
     const stored = localStorage.getItem('user-auth-storage');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        return !!parsed?.state?.token;
+        token = parsed?.state?.token || null;
       } catch {}
     }
-    return !!document.cookie.match(/(?:^|;\s*)token=[^;]/);
+    if (!token) {
+      const match = document.cookie.match(/(?:^|;\s*)token=([^;]+)/);
+      token = match ? match[1] : null;
+    }
+    if (!token) return false;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) return false;
+    } catch {}
+    return true;
   }, []);
 
   useEffect(() => {
