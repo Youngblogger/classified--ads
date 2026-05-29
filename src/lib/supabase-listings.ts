@@ -222,7 +222,7 @@ export async function getFeaturedListings(limit = 8) {
   return { listings: (data as any[]) || [], error: null };
 }
 
-export async function getBoostedListings(limit = 10) {
+export async function getBoostedListings(limit = 50) {
   const { data, error } = await supabase
     .from('listings')
     .select(LISTING_SELECT)

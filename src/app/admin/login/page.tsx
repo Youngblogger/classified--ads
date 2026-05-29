@@ -64,27 +64,18 @@ export default function AdminLoginPage() {
     try {
       const hashedSecret = secretKey ? await hashSecret(secretKey) : '';
 
-      console.log('Attempting login with:', email);
-      console.log('API URL:', '');
-      
       const response = await api.post('/secure-control-9ja/auth/login', {
         login: email,
         password: password,
         admin_secret: hashedSecret || undefined,
-      }).catch(err => {
-        console.error('API call failed:', err);
-        console.error('Error details:', err.response);
-        throw err;
       });
 
-      console.log('Login response:', response);
-      console.log('Response data:', response?.data);
-      console.log('Response data success:', response?.data?.success);
+      const resData = response?.data || response;
+      const success = !!(resData?.success || resData?.token);
+      const token = resData?.token || resData?.access_token || '';
+      const user = resData?.user || null;
 
-      if (response?.data?.success) {
-        const token = response.data.token;
-        const user = response.data.user;
-        
+      if (success && token && user) {
         localStorage.setItem('admin_token', token);
         localStorage.setItem('admin_user', JSON.stringify(user));
         localStorage.setItem('admin-auth-storage', JSON.stringify({
@@ -93,34 +84,48 @@ export default function AdminLoginPage() {
         }));
         
         window.location.href = '/admin/ads-moderation';
+        return;
+      }
+
+      const errMsg = resData?.message || resData?.error || 'Login failed. Please try again.';
+      const errCode = resData?.error_code || '';
+      const retryAfter = resData?.retry_after;
+      const attemptsRemaining = resData?.attempts_remaining;
+
+      if (errCode === 'IP_NOT_ALLOWED') {
+        setError('Access denied: Your IP address is not authorized.');
+      } else if (errCode === 'INVALID_SECRET_KEY') {
+        setError('Invalid admin secret key.');
+      } else if (errCode === 'RATE_LIMITED' || retryAfter) {
+        const minutes = Math.ceil((retryAfter || 60) / 60);
+        setError(`Too many attempts. Please try again in ${minutes} minute(s).`);
+      } else if (errMsg?.includes('Invalid credentials') || errMsg?.includes('Invalid admin credentials')) {
+        setError(attemptsRemaining !== undefined 
+          ? `Incorrect email or password. ${attemptsRemaining} attempt(s) remaining.`
+          : 'Incorrect email or password');
+      } else if (response?.status === 403 || response?.status === 401) {
+        setError(errMsg || 'Access denied. Admin privileges required.');
+      } else {
+        setError(errMsg);
       }
     } catch (err: any) {
-      console.error('Login error:', err);
-      console.error('Error response:', err.response?.data);
-      
-      const errorCode = err.response?.data?.error_code;
-      const errorMessage = err.response?.data?.message;
-      const retryAfter = err.response?.data?.retry_after;
-      
-      if (errorCode === 'IP_NOT_ALLOWED') {
-        setError('Access denied: Your IP address is not authorized.');
-      } else if (errorCode === 'INVALID_SECRET_KEY') {
-        setError('Invalid admin secret key.');
-      } else if (errorCode === 'RATE_LIMITED') {
-        const minutes = Math.ceil(retryAfter / 60);
+      const errData = err?.response?.data || err?.data || {};
+      const errMsg = errData?.message || err?.message || 'Login failed. Please try again.';
+      const retryAfter = errData?.retry_after;
+      const attemptsRemaining = errData?.attempts_remaining;
+      const errCode = errData?.error_code || '';
+
+      if (errCode === 'RATE_LIMITED' || retryAfter) {
+        const minutes = Math.ceil((retryAfter || 60) / 60);
         setError(`Too many attempts. Please try again in ${minutes} minute(s).`);
-      } else if (retryAfter) {
-        const minutes = Math.ceil(retryAfter / 60);
-        setError(`Too many attempts. Please try again in ${minutes} minute(s).`);
-      } else if (errorMessage?.includes('Invalid credentials') || errorMessage?.includes('Invalid admin credentials')) {
-        const remaining = err.response?.data?.attempts_remaining;
-        setError(remaining !== undefined 
-          ? `Incorrect email or password. ${remaining} attempt(s) remaining.`
+      } else if (errMsg?.includes('Invalid credentials') || errMsg?.includes('Invalid admin credentials')) {
+        setError(attemptsRemaining !== undefined 
+          ? `Incorrect email or password. ${attemptsRemaining} attempt(s) remaining.`
           : 'Incorrect email or password');
-      } else if (err.response?.status === 403) {
-        setError(errorMessage || 'Access denied. Admin privileges required.');
+      } else if (err?.response?.status === 403 || err?.response?.status === 401) {
+        setError(errMsg || 'Access denied. Admin privileges required.');
       } else {
-        setError(errorMessage || 'Login failed. Please try again.');
+        setError(errMsg);
       }
     } finally {
       setLoading(false);

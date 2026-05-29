@@ -81,26 +81,28 @@ export default function CategorySidebar() {
   useEffect(() => {
     let mounted = true;
     async function load() {
-      const { data: parents } = await supabase.from('categories').select('*').is('parent_id', null).order('sort_order');
-      if (!mounted) return;
-      const allCats: Category[] = [];
-      for (const parent of parents || []) {
-        const { data: subs } = await supabase.from('subcategories').select('*').eq('category_id', parent.id).order('sort_order');
-        allCats.push({
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/categories`);
+        const json = await res.json();
+        const parents = (json?.data || []) as any[];
+        if (!mounted) return;
+        const allCats: Category[] = parents.map((parent: any) => ({
           id: parent.id,
           name: parent.name,
           slug: parent.slug,
           icon: parent.icon || undefined,
           image: parent.image || undefined,
-          ad_count: 0,
-          children: (subs || []).map(s => ({
-            id: s.id, name: s.name, slug: s.slug, parent_id: parent.id, ad_count: 0,
+          ad_count: parent.ad_count || 0,
+          children: (parent.activeChildren || []).map((s: any) => ({
+            id: s.id, name: s.name, slug: s.slug, parent_id: parent.id, ad_count: s.ad_count || 0,
           })),
-        });
-      }
-      if (mounted) {
-        setCategories(allCats);
-        setIsLoading(false);
+        }));
+        if (mounted) {
+          setCategories(allCats);
+          setIsLoading(false);
+        }
+      } catch {
+        if (mounted) setIsLoading(false);
       }
     }
     load();

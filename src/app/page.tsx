@@ -13,9 +13,12 @@ import { useAuthStore } from '@/lib/store';
 import { useInfiniteAds, useCategories } from '@/hooks/useAds';
 import AdCard from '@/components/ui/AdCard';
 import { getBoostPlan, isBoostExpired, calculateBoostScore } from '@/lib/boost-config';
+import { safeArray, safeSlice } from '@/lib/safe-data';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 function buildUnifiedFeed(ads: any[]): any[] {
-  const boosted = ads.filter((ad: any) => {
+  const safeAds = safeArray(ads);
+  const boosted = safeAds.filter((ad: any) => {
     const plan = getBoostPlan(ad.boost_type);
     return plan && ad.boost_status === 'active' && !isBoostExpired(ad);
   });
@@ -78,7 +81,7 @@ const CATEGORY_COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F97316', '#EC4899', 
 export default function HomePage() {
   const { isAuthenticated, user } = useAuthStore();
   const { categories: supabaseCategories, isLoading: catLoading } = useCategories();
-  const ITEMS_PER_PAGE = 12;
+  const ITEMS_PER_PAGE = 24;
 
   const {
     ads: recentAds,
@@ -88,7 +91,7 @@ export default function HomePage() {
     isLoadingMore,
     isError: adsError,
     loadMore,
-  } = useInfiniteAds({}, ITEMS_PER_PAGE);
+  } = useInfiniteAds({ status: 'active' }, ITEMS_PER_PAGE);
 
   const [showBackToTop, setShowBackToTop] = useState(false);
 
@@ -113,9 +116,13 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
-      <ResponsiveHeader />
+      <ErrorBoundary>
+        <ResponsiveHeader />
+      </ErrorBoundary>
       <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4 mt-[8px] md:mt-[104px]">
-        <EnterpriseSidebar />
+        <ErrorBoundary>
+          <EnterpriseSidebar />
+        </ErrorBoundary>
         <main className="flex-1 min-w-0 relative pt-0" suppressHydrationWarning>
           {/* Hero Section - Hidden on mobile */}
           <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-xl">
@@ -237,7 +244,7 @@ export default function HomePage() {
                   <div className="h-3 bg-gray-200 rounded w-12" />
                 </div>
               ))
-            ) : supabaseCategories.slice(0, 8).map((cat: any, i: number) => (
+            ) : safeSlice(supabaseCategories, 0, 8).map((cat: any, i: number) => (
               <Link
                 key={cat.id}
                 href={`/ads?category=${cat.slug}`}

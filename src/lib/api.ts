@@ -1,5 +1,6 @@
 import { supabase, getServiceRoleClient } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
+import { http } from '@/lib/http-client';
 import type { Database, Tables } from '@/types/supabase';
 
 type SupabaseResponse<T = any> = {
@@ -126,6 +127,113 @@ function transformListings(listings: any[]): any[] {
   return (listings || []).map(l => transformListing(l));
 }
 
+function imgAbs(url: string | undefined | null): string {
+  if (!url || url.startsWith('http://') || url.startsWith('https://')) return url || '';
+  const base = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api$/, '');
+  return url.startsWith('/') ? `${base}${url}` : url;
+}
+
+function fromLaravelAd(ad: any): any {
+  if (!ad) return ad;
+  const images = (ad.images || []).map((img: any) => ({
+    id: img.id,
+    url: imgAbs(img.url),
+    thumbnail_url: imgAbs(img.thumbnail_url || img.thumbnail),
+    medium_url: imgAbs(img.medium_url),
+    is_primary: img.is_primary,
+  }));
+  const singleImage = images.length > 0 ? images[0] : (ad.image ? {
+    id: ad.image.id,
+    url: imgAbs(ad.image.url),
+    thumbnail_url: imgAbs(ad.image.thumbnail_url || ad.image.thumbnail),
+    medium_url: imgAbs(ad.image.medium_url),
+    is_primary: true,
+  } : null);
+  return {
+    id: ad.id,
+    title: ad.title,
+    slug: ad.slug,
+    description: ad.short_description || '',
+    short_description: ad.short_description || '',
+    price: ad.price,
+    currency: ad.currency || 'NGN',
+    condition: ad.condition,
+    status: ad.status || 'active',
+    negotiable: ad.negotiable,
+    views: ad.views || 0,
+    views_count: ad.views || 0,
+    favorites_count: 0,
+    is_featured: false,
+    is_boosted: ad.is_boosted || false,
+    boost_type: ad.boost_type || null,
+    boost_status: ad.boost_status || null,
+    boost_expires_at: ad.boost_expires_at || null,
+    whatsapp: ad.whatsapp || ad.phone || '',
+    phone: ad.phone || '',
+    sellerPhone: ad.phone || '',
+    phone_number: ad.phone || '',
+    state: ad.state || '',
+    lga: ad.lga || '',
+    city: '',
+    location: ad.location?.name || ad.state || '',
+    specifications: [],
+    attributes: [],
+    metadata: null,
+    created_at: ad.created_at,
+    updated_at: ad.updated_at || ad.created_at,
+    expires_at: null,
+    category_id: ad.category?.id,
+    subcategory_id: ad.subcategory?.id,
+    user_id: ad.user?.id,
+    category: ad.category || null,
+    subcategory: ad.subcategory || null,
+    user: ad.user ? {
+      id: ad.user.id,
+      name: ad.user.name || '',
+      full_name: ad.user.name || '',
+      username: '',
+      email: ad.user.email || '',
+      phone: ad.user.phone || '',
+      avatar: imgAbs(ad.user.avatar || ad.user.avatar_url || ''),
+      avatar_url: imgAbs(ad.user.avatar || ad.user.avatar_url || ''),
+      full_avatar_url: imgAbs(ad.user.avatar || ad.user.avatar_url || ''),
+      location: '',
+      created_at: null,
+      verified: ad.user.is_verified || false,
+      is_verified: ad.user.is_verified || false,
+      is_verified_seller: ad.user.is_verified || false,
+      is_verified_business: false,
+      rating_avg: null,
+      response_time: null,
+      completed_transactions: null,
+    } : undefined,
+    image_url: singleImage?.url || imgAbs(ad.image_url) || null,
+    images_count: images.length || (singleImage ? 1 : 0),
+    images: images.length > 0 ? images : (singleImage ? [singleImage] : []),
+  };
+}
+
+function fromLaravelAdDetail(ad: any): any {
+  if (!ad) return ad;
+  const base = fromLaravelAd(ad);
+  base.description = ad.description || base.description;
+  base.specifications = ad.specifications || ad.attributes || [];
+  base.attributes = ad.attributes || [];
+  if (ad.user) {
+    base.user = {
+      ...base.user,
+      full_avatar_url: ad.user.full_avatar_url || ad.user.avatar || ad.user.avatar_url,
+      google_avatar: ad.user.google_avatar,
+      facebook_avatar: ad.user.facebook_avatar,
+      location: ad.user.location || '',
+      created_at: ad.user.created_at,
+      is_verified_seller: ad.user.is_verified || false,
+      is_verified_business: ad.user.is_verified_business || false,
+    };
+  }
+  return base;
+}
+
 const PAGE_SIZE = 20;
 
 function buildMeta(total: number, page: number, perPage: number) {
@@ -240,33 +348,38 @@ export const authApi = {
 // ==============================
 export const categoriesApi = {
   getAll: async () => {
-    const { data, error } = await supabase.from('categories').select('*').is('parent_id', null).order('sort_order');
-    if (error) return sbError(error);
-    const allCats: any[] = [];
-    for (const cat of data || []) {
-      const { data: subs } = await supabase.from('subcategories').select('*').eq('category_id', cat.id).order('sort_order');
-      allCats.push({
+    try {
+      const res = await http.get('/categories');
+      const raw = (res?.data?.data || []) as any[];
+      const allCats = raw.map((cat: any) => ({
         ...cat,
-        ad_count: 0,
-        children: (subs || []).map(s => ({ ...s, id: s.id, parent_id: cat.id, ad_count: 0 })),
-      });
+        id: String(cat.id),
+        children: (cat.activeChildren || []).map((s: any) => ({ ...s, id: String(s.id), parent_id: String(cat.id), ad_count: s.ad_count || 0 })),
+      }));
+      return sbResponse({ data: allCats });
+    } catch {
+      return sbResponse({ data: [] });
     }
-    return sbResponse({ data: allCats });
   },
 
   getById: async (id: number) => {
-    const { data, error } = await supabase.from('categories').select('*').eq('id', String(id)).single();
-    return error ? sbError(error) : sbResponse({ data });
+    try {
+      const res = await http.get(`/categories/${id}`);
+      const cat = res?.data?.data || res?.data || null;
+      return cat ? sbResponse({ data: cat }) : sbError({ message: 'Category not found' });
+    } catch { return sbError({ message: 'Category not found' }); }
   },
 
   getBySlug: async (slug: string) => {
-    const { data, error } = await supabase.from('categories').select('*').eq('slug', slug).single();
-    return error ? sbError(error) : sbResponse({ data });
+    try {
+      const res = await http.get(`/categories/${slug}`);
+      const cat = res?.data?.data || res?.data || null;
+      return cat ? sbResponse({ data: cat }) : sbError({ message: 'Category not found' });
+    } catch { return sbError({ message: 'Category not found' }); }
   },
 
-  getSubcategories: async (parentId: number) => {
-    const { data, error } = await supabase.from('subcategories').select('*').eq('category_id', String(parentId)).order('sort_order');
-    return error ? sbError(error) : sbResponse({ data: data || [] });
+  getSubcategories: async (_parentId: number) => {
+    return sbResponse({ data: [] });
   },
 };
 
@@ -285,65 +398,67 @@ export const locationsApi = {
 // ==============================
 export const adsApi = {
   get: async (id: number) => {
-    const { data, error } = await supabase.from('listings').select('*, profiles(*), categories(*), subcategories(*)').eq('id', String(id)).single();
-    if (error) return sbError(error);
-    return sbResponse({ data: transformListing({ ...data, user: data?.profiles, category: data?.categories }) });
+    try {
+      const res = await http.get(`/ads/${id}`);
+      const ad = res?.data?.data || res?.data || null;
+      if (!ad) return sbError({ message: 'Ad not found' });
+      return sbResponse({ data: fromLaravelAdDetail(ad) });
+    } catch (e: any) {
+      return sbError(e);
+    }
   },
 
   getAll: async (params?: Record<string, any>) => {
-    let query = supabase.from('listings').select('*, profiles(*), categories(*), subcategories(*)', { count: 'exact' });
-    const page = params?.page || 1;
-    const perPage = params?.per_page || params?.limit || PAGE_SIZE;
-
-    if (params?.category) query = query.eq('categories.slug', params.category);
-    if (params?.subcategory) query = query.eq('subcategories.slug', params.subcategory);
-    if (params?.search) query = query.ilike('title', `%${params.search}%`);
-    if (params?.state) query = query.eq('state', params.state);
-    if (params?.lga) query = query.eq('lga', params.lga);
-    if (params?.min_price) query = query.gte('price', params.min_price);
-    if (params?.max_price) query = query.lte('price', params.max_price);
-    if (params?.condition) query = query.eq('condition', params.condition);
-    if (params?.user_id) query = query.eq('user_id', params.user_id);
-    if (params?.status) query = query.eq('status', params.status);
-
-    query = query.order('created_at', { ascending: false }).range((page - 1) * perPage, page * perPage - 1);
-
-    const { data, error, count } = await query;
-    if (error) return sbError(error);
-    return sbResponse({
-      data: transformListings(data),
-      meta: buildMeta(count || 0, page, perPage),
-    });
+    try {
+      const res = await http.get('/ads', { params: params as any });
+      const responseData = res?.data || { data: [], meta: null };
+      return sbResponse({
+        data: (responseData.data || []).map(fromLaravelAd),
+        meta: responseData.meta || buildMeta(0, params?.page || 1, params?.per_page || params?.limit || PAGE_SIZE),
+      });
+    } catch (e: any) {
+      return sbError(e);
+    }
   },
 
   getById: async (id: number) => adsApi.get(id),
 
   getBySlug: async (slug: string) => {
-    const { data, error } = await supabase.from('listings').select('*, profiles(*), categories(*), subcategories(*)').eq('slug', slug).single();
-    if (error) return sbError(error);
-    return sbResponse({ data: transformListing({ ...data, user: data?.profiles, category: data?.categories }) });
+    try {
+      const res = await http.get(`/ads/${slug}`);
+      const ad = res?.data?.data || res?.data || null;
+      if (!ad) return sbError({ message: 'Ad not found' });
+      return sbResponse({ data: fromLaravelAdDetail(ad) });
+    } catch (e: any) {
+      return sbError(e);
+    }
   },
 
   getFeatured: async (limit = 10) => {
-    const { data, error } = await supabase.from('listings').select('*, profiles(*)').eq('is_featured', true).eq('status', 'active').order('created_at', { ascending: false }).limit(limit);
-    if (error) return sbError(error);
-    return sbResponse({ data: transformListings(data) });
+    try {
+      const res = await http.get('/ads/featured');
+      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+    } catch (e: any) {
+      return sbError(e);
+    }
   },
 
   getRecent: async (limit = 20) => {
-    const { data, error } = await supabase.from('listings').select('*, profiles(*)').eq('status', 'active').order('created_at', { ascending: false }).limit(limit);
-    if (error) return sbError(error);
-    return sbResponse({ data: transformListings(data) });
+    try {
+      const res = await http.get('/ads/recent');
+      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+    } catch (e: any) {
+      return sbError(e);
+    }
   },
 
   getSimilar: async (adId: number, limit = 8) => {
-    const ad = await supabase.from('listings').select('category_id').eq('id', String(adId)).single();
-    if (!ad.data?.category_id) return sbResponse({ data: [] });
-    const { data, error } = await supabase.from('listings').select('*, profiles(*)')
-      .eq('category_id', ad.data.category_id).neq('id', String(adId)).eq('status', 'active')
-      .order('created_at', { ascending: false }).limit(limit);
-    if (error) return sbError(error);
-    return sbResponse({ data: transformListings(data) });
+    try {
+      const res = await http.get('/ads/similar', { params: { ad_id: adId, limit } as any });
+      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+    } catch (e: any) {
+      return sbError(e);
+    }
   },
 
   create: async (formData: FormData) => {
@@ -827,8 +942,12 @@ export const dashboardApi = {
   getRecentAds: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
-    const { data, error } = await supabase.from('listings').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(5);
-    return error ? sbError(error) : sbResponse({ data: transformListings(data) });
+    try {
+      const res = await http.get('/ads', { params: { user_id: userId, limit: 5 } as any });
+      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+    } catch {
+      return sbResponse({ data: [] });
+    }
   },
   getAnalytics: async (_period?: string) => sbResponse({ data: { views: [], clicks: [] } }),
 };
@@ -838,33 +957,35 @@ export const dashboardApi = {
 // ==============================
 export const searchApi = {
   search: async (params: Record<string, any>) => {
-    let query = supabase.from('listings').select('*, profiles(*)', { count: 'exact' });
-    if (params.q || params.search) {
-      const q = params.q || params.search;
-      query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+    try {
+      const res = await http.get('/search', { params: params as any });
+      const responseData = res?.data || { data: [], meta: null };
+      return sbResponse({
+        data: (responseData.data || []).map(fromLaravelAd),
+        meta: responseData.meta || buildMeta(0, params.page || 1, params.per_page || PAGE_SIZE),
+      });
+    } catch (e: any) {
+      return sbError(e);
     }
-    if (params.category) query = query.eq('category_id', params.category);
-    if (params.state) query = query.eq('state', params.state);
-    const page = params.page || 1;
-    const perPage = params.per_page || PAGE_SIZE;
-    const { data, error, count } = await query.order('created_at', { ascending: false }).range((page - 1) * perPage, page * perPage - 1);
-    if (error) return sbError(error);
-    return sbResponse({
-      data: transformListings(data),
-      meta: buildMeta(count || 0, page, perPage),
-    });
   },
 
   suggestions: async (keyword: string) => {
     if (!keyword) return sbResponse({ data: { categories: [], ads: [] } });
-    const { data: cats } = await supabase.from('categories').select('name, slug').ilike('name', `%${keyword}%`).limit(5);
-    const { data: ads } = await supabase.from('listings').select('title, slug').ilike('title', `%${keyword}%`).limit(5);
-    return sbResponse({ data: { categories: cats || [], ads: ads || [] } });
+    try {
+      const res = await http.get('/search/suggestions', { params: { q: keyword } as any });
+      return sbResponse({ data: res?.data || { categories: [], ads: [] } });
+    } catch {
+      return sbResponse({ data: { categories: [], ads: [] } });
+    }
   },
 
   trending: async () => {
-    const { data, error } = await supabase.from('listings').select('*, profiles(*)').eq('status', 'active').order('views_count', { ascending: false }).limit(10);
-    return error ? sbError(error) : sbResponse({ data: transformListings(data) });
+    try {
+      const res = await http.get('/ads', { params: { limit: 10, order_by: 'views' } as any });
+      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+    } catch (e: any) {
+      return sbError(e);
+    }
   },
 };
 
@@ -1258,8 +1379,30 @@ export const adminApi = {
   activateUser: async (_id: number) => sbResponse({ data: { message: 'Activated' } }),
   deleteUser: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
 
-  getAds: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  getPublicAds: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
+  getAds: async (params?: any) => {
+    try {
+      const res = await http.get(`${STEALTH_PREFIX}/ads`, { params: params as any });
+      const responseData = res?.data || { data: [], meta: null };
+      return sbResponse({
+        data: (responseData.data || []).map(fromLaravelAd),
+        meta: responseData.meta || buildMeta(0, params?.page || 1, params?.per_page || 20),
+      });
+    } catch (e: any) {
+      return sbError(e);
+    }
+  },
+  getPublicAds: async (params?: any) => {
+    try {
+      const res = await http.get('/ads', { params: params as any });
+      const responseData = res?.data || { data: [], meta: null };
+      return sbResponse({
+        data: (responseData.data || []).map(fromLaravelAd),
+        meta: responseData.meta || buildMeta(0, params?.page || 1, params?.per_page || 20),
+      });
+    } catch (e: any) {
+      return sbError(e);
+    }
+  },
   approveAd: async (_id: number) => sbResponse({ data: { message: 'Approved' } }),
   rejectAd: async (_id: number) => sbResponse({ data: { message: 'Rejected' } }),
   verifyAd: async (_id: number) => sbResponse({ data: { message: 'Verified' } }),
@@ -1346,131 +1489,43 @@ export const adminApi = {
 };
 
 // ==============================
-//  LEGACY API CLIENT (path router → Supabase)
+//  HTTP CLIENT (fetch-based, makes real HTTP requests)
 // ==============================
-import type { AxiosRequestConfig } from 'axios';
 
 export function getApiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  return process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 }
 
-async function routeApiCall(method: string, pathOrUrl: string, data?: any): Promise<any> {
-  const [basePath, qs] = pathOrUrl.split('?');
-  const cleanPath = basePath.replace(/^\/+/, '').replace(/\/+$/, '');
-  const params = new URLSearchParams(qs || '');
-
-  const tryCall = async (fn: () => Promise<any>) => {
-    try {
-      const result = await fn();
-      return sbResponse({ data: result?.data ?? null });
-    } catch (e) { return sbError(e); }
-  };
-
-  if (method === 'GET') {
-    if (cleanPath === 'auth/me') return tryCall(() => authApi.me());
-    if (cleanPath === 'notifications/unread-count') return tryCall(() => notificationsApi.getUnreadCount());
-    if (cleanPath === 'notifications/unread') return tryCall(() => notificationsApi.getUnread());
-    if (cleanPath === 'notifications') return tryCall(() => notificationsApi.getAll());
-    if (cleanPath === 'notifications/preferences') return tryCall(() => notificationsApi.getAll());
-    if (cleanPath === 'categories') return tryCall(() => categoriesApi.getAll());
-    if (cleanPath === 'my-ads') return tryCall(() => adsApi.getMyAds());
-    if (cleanPath === 'user/saved-ads') return tryCall(() => favoritesApi.getAll());
-    if (cleanPath === 'user/recently-viewed') return sbResponse({ data: [] });
-    if (cleanPath === 'wallet') return tryCall(() => walletApi.getBalance());
-    if (cleanPath === 'social/settings') return sbResponse({ data: { twitter: false, facebook: false, instagram: false } });
-    if (cleanPath.startsWith('search')) {
-      const q = params.get('q') || '';
-      return tryCall(() => searchApi.search({ q }));
-    }
-    if (cleanPath.startsWith('secure-control-9ja')) {
-      const rel = cleanPath.replace('secure-control-9ja/', '');
-      if (rel === 'bank-transfers') return sbResponse({ data: { data: [], meta: { current_page: 1, last_page: 1, total: 0, per_page: 20 } } });
-      if (rel === 'bank-transfers/stats') return sbResponse({ data: { pending: 0, approved: 0, rejected: 0, total: 0 } });
-      if (rel === 'ads') return sbResponse({ data: { data: [], meta: { current_page: 1, last_page: 1, total: 0, per_page: 20 } } });
-      if (rel === 'social/posts') return sbResponse({ data: { data: [] } });
-      if (rel === 'social/scheduled') return sbResponse({ data: { data: [] } });
-      if (rel === 'social/stats') return sbResponse({ data: { total_posted: 0, total_scheduled: 0 } });
-      return sbResponse({ data: { message: 'OK' } });
-    }
-    if (cleanPath === 'test') return sbResponse({ data: { message: 'API is connected', timestamp: new Date().toISOString() } });
-    return sbResponse({ data: [] });
+class HttpClient {
+  async get<T = any>(url: string): Promise<any> {
+    return http.get<T>(url);
   }
-
-  if (method === 'POST') {
-    if (cleanPath === 'auth/logout') return tryCall(() => authApi.logout());
-    if (cleanPath === 'auth/change-password') return sbResponse({ data: { message: 'Password changed' } });
-    if (cleanPath === 'auth/delete-account') return sbResponse({ data: { message: 'Account deleted' } });
-    if (cleanPath === 'wallet/fund') return tryCall(() => walletApi.fundWallet(data?.amount, 'bank_transfer'));
-    if (cleanPath === 'wallet/verify') return tryCall(() => walletApi.verifyPayment(data?.reference));
-    if (cleanPath === 'notifications/mark-all-read') return tryCall(() => notificationsApi.markAllRead());
-    if (cleanPath === 'notifications/delete-all') return tryCall(() => notificationsApi.deleteAll());
-    if (cleanPath === 'notifications/preferences') return sbResponse({ data: { message: 'OK' } });
-    if (cleanPath.startsWith('notifications/') && cleanPath.endsWith('/read')) {
-      const id = cleanPath.split('/')[1];
-      return tryCall(() => notificationsApi.markRead(id));
-    }
-    if (cleanPath === 'social/settings') return sbResponse({ data: { message: 'OK' } });
-    if (cleanPath === 'social/settings/test') return sbResponse({ data: { message: 'OK' } });
-    if (cleanPath === 'social/post-ads-batch') return sbResponse({ data: { message: 'OK' } });
-    if (cleanPath.startsWith('secure-control-9ja/auth/login')) return sbResponse({ data: { token: 'admin-token', user: { id: 1, role: 'admin', email: 'admin@example.com' } } });
-    if (cleanPath.startsWith('secure-control-9ja')) {
-      const rel = cleanPath.replace('secure-control-9ja/', '');
-      if (rel.startsWith('bank-transfers/') && rel.endsWith('/approve')) return sbResponse({ data: { message: 'OK' } });
-      if (rel.startsWith('bank-transfers/') && rel.endsWith('/reject')) return sbResponse({ data: { message: 'OK' } });
-      if (rel.startsWith('social/cancel/')) return sbResponse({ data: { message: 'OK' } });
-      if (rel.startsWith('social/retry/')) return sbResponse({ data: { message: 'OK' } });
-      if (rel === 'social/post-ads-batch') return sbResponse({ data: { message: 'OK' } });
-      return sbResponse({ data: { message: 'OK' } });
-    }
-    return sbResponse({ data: { message: 'OK' } });
+  async post<T = any>(url: string, data?: any): Promise<any> {
+    return http.post<T>(url, data);
   }
-
-  if (method === 'PUT' || method === 'PATCH') {
-    if (cleanPath === 'notifications/preferences') return sbResponse({ data: { message: 'OK' } });
-    return sbResponse({ data: { message: 'OK' } });
+  async put<T = any>(url: string, data?: any): Promise<any> {
+    return http.put<T>(url, data);
   }
-
-  if (method === 'DELETE') {
-    const parts = cleanPath.split('/');
-    if (parts[0] === 'notifications' && parts[1]) {
-      return tryCall(() => notificationsApi.remove(parts[1]));
-    }
-    return sbResponse({ data: { message: 'OK' } });
+  async patch<T = any>(url: string, data?: any): Promise<any> {
+    return http.patch<T>(url, data);
   }
-
-  return sbResponse({ data: { message: 'OK' } });
-}
-
-class ApiClient {
-  async get<T = any>(url: string, _config?: AxiosRequestConfig): Promise<any> {
-    return routeApiCall('GET', url);
+  async delete<T = any>(url: string): Promise<any> {
+    return http.delete<T>(url);
   }
-  async post<T = any>(url: string, data?: any, _config?: AxiosRequestConfig): Promise<any> {
-    return routeApiCall('POST', url, data);
-  }
-  async put<T = any>(url: string, data?: any, _config?: AxiosRequestConfig): Promise<any> {
-    return routeApiCall('PUT', url, data);
-  }
-  async patch<T = any>(url: string, data?: any, _config?: AxiosRequestConfig): Promise<any> {
-    return routeApiCall('PATCH', url, data);
-  }
-  async delete<T = any>(url: string, _config?: AxiosRequestConfig): Promise<any> {
-    return routeApiCall('DELETE', url);
-  }
-  async upload<T = any>(_url: string, _formData: FormData, _onProgress?: (p: number) => void, _timeoutOverride?: number): Promise<any> {
-    return sbResponse({ data: { message: 'Uploaded' } });
+  async upload<T = any>(url: string, formData: FormData, onProgress?: (p: number) => void, timeoutOverride?: number): Promise<any> {
+    return http.upload<T>(url, formData, onProgress, timeoutOverride);
   }
 }
 
-export const api = new ApiClient();
+export const api = new HttpClient();
 
 export const adminApiClient = {
-  get: async (_url: string, _config?: any) => sbResponse({ data: null }),
-  post: async (_url: string, _data?: any, _config?: any) => sbResponse({ data: { message: 'OK' } }),
-  put: async (_url: string, _data?: any, _config?: any) => sbResponse({ data: { message: 'OK' } }),
-  patch: async (_url: string, _data?: any, _config?: any) => sbResponse({ data: { message: 'OK' } }),
-  delete: async (_url: string, _config?: any) => sbResponse({ data: { message: 'OK' } }),
-  upload: async (_url: string, _data: FormData, _onProgress?: (p: number) => void) => sbResponse({ data: { message: 'OK' } }),
+  get: async (url: string) => http.get(url),
+  post: async (url: string, data?: any) => http.post(url, data),
+  put: async (url: string, data?: any) => http.put(url, data),
+  patch: async (url: string, data?: any) => http.patch(url, data),
+  delete: async (url: string) => http.delete(url),
+  upload: async (url: string, formData: FormData, onProgress?: (p: number) => void) => http.upload(url, formData, onProgress),
 };
 
 export default api;

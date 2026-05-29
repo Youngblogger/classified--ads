@@ -9,6 +9,7 @@ import { formatPrice, formatRelativeTime, FALLBACK_IMAGE, getAdMainImage } from 
 import Image from 'next/image';
 import { useBoostedAds } from '@/hooks/useAds';
 import { useAdRanking } from '@/hooks/useAdRanking';
+import { safeArray } from '@/lib/safe-data';
 
 interface BoostedAd {
   id: number | string;
@@ -113,9 +114,10 @@ export default function BoostedAdsCarousel() {
   const { boostedAds: rawBoostedAds, isLoading: loading } = useBoostedAds();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const boostedAds = useAdRanking(
-    (rawBoostedAds as BoostedAd[]).filter((ad) => ad.is_boosted && ad.boost_type)
-  ).slice(0, 20);
+  const ranked = useAdRanking(
+    safeArray(rawBoostedAds).filter((ad): ad is BoostedAd => !!(ad.is_boosted && ad.boost_type))
+  );
+  const boostedAds = ranked;
 
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
@@ -149,7 +151,7 @@ export default function BoostedAdsCarousel() {
 
   if (boostedAds.length === 0) return null;
 
-  const groupedAds = boostedAds.reduce<Record<string, BoostedAd[]>>((acc, ad) => {
+  const groupedAds = safeArray(boostedAds).reduce<Record<string, BoostedAd[]>>((acc, ad) => {
     const type = ad.boost_type || 'unknown';
     if (!acc[type]) acc[type] = [];
     acc[type].push(ad);

@@ -8,8 +8,8 @@ import {
   Sparkles, Zap, Award, Flame
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
 import { getCategoryIcon } from '@/lib/categoryIcons';
+import { getCategoryLabel } from '@/lib/category-labels';
 
 interface Category {
   id: string;
@@ -219,25 +219,26 @@ export default function EnterpriseSidebar() {
   useEffect(() => {
     let mounted = true;
     async function load() {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*, subcategories(*)')
-        .is('parent_id', null)
-        .order('sort_order');
-      if (error) console.error('[EnterpriseSidebar] category load error:', error.message);
-      const tree: Category[] = (data || []).map((cat: any) => ({
-        id: cat.id, name: cat.name, slug: cat.slug, icon: cat.icon || undefined,
-        image: cat.image || undefined, ad_count: cat.ad_count || 0,
-        is_featured: cat.is_featured || false, is_trending: cat.is_trending || false,
-        category_badge: cat.category_badge || undefined,
-        children: (cat.subcategories || []).map((s: any) => ({
-          id: s.id, name: s.name, slug: s.slug, parent_id: cat.id, ad_count: s.ad_count || 0,
-          icon: s.icon || undefined, image: s.image || undefined,
-        })),
-      }));
-      if (mounted) {
-        setApiData({ tree, featured: [], trending: [], recently_added: [] });
-        setIsLoading(false);
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/categories/mega-menu`);
+        const json = await res.json();
+        const data = json?.data || {};
+        const cats = ((data.tree || []) as any[]);
+        const tree: Category[] = cats.map((cat: any) => ({
+          id: cat.id, name: cat.name, slug: cat.slug, icon: cat.icon || undefined,
+          image: cat.image || undefined, ad_count: cat.ad_count || 0,
+          children: (cat.activeChildren || []).map((s: any) => ({
+            id: s.id, name: s.name, slug: s.slug, parent_id: cat.id, ad_count: s.ad_count || 0,
+            icon: s.icon || undefined, image: s.image || undefined,
+          })),
+        }));
+        if (mounted) {
+          setApiData({ tree, featured: data.featured || [], trending: data.trending || [], recently_added: data.recently_added || [] });
+          setIsLoading(false);
+        }
+      } catch (e) {
+        console.error('[EnterpriseSidebar] category load error:', e);
+        if (mounted) setIsLoading(false);
       }
     }
     load();
@@ -607,7 +608,7 @@ export default function EnterpriseSidebar() {
                 {rootCats.map((cat, index) => {
                   const active = isActiveCat(cat);
                   const hasSubs = getChildren(cat).length > 0;
-                  const badge = (cat as any).category_badge;
+                  const { label, isTrending } = getCategoryLabel(cat.slug);
                   return (
                     <div
                       key={cat.id}
@@ -633,19 +634,7 @@ export default function EnterpriseSidebar() {
                         <div className="flex-1 min-w-0">
                           <span className="text-sm font-medium truncate leading-tight block">{cat.name}</span>
                           <div className="flex items-center gap-1 mt-0.5">
-                            {badge && <Badge type={badge} />}
-                            {(cat as any).is_featured && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] font-semibold uppercase">
-                                <Star className="w-2.5 h-2.5" />
-                                Popular
-                              </span>
-                            )}
-                            {(cat as any).is_trending && !badge && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[9px] font-semibold uppercase">
-                                <Flame className="w-2.5 h-2.5" />
-                                Hot
-                              </span>
-                            )}
+                            {label && <Badge type={label} />}
                           </div>
                         </div>
                         <span className="text-[11px] font-medium text-gray-400 tabular-nums">{formatCount(cat.ad_count)}</span>
@@ -686,7 +675,7 @@ export default function EnterpriseSidebar() {
               <span className="text-sm font-semibold text-gray-800">{displayCat.name}</span>
             </div>
             <div className="flex items-center gap-2">
-              {(displayCat as any).is_trending && (
+              {getCategoryLabel(displayCat.slug).isTrending && (
                 <span className="text-[10px] text-orange-600 font-medium">Trending</span>
               )}
               <ChevronRight className="w-3.5 h-3.5 text-gray-400" />

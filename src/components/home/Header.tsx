@@ -19,6 +19,7 @@ import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
 import { cn, BACKEND_URL } from '@/lib/utils';
 import { getCategoryIcon } from '@/lib/categoryIcons';
+import { safeArray, normalizeNotificationArray, safeSlice } from '@/lib/safe-data';
 
 import Image from 'next/image';
 import toast from 'react-hot-toast';
@@ -426,7 +427,10 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   };
 
   const handleNewNotification = useCallback((notification: any) => {
-    setRecentNotifications(prev => [notification, ...prev].slice(0, 10));
+    setRecentNotifications(prev => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return [notification, ...safe].slice(0, 10);
+    });
     setUnreadCount(prev => prev + 1);
     
     const IconComponent = NOTIFICATION_ICONS[notification.type] || Bell;
@@ -458,12 +462,24 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     onNotification: handleNewNotification,
   });
 
+  const hasValidToken = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    const stored = localStorage.getItem('user-auth-storage');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return !!parsed?.state?.token;
+      } catch {}
+    }
+    return !!document.cookie.match(/(?:^|;\s*)token=[^;]/);
+  }, []);
+
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && hasValidToken()) {
       fetchNotifications();
       fetchRecentMessages();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, hasValidToken]);
 
   const fetchNotifications = async () => {
     try {
@@ -471,18 +487,20 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
         api.get('/notifications/unread-count'),
         api.get('/notifications/unread'),
       ]);
-      setUnreadCount(countRes.data.count || 0);
-      setRecentNotifications(unreadRes.data?.data || unreadRes.data || []);
+      setUnreadCount(countRes?.data?.count || 0);
+      const normalized = normalizeNotificationArray(unreadRes?.data);
+      setRecentNotifications(normalized);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
+      setRecentNotifications([]);
     }
   };
 
   const fetchRecentMessages = async () => {
     try {
       const res = await messagesApi.getConversations();
-      const conversations = (res.data as any)?.data ?? [];
-      setRecentMessages(conversations.slice(0, 5));
+      const conversations = safeArray((res as any)?.data?.data ?? (res as any)?.data ?? []);
+      setRecentMessages(safeSlice(conversations, 0, 5));
       const unreadCount = conversations.filter((c: any) => c.unread_count > 0).length;
       setUnreadMessagesCount(unreadCount);
     } catch (error) {
@@ -493,9 +511,10 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   const handleMarkAsRead = async (notificationId: number) => {
     try {
       await notificationsApi.markAsRead(notificationId);
-      setRecentNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read_at: new Date().toISOString() } : n)
-      );
+      setRecentNotifications(prev => {
+        const safe = Array.isArray(prev) ? prev : [];
+        return safe.map(n => n.id === notificationId ? { ...n, read_at: new Date().toISOString() } : n);
+      });
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Failed to mark as read:', error);
@@ -505,7 +524,10 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   const handleMarkAllAsRead = async () => {
     try {
       await notificationsApi.markAllAsRead();
-      setRecentNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
+      setRecentNotifications(prev => {
+        const safe = Array.isArray(prev) ? prev : [];
+        return safe.map(n => ({ ...n, read_at: new Date().toISOString() }));
+      });
       setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
@@ -707,13 +729,13 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                     <div className="max-h-[420px] overflow-y-auto custom-scrollbar">
                       {searchQuery.length >= 2 && searchResults ? (
                         <>
-                          {searchResults.ads?.length > 0 && (
+                              {safeArray(searchResults?.ads).length > 0 && (
                             <div className="p-3">
                               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 py-2 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 bg-accent-600 rounded-full"></span>
                                 ADS
                               </p>
-                              {searchResults.ads.slice(0, 5).map((ad: any) => (
+                              {safeSlice(safeArray(searchResults?.ads), 0, 5).map((ad: any) => (
                                 <button
                                   key={ad.id}
                                   onClick={() => handleSearchResultClick('ad', ad)}
@@ -738,13 +760,13 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                             </div>
                           )}
                           
-                          {searchResults.categories?.length > 0 && (
+                              {safeArray(searchResults?.categories).length > 0 && (
                             <div className="p-3 border-t border-slate-100">
                               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 py-2 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 bg-accent-600 rounded-full"></span>
                                 CATEGORIES
                               </p>
-                              {searchResults.categories.slice(0, 5).map((cat: any) => (
+                              {safeSlice(safeArray(searchResults?.categories), 0, 5).map((cat: any) => (
                                 <button
                                   key={cat.id}
                                   onClick={() => handleSearchResultClick('category', cat)}
@@ -758,7 +780,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                             </div>
                           )}
                           
-                          {searchResults.ads?.length > 0 || searchResults.categories?.length > 0 ? (
+                           {safeArray(searchResults?.ads).length > 0 || safeArray(searchResults?.categories).length > 0 ? (
                             <div className="border-t border-slate-100 p-2">
                               <button
                                 onClick={() => {
@@ -891,13 +913,13 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                           </div>
 
                           <div className="max-h-80 overflow-y-auto">
-                            {recentNotifications.length === 0 ? (
+                            {!Array.isArray(recentNotifications) || recentNotifications.length === 0 ? (
                               <div className="px-4 py-8 text-center text-slate-500">
                                 <BellOff className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                                 No notifications
                               </div>
                             ) : (
-                              recentNotifications.slice(0, 5).map((notif: any) => {
+                              safeSlice(recentNotifications, 0, 5).map((notif: any) => {
                                 const IconComponent = NOTIFICATION_ICONS[notif.type] || Bell;
                                 const iconColor = NOTIFICATION_COLORS[notif.type] || 'bg-slate-100 text-slate-600';
                                 return (
@@ -983,7 +1005,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                                 <p className="text-xs text-slate-400 mt-1">When buyers message you, they will appear here</p>
                               </div>
                             ) : (
-                              recentMessages.slice(0, 5).map((conversation: any) => (
+                              safeSlice(recentMessages, 0, 5).map((conversation: any) => (
                                 <div
                                   key={conversation.id}
                                   onClick={() => {

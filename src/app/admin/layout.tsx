@@ -188,10 +188,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         password: loginPassword,
       });
 
-      if (response.data.success) {
-        const adminToken = response.data.token;
-        const user = response.data.user;
-        
+      const resData = response?.data || response;
+      const success = !!(resData?.success || resData?.token);
+      const adminToken = resData?.token || resData?.access_token || '';
+      const user = resData?.user || null;
+
+      if (success && adminToken && user) {
         localStorage.setItem('admin_token', adminToken);
         localStorage.setItem('admin_user', JSON.stringify(user));
         
@@ -201,26 +203,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setIsVerified(true);
         setVerifiedUser(user);
         
-            window.location.href = '/admin/ads-moderation';
-      } else {
-        setLoginError(response.data.message || 'Login failed');
+        window.location.href = '/admin/ads-moderation';
+        return;
       }
+
+      setLoginError(resData?.message || resData?.error || 'Login failed');
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message;
-      const retryAfter = err.response?.data?.retry_after;
+      const errData = err?.response?.data || err?.data || {};
+      const errMsg = errData?.message || err?.message || 'Login failed';
+      const retryAfter = errData?.retry_after;
       
       if (retryAfter) {
         const minutes = Math.ceil(retryAfter / 60);
         setLoginError(`Too many attempts. Please try again in ${minutes} minute(s).`);
-      } else if (errorMessage?.includes('Invalid credentials')) {
-        const remaining = err.response?.data?.attempts_remaining;
+      } else if (errMsg?.includes('Invalid credentials')) {
+        const remaining = errData?.attempts_remaining;
         setLoginError(remaining !== undefined 
           ? `Incorrect email or password. ${remaining} attempt(s) remaining.`
           : 'Incorrect email or password');
-      } else if (err.response?.status === 403) {
-        setLoginError(errorMessage || 'Access denied. Admin privileges required.');
+      } else if (err?.response?.status === 403) {
+        setLoginError(errMsg || 'Access denied. Admin privileges required.');
       } else {
-        setLoginError(errorMessage || 'Login failed. Please try again.');
+        setLoginError(errMsg);
       }
     } finally {
       setLoginLoading(false);
@@ -250,43 +254,51 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Verify auth with backend on mount
   useEffect(() => {
-    // Skip auth check for login page - always show login form
     if (isLoginPage) {
       setInitialTokenChecked(true);
       setAuthChecked(true);
-      
-      // Clear any existing admin state on login page to force fresh login
-      // This prevents auto-login from main site auth
       setVerifiedUser(null);
       setIsVerified(false);
       return;
     }
-    
-    const adminToken = localStorage.getItem('admin_token');
-    const adminUserData = localStorage.getItem('admin_user');
-    
-    if (adminToken && adminUserData) {
-      try {
-        const user = JSON.parse(adminUserData);
-        setVerifiedUser(user);
-        setAdminUser(user);
+
+    const checkAuth = async () => {
+      const store = useAdminAuthStore.getState();
+      let adminToken: string | null = null;
+      let userData: any = null;
+
+      if (store.token && store.user) {
+        adminToken = store.token;
+        userData = store.user;
+      } else {
+        adminToken = localStorage.getItem('admin_token');
+        try {
+          const raw = localStorage.getItem('admin_user');
+          userData = raw ? JSON.parse(raw) : null;
+        } catch {}
+      }
+
+      if (adminToken && userData) {
+        setAdminUser(userData);
+        setVerifiedUser(userData);
         setIsVerified(true);
-        setInitialTokenChecked(true);
-        setAuthChecked(true);
-        
-        adminApiClient.get('/secure-control-9ja/auth/me').then((response: any) => {
-          if (response.data?.user?.role !== 'admin') {
+
+        try {
+          const resp = await adminApiClient.get('/secure-control-9ja/auth/me');
+          const respData = resp?.data || resp;
+          const profile = respData?.user || respData?.data?.user || respData;
+          if (profile?.role !== 'admin') {
             adminLogout();
             setIsVerified(false);
           }
-        }).catch(() => {});
-        
-        return;
-      } catch {}
-    }
-    
-    setInitialTokenChecked(true);
-    setAuthChecked(true);
+        } catch {}
+      }
+
+      setInitialTokenChecked(true);
+      setAuthChecked(true);
+    };
+
+    checkAuth();
   }, [pathname, adminLogout, setAdminUser, isLoginPage]);
 
   // Fetch admin notifications

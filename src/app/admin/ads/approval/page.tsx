@@ -78,7 +78,7 @@ export default function AdsApprovalPage() {
     try {
       setLoading(true);
       const res = await adminApi.getAds({ status: 'pending' });
-      setAds(res.data.data || []);
+      setAds(res?.data?.data || []);
     } catch (error) {
       console.error('Failed to fetch ads:', error);
       toast.error('Failed to load ads');

@@ -2,174 +2,220 @@
 
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
-import { searchApi, categoriesApi as catsApi, adsApi, analyticsApi } from '@/lib/api';
-import { supabase } from '@/lib/supabase';
+import { http } from '@/lib/http-client';
 import { useDebounce } from './useDebounce';
 
-async function fetchFromSupabase(endpoint: string): Promise<any> {
+function imgAbs(url: string | undefined | null): string {
+  if (!url || url.startsWith('http://') || url.startsWith('https://')) return url || '';
+  const base = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api$/, '');
+  return url.startsWith('/') ? `${base}${url}` : url;
+}
+
+function fromLaravelAd(ad: any): any {
+  if (!ad) return ad;
+  const images = (ad.images || []).map((img: any) => ({
+    id: img.id,
+    url: imgAbs(img.url),
+    thumbnail_url: imgAbs(img.thumbnail_url || img.thumbnail),
+    medium_url: imgAbs(img.medium_url),
+    is_primary: img.is_primary,
+  }));
+  const singleImage = images.length > 0 ? images[0] : (ad.image ? {
+    id: ad.image.id,
+    url: imgAbs(ad.image.url),
+    thumbnail_url: imgAbs(ad.image.thumbnail_url || ad.image.thumbnail),
+    medium_url: imgAbs(ad.image.medium_url),
+    is_primary: true,
+  } : null);
+
+  return {
+    id: ad.id,
+    title: ad.title,
+    slug: ad.slug,
+    description: ad.short_description || '',
+    short_description: ad.short_description || '',
+    price: ad.price,
+    currency: ad.currency || 'NGN',
+    condition: ad.condition,
+    status: ad.status || 'active',
+    negotiable: ad.negotiable,
+    views: ad.views || 0,
+    views_count: ad.views || 0,
+    favorites_count: 0,
+    is_featured: false,
+    is_boosted: ad.is_boosted || false,
+    boost_type: ad.boost_type || null,
+    whatsapp: ad.whatsapp || ad.phone || '',
+    phone: ad.phone || '',
+    sellerPhone: ad.phone || '',
+    phone_number: ad.phone || '',
+    state: ad.state || '',
+    lga: ad.lga || '',
+    city: '',
+    location: ad.location?.name || ad.state || '',
+    specifications: [],
+    attributes: [],
+    metadata: null,
+    created_at: ad.created_at,
+    updated_at: ad.updated_at || ad.created_at,
+    expires_at: null,
+    category_id: ad.category?.id,
+    subcategory_id: ad.subcategory?.id,
+    user_id: ad.user?.id,
+    category: ad.category || null,
+    subcategory: ad.subcategory || null,
+    user: ad.user ? {
+      id: ad.user.id,
+      name: ad.user.name || '',
+      full_name: ad.user.name || '',
+      username: '',
+      email: ad.user.email || '',
+      phone: ad.user.phone || '',
+      avatar: ad.user.avatar || ad.user.avatar_url || '',
+      avatar_url: ad.user.avatar || ad.user.avatar_url || '',
+      full_avatar_url: ad.user.avatar || ad.user.avatar_url || '',
+      location: '',
+      created_at: null,
+      verified: ad.user.is_verified || false,
+      is_verified_seller: ad.user.is_verified || false,
+      is_verified_business: false,
+      rating_avg: null,
+      response_time: null,
+      completed_transactions: null,
+    } : undefined,
+    image_url: singleImage?.url || imgAbs(ad.image_url) || null,
+    images_count: images.length || (singleImage ? 1 : 0),
+    images: images.length > 0 ? images : (singleImage ? [singleImage] : []),
+  };
+}
+
+function fromDetailLaravelAd(ad: any): any {
+  if (!ad) return ad;
+  const base = fromLaravelAd(ad);
+  base.description = ad.description || base.description;
+  base.specifications = ad.specifications || ad.attributes || [];
+  base.attributes = ad.attributes || [];
+  if (ad.user) {
+    base.user = {
+      ...base.user,
+      full_avatar_url: ad.user.full_avatar_url || ad.user.avatar || ad.user.avatar_url,
+      google_avatar: ad.user.google_avatar,
+      facebook_avatar: ad.user.facebook_avatar,
+      location: ad.user.location || '',
+      created_at: ad.user.created_at,
+      is_verified_seller: ad.user.is_verified || false,
+      is_verified_business: ad.user.is_verified_business || false,
+    };
+  }
+  return base;
+}
+
+async function fetchFromLaravel(endpoint: string): Promise<any> {
   if (endpoint === 'categories_data') {
-    const { data } = await supabase.from('categories').select('*, subcategories(*)').is('parent_id', null).order('sort_order');
-    const mapped = (data || []).map((cat: any) => ({
-      ...cat,
-      ad_count: 0,
-      children: (cat.subcategories || []).map((s: any) => ({ ...s, parent_id: cat.id, ad_count: 0 })),
-    }));
-    return { data: mapped, meta: null };
+    const [catsRes] = await Promise.all([
+      http.get('/categories'),
+    ]);
+    const cats = (catsRes?.data?.data || []);
+    return { data: cats, meta: null };
   }
 
   if (endpoint === 'locations_data') {
-    return { data: [] };
+    const [locRes] = await Promise.all([
+      http.get('/locations'),
+    ]);
+    return { data: (locRes?.data?.data || []) };
   }
 
   if (endpoint.startsWith('ads/featured')) {
-    const { data: ads, error } = await supabase.from('listings').select('*, profiles(*)')
-      .eq('is_featured', true).eq('status', 'active').order('created_at', { ascending: false }).limit(10);
-    if (error) throw error;
-    return { data: (ads || []).map(transformAd), meta: null };
+    const res = await http.get('/ads/featured');
+    return { data: ((res?.data?.data || []).map(fromLaravelAd)), meta: null };
   }
 
   if (endpoint.startsWith('search/trending')) {
-    const { data: ads, error } = await supabase.from('listings').select('*, profiles(*)')
-      .eq('status', 'active').order('views_count', { ascending: false }).limit(10);
-    if (error) throw error;
-    return { data: (ads || []).map(transformAd), meta: null };
+    const res = await http.get('/ads', { params: { limit: 20, order_by: 'views' } });
+    return { data: ((res?.data?.data || []).map(fromLaravelAd)), meta: null };
   }
 
   if (endpoint === 'homepage_data') {
-    const { data: featured } = await supabase.from('listings').select('*, profiles(*)').eq('is_featured', true).eq('status', 'active').limit(8);
-    const { data: recent } = await supabase.from('listings').select('*, profiles(*)').eq('status', 'active').order('created_at', { ascending: false }).limit(20);
-    const { data: boosted } = await supabase.from('listings').select('*, profiles(*)').eq('is_boosted', true).eq('status', 'active').limit(8);
+    const [featuredRes, recentRes, boostedRes, catsRes] = await Promise.all([
+      http.get('/ads/featured'),
+      http.get('/ads/recent'),
+      http.get('/ads', { params: { limit: 20, is_boosted: 1 } }),
+      http.get('/categories'),
+    ]);
+    const featured = (featuredRes?.data?.data || []).map(fromLaravelAd);
+    const recent = (recentRes?.data?.data || []).map(fromLaravelAd);
+    const boosted = (boostedRes?.data?.data || []).filter((a: any) => a.is_boosted).map(fromLaravelAd);
+    const categories = (catsRes?.data?.data || []);
     return {
       data: {
-        featured: (featured || []).map(transformAd),
-        recent: (recent || []).map(transformAd),
-        latest: (recent || []).map(transformAd),
-        boosted: (boosted || []).map(transformAd),
-        categories: [],
+        featured,
+        recent,
+        latest: recent,
+        boosted: boosted.length > 0 ? boosted : featured.slice(0, 10),
+        categories,
         banners: [],
       }
     };
   }
 
   if (endpoint.startsWith('boosted_ads_listing')) {
-    const { data: boosted } = await supabase.from('listings').select('*, profiles(*)').eq('is_boosted', true).eq('status', 'active').limit(10);
-    return (boosted || []).map(transformAd);
+    const res = await http.get('/ads', { params: { limit: 50 } });
+    return ((res?.data?.data || []).filter((a: any) => a.is_boosted).map(fromLaravelAd));
   }
 
   if (endpoint.startsWith('ads?')) {
     const params = Object.fromEntries(new URLSearchParams(endpoint.replace('ads?', '')));
-    return adsApi.getAll(params).then(r => r.data);
+    const res = await http.get('/ads', { params: params as any });
+    const responseData = res?.data || { data: [], meta: null };
+    return {
+      data: (responseData.data || []).map(fromLaravelAd),
+      meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
+    };
   }
 
   if (endpoint.startsWith('ads/')) {
     const slug = endpoint.replace('ads/', '');
     if (slug && slug.length > 0 && !slug.includes('?')) {
-      const { data, error } = await supabase.from('listings').select('*, profiles(*), categories(*), subcategories(*)').eq('slug', slug).single();
-      if (error) throw error;
-      return { data: transformDetailAd(data) };
+      const res = await http.get(`/ads/${slug}`);
+      const ad = res?.data?.data || res?.data || null;
+      if (!ad) return { data: null };
+      return { data: fromDetailLaravelAd(ad) };
     }
     const params = Object.fromEntries(new URLSearchParams(slug));
-    return adsApi.getAll(params).then(r => r.data);
+    const res = await http.get('/ads', { params: params as any });
+    const responseData = res?.data || { data: [], meta: null };
+    return {
+      data: (responseData.data || []).map(fromLaravelAd),
+      meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
+    };
   }
 
   if (endpoint.startsWith('search?')) {
     const params = Object.fromEntries(new URLSearchParams(endpoint.replace('search?', '')));
-    return searchApi.search(params).then(r => r.data);
+    const res = await http.get('/search', { params: params as any });
+    const responseData = res?.data || { data: [], meta: null };
+    return {
+      data: (responseData.data || []).map(fromLaravelAd),
+      meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
+      related_ads: (responseData.related_ads || []).map(fromLaravelAd),
+      autocomplete_suggestions: responseData.autocomplete_suggestions || [],
+    };
   }
 
   if (endpoint.startsWith('search/suggestions?')) {
     const q = new URLSearchParams(endpoint.replace('search/suggestions?', '')).get('q') || '';
-    return searchApi.suggestions(q).then(r => r.data);
+    const res = await http.get('/search/suggestions', { params: { q } as any });
+    return res?.data || { categories: [], ads: [] };
   }
 
   if (endpoint.startsWith('ads/similar?')) {
     const params = Object.fromEntries(new URLSearchParams(endpoint.replace('ads/similar?', '')));
-    const { data } = await supabase.from('listings').select('*, profiles(*)')
-      .eq('category_id', params.ad_id ? String(params.ad_id) : '').neq('id', String(params.ad_id || ''))
-      .eq('status', 'active').limit(Number(params.limit) || 8);
-    return { data: (data || []).map(transformAd) };
+    const res = await http.get('/ads/similar', { params: params as any });
+    return { data: ((res?.data?.data || []).map(fromLaravelAd)) };
   }
 
   return { data: [], meta: null };
-}
-
-function transformAd(item: any): any {
-  if (!item) return item;
-  return {
-    id: item.id,
-    title: item.title,
-    slug: item.slug,
-    description: item.description,
-    price: item.price,
-    currency: item.currency || 'NGN',
-    condition: item.condition,
-    status: item.status,
-    negotiable: item.negotiable,
-    views: item.views_count || 0,
-    views_count: item.views_count || 0,
-    favorites_count: item.favorites_count || 0,
-    is_featured: item.is_featured,
-    is_boosted: item.is_boosted,
-    whatsapp: item.whatsapp_number,
-    phone: item.phone_number,
-    sellerPhone: item.phone_number,
-    phone_number: item.phone_number,
-    state: item.state,
-    lga: item.lga,
-    city: item.city,
-    location: item.location,
-    specifications: item.specifications,
-    attributes: item.specifications,
-    created_at: item.created_at,
-    updated_at: item.updated_at,
-    category_id: item.category_id,
-    subcategory_id: item.subcategory_id,
-    user_id: item.user_id,
-    category: item.categories || item.category || null,
-    subcategory: item.subcategories || item.subcategory || null,
-    user: item.profiles || item.user ? {
-      id: (item.profiles || item.user)?.id,
-      name: (item.profiles || item.user)?.full_name || (item.profiles || item.user)?.username || '',
-      full_name: (item.profiles || item.user)?.full_name,
-      username: (item.profiles || item.user)?.username,
-      email: (item.profiles || item.user)?.email,
-      phone: (item.profiles || item.user)?.phone,
-      avatar: (item.profiles || item.user)?.avatar_url,
-      avatar_url: (item.profiles || item.user)?.avatar_url,
-      location: (item.profiles || item.user)?.location,
-      created_at: (item.profiles || item.user)?.created_at,
-      verified: (item.profiles || item.user)?.is_verified || false,
-      is_verified_seller: (item.profiles || item.user)?.is_verified || false,
-      rating_avg: (item.profiles || item.user)?.rating_avg,
-      response_time: (item.profiles || item.user)?.response_time_avg,
-      completed_transactions: (item.profiles || item.user)?.completed_transactions,
-    } : undefined,
-  };
-}
-
-function transformDetailAd(item: any): any {
-  const ad = transformAd(item);
-  if (item.profiles) {
-    ad.user = {
-      id: item.profiles.id,
-      name: item.profiles.full_name || item.profiles.username || '',
-      full_name: item.profiles.full_name,
-      username: item.profiles.username,
-      phone: item.profiles.phone,
-      avatar: item.profiles.avatar_url,
-      avatar_url: item.profiles.avatar_url,
-      full_avatar_url: item.profiles.avatar_url,
-      location: item.profiles.location,
-      created_at: item.profiles.created_at,
-      verified: item.profiles.is_verified || false,
-      is_verified_seller: item.profiles.is_verified || false,
-      is_verified_business: (item.profiles as any)?.is_verified_business || false,
-      rating_avg: item.profiles.rating_avg,
-      response_time: item.profiles.response_time_avg,
-      completed_transactions: item.profiles.completed_transactions,
-    };
-  }
-  return ad;
 }
 
 export function useAdsList(params: Record<string, any> = {}) {
@@ -178,7 +224,7 @@ export function useAdsList(params: Record<string, any> = {}) {
 
   const { data, error, isLoading, mutate, isValidating } = useSWR(
     cacheKey,
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 30000,
@@ -206,7 +252,7 @@ export function useInfiniteAds(params: Record<string, any> = {}, pageSize: numbe
 
   const { data, error, isLoading, isValidating, setSize, size, mutate } = useSWRInfinite(
     getKey,
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: true,
       dedupingInterval: 30000,
@@ -237,7 +283,7 @@ export function useInfiniteAds(params: Record<string, any> = {}, pageSize: numbe
 export function useAdDetail(slug: string) {
   const { data, error, isLoading } = useSWR(
     slug ? `ads/${slug}` : null,
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 60000,
@@ -257,7 +303,7 @@ export function useAdDetail(slug: string) {
 export function useHomepage() {
   const { data, error, isLoading } = useSWR(
     'homepage_data',
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 60000,
@@ -272,7 +318,7 @@ export function useHomepage() {
 export function useCategories() {
   const { data, error, isLoading } = useSWR(
     'categories_data',
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 300000,
@@ -287,7 +333,7 @@ export function useCategories() {
 export function useLocations() {
   const { data, error, isLoading } = useSWR(
     'locations_data',
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 300000,
@@ -301,7 +347,7 @@ export function useLocations() {
 export function useTrendingAds() {
   const { data, error, isLoading } = useSWR(
     'search/trending',
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 120000,
@@ -316,7 +362,7 @@ export function useTrendingAds() {
 export function useBoostedAds() {
   const { data, error, isLoading } = useSWR(
     'boosted_ads_listing',
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 30000,
@@ -333,7 +379,7 @@ export function useSearch(query: string, params: Record<string, any> = {}) {
 
   const { data, error, isLoading } = useSWR(
     debouncedQuery ? `search?q=${encodeURIComponent(debouncedQuery)}&${new URLSearchParams(params).toString()}` : null,
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 30000,
@@ -357,7 +403,7 @@ export function useSearchSuggestions(query: string) {
 
   const { data, error, isLoading } = useSWR(
     debouncedQuery ? `search/suggestions?q=${encodeURIComponent(debouncedQuery)}` : null,
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 15000,
@@ -384,7 +430,7 @@ export function useSearchInfinite(params: Record<string, any> = {}, pageSize: nu
 
   const { data, error, isLoading, isValidating, setSize, size, mutate } = useSWRInfinite(
     getKey,
-    fetchFromSupabase,
+    fetchFromLaravel,
     {
       revalidateOnFocus: false,
       dedupingInterval: 30000,
@@ -408,7 +454,7 @@ export function useSearchInfinite(params: Record<string, any> = {}, pageSize: nu
 export function useSimilarAds(adId: number | null, limit: number = 8) {
   const { data, error, isLoading } = useSWR(
     adId ? `ads/similar?ad_id=${adId}&limit=${limit}` : null,
-    fetchFromSupabase,
+    fetchFromLaravel,
     { revalidateOnFocus: false, dedupingInterval: 120000, errorRetryCount: 2 }
   );
 
