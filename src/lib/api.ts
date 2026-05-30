@@ -1,6 +1,6 @@
 import { supabase, getServiceRoleClient } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
-import { http } from '@/lib/http-client';
+import { http, type RequestConfig } from '@/lib/http-client';
 import type { Database, Tables } from '@/types/supabase';
 
 type SupabaseResponse<T = any> = {
@@ -1522,11 +1522,11 @@ class HttpClient {
 export const api = new HttpClient();
 
 export const adminApiClient = {
-  get: async (url: string) => http.get(url),
-  post: async (url: string, data?: any) => http.post(url, data),
-  put: async (url: string, data?: any) => http.put(url, data),
-  patch: async (url: string, data?: any) => http.patch(url, data),
-  delete: async (url: string) => http.delete(url),
+  get: async (url: string, config?: RequestConfig) => http.get(url, config),
+  post: async (url: string, data?: any, config?: RequestConfig) => http.post(url, data, config),
+  put: async (url: string, data?: any, config?: RequestConfig) => http.put(url, data, config),
+  patch: async (url: string, data?: any, config?: RequestConfig) => http.patch(url, data, config),
+  delete: async (url: string, config?: RequestConfig) => http.delete(url, config),
   upload: async (url: string, formData: FormData, onProgress?: (p: number) => void) => http.upload(url, formData, onProgress),
 };
 
