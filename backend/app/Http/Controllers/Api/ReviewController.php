@@ -99,19 +99,25 @@ class ReviewController extends Controller
             $user = User::find($userId);
             if (!$user) {
                 // Auto-create user from Supabase auth (not yet synced to Laravel users table)
+                $userName = $request->input('user_name', $validated['user_id'] ?? 'User');
                 try {
                     $user = new User();
                     $user->id = $userId;
-                    $user->name = $validated['user_id'] ?? 'User';
+                    $user->name = $userName;
                     $user->email = ($validated['user_id'] ?? 'user') . '@placeholder.local';
                     $user->password = bcrypt(Str::random(32));
                     $user->save();
-                    Log::info('Auto-created user for review', ['user_id' => $userId, 'raw_input' => $validated['user_id'] ?? null]);
+                    Log::info('Auto-created user for review', ['user_id' => $userId, 'name' => $userName]);
                 } catch (\Illuminate\Database\QueryException $e) {
-                    // Race condition or prior failed attempt already created user with different ID
                     $user = User::find($userId) ?? User::where('email', ($validated['user_id'] ?? 'user') . '@placeholder.local')->first();
                     if (!$user) {
                         throw $e;
+                    }
+                    // Update name if it was set to the UUID placeholder
+                    if ($user->name === (string)$validated['user_id'] || str_contains($user->name, '@placeholder')) {
+                        $user->name = $userName;
+                        $user->save();
+                        Log::info('Updated user name from placeholder', ['user_id' => $user->id, 'name' => $userName]);
                     }
                 }
             }
@@ -338,7 +344,12 @@ class ReviewController extends Controller
 
     public function likeReview(Request $request, $reviewId)
     {
-        $userId = $request->user()->id;
+        $rawUserId = $request->input('user_id');
+        if (!$rawUserId) {
+            return response()->json(['error' => 'user_id is required'], 400);
+        }
+
+        $userId = $this->resolveUserId($rawUserId);
 
         $review = Review::findOrFail($reviewId);
 
@@ -347,7 +358,13 @@ class ReviewController extends Controller
             ->first();
 
         if ($existingLike) {
-            return response()->json(['message' => 'You have already liked this review'], 400);
+            // Unlike (Instagram-style toggle)
+            $existingLike->delete();
+            return response()->json([
+                'message' => 'Review unliked successfully',
+                'like_count' => $review->fresh()->likeCount(),
+                'is_liked_by_user' => false,
+            ]);
         }
 
         ReviewLike::create([
@@ -365,7 +382,12 @@ class ReviewController extends Controller
 
     public function unlikeReview(Request $request, $reviewId)
     {
-        $userId = $request->user()->id;
+        $rawUserId = $request->input('user_id');
+        if (!$rawUserId) {
+            return response()->json(['error' => 'user_id is required'], 400);
+        }
+
+        $userId = $this->resolveUserId($rawUserId);
 
         $review = Review::findOrFail($reviewId);
 
@@ -384,5 +406,37 @@ class ReviewController extends Controller
             'like_count' => $review->fresh()->likeCount(),
             'is_liked_by_user' => false,
         ]);
+    }
+
+    private function resolveUserId($rawUserId): int
+    {
+        $userId = $rawUserId;
+        if (!is_numeric($userId)) {
+            $hash = 5381;
+            for ($i = 0; $i < strlen($userId); $i++) {
+                $hash = (($hash << 5) + $hash) + ord($userId[$i]);
+                $hash = unpack('l', pack('l', $hash))[1];
+            }
+            $userId = abs($hash) ?: 1;
+        } else {
+            $userId = (int) $userId;
+        }
+
+        $user = User::find($userId);
+        if (!$user) {
+            try {
+                $user = new User();
+                $user->id = $userId;
+                $user->name = $rawUserId;
+                $user->email = $rawUserId . '@like.placeholder.local';
+                $user->password = bcrypt(Str::random(32));
+                $user->save();
+            } catch (\Illuminate\Database\QueryException $e) {
+                $user = User::find($userId) ?? User::where('email', $rawUserId . '@like.placeholder.local')->first();
+                if (!$user) throw $e;
+            }
+        }
+
+        return (int) $user->id;
     }
 }

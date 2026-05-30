@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Star, User, CheckCircle, Heart } from 'lucide-react';
+import { Star, User, CheckCircle, ThumbsUp } from 'lucide-react';
 import axios from 'axios';
-import { getAuthToken } from '@/lib/cookies';
+import { useAuthStore } from '@/lib/store';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
+
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -45,10 +47,10 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
   const [likeCount, setLikeCount] = useState(review.like_count ?? 0);
   const [isLiked, setIsLiked] = useState(review.is_liked_by_user ?? false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const { user } = useAuthStore();
 
   const handleLike = async () => {
-    const token = getAuthToken();
-    if (!token) {
+    if (!user?.id) {
       alert('Please login to like this review');
       return;
     }
@@ -62,15 +64,9 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
     setLikeCount((prev) => wasLiked ? prev - 1 : prev + 1);
 
     try {
-      if (wasLiked) {
-        await axios.delete(`${API_URL}/reviews/${review.id}/like`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } else {
-        await axios.post(`${API_URL}/reviews/${review.id}/like`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
+      await axios.post(`${API_URL}/reviews/${review.id}/like`, {
+        user_id: user.id
+      });
     } catch (error) {
       console.error('Error toggling like:', error);
       setIsLiked(wasLiked);
@@ -154,11 +150,11 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
               disabled={isLikeLoading}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
                 isLiked
-                  ? 'bg-red-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-500'
               } ${isLikeLoading ? 'opacity-50 cursor-wait' : ''}`}
             >
-              <Heart 
+              <ThumbsUp 
                 className="w-4 h-4" 
                 fill={isLiked ? "currentColor" : "none"}
               />

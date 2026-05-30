@@ -93,6 +93,7 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
           },
           body: JSON.stringify({
             user_id: user.id,
+            user_name: user.name,
             ad_id: adId,
             rating,
             comment: comment.trim() || null,

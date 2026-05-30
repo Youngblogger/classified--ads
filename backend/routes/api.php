@@ -454,8 +454,6 @@ Route::middleware('auth.api')->group(function () {
     // Review Actions
     Route::post('/reviews/{reviewId}/helpful', [ReviewController::class, 'markHelpful']);
     Route::post('/reviews/{reviewId}/report', [ReviewController::class, 'reportReview']);
-    Route::post('/reviews/{reviewId}/like', [ReviewController::class, 'likeReview']);
-    Route::delete('/reviews/{reviewId}/like', [ReviewController::class, 'unlikeReview']);
 
     // Seller Reviews (for sellers, not ads) - write operations require auth
     Route::get('/sellers/{sellerId}/can-review', [SellerReviewController::class, 'canReview']);
@@ -544,6 +542,10 @@ Route::middleware('auth.api')->group(function () {
     Route::get('/analytics/top-ads', [AnalyticsController::class, 'topAds']);
     Route::get('/analytics/store', [AnalyticsController::class, 'storePerformance']);
 });
+
+// Review like/unlike (no auth.api - uses body-based user_id to support Supabase auth)
+Route::post('/reviews/{reviewId}/like', [ReviewController::class, 'likeReview']);
+Route::delete('/reviews/{reviewId}/like', [ReviewController::class, 'unlikeReview']);
 
 // Email verification callback (no auth - user clicks link from email)
 Route::post('/email-verification/verify', [EmailVerificationController::class, 'verify']);

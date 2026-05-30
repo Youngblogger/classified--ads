@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Star, User, CheckCircle, Heart } from 'lucide-react';
+import { Star, User, CheckCircle, ThumbsUp } from 'lucide-react';
 import axios from 'axios';
 import { useAuthStore } from '@/lib/store';
 import type { SellerReview } from '@/types';
@@ -30,7 +30,7 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
   const [likeCount, setLikeCount] = useState(review.like_count ?? 0);
   const [isLiked, setIsLiked] = useState(review.is_liked_by_user ?? false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
-  const { isAuthenticated, token } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   const getAvatarUrl = (img: any): string => {
     if (!img) return '';
@@ -66,7 +66,7 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
   };
 
   const handleLike = async () => {
-    if (!isAuthenticated || !token) {
+    if (!user?.id) {
       alert('Please login to like this review');
       return;
     }
@@ -80,15 +80,9 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
     setLikeCount((prev) => wasLiked ? prev - 1 : prev + 1);
 
     try {
-      if (wasLiked) {
-        await axios.delete(`${API_URL}/reviews/${review.id}/like`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } else {
-        await axios.post(`${API_URL}/reviews/${review.id}/like`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
+      await axios.post(`${API_URL}/reviews/${review.id}/like`, {
+        user_id: user.id
+      });
     } catch (error) {
       console.error('Error toggling like:', error);
       setIsLiked(wasLiked);
@@ -159,17 +153,17 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
           <div className="flex items-center gap-3 pt-3 border-t border-gray-50">
             <button
               onClick={handleLike}
-              disabled={isLikeLoading || !isAuthenticated}
+              disabled={isLikeLoading || !user?.id}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
                 isLiked
-                  ? 'bg-red-500 text-white'
-                  : isAuthenticated
-                  ? 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500'
+                  ? 'bg-blue-500 text-white'
+                  : user?.id
+                  ? 'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-500'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               } ${isLikeLoading ? 'opacity-50 cursor-wait' : ''}`}
-              title={!isAuthenticated ? 'Login to like this review' : ''}
+              title={!user?.id ? 'Login to like this review' : ''}
             >
-              <Heart 
+              <ThumbsUp 
                 className="w-4 h-4" 
                 fill={isLiked ? "currentColor" : "none"}
               />
