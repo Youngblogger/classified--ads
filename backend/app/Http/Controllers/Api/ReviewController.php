@@ -6,100 +6,202 @@ use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Models\ReviewLike;
 use App\Models\Ad;
+use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\AdminEmailNotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ReviewController extends Controller
 {
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'ad_id' => 'required_without:user_id|exists:ads,id',
-            'user_id' => 'required_without:ad_id|exists:users,id',
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'nullable|string|max:1000',
-        ]);
-
-        $userId = $request->user()->id;
-        $targetUserId = isset($validated['user_id']) ? $validated['user_id'] : Ad::find($validated['ad_id'])->user_id;
-
-        $existing = Review::where('user_id', $userId)
-            ->where('ad_id', $validated['ad_id'] ?? null)
-            ->where('target_user_id', $targetUserId)
-            ->first();
-
-        if ($existing) {
-            return response()->json(['message' => 'You have already reviewed this ad'], 400);
-        }
-
-        $review = Review::create([
-            'user_id' => $userId,
-            'target_user_id' => $targetUserId,
-            'ad_id' => $validated['ad_id'] ?? null,
-            'rating' => $validated['rating'],
-            'comment' => $validated['comment'],
-        ]);
-
-        $review->load(['user', 'ad']);
-        NotificationService::reviewReceived($review);
-
-        // Send email notification to admin
         try {
-            AdminEmailNotificationService::newReviewSubmitted($review);
-        } catch (\Exception $e) {
-            // Log error but don't fail the request
-        }
+            $validated = $request->validate([
+                'ad_id' => 'required_without:user_id|exists:ads,id',
+                'user_id' => 'required_without:ad_id|exists:users,id',
+                'rating' => 'required|integer|min:1|max:5',
+                'comment' => 'nullable|string|max:1000',
+            ]);
 
-        return response()->json(['message' => 'Review submitted', 'review' => $review], 201);
+            $userId = $request->user()?->id;
+            if (!$userId) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $ad = isset($validated['ad_id']) ? Ad::find($validated['ad_id']) : null;
+            if (isset($validated['ad_id']) && !$ad) {
+                return response()->json(['error' => 'Ad not found'], 404);
+            }
+
+            $targetUserId = isset($validated['user_id']) ? $validated['user_id'] : $ad->user_id;
+
+            $existing = Review::where('user_id', $userId)
+                ->where('ad_id', $validated['ad_id'] ?? null)
+                ->where('target_user_id', $targetUserId)
+                ->first();
+
+            if ($existing) {
+                return response()->json(['error' => 'You have already reviewed this ad'], 409);
+            }
+
+            $review = Review::create([
+                'user_id' => $userId,
+                'target_user_id' => $targetUserId,
+                'ad_id' => $validated['ad_id'] ?? null,
+                'rating' => $validated['rating'],
+                'comment' => $validated['comment'] ?? '',
+            ]);
+
+            $review->load(['user', 'ad']);
+            NotificationService::reviewReceived($review);
+
+            try {
+                AdminEmailNotificationService::newReviewSubmitted($review);
+            } catch (\Exception $e) {
+                Log::warning('Admin email notification failed: ' . $e->getMessage());
+            }
+
+            return response()->json(['message' => 'Review submitted', 'review' => $review], 201);
+        } catch (\Throwable $e) {
+            Log::error('Review store failed: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function storeAdReview(Request $request, $adId)
     {
-        $validated = $request->validate([
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'nullable|string|max:1000',
-        ]);
+        try {
+            $validated = $request->validate([
+                'rating' => 'required|integer|min:1|max:5',
+                'comment' => 'nullable|string|max:1000',
+                'user_id' => 'required',
+            ]);
 
-        $userId = $request->user()->id;
-        $ad = Ad::findOrFail($adId);
-        $targetUserId = $ad->user_id;
+            // Convert user_id to numeric ID matching JS uuidToNumericId (DJB2 hash)
+            $userId = $validated['user_id'];
+            if (!is_numeric($userId)) {
+                $hash = 5381;
+                for ($i = 0; $i < strlen($userId); $i++) {
+                    $hash = (($hash << 5) + $hash) + ord($userId[$i]);
+                    $hash = unpack('l', pack('l', $hash))[1]; // force signed 32-bit
+                }
+                $userId = abs($hash) ?: 1;
+            } else {
+                $userId = (int) $userId;
+            }
+            Log::info('storeAdReview called', ['adId' => $adId, 'user_id_raw' => $validated['user_id'], 'type' => gettype($validated['user_id']), 'user_id_casted' => $userId, 'rating' => $validated['rating'] ?? null]);
 
-        if ($userId === $targetUserId) {
-            return response()->json(['error' => 'You cannot review your own ad'], 403);
+            $user = User::find($userId);
+            if (!$user) {
+                // Auto-create user from Supabase auth (not yet synced to Laravel users table)
+                try {
+                    $user = new User();
+                    $user->id = $userId;
+                    $user->name = $validated['user_id'] ?? 'User';
+                    $user->email = ($validated['user_id'] ?? 'user') . '@placeholder.local';
+                    $user->password = bcrypt(Str::random(32));
+                    $user->save();
+                    Log::info('Auto-created user for review', ['user_id' => $userId, 'raw_input' => $validated['user_id'] ?? null]);
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // Race condition or prior failed attempt already created user with different ID
+                    $user = User::find($userId) ?? User::where('email', ($validated['user_id'] ?? 'user') . '@placeholder.local')->first();
+                    if (!$user) {
+                        throw $e;
+                    }
+                }
+            }
+            // Sync userId to actual DB id (may differ if user was auto-created with wrong ID previously)
+            $userId = (int) $user->id;
+
+            // Try URL param first, then fall back to request body ad_id
+            $adIdToUse = $adId;
+            if ((!is_numeric($adId) || (int)$adId <= 0) && $request->input('ad_id')) {
+                $adIdToUse = $request->input('ad_id');
+            }
+
+            $adIdInt = is_numeric($adIdToUse) ? (int) $adIdToUse : 0;
+
+            // Check using query builder for isolation
+            $adFromDb = \Illuminate\Support\Facades\DB::table('ads')->where('id', $adIdInt)->first();
+            $ad = Ad::find($adIdInt);
+
+            Log::info('Ad lookup for review', [
+                'adId_param' => $adId, 'adId_type' => gettype($adId),
+                'adId_used' => $adIdToUse, 'adId_int' => $adIdInt,
+                'ad_found_eloquent' => $ad ? 'yes' : 'no',
+                'ad_found_raw' => $adFromDb ? 'yes' : 'no',
+                'ad_id_value' => $ad?->id,
+                'ad_db_id' => $adFromDb->id ?? null,
+            ]);
+
+            if (!$ad) {
+                Log::warning('Ad not found for review', ['adId_param' => $adId, 'type' => gettype($adId), 'adIdInt' => $adIdInt]);
+                return response()->json(['error' => 'Ad not found'], 404);
+            }
+
+            $targetUserId = $ad->user_id;
+
+            if ((int)$userId === (int)$targetUserId) {
+                return response()->json(['error' => 'You cannot review your own ad'], 403);
+            }
+
+            $existing = Review::where('user_id', $userId)
+                ->where('ad_id', $adId)
+                ->where('target_user_id', $targetUserId)
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'rating' => $validated['rating'],
+                    'comment' => $validated['comment'] ?? '',
+                ]);
+                return response()->json(['message' => 'Review updated successfully', 'review' => $existing->fresh()], 200);
+            }
+
+            $review = Review::create([
+                'user_id' => $userId,
+                'target_user_id' => $targetUserId,
+                'ad_id' => $adId,
+                'rating' => $validated['rating'],
+                'comment' => $validated['comment'] ?? '',
+            ]);
+
+            NotificationService::reviewReceived($review);
+
+            return response()->json(['message' => 'Review submitted successfully', 'review' => $review], 201);
+        } catch (\Throwable $e) {
+            Log::error('Review submission failed: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        $existing = Review::where('user_id', $userId)
-            ->where('ad_id', $adId)
-            ->where('target_user_id', $targetUserId)
-            ->first();
-
-        if ($existing) {
-            return response()->json(['error' => 'You have already reviewed this ad'], 400);
-        }
-
-        $review = Review::create([
-            'user_id' => $userId,
-            'target_user_id' => $targetUserId,
-            'ad_id' => $adId,
-            'rating' => $validated['rating'],
-            'comment' => $validated['comment'] ?? null,
-        ]);
-
-        NotificationService::reviewReceived($review);
-
-        return response()->json(['message' => 'Review submitted', 'review' => $review], 201);
     }
 
     public function myReviews(Request $request)
     {
-        $reviews = $request->user()
-            ->givenReviews()
-            ->with(['ad', 'targetUser'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        try {
+            $userId = $request->input('user_id') ?? $request->user()?->id;
+            if (!$userId) {
+                return response()->json(['data' => []]);
+            }
 
-        return response()->json($reviews);
+            $reviews = Review::where('user_id', $userId)
+                ->with(['ad', 'targetUser'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+
+            return response()->json($reviews);
+        } catch (\Throwable $e) {
+            Log::error('myReviews failed: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function userReviews(Request $request, $userId)

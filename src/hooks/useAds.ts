@@ -8,7 +8,7 @@ import { useDebounce } from './useDebounce';
 function imgAbs(url: string | undefined | null): string {
   if (!url || url.startsWith('http://') || url.startsWith('https://')) return url || '';
   const base = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api$/, '');
-  return url.startsWith('/') ? `${base}${url}` : url;
+  return `${base}${url.startsWith('/') ? url : `/${url}`}`;
 }
 
 function fromLaravelAd(ad: any): any {

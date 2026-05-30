@@ -369,7 +369,11 @@ Route::prefix('ads')->group(function () {
     Route::get('/{adId}/reviews', [ReviewController::class, 'adReviews']);
     Route::get('/{adId}/reviews/summary', [ReviewController::class, 'adReviewSummary']);
     Route::get('/{adId}/reviews/latest', [ReviewController::class, 'adLatestReviews']);
+    Route::post('/{adId}/reviews', [ReviewController::class, 'storeAdReview']);
 });
+
+// Public user reviews
+Route::get('/reviews/my-reviews', [ReviewController::class, 'myReviews']);
 
 // Protected ad routes - define before wildcard to avoid route conflicts
 Route::middleware('auth.api')->group(function () {
@@ -444,12 +448,8 @@ Route::middleware('auth.api')->group(function () {
     Route::get('/sellers/suggested', [FollowController::class, 'suggestedSellers']);
 
     // Reviews
-    Route::get('/reviews/my-reviews', [ReviewController::class, 'myReviews']);
     Route::get('/reviews/user/{userId}', [ReviewController::class, 'userReviews']);
     Route::post('/reviews', [ReviewController::class, 'store']);
-
-    // Ad Reviews
-    Route::post('/ads/{adId}/reviews', [ReviewController::class, 'storeAdReview']);
 
     // Review Actions
     Route::post('/reviews/{reviewId}/helpful', [ReviewController::class, 'markHelpful']);

@@ -652,11 +652,14 @@ export interface ReportUpdate {
 export interface Review {
   id: string
   reviewer_id: string
+  buyer_id: string | null
+  seller_id: string | null
   listing_id: string | null
   target_user_id: string
   rating: number
   comment: string | null
   is_approved: boolean
+  transaction_id: string | null
   created_at: string
   updated_at: string
 }
@@ -664,11 +667,14 @@ export interface Review {
 export interface ReviewInsert {
   id?: string
   reviewer_id: string
+  buyer_id?: string | null
+  seller_id?: string | null
   listing_id?: string | null
   target_user_id: string
   rating: number
   comment?: string | null
   is_approved?: boolean
+  transaction_id?: string | null
   created_at?: string
   updated_at?: string
 }
@@ -677,6 +683,9 @@ export interface ReviewUpdate {
   rating?: number
   comment?: string | null
   is_approved?: boolean
+  seller_id?: string | null
+  buyer_id?: string | null
+  transaction_id?: string | null
   updated_at?: string
 }
 

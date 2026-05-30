@@ -130,7 +130,7 @@ function transformListings(listings: any[]): any[] {
 function imgAbs(url: string | undefined | null): string {
   if (!url || url.startsWith('http://') || url.startsWith('https://')) return url || '';
   const base = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api$/, '');
-  return url.startsWith('/') ? `${base}${url}` : url;
+  return `${base}${url.startsWith('/') ? url : `/${url}`}`;
 }
 
 function fromLaravelAd(ad: any): any {
@@ -765,6 +765,7 @@ export const reviewsApi = {
     if (!userId) return sbError({ message: 'Not authenticated' });
     const { error } = await supabase.from('reviews').insert({
       reviewer_id: userId,
+      buyer_id: userId,
       target_user_id: String(data.user_id),
       listing_id: data.ad_id ? String(data.ad_id) : null,
       rating: data.rating,
@@ -831,7 +832,8 @@ export const sellerReviewsApi = {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
     const { error } = await supabase.from('reviews').insert({
-      reviewer_id: userId, target_user_id: String(sellerId),
+      reviewer_id: userId, buyer_id: userId,
+      target_user_id: String(sellerId),
       listing_id: data.ad_id ? String(data.ad_id) : null,
       rating: data.rating, comment: data.comment || null,
     });

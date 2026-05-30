@@ -11,7 +11,7 @@ export async function createReview(data: {
 }) {
   const { data: review, error } = await supabase
     .from('reviews')
-    .insert(data)
+    .insert({ ...data, buyer_id: data.reviewer_id })
     .select('*, reviewer:profiles(id, full_name, username, avatar_url)')
     .single();
 

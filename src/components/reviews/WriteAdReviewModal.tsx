@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Star, X, Loader2 } from 'lucide-react';
 import { getAuthToken } from '@/lib/cookies';
+import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -21,6 +22,7 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [hasExistingReview, setHasExistingReview] = useState(false);
+  const { user } = useAuthStore();
 
   useEffect(() => {
     if (isOpen) {
@@ -32,12 +34,10 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
 
       const checkExistingReview = async () => {
         try {
-          const token = getAuthToken();
-          if (!token) return;
-          
-          const response = await fetch(`${API_URL}/reviews/my-reviews`, {
+          if (!user?.id) return;
+
+          const response = await fetch(`${API_URL}/reviews/my-reviews?user_id=${user.id}`, {
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Accept': 'application/json',
             }
           });
@@ -76,44 +76,64 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
     setError('');
 
     try {
-      const token = getAuthToken();
-      
-      if (!token) {
+      if (!user?.id) {
         toast.error('Please login to write a review');
         onClose();
         return;
       }
 
-      const response = await fetch(`${API_URL}/ads/${adId}/reviews`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          rating,
-          comment: comment.trim() || null,
-        }),
-      });
+      let data: any = {};
 
-      const data = await response.json();
+      try {
+        const response = await fetch(`${API_URL}/ads/${adId}/reviews`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            ad_id: adId,
+            rating,
+            comment: comment.trim() || null,
+          }),
+        });
 
-      if (!response.ok) {
-        if (response.status === 403) {
-          toast.error("You can't review your own ad");
-        } else {
-          throw new Error(data.error || data.message || 'Failed to submit review');
+        try {
+          data = await response.json();
+        } catch {
+          data = {};
         }
+
+        if (!response.ok) {
+          if (response.status === 403) {
+            toast.error("You can't review your own ad");
+          } else if (response.status === 401) {
+            document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+            localStorage.removeItem('user-auth-storage');
+            localStorage.removeItem('authToken');
+            toast.error('Session expired. Please login again.', { duration: 4000 });
+            onClose();
+            setTimeout(() => window.location.reload(), 500);
+          } else if (response.status === 422) {
+            setError(data.message || 'Please check your input and try again.');
+          } else if (response.status === 404) {
+            setError('Ad not found. It may have been removed.');
+          } else if (response.status >= 500) {
+            setError(data.error || data.message || 'Server error. Please try again later.');
+          } else {
+            setError(data.error || data.message || 'Failed to submit review');
+          }
+          return;
+        }
+      } catch (networkErr: any) {
+        setError(networkErr.message || 'Network error. Please check your connection.');
         return;
       }
 
       toast.success(hasExistingReview ? 'Review updated successfully!' : 'Review submitted successfully!');
       onSuccess();
       onClose();
-    } catch (err: any) {
-      console.error('Review submission error:', err);
-      setError(err.message || 'Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

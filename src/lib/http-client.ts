@@ -102,6 +102,13 @@ async function request<T = any>(
     const headersObj: Record<string, string> = {};
     response.headers.forEach((value, key) => { headersObj[key] = value; });
 
+    if (response.status === 401 && !url.includes('notifications')) {
+      document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      localStorage.removeItem('user-auth-storage');
+      localStorage.removeItem('authToken');
+      if (typeof window !== 'undefined') window.location.reload();
+    }
+
     return {
       data: data ?? null,
       status: response.status,

@@ -39,6 +39,9 @@ export function getSupabaseClient() {
       fetch: async (url, options) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
+        if (options?.signal) {
+          options.signal.addEventListener('abort', () => controller.abort());
+        }
         const response = await fetch(url, {
           ...options,
           signal: controller.signal,
@@ -68,6 +71,9 @@ export function getServiceRoleClient() {
       fetch: async (url, options) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
+        if (options?.signal) {
+          options.signal.addEventListener('abort', () => controller.abort());
+        }
         const response = await fetch(url, {
           ...options,
           signal: controller.signal,
