@@ -49,7 +49,17 @@ use Illuminate\Support\Facades\RateLimiter;
 
 // Health check
 Route::get('/health', function () {
-    return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
+    $extensions = get_loaded_extensions();
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toIso8601String(),
+        'debug' => config('app.debug'),
+        'env_app_debug' => env('APP_DEBUG'),
+        'has_pdo_mysql' => in_array('pdo_mysql', $extensions),
+        'has_mysqli' => in_array('mysqli', $extensions),
+        'db_connection' => config('database.default'),
+        'php_version' => PHP_VERSION,
+    ]);
 });
 
 // Public auth routes
