@@ -369,7 +369,7 @@ Route::prefix('ads')->group(function () {
     Route::get('/{adId}/reviews', [ReviewController::class, 'adReviews']);
     Route::get('/{adId}/reviews/summary', [ReviewController::class, 'adReviewSummary']);
     Route::get('/{adId}/reviews/latest', [ReviewController::class, 'adLatestReviews']);
-    Route::post('/{adId}/reviews', [ReviewController::class, 'storeAdReview']);
+    Route::post('/{adId}/reviews', [ReviewController::class, 'storeAdReview'])->middleware('throttle:5,1');
 });
 
 // Public user reviews
@@ -449,7 +449,7 @@ Route::middleware('auth.api')->group(function () {
 
     // Reviews
     Route::get('/reviews/user/{userId}', [ReviewController::class, 'userReviews']);
-    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::post('/reviews', [ReviewController::class, 'store'])->middleware('throttle:5,1');
 
     // Review Actions
     Route::post('/reviews/{reviewId}/helpful', [ReviewController::class, 'markHelpful']);
@@ -458,7 +458,7 @@ Route::middleware('auth.api')->group(function () {
     // Seller Reviews (for sellers, not ads) - write operations require auth
     Route::get('/sellers/{sellerId}/can-review', [SellerReviewController::class, 'canReview']);
     Route::get('/sellers/{sellerId}/my-review', [SellerReviewController::class, 'userReview']);
-    Route::post('/sellers/{sellerId}/reviews', [SellerReviewController::class, 'store']);
+    Route::post('/sellers/{sellerId}/reviews', [SellerReviewController::class, 'store'])->middleware('throttle:5,1');
     Route::put('/seller-reviews/{reviewId}', [SellerReviewController::class, 'update']);
     Route::delete('/seller-reviews/{reviewId}', [SellerReviewController::class, 'destroy']);
     Route::post('/seller-reviews/{reviewId}/helpful', [SellerReviewController::class, 'markHelpful']);
@@ -544,8 +544,8 @@ Route::middleware('auth.api')->group(function () {
 });
 
 // Review like/unlike (no auth.api - uses body-based user_id to support Supabase auth)
-Route::post('/reviews/{reviewId}/like', [ReviewController::class, 'likeReview']);
-Route::delete('/reviews/{reviewId}/like', [ReviewController::class, 'unlikeReview']);
+Route::post('/reviews/{reviewId}/like', [ReviewController::class, 'likeReview'])->middleware('throttle:30,1');
+Route::delete('/reviews/{reviewId}/like', [ReviewController::class, 'unlikeReview'])->middleware('throttle:30,1');
 
 // Email verification callback (no auth - user clicks link from email)
 Route::post('/email-verification/verify', [EmailVerificationController::class, 'verify']);

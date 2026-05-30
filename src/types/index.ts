@@ -3,6 +3,7 @@ export interface User {
   id: number;
   supabase_user_id?: string;
   name: string;
+  username?: string;
   review_display_name?: string;
   email: string;
   phone?: string;
@@ -224,6 +225,7 @@ export interface SellerReview {
   rating: number;
   comment: string;
   user: User;
+  reviewer: User;
   ad?: { id: number; title: string; slug: string };
   helpful_count?: number;
   like_count?: number;

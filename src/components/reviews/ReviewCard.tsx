@@ -55,6 +55,7 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
   const [isLiked, setIsLiked] = useState(review.is_liked_by_user ?? false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [animating, setAnimating] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const { user } = useAuthStore();
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -75,9 +76,10 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
     setTimeout(() => setAnimating(false), 300);
 
     try {
+      const likeName = (user.name && user.name !== 'User' && !/^[0-9a-f-]{36}$/i.test(user.name)) ? user.name : undefined;
       await axios.post(`${API_URL}/reviews/${review.id}/like`, {
         user_id: user.id,
-        user_name: user.name,
+        user_name: likeName,
       });
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -113,7 +115,7 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
       <div className="flex items-start gap-4">
         {/* Avatar */}
         <div className="flex-shrink-0">
-          {review.user.avatar ? (
+          {review.user.avatar && !imgError ? (
             <Image
               src={review.user.avatar}
               alt={getReviewDisplayName(review.user)}
@@ -121,6 +123,7 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
               height={48}
               className="rounded-full object-cover"
               unoptimized
+              onError={() => setImgError(true)}
             />
           ) : (
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">

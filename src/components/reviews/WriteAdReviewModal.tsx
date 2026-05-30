@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Star, X, Loader2 } from 'lucide-react';
 import { getAuthToken } from '@/lib/cookies';
 import { useAuthStore } from '@/lib/store';
@@ -20,6 +20,7 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [error, setError] = useState('');
   const [hasExistingReview, setHasExistingReview] = useState(false);
   const { user } = useAuthStore();
@@ -72,6 +73,8 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
       return;
     }
 
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     setError('');
 
@@ -84,6 +87,8 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
 
       let data: any = {};
 
+      const userName = (user.name && user.name !== 'User' && !/^[0-9a-f-]{36}$/i.test(user.name)) ? user.name : undefined;
+
       try {
         const response = await fetch(`${API_URL}/ads/${adId}/reviews`, {
           method: 'POST',
@@ -93,7 +98,7 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
           },
           body: JSON.stringify({
             user_id: user.id,
-            user_name: user.name,
+            user_name: userName,
             ad_id: adId,
             rating,
             comment: comment.trim() || null,
@@ -109,6 +114,9 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
         if (!response.ok) {
           if (response.status === 403) {
             toast.error("You can't review your own ad");
+          } else if (response.status === 409) {
+            setError('You have already reviewed this listing');
+            setHasExistingReview(true);
           } else if (response.status === 401) {
             document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
             localStorage.removeItem('user-auth-storage');
@@ -137,6 +145,7 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
       onClose();
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -234,11 +243,12 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || rating === 0}
+              disabled={isSubmitting || rating === 0 || hasExistingReview}
               className="px-6 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              title={hasExistingReview ? 'You already reviewed this listing' : ''}
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isSubmitting ? 'Submitting...' : hasExistingReview ? 'Update Review' : 'Submit Review'}
+              {isSubmitting ? 'Submitting...' : hasExistingReview ? 'Already Reviewed' : 'Submit Review'}
             </button>
           </div>
         </form>

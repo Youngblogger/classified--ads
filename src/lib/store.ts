@@ -91,11 +91,21 @@ export const useAuthStore = create<AuthStore>()(
             }
           } catch {}
         }
-        if (state?.user?.id && typeof state.user.id === 'string') {
-          const numId = Math.abs(
-            (state.user.id as string).split('').reduce((h, c) => ((h << 5) + h + c.charCodeAt(0)) | 0, 5381)
-          ) || 1;
-          state.set({ user: { ...state.user, id: numId } });
+        const raw = state?.user;
+        if (raw) {
+          let user = { ...raw };
+          let changed = false;
+          if (typeof user.id === 'string') {
+            user.id = Math.abs(
+              (raw.id as string).split('').reduce((h, c) => ((h << 5) + h + c.charCodeAt(0)) | 0, 5381)
+            ) || 1;
+            changed = true;
+          }
+          if (!user.name || user.name === 'User' || /^[0-9a-f-]{36}$/i.test(user.name)) {
+            user.name = 'Anonymous User';
+            changed = true;
+          }
+          if (changed) state.set({ user });
         }
         state?.setHasHydrated(true);
       },

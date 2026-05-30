@@ -118,28 +118,20 @@ class SellerReviewController extends Controller
             ], 403);
         }
 
-        $existing = Review::where('user_id', $userId)
-            ->where('target_user_id', $sellerId)
-            ->whereNull('ad_id')
-            ->first();
+        // Check for existing review — covers both ad-specific and general seller reviews
+        $existingQuery = Review::where('user_id', $userId)
+            ->where('target_user_id', $sellerId);
+
+        if ($validated['ad_id']) {
+            $existingQuery->where('ad_id', $validated['ad_id']);
+        } else {
+            $existingQuery->whereNull('ad_id');
+        }
+
+        $existing = $existingQuery->first();
 
         if ($existing) {
-            logger("Updating existing review:", [
-                'existing_id' => $existing->id,
-                'new_rating' => $validated['rating'],
-            ]);
-            
-            $existing->update([
-                'rating' => $validated['rating'],
-                'comment' => $validated['comment'] ?? null,
-            ]);
-
-            SellerRatingService::clearCache($sellerId);
-
-            return response()->json([
-                'message' => 'Review updated successfully',
-                'review' => $existing->fresh()->load('user:id,name,review_display_name,avatar,google_avatar,facebook_avatar,verified,created_at')
-            ]);
+            return response()->json(['error' => 'You have already reviewed this seller'], 409);
         }
 
         $review = Review::create([
@@ -147,7 +139,7 @@ class SellerReviewController extends Controller
             'target_user_id' => $sellerId,
             'ad_id' => $validated['ad_id'] ?? null,
             'rating' => $validated['rating'],
-            'comment' => $validated['comment'] ?? null,
+            'comment' => strip_tags($validated['comment'] ?? ''),
         ]);
 
         logger("Review created:", [

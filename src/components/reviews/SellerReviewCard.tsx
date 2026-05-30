@@ -40,6 +40,7 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
   const [isLiked, setIsLiked] = useState(review.is_liked_by_user ?? false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [animating, setAnimating] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const { user } = useAuthStore();
 
   const getAvatarUrl = (img: any): string => {
@@ -92,9 +93,10 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
     setTimeout(() => setAnimating(false), 300);
 
     try {
+      const likeName = (user.name && user.name !== 'User' && !/^[0-9a-f-]{36}$/i.test(user.name)) ? user.name : undefined;
       await axios.post(`${API_URL}/reviews/${review.id}/like`, {
         user_id: user.id,
-        user_name: user.name,
+        user_name: likeName,
       });
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -105,7 +107,8 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
     }
   };
 
-  const avatarUrl = getAvatarUrl(review.user?.avatar || review.user?.google_avatar || review.user?.facebook_avatar);
+  const revUser = review.reviewer || review.user;
+  const avatarUrl = getAvatarUrl(revUser?.avatar || revUser?.google_avatar || revUser?.facebook_avatar);
 
   return (
     <>
@@ -122,14 +125,15 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
       <div className="bg-white rounded-xl p-5 border border-gray-100 hover:border-gray-200 transition-colors">
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0">
-            {avatarUrl ? (
+            {avatarUrl && !imgError ? (
               <Image
                 src={avatarUrl}
-                alt={getReviewDisplayName(review.user)}
+                alt={getReviewDisplayName(revUser)}
                 width={48}
                 height={48}
                 className="rounded-full object-cover"
                 unoptimized
+                onError={() => setImgError(true)}
               />
             ) : (
               <div className="w-12 h-12 rounded-full bg-[#4B5320]/10 flex items-center justify-center">
@@ -142,10 +146,10 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-dark">
-                  {getReviewDisplayName(review.user)}
+                  {getReviewDisplayName(revUser)}
                 </span>
-                {(review.user as any)?.is_verified_seller && <VerifiedSellerBadge size="sm" />}
-                {(review.user as any)?.is_verified_business && <BusinessVerifiedBadge size="sm" />}
+                {(revUser as any)?.is_verified_seller && <VerifiedSellerBadge size="sm" />}
+                {(revUser as any)?.is_verified_business && <BusinessVerifiedBadge size="sm" />}
               </div>
               <span className="text-xs text-gray-400">{formatDate(review.created_at)}</span>
             </div>
