@@ -17,7 +17,7 @@ import { safeArray, safeSlice } from '@/lib/safe-data';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 function buildUnifiedFeed(ads: any[]): any[] {
-  const safeAds = safeArray(ads);
+  const safeAds = safeArray<any>(ads);
   const boosted = safeAds.filter((ad: any) => {
     const plan = getBoostPlan(ad.boost_type);
     return plan && ad.boost_status === 'active' && !isBoostExpired(ad);
