@@ -9,6 +9,7 @@ import { sellerReviewsApi } from '@/lib/api';
 import Header from '@/components/home/Header';
 import Footer from '@/components/layout/Footer';
 import SellerReviewCard from '@/components/reviews/SellerReviewCard';
+import type { SellerReview } from '@/types';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 
@@ -114,7 +115,7 @@ function ReviewCard({ review }: { review: Review }) {
     },
   };
 
-  return <SellerReviewCard review={transformedReview} />;
+  return <SellerReviewCard review={transformedReview as SellerReview} />;
 }
 
 function RatingBreakdown({ distribution, total }: { distribution: RatingDistribution; total: number }) {

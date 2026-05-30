@@ -115,7 +115,7 @@ export default function BoostedAdsCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const ranked = useAdRanking(
-    safeArray(rawBoostedAds).filter((ad): ad is BoostedAd => !!(ad.is_boosted && ad.boost_type))
+    safeArray<any>(rawBoostedAds).filter((ad): ad is BoostedAd => !!(ad.is_boosted && ad.boost_type))
   );
   const boostedAds = ranked;
 
@@ -151,7 +151,7 @@ export default function BoostedAdsCarousel() {
 
   if (boostedAds.length === 0) return null;
 
-  const groupedAds = safeArray(boostedAds).reduce<Record<string, BoostedAd[]>>((acc, ad) => {
+  const groupedAds = safeArray<any>(boostedAds).reduce<Record<string, BoostedAd[]>>((acc, ad) => {
     const type = ad.boost_type || 'unknown';
     if (!acc[type]) acc[type] = [];
     acc[type].push(ad);
