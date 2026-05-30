@@ -16,6 +16,15 @@ interface SellerReviewCardProps {
   onUpdate?: () => void;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function getReviewDisplayName(user: { name: string; review_display_name?: string | null } | null | undefined): string {
+  if (!user) return 'Anonymous User';
+  const name = user.review_display_name || user.name || 'Anonymous User';
+  if (UUID_RE.test(name)) return 'Anonymous User';
+  return name;
+}
+
 function formatLikeCount(count: number): string {
   if (count >= 1000000) {
     return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -116,7 +125,7 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
             {avatarUrl ? (
               <Image
                 src={avatarUrl}
-                alt={review.user?.name || 'User'}
+                alt={getReviewDisplayName(review.user)}
                 width={48}
                 height={48}
                 className="rounded-full object-cover"
@@ -133,7 +142,7 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-dark">
-                  {review.user?.name || 'Anonymous User'}
+                  {getReviewDisplayName(review.user)}
                 </span>
                 {(review.user as any)?.is_verified_seller && <VerifiedSellerBadge size="sm" />}
                 {(review.user as any)?.is_verified_business && <BusinessVerifiedBadge size="sm" />}

@@ -40,14 +40,21 @@ export function getSupabaseClient() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
         if (options?.signal) {
-          options.signal.addEventListener('abort', () => controller.abort());
+          if (options.signal.aborted) {
+            controller.abort();
+          } else {
+            options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+          }
         }
-        const response = await fetch(url, {
-          ...options,
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        return response;
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+          });
+          return response;
+        } finally {
+          clearTimeout(timeoutId);
+        }
       },
     },
   });
@@ -72,14 +79,21 @@ export function getServiceRoleClient() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
         if (options?.signal) {
-          options.signal.addEventListener('abort', () => controller.abort());
+          if (options.signal.aborted) {
+            controller.abort();
+          } else {
+            options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+          }
         }
-        const response = await fetch(url, {
-          ...options,
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        return response;
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+          });
+          return response;
+        } finally {
+          clearTimeout(timeoutId);
+        }
       },
     },
   });

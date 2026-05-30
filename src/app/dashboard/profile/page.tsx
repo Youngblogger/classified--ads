@@ -381,7 +381,7 @@ function OverviewTab({ user, setUser }: { user: any; setUser: any }) {
 
 /* ─── PROFILE INFO TAB ─── */
 function InfoTab({ user, setUser, token }: { user: any; setUser: any; token: string | null }) {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', bio: '', gender: '', location: '', state: '', city: '', website: '', twitter: '', instagram: '' });
+  const [form, setForm] = useState({ name: '', review_display_name: '', email: '', phone: '', bio: '', gender: '', location: '', state: '', city: '', website: '', twitter: '', instagram: '' });
   const [saving, setSaving] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
 
@@ -397,6 +397,7 @@ function InfoTab({ user, setUser, token }: { user: any; setUser: any; token: str
       } else {
         setForm({
           name: user.name || '',
+          review_display_name: user.review_display_name || '',
           email: user.email || '',
           phone: user.phone || '',
           bio: user.bio || '',
@@ -418,6 +419,7 @@ function InfoTab({ user, setUser, token }: { user: any; setUser: any; token: str
     try {
       const fd = new FormData();
       fd.append('name', form.name);
+      fd.append('review_display_name', form.review_display_name);
       fd.append('email', form.email);
       fd.append('phone', form.phone);
       fd.append('bio', form.bio);
@@ -459,6 +461,14 @@ function InfoTab({ user, setUser, token }: { user: any; setUser: any; token: str
             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
             <input id="info-name" name="name" value={form.name} onChange={e => { setForm(p => ({ ...p, name: e.target.value })); saveDraft(); }} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" aria-required="true" />
           </div>
+        </div>
+        <div>
+          <label htmlFor="info-review-display-name" className="block text-sm font-medium text-gray-700 mb-1.5">Review Display Name</label>
+          <div className="relative">
+            <Star className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
+            <input id="info-review-display-name" name="review_display_name" value={form.review_display_name} onChange={e => { setForm(p => ({ ...p, review_display_name: e.target.value })); saveDraft(); }} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" maxLength={30} placeholder="Optional: how you appear on reviews" />
+          </div>
+          <p className="text-xs text-gray-400 mt-1">Public name shown on reviews (max 30 chars). Falls back to your full name.</p>
         </div>
         <div>
           <label htmlFor="info-email" className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>

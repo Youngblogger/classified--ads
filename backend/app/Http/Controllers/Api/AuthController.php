@@ -156,6 +156,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
+            'review_display_name' => 'nullable|string|max:30',
             'phone' => 'nullable|string|max:30',
             'location' => 'nullable|string|max:255',
             'location_id' => 'nullable|integer',
@@ -169,6 +170,9 @@ class AuthController extends Controller
         
         if ($request->has('name')) {
             $user->name = $request->name;
+        }
+        if ($request->has('review_display_name')) {
+            $user->review_display_name = $request->review_display_name;
         }
         if ($request->has('phone')) {
             $user->phone = $request->phone;

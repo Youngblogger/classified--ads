@@ -15,9 +15,11 @@ function uuidToNumericId(uuid: string): number {
 }
 
 function mapSupabaseUserToAppUser(sbUser: any, profile?: any): User {
+  const profileName = profile?.review_display_name || profile?.full_name || profile?.username || null;
   return {
     id: uuidToNumericId(sbUser.id),
-    name: profile?.full_name || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
+    name: profileName || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
+    review_display_name: profile?.review_display_name || undefined,
     email: sbUser.email || '',
     phone: profile?.phone || '',
     avatar: profile?.avatar_url || sbUser.user_metadata?.avatar_url || '',

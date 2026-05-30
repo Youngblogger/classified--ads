@@ -3,6 +3,7 @@ export interface User {
   id: number;
   supabase_user_id?: string;
   name: string;
+  review_display_name?: string;
   email: string;
   phone?: string;
   avatar?: string;

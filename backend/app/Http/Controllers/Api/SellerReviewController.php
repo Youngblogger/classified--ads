@@ -17,7 +17,7 @@ class SellerReviewController extends Controller
         $currentUserId = $request->user() ? $request->user()->id : null;
 
         $query = Review::where('target_user_id', $sellerId)
-            ->with(['user:id,name,avatar,google_avatar,facebook_avatar,verified,created_at'])
+            ->with(['user:id,name,review_display_name,avatar,google_avatar,facebook_avatar,verified,created_at'])
             ->with(['ad:id,title,slug']);
 
         if ($request->has('rating') && $request->rating >= 1 && $request->rating <= 5) {
@@ -66,7 +66,7 @@ class SellerReviewController extends Controller
         $currentUserId = request()->user() ? request()->user()->id : null;
 
         $reviews = Review::where('target_user_id', $sellerId)
-            ->with(['user:id,name,avatar,google_avatar,facebook_avatar,verified,created_at'])
+            ->with(['user:id,name,review_display_name,avatar,google_avatar,facebook_avatar,verified,created_at'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -138,7 +138,7 @@ class SellerReviewController extends Controller
 
             return response()->json([
                 'message' => 'Review updated successfully',
-                'review' => $existing->fresh()->load('user:id,name,avatar,google_avatar,facebook_avatar,verified,created_at')
+                'review' => $existing->fresh()->load('user:id,name,review_display_name,avatar,google_avatar,facebook_avatar,verified,created_at')
             ]);
         }
 
@@ -167,7 +167,7 @@ class SellerReviewController extends Controller
 
         return response()->json([
             'message' => 'Review submitted successfully',
-            'review' => $review->load('user:id,name,avatar,google_avatar,facebook_avatar,verified,created_at')
+            'review' => $review->load('user:id,name,review_display_name,avatar,google_avatar,facebook_avatar,verified,created_at')
         ], 201);
     }
 
@@ -297,7 +297,7 @@ class SellerReviewController extends Controller
 
         return response()->json([
             'message' => 'Review updated successfully',
-            'review' => $review->fresh()->load('user:id,name,avatar,avatar,google_avatar,facebook_avatar,verified,created_at')
+            'review' => $review->fresh()->load('user:id,name,review_display_name,avatar,google_avatar,facebook_avatar,verified,created_at')
         ]);
     }
 
@@ -357,7 +357,7 @@ class SellerReviewController extends Controller
     public function sellerProfile($sellerId)
     {
         $seller = \App\Models\User::select([
-            'id', 'name', 'avatar', 'google_avatar', 'facebook_avatar',
+            'id', 'name', 'review_display_name', 'avatar', 'google_avatar', 'facebook_avatar',
             'verified', 'phone', 'location', 'created_at'
         ])->find($sellerId);
 

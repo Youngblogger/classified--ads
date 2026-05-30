@@ -10,11 +10,20 @@ import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBad
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function getReviewDisplayName(user: { name: string; review_display_name?: string | null }): string {
+  const name = user.review_display_name || user.name || 'Anonymous User';
+  if (UUID_RE.test(name)) return 'Anonymous User';
+  return name;
+}
+
 interface Review {
   id: number;
   user: {
     id: number;
     name: string;
+    review_display_name?: string | null;
     avatar?: string;
   };
   rating: number;
@@ -107,7 +116,7 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
           {review.user.avatar ? (
             <Image
               src={review.user.avatar}
-              alt={review.user.name}
+              alt={getReviewDisplayName(review.user)}
               width={48}
               height={48}
               className="rounded-full object-cover"
@@ -123,7 +132,7 @@ export default function ReviewCard({ review, onReport }: ReviewCardProps) {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-dark">{review.user.name}</span>
+            <span className="font-semibold text-dark">{getReviewDisplayName(review.user)}</span>
             {(review.user as any).is_verified_seller && <VerifiedSellerBadge size="sm" />}
             {(review.user as any).is_verified_business && <BusinessVerifiedBadge size="sm" />}
             {review.is_verified && (

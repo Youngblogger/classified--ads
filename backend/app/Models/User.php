@@ -14,7 +14,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $appends = ['avatar_url', 'full_avatar_url', 'has_store', 'verification_progress'];
+    protected $appends = ['avatar_url', 'full_avatar_url', 'has_store', 'verification_progress', 'review_display_name'];
 
     /**
      * The attributes that are mass assignable.
@@ -23,6 +23,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'review_display_name',
         'email',
         'password',
         'role',
@@ -310,6 +311,17 @@ class User extends Authenticatable
                 'is_full_verified_seller' => false,
             ];
         }
+    }
+
+    public function getReviewDisplayNameAttribute(): string
+    {
+        $value = $this->attributes['review_display_name']
+            ?? $this->attributes['name']
+            ?? null;
+        if ($value && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value)) {
+            return 'Anonymous User';
+        }
+        return $value ?? 'Anonymous User';
     }
 
     public function businessVerification()

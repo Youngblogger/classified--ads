@@ -91,6 +91,12 @@ export const useAuthStore = create<AuthStore>()(
             }
           } catch {}
         }
+        if (state?.user?.id && typeof state.user.id === 'string') {
+          const numId = Math.abs(
+            (state.user.id as string).split('').reduce((h, c) => ((h << 5) + h + c.charCodeAt(0)) | 0, 5381)
+          ) || 1;
+          state.set({ user: { ...state.user, id: numId } });
+        }
         state?.setHasHydrated(true);
       },
     }
