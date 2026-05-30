@@ -1499,20 +1499,20 @@ export function getApiBaseUrl(): string {
 }
 
 class HttpClient {
-  async get<T = any>(url: string): Promise<any> {
-    return http.get<T>(url);
+  async get<T = any>(url: string, config?: RequestConfig): Promise<any> {
+    return http.get<T>(url, config);
   }
-  async post<T = any>(url: string, data?: any): Promise<any> {
-    return http.post<T>(url, data);
+  async post<T = any>(url: string, data?: any, config?: RequestConfig): Promise<any> {
+    return http.post<T>(url, data, config);
   }
-  async put<T = any>(url: string, data?: any): Promise<any> {
-    return http.put<T>(url, data);
+  async put<T = any>(url: string, data?: any, config?: RequestConfig): Promise<any> {
+    return http.put<T>(url, data, config);
   }
-  async patch<T = any>(url: string, data?: any): Promise<any> {
-    return http.patch<T>(url, data);
+  async patch<T = any>(url: string, data?: any, config?: RequestConfig): Promise<any> {
+    return http.patch<T>(url, data, config);
   }
-  async delete<T = any>(url: string): Promise<any> {
-    return http.delete<T>(url);
+  async delete<T = any>(url: string, config?: RequestConfig): Promise<any> {
+    return http.delete<T>(url, config);
   }
   async upload<T = any>(url: string, formData: FormData, onProgress?: (p: number) => void, timeoutOverride?: number): Promise<any> {
     return http.upload<T>(url, formData, onProgress, timeoutOverride);
