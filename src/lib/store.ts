@@ -88,7 +88,7 @@ export const useAuthStore = create<AuthStore>()(
           try {
             const payload = JSON.parse(atob(state.token.split('.')[1]));
             if (payload.exp && payload.exp * 1000 < Date.now()) {
-              state.set({ user: null, token: null, isAuthenticated: false });
+              useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
             }
           } catch {}
         }
@@ -97,16 +97,16 @@ export const useAuthStore = create<AuthStore>()(
           let user = { ...raw };
           let changed = false;
           if (typeof user.id === 'string') {
-            user.id = Math.abs(
-              (raw.id as string).split('').reduce((h, c) => ((h << 5) + h + c.charCodeAt(0)) | 0, 5381)
-            ) || 1;
+            user.id = (Math.abs(
+              (raw.id as unknown as string).split('').reduce((h, c) => ((h << 5) + h + c.charCodeAt(0)) | 0, 5381)
+            ) || 1) as any;
             changed = true;
           }
           if (normalizeReviewerName(user.name) !== user.name) {
             user.name = normalizeReviewerName(user.name);
             changed = true;
           }
-          if (changed) state.set({ user });
+          if (changed) useAuthStore.setState({ user });
         }
         state?.setHasHydrated(true);
       },

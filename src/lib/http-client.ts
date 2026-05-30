@@ -7,7 +7,7 @@ interface HttpClientResponse<T = any> {
   headers: Record<string, string>;
 }
 
-interface RequestConfig {
+export interface RequestConfig {
   headers?: Record<string, string>;
   signal?: AbortSignal;
   timeout?: number;
@@ -118,10 +118,10 @@ async function request<T = any>(
   } catch (error: any) {
     clearTimeout(timeoutId as any);
     if (error.name === 'AbortError') {
-      return { data: null, status: 0, statusText: 'Request aborted', headers: {} };
+      return { data: null as T, status: 0, statusText: 'Request aborted', headers: {} };
     }
     return {
-      data: error?.response || null,
+      data: (error?.response || null) as T,
       status: error?.status || 0,
       statusText: error?.message || 'Network error',
       headers: {},
@@ -173,19 +173,19 @@ export const http = {
         xhr.onload = () => {
           try {
             const data = JSON.parse(xhr.responseText);
-            resolve({ data, status: xhr.status, statusText: xhr.statusText, headers: {} });
+            resolve({ data: data as T, status: xhr.status, statusText: xhr.statusText, headers: {} });
           } catch {
-            resolve({ data: xhr.responseText, status: xhr.status, statusText: xhr.statusText, headers: {} });
+            resolve({ data: xhr.responseText as T, status: xhr.status, statusText: xhr.statusText, headers: {} });
           }
         };
 
         xhr.onerror = () => {
-          resolve({ data: null, status: 0, statusText: 'Network error', headers: {} });
+          resolve({ data: null as T, status: 0, statusText: 'Network error', headers: {} });
         };
 
         xhr.timeout = timeoutOverride || 30000;
         xhr.ontimeout = () => {
-          resolve({ data: null, status: 0, statusText: 'Timeout', headers: {} });
+          resolve({ data: null as T, status: 0, statusText: 'Timeout', headers: {} });
         };
 
         xhr.send(formData);
