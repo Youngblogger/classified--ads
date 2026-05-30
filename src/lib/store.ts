@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, AuthState } from '@/types';
 import { setCookie } from './cookies';
+import { normalizeReviewerName } from './reviewerName';
 
 interface AuthStore extends AuthState {
   hasHydrated: boolean;
@@ -101,8 +102,8 @@ export const useAuthStore = create<AuthStore>()(
             ) || 1;
             changed = true;
           }
-          if (!user.name || user.name === 'User' || /^[0-9a-f-]{36}$/i.test(user.name)) {
-            user.name = 'Anonymous User';
+          if (normalizeReviewerName(user.name) !== user.name) {
+            user.name = normalizeReviewerName(user.name);
             changed = true;
           }
           if (changed) state.set({ user });

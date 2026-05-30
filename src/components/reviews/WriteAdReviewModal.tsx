@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Star, X, Loader2 } from 'lucide-react';
 import { getAuthToken } from '@/lib/cookies';
 import { useAuthStore } from '@/lib/store';
+import { normalizeReviewerName } from '@/lib/reviewerName';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -87,7 +88,7 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
 
       let data: any = {};
 
-      const userName = (user.name && user.name !== 'User' && !/^[0-9a-f-]{36}$/i.test(user.name)) ? user.name : undefined;
+      const userName = normalizeReviewerName(user.name) === 'Anonymous User' ? undefined : user.name;
 
       try {
         const response = await fetch(`${API_URL}/ads/${adId}/reviews`, {

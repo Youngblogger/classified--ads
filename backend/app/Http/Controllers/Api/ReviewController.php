@@ -9,6 +9,7 @@ use App\Models\Ad;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\AdminEmailNotificationService;
+use App\Services\ReviewerNameUtility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -96,10 +97,7 @@ class ReviewController extends Controller
             }
             Log::info('storeAdReview called', ['adId' => $adId, 'user_id_raw' => $validated['user_id'], 'type' => gettype($validated['user_id']), 'user_id_casted' => $userId, 'rating' => $validated['rating'] ?? null]);
 
-            $userName = $request->input('user_name', $validated['user_id'] ?? 'Anonymous User');
-            if ($this->isUuidString($userName) || $this->isPlaceholderName($userName)) {
-                $userName = 'Anonymous User';
-            }
+            $userName = ReviewerNameUtility::normalize($request->input('user_name'));
             $user = User::find($userId);
             if (!$user) {
                 // Fallback: look up by UUID string in name (user created in prior failed attempt)
@@ -125,9 +123,10 @@ class ReviewController extends Controller
                     }
                 }
             }
-            // Sync userId to actual DB id and update name from frontend (skip placeholders)
             $userId = (int) $user->id;
-            if ($user->name !== $userName && !$this->isUuidString($userName) && !$this->isPlaceholderName($userName)) {
+            $normalizedExisting = ReviewerNameUtility::normalize($user->name);
+            $normalizedNew = ReviewerNameUtility::normalize($userName);
+            if ($normalizedExisting !== $normalizedNew && $normalizedNew !== 'Anonymous User') {
                 $user->name = $userName;
                 $user->save();
                 Log::info('Synced user name from review submission', ['user_id' => $userId, 'name' => $userName]);
@@ -430,7 +429,7 @@ class ReviewController extends Controller
         }
 
         $user = User::find($userId);
-        $resolvedName = ($displayName && !$this->isUuidString($displayName) && !$this->isPlaceholderName($displayName)) ? $displayName : 'Anonymous User';
+        $resolvedName = ReviewerNameUtility::normalize($displayName);
         if (!$user) {
             if (is_string($rawUserId) && !is_numeric($rawUserId)) {
                 $user = User::where('name', $rawUserId)->first();
@@ -450,25 +449,13 @@ class ReviewController extends Controller
             }
         }
 
-        // Only sync name if it's a real name (not a placeholder)
-        if ($displayName && $user->name !== $displayName && !$this->isUuidString($displayName) && !$this->isPlaceholderName($displayName)) {
+        $normalizedExisting = ReviewerNameUtility::normalize($user->name);
+        $normalizedNew = ReviewerNameUtility::normalize($displayName);
+        if ($displayName && $normalizedExisting !== $normalizedNew && $normalizedNew !== 'Anonymous User') {
             $user->name = $displayName;
             $user->save();
         }
 
         return (int) $user->id;
-    }
-
-    private function isUuidString(?string $value): bool
-    {
-        if ($value === null) return false;
-        return (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value);
-    }
-
-    private function isPlaceholderName(?string $value): bool
-    {
-        if ($value === null) return false;
-        $placeholders = ['User', 'Anonymous User', ''];
-        return in_array(trim($value), $placeholders, true);
     }
 }

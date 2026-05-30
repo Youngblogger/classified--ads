@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Star, User, CheckCircle, ThumbsUp } from 'lucide-react';
 import axios from 'axios';
 import { useAuthStore } from '@/lib/store';
+import { getReviewDisplayName, normalizeReviewerName } from '@/lib/reviewerName';
 import type { SellerReview } from '@/types';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
@@ -14,15 +15,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 interface SellerReviewCardProps {
   review: SellerReview;
   onUpdate?: () => void;
-}
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function getReviewDisplayName(user: { name: string; review_display_name?: string | null } | null | undefined): string {
-  if (!user) return 'Anonymous User';
-  const name = user.review_display_name || user.name || 'Anonymous User';
-  if (UUID_RE.test(name)) return 'Anonymous User';
-  return name;
 }
 
 function formatLikeCount(count: number): string {
@@ -93,7 +85,7 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
     setTimeout(() => setAnimating(false), 300);
 
     try {
-      const likeName = (user.name && user.name !== 'User' && !/^[0-9a-f-]{36}$/i.test(user.name)) ? user.name : undefined;
+      const likeName = normalizeReviewerName(user.name) === 'Anonymous User' ? undefined : user.name;
       await axios.post(`${API_URL}/reviews/${review.id}/like`, {
         user_id: user.id,
         user_name: likeName,

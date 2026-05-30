@@ -3,6 +3,7 @@
 import { supabase } from './supabase';
 import { useAuthStore } from './store';
 import { signInWithEmail, signUpWithEmail, signOut, getCurrentSession, getProfile, createProfile } from './supabase-auth';
+import { normalizeReviewerName } from './reviewerName';
 import type { User } from '@/types';
 
 function uuidToNumericId(uuid: string): number {
@@ -15,10 +16,10 @@ function uuidToNumericId(uuid: string): number {
 }
 
 function mapSupabaseUserToAppUser(sbUser: any, profile?: any): User {
-  const profileName = profile?.review_display_name || profile?.full_name || profile?.username || null;
+  const rawName = profile?.review_display_name || profile?.full_name || profile?.username || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || '';
   return {
     id: uuidToNumericId(sbUser.id),
-    name: profileName || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Anonymous User',
+    name: normalizeReviewerName(rawName),
     username: profile?.username || undefined,
     review_display_name: profile?.review_display_name || undefined,
     email: sbUser.email || '',

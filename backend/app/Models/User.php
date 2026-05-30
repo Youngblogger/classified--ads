@@ -318,10 +318,7 @@ class User extends Authenticatable
         $value = $this->attributes['review_display_name']
             ?? $this->attributes['name']
             ?? null;
-        if ($value && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value)) {
-            return 'Anonymous User';
-        }
-        return $value ?? 'Anonymous User';
+        return \App\Services\ReviewerNameUtility::normalize($value);
     }
 
     public function businessVerification()
