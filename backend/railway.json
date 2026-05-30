@@ -1,10 +1,9 @@
 {
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "composer install --no-dev --optimize-autoloader && mkdir -p /app/storage/framework/cache/data /app/storage/framework/views /app/storage/framework/sessions /app/storage/logs && chmod -R 777 /app/storage"
+    "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT",
+    "preDeployCommand": "php artisan migrate --force",
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE"
   }
