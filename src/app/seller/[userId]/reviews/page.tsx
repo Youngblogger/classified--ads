@@ -98,6 +98,12 @@ function ReviewCard({ review }: { review: Review }) {
     helpful_count: review.helpful_count,
     like_count: review.like_count || 0,
     is_liked_by_user: review.is_liked_by_user || false,
+    reviewer: review.reviewer || {
+      id: review.reviewer_id,
+      name: 'Anonymous',
+      avatar_url: '',
+      created_at: '',
+    },
     user: {
       id: review.reviewer?.id || review.reviewer_id,
       name: review.reviewer?.name || 'Anonymous',
