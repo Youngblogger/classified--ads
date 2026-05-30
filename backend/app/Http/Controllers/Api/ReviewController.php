@@ -96,10 +96,17 @@ class ReviewController extends Controller
             }
             Log::info('storeAdReview called', ['adId' => $adId, 'user_id_raw' => $validated['user_id'], 'type' => gettype($validated['user_id']), 'user_id_casted' => $userId, 'rating' => $validated['rating'] ?? null]);
 
+            $userName = $request->input('user_name', $validated['user_id'] ?? 'User');
             $user = User::find($userId);
             if (!$user) {
+                // Fallback: look up by UUID string in name (user created in prior failed attempt)
+                $rawUuid = $validated['user_id'];
+                if (is_string($rawUuid) && !is_numeric($rawUuid)) {
+                    $user = User::where('name', $rawUuid)->first();
+                }
+            }
+            if (!$user) {
                 // Auto-create user from Supabase auth (not yet synced to Laravel users table)
-                $userName = $request->input('user_name', $validated['user_id'] ?? 'User');
                 try {
                     $user = new User();
                     $user->id = $userId;
@@ -113,16 +120,15 @@ class ReviewController extends Controller
                     if (!$user) {
                         throw $e;
                     }
-                    // Update name if it was set to the UUID placeholder
-                    if ($user->name === (string)$validated['user_id'] || str_contains($user->name, '@placeholder')) {
-                        $user->name = $userName;
-                        $user->save();
-                        Log::info('Updated user name from placeholder', ['user_id' => $user->id, 'name' => $userName]);
-                    }
                 }
             }
-            // Sync userId to actual DB id (may differ if user was auto-created with wrong ID previously)
+            // Sync userId to actual DB id and always update name from frontend
             $userId = (int) $user->id;
+            if ($user->name !== $userName) {
+                $user->name = $userName;
+                $user->save();
+                Log::info('Synced user name from review submission', ['user_id' => $userId, 'name' => $userName]);
+            }
 
             // Try URL param first, then fall back to request body ad_id
             $adIdToUse = $adId;
@@ -349,7 +355,8 @@ class ReviewController extends Controller
             return response()->json(['error' => 'user_id is required'], 400);
         }
 
-        $userId = $this->resolveUserId($rawUserId);
+        $userName = $request->input('user_name');
+        $userId = $this->resolveUserId($rawUserId, $userName);
 
         $review = Review::findOrFail($reviewId);
 
@@ -387,7 +394,8 @@ class ReviewController extends Controller
             return response()->json(['error' => 'user_id is required'], 400);
         }
 
-        $userId = $this->resolveUserId($rawUserId);
+        $userName = $request->input('user_name');
+        $userId = $this->resolveUserId($rawUserId, $userName);
 
         $review = Review::findOrFail($reviewId);
 
@@ -408,7 +416,7 @@ class ReviewController extends Controller
         ]);
     }
 
-    private function resolveUserId($rawUserId): int
+    private function resolveUserId($rawUserId, ?string $displayName = null): int
     {
         $userId = $rawUserId;
         if (!is_numeric($userId)) {
@@ -423,11 +431,18 @@ class ReviewController extends Controller
         }
 
         $user = User::find($userId);
+        $resolvedName = $displayName ?? $rawUserId;
+        if (!$user) {
+            // Fallback: look up by UUID string in name (user created in prior failed attempt)
+            if (is_string($rawUserId) && !is_numeric($rawUserId)) {
+                $user = User::where('name', $rawUserId)->first();
+            }
+        }
         if (!$user) {
             try {
                 $user = new User();
                 $user->id = $userId;
-                $user->name = $rawUserId;
+                $user->name = $resolvedName;
                 $user->email = $rawUserId . '@like.placeholder.local';
                 $user->password = bcrypt(Str::random(32));
                 $user->save();
@@ -435,6 +450,12 @@ class ReviewController extends Controller
                 $user = User::find($userId) ?? User::where('email', $rawUserId . '@like.placeholder.local')->first();
                 if (!$user) throw $e;
             }
+        }
+
+        // Always sync name if provided
+        if ($displayName && $user->name !== $displayName) {
+            $user->name = $displayName;
+            $user->save();
         }
 
         return (int) $user->id;

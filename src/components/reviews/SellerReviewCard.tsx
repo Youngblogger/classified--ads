@@ -30,7 +30,8 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
   const [likeCount, setLikeCount] = useState(review.like_count ?? 0);
   const [isLiked, setIsLiked] = useState(review.is_liked_by_user ?? false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
-  const { isAuthenticated, user } = useAuthStore();
+  const [animating, setAnimating] = useState(false);
+  const { user } = useAuthStore();
 
   const getAvatarUrl = (img: any): string => {
     if (!img) return '';
@@ -75,13 +76,16 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
     setIsLikeLoading(true);
 
     const wasLiked = isLiked;
-    
+
     setIsLiked(!wasLiked);
     setLikeCount((prev) => wasLiked ? prev - 1 : prev + 1);
+    setAnimating(true);
+    setTimeout(() => setAnimating(false), 300);
 
     try {
       await axios.post(`${API_URL}/reviews/${review.id}/like`, {
-        user_id: user.id
+        user_id: user.id,
+        user_name: user.name,
       });
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -95,87 +99,98 @@ export default function SellerReviewCard({ review, onUpdate }: SellerReviewCardP
   const avatarUrl = getAvatarUrl(review.user?.avatar || review.user?.google_avatar || review.user?.facebook_avatar);
 
   return (
-    <div className="bg-white rounded-xl p-5 border border-gray-100 hover:border-gray-200 transition-colors">
-      <div className="flex items-start gap-4">
-        <div className="flex-shrink-0">
-          {avatarUrl ? (
-            <Image
-              src={avatarUrl}
-              alt={review.user?.name || 'User'}
-              width={48}
-              height={48}
-              className="rounded-full object-cover"
-              unoptimized
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-[#4B5320]/10 flex items-center justify-center">
-              <User className="w-6 h-6 text-[#4B5320]" />
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-dark">
-                {review.user?.name || 'Anonymous User'}
-              </span>
-              {(review.user as any)?.is_verified_seller && <VerifiedSellerBadge size="sm" />}
-              {(review.user as any)?.is_verified_business && <BusinessVerifiedBadge size="sm" />}
-            </div>
-            <span className="text-xs text-gray-400">{formatDate(review.created_at)}</span>
+    <>
+      <style jsx>{`
+        @keyframes like-pop {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.25); }
+          100% { transform: scale(1); }
+        }
+        .like-animating svg {
+          animation: like-pop 0.3s ease-out;
+        }
+      `}</style>
+      <div className="bg-white rounded-xl p-5 border border-gray-100 hover:border-gray-200 transition-colors">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={review.user?.name || 'User'}
+                width={48}
+                height={48}
+                className="rounded-full object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-[#4B5320]/10 flex items-center justify-center">
+                <User className="w-6 h-6 text-[#4B5320]" />
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-1 mb-3">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`w-4 h-4 ${
-                  star <= review.rating
-                    ? 'fill-yellow-400 text-yellow-400'
-                    : 'fill-gray-200 text-gray-200'
-                }`}
-              />
-            ))}
-            <span className="text-sm text-gray-500 ml-1">{review.rating}/5</span>
-          </div>
-
-          {review.comment && (
-            <p className="text-gray-600 text-sm mb-4 leading-relaxed">{review.comment}</p>
-          )}
-
-          {review.ad && (
-            <div className="flex items-center gap-2 mb-3 text-xs text-gray-500">
-              <span>Re: {review.ad.title}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-dark">
+                  {review.user?.name || 'Anonymous User'}
+                </span>
+                {(review.user as any)?.is_verified_seller && <VerifiedSellerBadge size="sm" />}
+                {(review.user as any)?.is_verified_business && <BusinessVerifiedBadge size="sm" />}
+              </div>
+              <span className="text-xs text-gray-400">{formatDate(review.created_at)}</span>
             </div>
-          )}
 
-          <div className="flex items-center gap-3 pt-3 border-t border-gray-50">
-            <button
-              onClick={handleLike}
-              disabled={isLikeLoading || !user?.id}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                isLiked
-                  ? 'bg-blue-500 text-white'
-                  : user?.id
-                  ? 'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-500'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              } ${isLikeLoading ? 'opacity-50 cursor-wait' : ''}`}
-              title={!user?.id ? 'Login to like this review' : ''}
-            >
-              <ThumbsUp 
-                className="w-4 h-4" 
-                fill={isLiked ? "currentColor" : "none"}
-              />
-              {likeCount > 0 && (
-                <span className="text-xs">
+            <div className="flex items-center gap-1 mb-3">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-4 h-4 ${
+                    star <= review.rating
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'fill-gray-200 text-gray-200'
+                  }`}
+                />
+              ))}
+              <span className="text-sm text-gray-500 ml-1">{review.rating}/5</span>
+            </div>
+
+            {review.comment && (
+              <p className="text-gray-600 text-sm mb-4 leading-relaxed">{review.comment}</p>
+            )}
+
+            {review.ad && (
+              <div className="flex items-center gap-2 mb-3 text-xs text-gray-500">
+                <span>Re: {review.ad.title}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 pt-3 border-t border-gray-50">
+              <button
+                onClick={handleLike}
+                disabled={isLikeLoading || !user?.id}
+                className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1 ${
+                  isLiked
+                    ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                    : user?.id
+                    ? 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                    : 'text-gray-300 cursor-not-allowed'
+                } ${isLikeLoading ? 'opacity-50 cursor-wait' : ''} ${animating ? 'like-animating' : ''}`}
+                title={!user?.id ? 'Login to like this review' : ''}
+              >
+                <ThumbsUp
+                  className={`w-[18px] h-[18px] transition-all duration-200 ${
+                    isLiked ? 'fill-blue-600' : 'fill-transparent group-hover:fill-blue-600/20'
+                  }`}
+                />
+                <span className={`tabular-nums ${likeCount > 0 ? 'text-gray-700' : 'text-gray-400'}`}>
                   {formatLikeCount(likeCount)}
                 </span>
-              )}
-            </button>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
