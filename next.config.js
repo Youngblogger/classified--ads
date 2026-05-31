@@ -11,7 +11,7 @@ const cspHeader = `
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
   img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://source.unsplash.com https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com ${supabaseOrigin};
   font-src 'self' data: https://fonts.gstatic.com;
-  connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://localhost:3006 ws://localhost:3006 https://accounts.google.com ${supabaseOrigin} ${supabaseWildcard} wss://*.supabase.co;
+  connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://localhost:3006 ws://localhost:3006 https://accounts.google.com ${supabaseOrigin} ${supabaseWildcard} wss://*.supabase.co https://classified-ads-production.up.railway.app;
   frame-src https://accounts.google.com https://connect.facebook.net;
   object-src 'none';
   base-uri 'self';
