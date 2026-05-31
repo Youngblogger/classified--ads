@@ -3,6 +3,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
+    "startCommand": "bash start.sh",
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE"
   }
