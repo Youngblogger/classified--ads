@@ -14,8 +14,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        \App\Models\BoostPlan::truncate();
-        $this->call(BoostPlanSeeder::class);
+        if (\Illuminate\Support\Facades\Schema::hasTable('boost_plans')) {
+            \App\Models\BoostPlan::truncate();
+            $this->call(BoostPlanSeeder::class);
+        }
 
         $this->createSampleUsers();
         $this->call(MarketplaceCategorySeeder::class);
