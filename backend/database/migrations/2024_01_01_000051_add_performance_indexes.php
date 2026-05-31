@@ -36,7 +36,7 @@ return new class extends Migration
             if (!$this->hasIndex('ad_images', 'ad_images_ad_sort')) {
                 $table->index(['ad_id', 'sort_order'], 'ad_images_ad_sort');
             }
-            if (!$this->hasIndex('ad_images', 'ad_images_public_id_index')) {
+            if (!$this->hasIndex('ad_images', 'ad_images_public_id_index') && Schema::hasColumn('ad_images', 'public_id')) {
                 $table->index('public_id');
             }
             if (!$this->hasIndex('ad_images', 'ad_images_is_primary_index')) {
