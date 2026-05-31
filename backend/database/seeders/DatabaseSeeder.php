@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         if (\Illuminate\Support\Facades\Schema::hasTable('boost_plans')) {
-            \App\Models\BoostPlan::truncate();
+            \App\Models\BoostPlan::query()->delete();
             $this->call(BoostPlanSeeder::class);
         }
 
