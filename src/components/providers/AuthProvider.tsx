@@ -81,6 +81,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     authInitRef.current = true;
     setMounted(true);
 
+    // Skip session restoration on OAuth callback pages — the callback page
+    // handles the PKCE code exchange and we must not consume the code verifier.
+    const isCallbackRoute = typeof window !== 'undefined' && (
+      window.location.pathname.startsWith('/auth/callback') ||
+      window.location.pathname.startsWith('/auth/google/callback') ||
+      window.location.pathname.startsWith('/auth/facebook/callback')
+    );
+    if (isCallbackRoute) return;
+
     // Restore session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) {

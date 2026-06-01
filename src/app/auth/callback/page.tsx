@@ -13,14 +13,16 @@ function CallbackContent() {
 
   useEffect(() => {
     let cancelled = false;
+    let retries = 0;
+    const MAX_RETRIES = 5;
 
     async function handleCallback() {
       try {
         const queryParams = new URLSearchParams(window.location.search);
         const code = queryParams.get('code');
 
+        // If no code, try getSession (e.g. already exchanged)
         if (!code) {
-          // Try getSession as last resort (e.g. already exchanged)
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user && session.access_token) {
             setAuthCookie(session.access_token);
@@ -38,6 +40,15 @@ function CallbackContent() {
 
         if (exchangeError) {
           console.error('[Auth Callback] exchangeCodeForSession failed:', exchangeError);
+
+          // If code verifier is missing, retry after a delay (AuthProvider may have consumed it)
+          if (exchangeError.name === 'AuthPKCECodeVerifierMissingError' && retries < MAX_RETRIES) {
+            retries++;
+            console.log(`[Auth Callback] Retrying (${retries}/${MAX_RETRIES})...`);
+            await new Promise(r => setTimeout(r, 500));
+            if (!cancelled) return handleCallback();
+          }
+
           setError('Authentication failed. Please try again.');
           return;
         }

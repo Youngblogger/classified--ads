@@ -6,17 +6,55 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 let supabaseClient: SupabaseClient | null = null;
 
-export function setAuthCookie(token: string) {
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
+function setCookieValue(name: string, value: string, maxAgeDays: number) {
   if (typeof document === 'undefined') return;
   const expires = new Date();
-  expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000);
+  expires.setTime(expires.getTime() + maxAgeDays * 24 * 60 * 60 * 1000);
   const isSecure = window.location.protocol === 'https:';
-  document.cookie = `ilist-supabase-auth-token=${encodeURIComponent(token)};expires=${expires.toUTCString()};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax${isSecure ? ';Secure' : ''}`;
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;max-age=${maxAgeDays * 24 * 60 * 60};SameSite=Lax${isSecure ? ';Secure' : ''}`;
+}
+
+function removeCookie(name: string) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax`;
+}
+
+// Storage adapter that syncs to both localStorage and cookies.
+// This ensures the PKCE code verifier survives the OAuth redirect
+// (a full page navigation that can lose ephemeral in-memory state).
+const dualStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(key) || getCookie(key);
+  },
+  setItem: (key: string, value: string) => {
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem(key, value); } catch {}
+      setCookieValue(key, value, 365);
+    }
+  },
+  removeItem: (key: string) => {
+    if (typeof window !== 'undefined') {
+      try { localStorage.removeItem(key); } catch {}
+      removeCookie(key);
+    }
+  },
+};
+
+export function setAuthCookie(token: string) {
+  setCookieValue('ilist-supabase-auth-token', token, 365);
 }
 
 export function clearAuthCookie() {
-  if (typeof document === 'undefined') return;
-  document.cookie = 'ilist-supabase-auth-token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
+  removeCookie('ilist-supabase-auth-token');
 }
 
 export function getSupabaseClient() {
@@ -36,6 +74,7 @@ export function getSupabaseClient() {
     auth: {
       flowType: 'pkce',
       storageKey: 'ilist-supabase-auth',
+      storage: dualStorage,
       autoRefreshToken: isBrowser,
       persistSession: isBrowser,
       detectSessionInUrl: isBrowser,

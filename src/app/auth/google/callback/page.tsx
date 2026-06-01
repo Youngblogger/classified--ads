@@ -11,6 +11,8 @@ function GoogleCallbackContent() {
 
   useEffect(() => {
     let cancelled = false;
+    let retries = 0;
+    const MAX_RETRIES = 5;
 
     async function handleCallback() {
       try {
@@ -35,6 +37,14 @@ function GoogleCallbackContent() {
 
         if (exchangeError) {
           console.error('[Auth Google Callback] exchangeCodeForSession failed:', exchangeError);
+
+          if (exchangeError.name === 'AuthPKCECodeVerifierMissingError' && retries < MAX_RETRIES) {
+            retries++;
+            console.log(`[Auth Google Callback] Retrying (${retries}/${MAX_RETRIES})...`);
+            await new Promise(r => setTimeout(r, 500));
+            if (!cancelled) return handleCallback();
+          }
+
           setError('Authentication failed. Please try again.');
           return;
         }
