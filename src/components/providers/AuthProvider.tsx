@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, setAuthCookie, clearAuthCookie } from '@/lib/supabase';
 import { useAuthStore, useGlobalStore } from '@/lib/store';
 
 const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000;
@@ -78,14 +78,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       return;
     }
 
-    // Restore session on mount — getSession is more reliable than getUser for cookie-based sessions
+    // Restore session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) {
         const store = useAuthStore.getState();
         if (store.isAuthenticated) store.logout();
+        clearAuthCookie();
         return;
       }
       const token = session.access_token;
+      setAuthCookie(token);
       supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
         if (profile) {
           useAuthStore.getState().login(
@@ -99,6 +101,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
+        setAuthCookie(session.access_token);
         supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
           if (profile) {
             useAuthStore.getState().login(
@@ -112,6 +115,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         if (isAuthenticated) {
           useAuthStore.getState().logout();
         }
+        clearAuthCookie();
       }
     });
 

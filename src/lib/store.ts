@@ -37,8 +37,8 @@ export const useAuthStore = create<AuthStore>()(
       
       logout: () => {
         if (typeof window !== 'undefined') {
-          // Only clear USER auth cookies — NEVER touch admin tokens
-          document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+          document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
+          document.cookie = 'ilist-supabase-auth-token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
           
           localStorage.removeItem('user-auth-storage');
           localStorage.removeItem('authToken');

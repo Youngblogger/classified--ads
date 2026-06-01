@@ -69,6 +69,12 @@ export async function middleware(request: NextRequest) {
 
       const { data: { session } } = await supabaseClient.auth.getSession();
       hasSession = !!session;
+
+      // Fallback: check custom auth cookie (set by callback pages after OAuth)
+      if (!hasSession) {
+        const customToken = request.cookies.get('ilist-supabase-auth-token');
+        hasSession = !!customToken?.value;
+      }
     } catch (e) {
       console.error('[Middleware] Session check failed:', e);
     }

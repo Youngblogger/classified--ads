@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, setAuthCookie } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 function GoogleCallbackContent() {
@@ -17,7 +17,8 @@ function GoogleCallbackContent() {
         // With detectSessionInUrl: true, getSession() handles code exchange automatically
         const { data: { session } } = await supabase.auth.getSession();
 
-        if (session?.user) {
+        if (session?.user && session.access_token) {
+          setAuthCookie(session.access_token);
           const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
           localStorage.removeItem('authRedirect');
           sessionStorage.removeItem('authRedirect');
@@ -34,7 +35,8 @@ function GoogleCallbackContent() {
 
           if (exchangeError) {
             const { data: { session: s } } = await supabase.auth.getSession();
-            if (s?.user) {
+            if (s?.user && s.access_token) {
+              setAuthCookie(s.access_token);
               const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
               localStorage.removeItem('authRedirect');
               sessionStorage.removeItem('authRedirect');
@@ -50,7 +52,8 @@ function GoogleCallbackContent() {
         for (let i = 0; i < 10; i++) {
           if (cancelled) return;
           const { data: { session: s } } = await supabase.auth.getSession();
-          if (s?.user) {
+          if (s?.user && s.access_token) {
+            setAuthCookie(s.access_token);
             const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
             localStorage.removeItem('authRedirect');
             sessionStorage.removeItem('authRedirect');

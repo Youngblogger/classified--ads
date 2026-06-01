@@ -1,5 +1,4 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/types/supabase';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -7,27 +6,17 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 let supabaseClient: SupabaseClient | null = null;
 
-function createFetchWithTimeout() {
-  return async (url: RequestInfo | URL, options?: RequestInit) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    if (options?.signal) {
-      if (options.signal.aborted) {
-        controller.abort();
-      } else {
-        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
-      }
-    }
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-      });
-      return response;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  };
+export function setAuthCookie(token: string) {
+  if (typeof document === 'undefined') return;
+  const expires = new Date();
+  expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000);
+  const isSecure = window.location.protocol === 'https:';
+  document.cookie = `ilist-supabase-auth-token=${encodeURIComponent(token)};expires=${expires.toUTCString()};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax${isSecure ? ';Secure' : ''}`;
+}
+
+export function clearAuthCookie() {
+  if (typeof document === 'undefined') return;
+  document.cookie = 'ilist-supabase-auth-token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
 }
 
 export function getSupabaseClient() {
@@ -43,43 +32,45 @@ export function getSupabaseClient() {
 
   const isBrowser = typeof window !== 'undefined';
 
-  if (isBrowser) {
-    supabaseClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        flowType: 'pkce',
-        storageKey: 'ilist-supabase-auth',
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      flowType: 'pkce',
+      storageKey: 'ilist-supabase-auth',
+      autoRefreshToken: isBrowser,
+      persistSession: isBrowser,
+      detectSessionInUrl: isBrowser,
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
       },
-      realtime: {
-        params: {
-          eventsPerSecond: 10,
-        },
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'ilist-marketplace@1.0.0',
       },
-      global: {
-        headers: {
-          'X-Client-Info': 'ilist-marketplace@1.0.0',
-        },
-        fetch: createFetchWithTimeout(),
+      fetch: async (url, options) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        if (options?.signal) {
+          if (options.signal.aborted) {
+            controller.abort();
+          } else {
+            options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+          }
+        }
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+          });
+          return response;
+        } finally {
+          clearTimeout(timeoutId);
+        }
       },
-    });
-  } else {
-    supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false,
-        flowType: 'pkce',
-      },
-      global: {
-        headers: {
-          'X-Client-Info': 'ilist-marketplace@1.0.0',
-        },
-        fetch: createFetchWithTimeout(),
-      },
-    });
-  }
+    },
+  });
 
   return supabaseClient;
 }
