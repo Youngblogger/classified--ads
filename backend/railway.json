@@ -1,9 +1,8 @@
 {
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "DOCKERFILE"
   },
   "deploy": {
-    "startCommand": "bash start.sh",
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE"
   }
