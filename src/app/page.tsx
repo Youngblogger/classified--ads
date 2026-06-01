@@ -11,6 +11,7 @@ import LoadMoreButton from '@/components/ui/LoadMoreButton';
 
 import { useAuthStore } from '@/lib/store';
 import { useInfiniteAds, useCategories } from '@/hooks/useAds';
+import { useRealtimeHomepage } from '@/hooks/useRealtime';
 import AdCard from '@/components/ui/AdCard';
 import { getBoostPlan, isBoostExpired, calculateBoostScore } from '@/lib/boost-config';
 import { safeArray, safeSlice } from '@/lib/safe-data';
@@ -81,6 +82,7 @@ const CATEGORY_COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F97316', '#EC4899', 
 export default function HomePage() {
   const { isAuthenticated, user } = useAuthStore();
   const { categories: supabaseCategories, isLoading: catLoading } = useCategories();
+  useRealtimeHomepage();
   const ITEMS_PER_PAGE = 24;
 
   const {

@@ -12,6 +12,7 @@ import { Search, Grid, List, X, SlidersHorizontal, Loader2 } from 'lucide-react'
 import { AdGridSkeleton } from '@/components/ui/Skeleton';
 import { useSearchInfinite } from '@/hooks/useAds';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useRealtimeAds } from '@/hooks/useRealtime';
 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -80,6 +81,7 @@ type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'popular';
 
 function AdsPageContent() {
   const searchParams = useSearchParams();
+  useRealtimeAds();
   
   // URL params
   const query = searchParams.get('q') || '';

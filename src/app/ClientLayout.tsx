@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { SWRConfig } from 'swr';
-import { mutate as swrMutate } from 'swr';
 import { patchFedCmWidgetMode } from '@/lib/fedcm-patch';
 import { Toaster } from 'react-hot-toast';
 import QueryProvider from '@/providers/QueryProvider';
@@ -24,7 +23,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
 
   useEffect(() => {
     patchFedCmWidgetMode();
-    (window as any).__swrMutate = swrMutate;
   }, []);
 
   const isAdminPage = pathname?.startsWith('/admin');
