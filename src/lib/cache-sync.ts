@@ -223,8 +223,6 @@ function isStaleUpdate(cachedAd: any, updates: Record<string, any>): boolean {
   return false;
 }
 
-const COSMETIC_FIELDS = new Set(['views_count', 'favorites_count', 'views', 'favorites_count']);
-
 export function isCosmeticOnly(row: Record<string, any>): boolean {
   const relevantFields = ['title', 'slug', 'description', 'short_description',
     'price', 'currency', 'condition', 'status', 'negotiable',
