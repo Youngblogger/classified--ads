@@ -79,11 +79,6 @@ export function getSupabaseClient() {
       persistSession: isBrowser,
       detectSessionInUrl: isBrowser,
     },
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
-      },
-    },
     global: {
       headers: {
         'X-Client-Info': 'ilist-marketplace@1.0.0',
