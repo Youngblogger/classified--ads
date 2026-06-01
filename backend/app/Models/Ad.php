@@ -127,8 +127,6 @@ class Ad extends Model
     {
         return $query->with(['images', 'category', 'location', 'activeBoost.plan'])
             ->active()
-            ->where('is_seeded', false)
-            ->whereHas('user', fn($q) => $q->where('email', 'not like', '%@example.com'))
             ->orderBy('created_at', 'desc');
     }
 

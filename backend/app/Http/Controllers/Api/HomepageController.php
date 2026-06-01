@@ -46,8 +46,6 @@ class HomepageController extends Controller
         return Ad::with(['images', 'category', 'location'])
             ->where('status', 'active')
             ->where('is_featured', true)
-            ->where('is_seeded', false)
-            ->whereHas('user', fn($q) => $q->where('email', 'not like', '%@example.com'))
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get()
@@ -58,8 +56,6 @@ class HomepageController extends Controller
     {
         return Ad::with(['images', 'category', 'location'])
             ->where('status', 'active')
-            ->where('is_seeded', false)
-            ->whereHas('user', fn($q) => $q->where('email', 'not like', '%@example.com'))
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get()
@@ -107,8 +103,6 @@ class HomepageController extends Controller
             return Ad::with(['images', 'category', 'location'])
                 ->whereIn('ads.id', $boostedAdIds)
                 ->where('ads.status', 'active')
-                ->where('ads.is_seeded', false)
-                ->whereHas('user', fn($q) => $q->where('email', 'not like', '%@example.com'))
                 ->get()
                 ->map(function ($ad) use ($boostData) {
                     $boostInfo = $boostData['boost_data'][$ad->id] ?? null;
