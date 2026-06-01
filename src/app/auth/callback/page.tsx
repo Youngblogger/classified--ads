@@ -16,9 +16,33 @@ function CallbackContent() {
 
     async function handleCallback() {
       try {
-        // With detectSessionInUrl: true, getSession() handles code exchange automatically
-        const { data: { session } } = await supabase.auth.getSession();
+        const queryParams = new URLSearchParams(window.location.search);
+        const code = queryParams.get('code');
 
+        if (!code) {
+          // Try getSession as last resort (e.g. already exchanged)
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user && session.access_token) {
+            setAuthCookie(session.access_token);
+            const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
+            localStorage.removeItem('authRedirect');
+            sessionStorage.removeItem('authRedirect');
+            if (!cancelled) window.location.href = redirectTo;
+            return;
+          }
+          setError('No authentication code found. Please try again.');
+          return;
+        }
+
+        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          console.error('[Auth Callback] exchangeCodeForSession failed:', exchangeError);
+          setError('Authentication failed. Please try again.');
+          return;
+        }
+
+        const session = data?.session;
         if (session?.user && session.access_token) {
           setAuthCookie(session.access_token);
           const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
@@ -26,45 +50,6 @@ function CallbackContent() {
           sessionStorage.removeItem('authRedirect');
           if (!cancelled) window.location.href = redirectTo;
           return;
-        }
-
-        // Fallback: manual exchange if auto-detection didn't work
-        const queryParams = new URLSearchParams(window.location.search);
-        const code = queryParams.get('code');
-
-        if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-          if (exchangeError) {
-            // Code might already be exchanged — check session again
-            const { data: { session: s } } = await supabase.auth.getSession();
-            if (s?.user && s.access_token) {
-              setAuthCookie(s.access_token);
-              const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
-              localStorage.removeItem('authRedirect');
-              sessionStorage.removeItem('authRedirect');
-              if (!cancelled) window.location.href = redirectTo;
-              return;
-            }
-            console.error('[Auth Callback] exchangeCodeForSession failed:', exchangeError);
-            setError('Authentication failed. Please try again.');
-            return;
-          }
-        }
-
-        // Poll for session to propagate
-        for (let i = 0; i < 10; i++) {
-          if (cancelled) return;
-          const { data: { session: s } } = await supabase.auth.getSession();
-          if (s?.user && s.access_token) {
-            setAuthCookie(s.access_token);
-            const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
-            localStorage.removeItem('authRedirect');
-            sessionStorage.removeItem('authRedirect');
-            if (!cancelled) window.location.href = redirectTo;
-            return;
-          }
-          await new Promise(r => setTimeout(r, 500));
         }
 
         setError('Authentication completed but session could not be established. Please try again.');
