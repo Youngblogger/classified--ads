@@ -73,8 +73,8 @@ Route::prefix('auth')->group(function () {
 // =====================================================
 
 // Admin Authentication Routes - Stealth Path
-// IP restriction + Rate limiting applied
-Route::prefix('secure-control-9ja')->middleware([\App\Http\Middleware\AdminIpRestriction::class])->group(function () {
+// Rate limiting applied (IP restriction removed for login accessibility)
+Route::prefix('secure-control-9ja')->group(function () {
     Route::post('/auth/login', [AdminAuthController::class, 'login'])
         ->middleware(AdminRateLimiter::class);
 });
