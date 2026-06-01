@@ -42,6 +42,8 @@ export const useAuthStore = create<AuthStore>()(
           
           localStorage.removeItem('user-auth-storage');
           localStorage.removeItem('authToken');
+          localStorage.removeItem('ilist-supabase-auth');
+          localStorage.removeItem('ilist-supabase-auth-code-verifier');
           sessionStorage.setItem('just_logged_out', 'true');
         }
         

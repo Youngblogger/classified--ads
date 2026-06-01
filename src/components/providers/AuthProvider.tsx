@@ -69,14 +69,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // Single source of truth for Supabase auth state
   useEffect(() => {
     if (authInitRef.current) return;
-    authInitRef.current = true;
-    setMounted(true);
 
     const justLoggedOut = sessionStorage.getItem('just_logged_out');
     if (justLoggedOut === 'true') {
       sessionStorage.removeItem('just_logged_out');
+      authInitRef.current = true;
+      setMounted(true);
       return;
     }
+
+    authInitRef.current = true;
+    setMounted(true);
 
     // Restore session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
