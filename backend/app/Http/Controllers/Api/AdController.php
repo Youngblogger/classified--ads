@@ -399,6 +399,7 @@ class AdController extends Controller
 
             $baseQuery = Ad::with(['images', 'category', 'location'])
                 ->active()
+                ->where('ads.is_seeded', false)
                 ->where('id', '!=', $adId);
 
             $merged = collect();
