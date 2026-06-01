@@ -112,7 +112,22 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setAuthCookie(session.access_token);
+        supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
+          if (profile) {
+            useAuthStore.getState().login(
+              { ...profile, id: session.user.id, email: session.user.email },
+              session.access_token
+            );
+          }
+        });
+      } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
+        // Token refresh is internal housekeeping — just sync the cookie.
+        // Don't fetch profiles here, as the Supabase client itself
+        // may need to refresh *again* to serve the query, creating a loop.
+        setAuthCookie(session.access_token);
+      } else if (event === 'USER_UPDATED' && session?.user) {
         setAuthCookie(session.access_token);
         supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
           if (profile) {
