@@ -69,6 +69,10 @@ export default function RegisterModal() {
     setLoading(true);
 
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('ilist-supabase-auth');
+        sessionStorage.clear();
+      }
       const displayName = email ? email.split('@')[0] : 'User';
       const result = await authApi.register(displayName, email || '', password, pendingPhone || undefined);
       const regData = result?.data?.data;

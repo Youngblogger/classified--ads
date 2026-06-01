@@ -267,6 +267,7 @@ export const authApi = {
   },
 
   register: async (name: string, email: string, password: string, phone?: string) => {
+    await supabase.auth.signOut({ scope: 'local' });
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
