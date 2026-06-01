@@ -78,18 +78,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       return;
     }
 
-    // Restore session on mount
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
+    // Restore session on mount — getSession is more reliable than getUser for cookie-based sessions
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) {
         const store = useAuthStore.getState();
         if (store.isAuthenticated) store.logout();
         return;
       }
-      supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data: profile }) => {
+      const token = session.access_token;
+      supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
         if (profile) {
           useAuthStore.getState().login(
-            { ...profile, id: user.id, email: user.email },
-            'supabase-session'
+            { ...profile, id: session.user.id, email: session.user.email },
+            token
           );
         }
       });

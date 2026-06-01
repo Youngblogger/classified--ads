@@ -253,12 +253,18 @@ function buildMeta(total: number, page: number, perPage: number) {
 export const authApi = {
   login: async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return sbError(error);
-    const profile = await supabase.from('profiles').select('*').eq('id', data.user?.id).single();
+    if (error) {
+      console.error('[Auth API] Login failed:', error.message);
+      return sbError(error);
+    }
+    const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', data.user?.id).single();
+    if (profileError) {
+      console.error('[Auth API] Profile fetch after login failed:', profileError.message);
+    }
     const token = data.session?.access_token || '';
     return sbResponse({
       data: {
-        user: { ...profile.data, id: data.user?.id },
+        user: { ...(profile || {}), id: data.user?.id },
         token,
         access_token: token,
       },
@@ -273,15 +279,21 @@ export const authApi = {
       password,
       options: { data: { full_name: name, phone } },
     });
-    if (error) return sbError(error);
+    if (error) {
+      console.error('[Auth API] Signup failed:', error.message);
+      return sbError(error);
+    }
     if (data.user) {
-      await supabase.from('profiles').upsert({
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         full_name: name,
         email,
         phone: phone || null,
         username: email.split('@')[0],
       });
+      if (profileError) {
+        console.error('[Auth API] Profile creation after signup failed:', profileError.message);
+      }
     }
     return sbResponse({ data: { user: data.user, session: data.session } });
   },

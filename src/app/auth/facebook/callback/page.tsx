@@ -14,28 +14,55 @@ function FacebookCallbackContent() {
 
     async function handleCallback() {
       try {
+        // With detectSessionInUrl: true, getSession() handles code exchange automatically
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
+          localStorage.removeItem('authRedirect');
+          sessionStorage.removeItem('authRedirect');
+          if (!cancelled) window.location.href = redirectTo;
+          return;
+        }
+
+        // Fallback: manual exchange if auto-detection didn't work
         const queryParams = new URLSearchParams(window.location.search);
         const code = queryParams.get('code');
 
         if (code) {
-          await supabase.auth.exchangeCodeForSession(code);
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (exchangeError) {
+            const { data: { session: s } } = await supabase.auth.getSession();
+            if (s?.user) {
+              const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
+              localStorage.removeItem('authRedirect');
+              sessionStorage.removeItem('authRedirect');
+              if (!cancelled) window.location.href = redirectTo;
+              return;
+            }
+            console.error('[Auth Facebook Callback] exchangeCodeForSession failed:', exchangeError);
+            setError('Authentication failed. Please try again.');
+            return;
+          }
         }
 
         for (let i = 0; i < 10; i++) {
           if (cancelled) return;
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
+          const { data: { session: s } } = await supabase.auth.getSession();
+          if (s?.user) {
             const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
             localStorage.removeItem('authRedirect');
             sessionStorage.removeItem('authRedirect');
             if (!cancelled) window.location.href = redirectTo;
             return;
           }
-          if (i < 9) await new Promise(r => setTimeout(r, 1500));
+          await new Promise(r => setTimeout(r, 500));
         }
 
         setError('Authentication completed but session could not be established. Please try again.');
-      } catch {
+      } catch (e) {
+        console.error('[Auth Facebook Callback] Unexpected error:', e);
         setError('An error occurred during authentication. Please try again.');
       }
     }

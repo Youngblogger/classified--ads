@@ -58,20 +58,14 @@ export const useAuthStore = create<AuthStore>()(
       
       refreshUser: async () => {
         try {
-          const { default: axios } = await import('axios');
-          const { getCookie } = await import('./cookies');
-          const token = getCookie('token') || get()?.token;
-          if (!token) return;
-          const res = await axios.get('/api/auth/me', {
-            headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true,
-          });
-          const userData = res.data?.data || res.data?.user || res.data;
-          if (userData && userData.id) {
+          const { authApi } = await import('./api');
+          const result = await authApi.me();
+          const userData = result?.data?.data || result?.data;
+          if (userData?.id) {
             set({ user: userData });
           }
-        } catch {
-          // ignore refresh errors
+        } catch (e) {
+          console.error('[Auth Store] refreshUser failed:', e);
         }
       },
     }),

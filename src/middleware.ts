@@ -17,12 +17,26 @@ const AUTH_ROUTES = [
   '/auth/verify',
 ];
 
+// Exclude auth callback routes from middleware processing entirely
+const CALLBACK_ROUTES = [
+  '/auth/callback',
+  '/auth/google/callback',
+  '/auth/facebook/callback',
+  '/auth/verify-email',
+  '/auth/reset-password',
+];
+
 function redirectToLogin(request: NextRequest) {
   return NextResponse.redirect(new URL('/', request.url));
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Skip middleware for auth callback routes to prevent redirect loops
+  if (CALLBACK_ROUTES.some(route => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
 
   const isProtected = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
@@ -35,21 +49,29 @@ export async function middleware(request: NextRequest) {
   let hasSession = false;
 
   if (hasSupabaseConfig) {
-    const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
+    try {
+      const supabaseClient = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              request.cookies.set(name, value);
+            });
+          },
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-          });
+        auth: {
+          storageKey: 'ilist-supabase-auth',
+          flowType: 'pkce',
         },
-      },
-    });
+      });
 
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    hasSession = !!session;
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      hasSession = !!session;
+    } catch (e) {
+      console.error('[Middleware] Session check failed:', e);
+    }
   }
 
   if (isProtected && !hasSession) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
@@ -10,55 +10,63 @@ export const dynamic = 'force-dynamic';
 function CallbackContent() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [debug, setDebug] = useState<string | null>(null);
-  const redirectedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function handleCallback() {
       try {
-        const queryParams = new URLSearchParams(window.location.search);
-        const code = queryParams.get('code');
-        const urlState = queryParams.get('state');
+        // With detectSessionInUrl: true, getSession() handles code exchange automatically
+        const { data: { session } } = await supabase.auth.getSession();
 
-        const allStorage = Object.entries(localStorage).map(([k, v]) => {
-          if (k.includes('auth') || k.includes('supabase') || k.includes('ilist') || k.includes('oauth') || k.includes('code') || k.includes('verifier') || k.includes('state')) {
-            return `${k}=${v.substring(0, 50)}`;
-          }
-          return null;
-        }).filter(Boolean).join('\n');
-
-        setDebug(`URL: ${window.location.href}\nCode: ${code ? 'present (' + code.substring(0, 20) + '...)' : 'MISSING'}\nState: ${urlState ? 'present' : 'MISSING'}\n\nStorage:\n${allStorage || 'none'}`);
-
-        let exchangeErrMsg = '';
-        if (code) {
-          try {
-            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-            if (exchangeError) exchangeErrMsg = exchangeError.message;
-          } catch (e) {
-            exchangeErrMsg = e instanceof Error ? e.message : String(e);
-          }
-          setDebug(p => p + `\n\nExchange: ${exchangeErrMsg || 'OK'}`);
+        if (session?.user) {
+          const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
+          localStorage.removeItem('authRedirect');
+          sessionStorage.removeItem('authRedirect');
+          if (!cancelled) window.location.href = redirectTo;
+          return;
         }
 
-        setDebug(p => p + `\nExchange err: "${exchangeErrMsg}"`);
+        // Fallback: manual exchange if auto-detection didn't work
+        const queryParams = new URLSearchParams(window.location.search);
+        const code = queryParams.get('code');
 
-        for (let i = 0; i < 15; i++) {
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (exchangeError) {
+            // Code might already be exchanged — check session again
+            const { data: { session: s } } = await supabase.auth.getSession();
+            if (s?.user) {
+              const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
+              localStorage.removeItem('authRedirect');
+              sessionStorage.removeItem('authRedirect');
+              if (!cancelled) window.location.href = redirectTo;
+              return;
+            }
+            console.error('[Auth Callback] exchangeCodeForSession failed:', exchangeError);
+            setError('Authentication failed. Please try again.');
+            return;
+          }
+        }
+
+        // Poll for session to propagate
+        for (let i = 0; i < 10; i++) {
           if (cancelled) return;
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
+          const { data: { session: s } } = await supabase.auth.getSession();
+          if (s?.user) {
             const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
             localStorage.removeItem('authRedirect');
             sessionStorage.removeItem('authRedirect');
             if (!cancelled) window.location.href = redirectTo;
             return;
           }
-          if (i < 14) await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 500));
         }
 
         setError('Authentication completed but session could not be established. Please try again.');
       } catch (e) {
+        console.error('[Auth Callback] Unexpected error:', e);
         setError('An error occurred during authentication. Please try again.');
       }
     }
@@ -73,11 +81,6 @@ function CallbackContent() {
         <div className="text-center max-w-md mx-auto p-8">
           <div className="text-red-500 mb-4 text-lg font-semibold">Authentication Failed</div>
           <p className="text-gray-600 mb-6">{error}</p>
-          {debug && (
-            <pre className="text-xs text-left bg-gray-100 p-3 rounded-lg mb-4 overflow-auto max-w-full whitespace-pre-wrap break-words">
-              {debug}
-            </pre>
-          )}
           <button onClick={() => router.push('/')} className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors">
             Go to Home
           </button>
