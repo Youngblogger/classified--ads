@@ -129,7 +129,7 @@ function transformListings(listings: any[]): any[] {
 
 function imgAbs(url: string | undefined | null): string {
   if (!url || url.startsWith('http://') || url.startsWith('https://')) return url || '';
-  const base = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api$/, '');
+  const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
   return `${base}${url.startsWith('/') ? url : `/${url}`}`;
 }
 
@@ -517,7 +517,9 @@ export const adsApi = {
   },
 
   deleteById: async (id: number) => {
-    const { error } = await supabase.from('listings').delete().eq('id', String(id));
+    const userId = await ensureUserId();
+    if (!userId) return sbError({ message: 'Not authenticated' });
+    const { error } = await supabase.from('listings').delete().eq('id', String(id)).eq('user_id', userId);
     return error ? sbError(error) : sbResponse({ data: { message: 'Deleted' } });
   },
 
