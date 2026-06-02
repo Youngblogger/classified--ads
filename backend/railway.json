@@ -2,6 +2,6 @@
   "deploy": {
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE",
-    "preDeployCommand": "php artisan migrate --force && php artisan db:seed --class DatabaseSeeder --force"
+    "preDeployCommand": "php artisan migrate --force"
   }
 }
