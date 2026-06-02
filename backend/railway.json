@@ -2,6 +2,6 @@
   "deploy": {
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE",
-    "preDeployCommand": "php artisan migrate --force"
+    "preDeployCommand": "php artisan migrate --force && php artisan tinker --execute=\"\\App\\Models\\Ad::query()->delete();\\App\\Models\\AdImage::query()->delete();\" && php artisan db:seed --class=DatabaseSeeder --force"
   }
 }
