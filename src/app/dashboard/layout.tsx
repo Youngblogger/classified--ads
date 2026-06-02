@@ -149,20 +149,22 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const authRestoreRef = useRef(false);
   
   // Get auth functions from store
   const { user: authUser, logout, isAuthenticated, token } = useAuthStore();
 
-      // Check auth on mount - try to load from localStorage if not in store
+  // Restore auth from localStorage on mount — runs ONCE to prevent infinite loop
   useEffect(() => {
+    if (authRestoreRef.current) return;
+    authRestoreRef.current = true;
+
     if (typeof window !== 'undefined') {
-      // Check zustand persist storage
       try {
         const stored = localStorage.getItem('user-auth-storage');
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed.state && parsed.state.user && parsed.state.token) {
-            // Ensure full_avatar_url is constructed
             const userWithAvatar = {
               ...parsed.state.user,
               full_avatar_url: parsed.state.user.full_avatar_url || 
@@ -177,29 +179,25 @@ export default function DashboardLayout({
       } catch (e) {
       }
       
-      // Fallback to manual localStorage
-      if (!authUser) {
-        const storedUser = localStorage.getItem('user');
-        const storedToken = localStorage.getItem('authToken');
-        if (storedUser && storedToken) {
-          try {
-            const userData = JSON.parse(storedUser);
-            // Ensure full_avatar_url is constructed
-            const userWithAvatar = {
-              ...userData,
-              full_avatar_url: userData.full_avatar_url || 
-                (userData.avatar ? `${API_URL}/storage/${userData.avatar}` : null) ||
-                userData.google_avatar ||
-                userData.facebook_avatar,
-            };
-            useAuthStore.getState().login(userWithAvatar, storedToken);
-          } catch (e) {
-            console.error('Failed to parse stored user:', e);
-          }
+      const storedUser = localStorage.getItem('user');
+      const storedToken = localStorage.getItem('authToken');
+      if (storedUser && storedToken) {
+        try {
+          const userData = JSON.parse(storedUser);
+          const userWithAvatar = {
+            ...userData,
+            full_avatar_url: userData.full_avatar_url || 
+              (userData.avatar ? `${API_URL}/storage/${userData.avatar}` : null) ||
+              userData.google_avatar ||
+              userData.facebook_avatar,
+          };
+          useAuthStore.getState().login(userWithAvatar, storedToken);
+        } catch (e) {
+          console.error('Failed to parse stored user:', e);
         }
       }
     }
-  }, [authUser]);
+  }, []);
 
   // Redirect to login if not authenticated
   useEffect(() => {

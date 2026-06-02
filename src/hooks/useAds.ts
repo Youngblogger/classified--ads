@@ -193,13 +193,43 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
 
   if (endpoint.startsWith('search?')) {
     const params = Object.fromEntries(new URLSearchParams(endpoint.replace('search?', '')));
-    const res = await http.get('/search', { params: params as any });
+    const hasQuery = !!params.q;
+    if (hasQuery) {
+      /* [DEBUG] search endpoint — /search (MeiliSearch) */
+      console.debug('[AdsFetch] Using /search endpoint (text query)');
+      const res = await http.get('/search', { params: params as any });
+      const responseData = res?.data || { data: [], meta: null };
+      return {
+        data: (responseData.data || []).map(fromLaravelAd),
+        meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
+        related_ads: (responseData.related_ads || []).map(fromLaravelAd),
+        autocomplete_suggestions: responseData.autocomplete_suggestions || [],
+      };
+    }
+    /* [DEBUG] ads endpoint — /ads (AdListResource, full boost metadata) */
+    console.debug('[AdsFetch] Using /ads endpoint (browsing)');
+    const adParams: Record<string, string> = {};
+    if (params.category_id) adParams.category_id = params.category_id;
+    if (params.subcategory_id) adParams.subcategory_id = params.subcategory_id;
+    if (params.location) adParams.location = params.location;
+    if (params.lga) adParams.lga = params.lga;
+    if (params.min_price) adParams.min_price = params.min_price;
+    if (params.max_price) adParams.max_price = params.max_price;
+    if (params.condition) adParams.condition = params.condition;
+    if (params.sort_by) adParams.sort_by = params.sort_by;
+    if (params.sort_order) adParams.sort_order = params.sort_order;
+    adParams.page = params.page || '1';
+    adParams.limit = params.per_page || '20';
+    for (const [k, v] of Object.entries(params)) {
+      if (k.startsWith('attr_')) adParams[k] = v as string;
+    }
+    const res = await http.get('/ads', { params: adParams as any });
     const responseData = res?.data || { data: [], meta: null };
     return {
       data: (responseData.data || []).map(fromLaravelAd),
       meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
-      related_ads: (responseData.related_ads || []).map(fromLaravelAd),
-      autocomplete_suggestions: responseData.autocomplete_suggestions || [],
+      related_ads: [],
+      autocomplete_suggestions: [],
     };
   }
 
