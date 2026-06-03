@@ -23,8 +23,7 @@ class DatabaseSeeder extends Seeder
         $this->call(MarketplaceCategorySeeder::class);
         $this->call(CategoryFieldSeeder::class);
         $this->createSampleLocations();
-        $this->createSampleAds();
-        $this->createLargeDataset();
+        $this->call(NigerianMarketplaceSeeder::class);
     }
 
     private function createSampleUsers()
@@ -696,6 +695,8 @@ class DatabaseSeeder extends Seeder
                 'title' => $adData['title'],
                 'slug' => Str::slug($adData['title'] . '-' . time() . '-' . $createdAds),
                 'description' => $adData['description'],
+                'short_description' => mb_substr($adData['description'], 0, 150),
+                'negotiable' => str_contains(mb_strtolower($adData['description']), 'negotiable'),
                 'price' => $adData['price'],
                 'currency' => 'NGN',
                 'condition' => $adData['condition'],
@@ -973,6 +974,8 @@ class DatabaseSeeder extends Seeder
                 'title' => $adData[0],
                 'slug' => Str::slug($adData[0] . '-' . time() . '-' . $createdAds),
                 'description' => $adData[6],
+                'short_description' => mb_substr($adData[6], 0, 150),
+                'negotiable' => str_contains(mb_strtolower($adData[6]), 'negotiable'),
                 'price' => $adData[1],
                 'currency' => 'NGN',
                 'condition' => $adData[2],

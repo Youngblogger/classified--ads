@@ -65,6 +65,7 @@ class SeededAdsSeeder extends Seeder
                 'condition' => $seed['condition'],
                 'status' => 'active',
                 'is_seeded' => true,
+                'negotiable' => str_contains(mb_strtolower($seed['description']), 'negotiable'),
                 'is_featured' => $seed['featured'] ?? false,
                 'is_verified' => rand(0, 1),
                 'views' => rand(10, 500),

@@ -44,8 +44,26 @@ class AdController extends Controller
             if ($request->subcategory) {
                 $query->bySubcategory($request->subcategory);
             }
+            if ($request->category_id) {
+                $query->where('category_id', $request->category_id);
+            }
+            if ($request->subcategory_id) {
+                $query->where('subcategory_id', $request->subcategory_id);
+            }
             if ($request->location) {
                 $query->byLocation($request->location);
+            }
+            if ($request->min_price) {
+                $query->where('price', '>=', $request->min_price);
+            }
+            if ($request->max_price) {
+                $query->where('price', '<=', $request->max_price);
+            }
+            if ($request->condition) {
+                $query->where('condition', $request->condition);
+            }
+            if ($request->lga) {
+                $query->where('lga', $request->lga);
             }
             if ($request->search) {
                 $query->search($request->search);
@@ -56,7 +74,13 @@ class AdController extends Controller
             $boostedIds = $boostData['boosted_ad_ids'] ?? [];
 
             $query->reorder();
-            if (!empty($boostedIds)) {
+            if ($request->sort_by && $request->sort_order) {
+                $allowedSortColumns = ['created_at', 'price', 'views'];
+                $allowedSortOrders = ['asc', 'desc'];
+                $sortBy = in_array($request->sort_by, $allowedSortColumns) ? $request->sort_by : 'created_at';
+                $sortOrder = in_array($request->sort_order, $allowedSortOrders) ? $request->sort_order : 'desc';
+                $query->orderBy($sortBy, $sortOrder);
+            } elseif (!empty($boostedIds)) {
                 $driver = $query->getConnection()->getDriverName();
                 $idList = implode(',', array_map('intval', $boostedIds));
                 if ($driver === 'mysql') {
@@ -64,8 +88,10 @@ class AdController extends Controller
                 } else {
                     $query->orderByRaw("CASE id " . implode(' ', array_map(fn($i, $id) => "WHEN {$id} THEN {$i}", range(count($boostedIds), 1), $boostedIds)) . " END DESC");
                 }
+                $query->orderBy('created_at', 'desc');
+            } else {
+                $query->orderBy('created_at', 'desc');
             }
-            $query->orderBy('created_at', 'desc');
 
             $totalCount = (clone $query)->count();
             $lastPage = (int) ceil($totalCount / $limit);
