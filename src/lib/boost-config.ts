@@ -188,7 +188,7 @@ const BOOST_WEIGHT: Record<string, number> = {
 
 /** Convert internal boost_type to numeric weight */
 function getBoostWeight(boostType: string | null | undefined): number {
-  if (!boostType) return BOOST_WEIGHT.gold;
+  if (!boostType || typeof boostType !== 'string') return BOOST_WEIGHT.gold;
   const plan = PLAN_FROM_TYPE[boostType.toLowerCase()] || 'gold';
   return BOOST_WEIGHT[plan] || BOOST_WEIGHT.gold;
 }
@@ -211,7 +211,7 @@ const BOOST_PLAN_EMOJI_LABELS: Record<string, string> = {
 };
 
 export function getBoostPlanLabel(boostType: string | null | undefined, planName?: string | null): string {
-  if (planName && BOOST_PLAN_EMOJI_LABELS[planName.toLowerCase()]) {
+  if (typeof planName === 'string' && BOOST_PLAN_EMOJI_LABELS[planName.toLowerCase()]) {
     return BOOST_PLAN_EMOJI_LABELS[planName.toLowerCase()];
   }
   if (!boostType) return 'Boosted';
@@ -293,7 +293,7 @@ export function shouldShowBoostSuggestion(ad: ScorableAd): boolean {
 }
 
 export function getBoostPlan(boostType: string | null | undefined): string | null {
-  if (!boostType) return null;
+  if (!boostType || typeof boostType !== 'string') return null;
   return PLAN_FROM_TYPE[boostType.toLowerCase()] || 'gold';
 }
 

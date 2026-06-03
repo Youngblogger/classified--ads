@@ -111,6 +111,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'platform-lookaside.fbsbx.com' },
       { protocol: 'https', hostname: '*.supabase.co' },
       { protocol: 'https', hostname: 'picsum.photos' },
+      ...(process.env.NEXT_PUBLIC_API_URL
+        ? [{ protocol: 'https', hostname: new URL(process.env.NEXT_PUBLIC_API_URL).hostname }]
+        : []),
     ],
     localPatterns: [
       { pathname: '/images/**' },

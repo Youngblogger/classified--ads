@@ -20,21 +20,36 @@ interface AdCardProps {
 function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardProps) {
   const [imgError, setImgError] = useState(false);
 
+  if (!ad || typeof ad !== 'object') {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[AdCard] Received invalid ad object — skipping:', ad);
+    }
+    return null;
+  }
+
+  if (!ad.id) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[AdCard] Ad missing `id` — skipping:', ad);
+    }
+    return null;
+  }
+
   const imageUrl = getAdMainImage(ad);
   
-  const getSlug = useCallback(() => {
-    return (ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`;
-  }, [ad.slug, ad.id]);
+  const safeTitle = ad.title || 'Ad listing';
+  const safeId = ad.id;
+  const safeSlug = ad.slug && ad.slug !== 'undefined' ? ad.slug : `ad-${safeId}`;
+  const safeHref = `/ad/${encodeURIComponent(safeSlug)}`;
 
   const handleImageError = useCallback(() => {
     setImgError(true);
   }, []);
 
   const showFallback = !imageUrl || imgError;
-  const boostType = (ad as any).boost_type;
+  const boostType = (ad as any)?.boost_type;
   const cardBoostClasses = getBoostCardClasses(boostType);
   const imageSrc = showFallback ? FALLBACK_IMAGE : getAdMainImageWithCacheBust(ad);
-  const adImageKey = `ad-img-${ad.id}-${imgError ? 'fallback' : 'original'}`;
+  const adImageKey = `ad-img-${safeId}-${imgError ? 'fallback' : 'original'}`;
 
   const getLocationDisplay = () => {
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
@@ -45,12 +60,12 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
 
   if (variant === 'horizontal') {
     return (
-      <Link href={`/ad/${getSlug()}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow flex overflow-hidden block">
+      <Link href={safeHref} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow flex overflow-hidden block">
         <div className="relative w-28 sm:w-48 h-28 sm:h-36 flex-shrink-0 bg-gray-100">
           <Image
             key={adImageKey}
             src={imageSrc}
-            alt={ad.title}
+            alt={safeTitle}
             fill
             sizes="(max-width: 768px) 112px, 192px"
             className="object-cover"
@@ -74,7 +89,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-[7px] whitespace-nowrap">Negotiable</span>
             )}
           </div>
-          <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">{ad.title}</h3>
+          <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">{safeTitle}</h3>
           <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-gray-400">
             <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
             <span className="truncate">{getLocationDisplay()}</span>
@@ -87,12 +102,12 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
 
   if (variant === 'compact') {
     return (
-      <Link href={`/ad/${getSlug()}`} className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow block ${cardBoostClasses}`}>
+      <Link href={safeHref} className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow block ${cardBoostClasses}`}>
         <div className="relative aspect-square bg-gray-100">
           <Image
             key={adImageKey}
             src={imageSrc}
-            alt={ad.title}
+            alt={safeTitle}
             fill
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
             className="object-cover"
@@ -116,7 +131,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
               <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-[7px] whitespace-nowrap">Negotiable</span>
             )}
           </div>
-          <h3 className="font-medium text-gray-900 text-xs leading-snug line-clamp-1 mt-0.5">{ad.title}</h3>
+          <h3 className="font-medium text-gray-900 text-xs leading-snug line-clamp-1 mt-0.5">{safeTitle}</h3>
           <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-400">
             <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
             <span className="truncate">{getLocationDisplay()}</span>
@@ -128,12 +143,12 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   }
 
   return (
-    <Link href={`/ad/${getSlug()}`} className={`bg-white rounded-xl overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group block ${cardBoostClasses}`}>
+    <Link href={safeHref} className={`bg-white rounded-xl overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group block ${cardBoostClasses}`}>
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         <Image
           key={adImageKey}
           src={imageSrc}
-          alt={ad.title}
+          alt={safeTitle}
           fill
           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
           className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -158,7 +173,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
           )}
         </div>
         <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">
-          {ad.title}
+          {safeTitle}
         </h3>
         {(ad as any).short_description && (
           <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2 mt-0.5 leading-relaxed">
@@ -176,6 +191,7 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
 }
 
 const AdCard = memo(AdCardComponent, (prevProps, nextProps) => {
+  if (!prevProps.ad || !nextProps.ad) return false;
   return prevProps.ad.id === nextProps.ad.id && 
          prevProps.variant === nextProps.variant &&
          prevProps.priority === nextProps.priority;

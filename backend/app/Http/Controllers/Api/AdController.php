@@ -57,8 +57,13 @@ class AdController extends Controller
 
             $query->reorder();
             if (!empty($boostedIds)) {
+                $driver = $query->getConnection()->getDriverName();
                 $idList = implode(',', array_map('intval', $boostedIds));
-                $query->orderByRaw("FIELD(id, {$idList}) DESC");
+                if ($driver === 'mysql') {
+                    $query->orderByRaw("FIELD(id, {$idList}) DESC");
+                } else {
+                    $query->orderByRaw("CASE id " . implode(' ', array_map(fn($i, $id) => "WHEN {$id} THEN {$i}", range(count($boostedIds), 1), $boostedIds)) . " END DESC");
+                }
             }
             $query->orderBy('created_at', 'desc');
 

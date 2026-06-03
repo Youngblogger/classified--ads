@@ -20,12 +20,13 @@ import ErrorBoundary from '@/components/ui/ErrorBoundary';
 function buildUnifiedFeed(ads: any[]): any[] {
   const safeAds = safeArray<any>(ads);
   const boosted = safeAds.filter((ad: any) => {
+    if (!ad || !ad.id) return false;
     const plan = getBoostPlan(ad.boost_type);
     return plan && ad.boost_status === 'active' && !isBoostExpired(ad);
   });
-  const normal = ads.filter((ad: any) => {
-    const plan = getBoostPlan(ad.boost_type);
-    const isActiveBoost = plan && ad.boost_status === 'active' && !isBoostExpired(ad);
+  const normal = safeAds.filter((ad: any) => {
+    const plan = getBoostPlan(ad?.boost_type);
+    const isActiveBoost = plan && ad?.boost_status === 'active' && !isBoostExpired(ad);
     return !isActiveBoost;
   });
 
@@ -125,7 +126,8 @@ export default function HomePage() {
         <ErrorBoundary>
           <EnterpriseSidebar />
         </ErrorBoundary>
-        <main className="flex-1 min-w-0 relative pt-0" suppressHydrationWarning>
+        <main className="flex-1 min-w-0 relative pt-0">
+          <ErrorBoundary>
           {/* Hero Section - Hidden on mobile */}
           <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-xl">
           {/* Background Pattern */}
@@ -246,19 +248,19 @@ export default function HomePage() {
                   <div className="h-3 bg-gray-200 rounded w-12" />
                 </div>
               ))
-            ) : safeSlice(supabaseCategories, 0, 8).map((cat: any, i: number) => (
+            ) : safeSlice(supabaseCategories, 0, 8).filter(Boolean).map((cat: any, i: number) => (
               <Link
-                key={cat.id}
-                href={`/ads?category=${cat.slug}`}
+                key={cat?.id ?? i}
+                href={`/ads?category=${cat?.slug ?? ''}`}
                 className="snap-start shrink-0 w-[80px] flex flex-col items-center gap-1 bg-white rounded-xl py-2 px-1.5 border border-gray-100/80 shadow-sm active:scale-95 transition-all duration-150"
               >
                 <div
                   className="w-9 h-9 rounded-lg overflow-hidden shadow-sm flex items-center justify-center text-white text-xs font-bold"
                   style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}
                 >
-                  {cat.name.charAt(0)}
+                  {cat?.name?.charAt(0) ?? ''}
                 </div>
-                <span className="text-[10px] font-semibold text-gray-800 text-center leading-tight line-clamp-2">{cat.name}</span>
+                <span className="text-[10px] font-semibold text-gray-800 text-center leading-tight line-clamp-2">{cat?.name ?? 'Category'}</span>
               </Link>
             ))}
           </div>
@@ -295,7 +297,15 @@ export default function HomePage() {
             ) : recentAds.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-1.5 sm:gap-2">
-                  {buildUnifiedFeed(recentAds).map((ad: any) => (
+                  {buildUnifiedFeed(recentAds).filter((ad: any) => {
+                    if (!ad || !ad.id) {
+                      if (process.env.NODE_ENV === 'development') {
+                        console.warn('[HomePage] Skipping invalid ad in feed:', ad);
+                      }
+                      return false;
+                    }
+                    return true;
+                  }).map((ad: any) => (
                     <AdCard key={`ad-${ad.id}`} ad={ad} />
                   ))}
                 </div>
@@ -323,6 +333,7 @@ export default function HomePage() {
           </div>
         </section>
 
+          </ErrorBoundary>
       </main>
       </div>
 
