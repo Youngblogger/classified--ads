@@ -116,13 +116,13 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-300 ease-out will-change-transform"
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-300 ease-out will-change-transform bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]"
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
         transform: visible ? 'translateY(0)' : 'translateY(100%)',
       }}
     >
-      <div className="bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+      <div>
         <div className="flex items-center justify-between h-12 max-w-lg mx-auto px-1 gap-1">
           {tabs.map((tab) => {
             const active = isActive(tab);
