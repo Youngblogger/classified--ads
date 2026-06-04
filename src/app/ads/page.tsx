@@ -8,8 +8,9 @@ import Footer from '@/components/layout/Footer';
 import AdCard from '@/components/ui/AdCard';
 import FilterPanel from '@/components/ads/FilterPanel';
 import { useGlobalStore, useUIStore } from '@/lib/store';
-import { Search, Grid, List, X, SlidersHorizontal, Loader2 } from 'lucide-react';
-import { AdGridSkeleton } from '@/components/ui/Skeleton';
+import { Search, X, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { AdMasonrySkeleton } from '@/components/ui/Skeleton';
+import MasonryGrid from '@/components/ui/MasonryGrid';
 import { useSearchInfinite } from '@/hooks/useAds';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useRealtimeAds } from '@/hooks/useRealtime';
@@ -102,7 +103,6 @@ function AdsPageContent() {
   const [condition, setCondition] = useState<string>('');
   const [attrFilters, setAttrFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const { toggleLocationModal } = useUIStore();
   const { selectedLocation } = useGlobalStore();
@@ -389,21 +389,7 @@ function AdsPageContent() {
                   <option value="popular">Most Popular</option>
                 </select>
 
-                {/* View Mode */}
-                <div className="flex bg-gray-100 border border-gray-200 rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    <Grid className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-2 rounded ${viewMode === 'list' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                </div>
+
               </div>
             </div>
 
@@ -456,22 +442,7 @@ function AdsPageContent() {
 
             {/* Ads Grid/List */}
             {isLoading ? (
-              viewMode === 'grid' ? (
-                <AdGridSkeleton count={12} />
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="bg-white rounded-xl p-4 flex gap-4">
-                      <div className="w-48 h-36 bg-gray-200 animate-pulse rounded-lg flex-shrink-0" />
-                      <div className="flex-1 space-y-3">
-                        <div className="h-5 bg-gray-200 rounded w-3/4 animate-pulse" />
-                        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
-                        <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
+              <AdMasonrySkeleton count={12} />
             ) : isError ? (
               <div className="bg-white rounded-xl p-12 text-center">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -482,19 +453,11 @@ function AdsPageContent() {
                 <p className="text-gray-400 mb-6 text-sm">The server may be down. Please try again later.</p>
               </div>
             ) : ads.length > 0 ? (
-              viewMode === 'grid' ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                  {ads.map((ad) => (
-                    <AdCard key={ad.id} ad={ad} />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {ads.map((ad) => (
-                    <AdCard key={ad.id} ad={ad} variant="horizontal" />
-                  ))}
-                </div>
-              )
+              <MasonryGrid>
+                {ads.map((ad) => (
+                  <AdCard key={ad.id} ad={ad} />
+                ))}
+              </MasonryGrid>
             ) : (
               <div className="bg-white rounded-xl p-8 md:p-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -564,7 +527,7 @@ export default function AdsPage() {
   return (
     <Suspense fallback={
       <div className="container mx-auto px-1 py-6">
-        <AdGridSkeleton count={12} />
+        <AdMasonrySkeleton count={12} />
       </div>
     }>
       <AdsPageContent />

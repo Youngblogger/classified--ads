@@ -5,24 +5,27 @@ import { memo } from 'react';
 const shimmerClass = "relative overflow-hidden bg-gray-200";
 const shimmerOverlay = "absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200";
 
-export const AdCardSkeleton = memo(function AdCardSkeleton({ className = '' }: { className?: string }) {
+const IMG_HEIGHTS = ['h-48', 'h-56', 'h-64', 'h-52', 'h-60', 'h-44', 'h-72', 'h-40'];
+
+export const AdCardSkeleton = memo(function AdCardSkeleton({ className = '', index = 0 }: { className?: string; index?: number }) {
+  const imgHeight = IMG_HEIGHTS[index % IMG_HEIGHTS.length];
   return (
-    <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${className}`}>
-      <div className={`aspect-[4/3] ${shimmerClass}`}>
+    <div className={`bg-white rounded-xl border border-gray-100 overflow-hidden break-inside-avoid mb-4 ${className}`}>
+      <div className={`w-full ${imgHeight} ${shimmerClass}`}>
         <div className={shimmerOverlay} />
       </div>
-      <div className="p-4 space-y-3">
-        <div className={`h-6 ${shimmerClass} rounded-lg w-3/4`}>
-          <div className={shimmerOverlay} />
-        </div>
+      <div className="p-3 space-y-2.5">
         <div className={`h-5 ${shimmerClass} rounded-lg w-1/2`}>
           <div className={shimmerOverlay} />
         </div>
-        <div className="flex items-center gap-2 pt-2">
-          <div className={`h-4 w-4 ${shimmerClass} rounded-full`}>
+        <div className={`h-4 ${shimmerClass} rounded-lg w-3/4`}>
+          <div className={shimmerOverlay} />
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <div className={`h-3 w-3 ${shimmerClass} rounded-full`}>
             <div className={shimmerOverlay} />
           </div>
-          <div className={`h-4 ${shimmerClass} rounded-lg w-20`}>
+          <div className={`h-3 ${shimmerClass} rounded-lg w-16`}>
             <div className={shimmerOverlay} />
           </div>
         </div>
@@ -31,18 +34,11 @@ export const AdCardSkeleton = memo(function AdCardSkeleton({ className = '' }: {
   );
 });
 
-export const AdGridSkeleton = memo(function AdGridSkeleton({ count = 8, columns = 4 }: { count?: number; columns?: number }) {
-  const gridCols = {
-    1: 'grid-cols-1',
-    2: 'grid-cols-1 sm:grid-cols-2',
-    3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
-    4: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',
-  }[columns] || 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4';
-  
+export const AdMasonrySkeleton = memo(function AdMasonrySkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className={`grid ${gridCols} gap-4 md:gap-6`}>
+    <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 [&>*]:mb-4">
       {Array.from({ length: count }).map((_, i) => (
-        <AdCardSkeleton key={i} />
+        <AdCardSkeleton key={i} index={i} />
       ))}
     </div>
   );

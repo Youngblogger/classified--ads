@@ -1,12 +1,12 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin, AlertCircle } from 'lucide-react';
-import { formatPrice, formatRelativeTime, getAdMainImage, FALLBACK_IMAGE } from '@/lib/utils';
+import { formatPrice, formatRelativeTime, getAdMainImage } from '@/lib/utils';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses } from '@/lib/boost-config';
 import { useSimilarAds } from '@/hooks/useAds';
+import MasonryGrid from '@/components/ui/MasonryGrid';
 
 interface RelatedAdsProps {
   currentAdId: number;
@@ -24,14 +24,20 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
     return (
       <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6">
         <h3 className="text-base sm:text-lg font-bold text-dark mb-3 sm:mb-4">Similar Ads</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="aspect-[4/3] bg-gray-200 rounded-lg mb-2"></div>
-              <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-2 sm:h-3 bg-gray-200 rounded w-1/2 mt-1"></div>
-            </div>
-          ))}
+        <div className="columns-2 sm:columns-3 md:columns-4 gap-4 [&>*]:mb-4">
+          {[...Array(4)].map((_, i) => {
+            const heights = ['h-44', 'h-52', 'h-36', 'h-48'];
+            return (
+              <div key={i} className="animate-pulse break-inside-avoid bg-white rounded-xl overflow-hidden border border-gray-100">
+                <div className={`w-full ${heights[i % heights.length]} bg-gray-200`}></div>
+                <div className="p-3 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -58,47 +64,48 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
           <p className="text-sm">No similar ads found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+        <MasonryGrid>
           {ads.map((ad: any) => {
             const boostCardCls = getBoostCardClasses(ad.boost_type);
             const imgUrl = getAdMainImage(ad);
-            const fallbackImage = FALLBACK_IMAGE;
+            const fallbackImage = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image';
 
             return (
               <Link
                 key={ad.id}
                 href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`}
-                className={`group block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-200 ${boostCardCls}`}
+                className={`block bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 break-inside-avoid group ${boostCardCls}`}
               >
-                <div className="relative aspect-[4/3] bg-gray-100">
-                  <Image
+                <div className="relative max-h-[200px] md:max-h-[280px] overflow-hidden bg-gray-100 flex items-center justify-center">
+                  <img
                     src={imgUrl || fallbackImage}
                     alt={ad.title}
-                    fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-auto block flex-shrink-0 group-hover:scale-[1.02] transition-transform duration-300"
+                    loading="lazy"
                     onError={(e) => { if (imgUrl) (e.target as HTMLImageElement).src = fallbackImage; }}
                   />
-                  <PremiumBadge boostType={ad.boost_type} badgeIcon={(ad as any).badge_icon} size="sm" />
+                  <div className="absolute top-2 left-2 z-10">
+                    <PremiumBadge boostType={ad.boost_type} badgeIcon={(ad as any).badge_icon} size="sm" />
+                  </div>
                 </div>
-                <div className="p-2">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-sm sm:text-base font-bold text-primary-600 leading-tight">
+                <div className="p-3">
+                  <div className="flex items-center justify-between flex-wrap mb-1">
+                    <p className="text-sm font-bold text-primary-600 leading-tight">
                       {formatPrice(ad.price, ad.currency)}
                     </p>
                     {ad.negotiable && (
-                      <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
+                      <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
                     )}
                   </div>
-                  <h4 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5">
+                  <h4 className="font-medium text-gray-900 text-sm leading-snug line-clamp-2">
                     {ad.title}
                   </h4>
-                  <div className="flex items-center gap-1 mt-2 text-[10px] sm:text-xs text-gray-400">
-                    <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                  <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
+                    <MapPin className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">{ad.location?.name || ad.state || ad.lga || 'N/A'}</span>
                     {ad.created_at && (
                       <>
-                        <span className="text-gray-300">·</span>
+                        <span className="text-gray-300 mx-0.5">·</span>
                         <span className="whitespace-nowrap">{formatRelativeTime(ad.created_at)}</span>
                       </>
                     )}
@@ -107,7 +114,7 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
               </Link>
             );
           })}
-        </div>
+        </MasonryGrid>
       )}
     </div>
   );

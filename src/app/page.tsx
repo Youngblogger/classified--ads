@@ -6,7 +6,8 @@ import { Shield, Zap, Star, Search, Plus, ArrowUp } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import EnterpriseSidebar from '@/components/home/EnterpriseSidebar';
 import Footer from '@/components/layout/Footer';
-import { AdGridSkeleton } from '@/components/ui/Skeleton';
+import { AdMasonrySkeleton } from '@/components/ui/Skeleton';
+import MasonryGrid from '@/components/ui/MasonryGrid';
 import LoadMoreButton from '@/components/ui/LoadMoreButton';
 
 import { useAuthStore } from '@/lib/store';
@@ -279,7 +280,7 @@ export default function HomePage() {
             </div>
             
             {isLoading ? (
-              <AdGridSkeleton count={8} />
+              <AdMasonrySkeleton count={8} />
             ) : adsError ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -296,7 +297,7 @@ export default function HomePage() {
               </div>
             ) : recentAds.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-1.5 sm:gap-2">
+                <MasonryGrid>
                   {buildUnifiedFeed(recentAds).filter((ad: any) => {
                     if (!ad || !ad.id) {
                       if (process.env.NODE_ENV === 'development') {
@@ -308,7 +309,7 @@ export default function HomePage() {
                   }).map((ad: any) => (
                     <AdCard key={`ad-${ad.id}`} ad={ad} />
                   ))}
-                </div>
+                </MasonryGrid>
                 {!isLoading && !adsError && (
                   <LoadMoreButton
                     onClick={handleLoadMore}
