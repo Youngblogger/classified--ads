@@ -90,7 +90,7 @@ export default function MobileHeader() {
               className="flex items-center gap-1 px-2 py-1.5 rounded-lg active:bg-white/10 transition-colors"
             >
               📍
-              <span className="text-[11px] font-medium text-white/90 max-w-[65px] truncate capitalize">
+              <span className="text-[11px] font-medium text-white/90 max-w-[110px] truncate capitalize">
                 {locationDisplay.toLowerCase()}
               </span>
               <ChevronDown className="w-3 h-3 text-white/60" />

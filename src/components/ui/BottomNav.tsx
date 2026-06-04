@@ -99,16 +99,17 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
   };
 
   const handleTabPress = (tab: typeof tabs[0], e: React.MouseEvent) => {
+    e.preventDefault();
     if (tab.isPrimary) {
-      e.preventDefault();
       if (onPostAdClick) onPostAdClick();
       else router.push(tab.href);
       return;
     }
     if (tab.requiresAuth && !isAuthenticated) {
-      e.preventDefault();
       toggleLoginModal();
+      return;
     }
+    router.push(tab.href);
   };
 
   if (!mounted) return null;
