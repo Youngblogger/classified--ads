@@ -77,7 +77,7 @@ export default function MobileHeader() {
         }}
       >
         {/* Top Row */}
-        <div className="flex items-center justify-between h-12 px-3">
+        <div className="flex items-center justify-between h-14 px-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <Image src="/icons/iList-white.png" alt="iList" width={28} height={28} className="h-7 w-auto" priority />
@@ -167,7 +167,7 @@ export default function MobileHeader() {
         </div>
 
         {/* Search Bar */}
-        <div className="px-3 pb-3">
+        <div className="px-4 pb-3 pt-1.5">
           <button
             onClick={() => setSearchOpen(true)}
             className="flex items-center gap-2 w-full px-3 py-2.5 bg-white/15 backdrop-blur-sm rounded-xl border border-white/20 active:bg-white/25 transition-colors cursor-pointer text-left"
@@ -178,7 +178,7 @@ export default function MobileHeader() {
         </div>
       </header>
 
-      <div className="h-[6.5rem]" />
+      <div className="h-[7rem]" />
 
       {/* Mobile Search Page */}
       <MobileSearchPage isOpen={searchOpen} onClose={() => setSearchOpen(false)} />

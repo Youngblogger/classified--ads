@@ -97,19 +97,13 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
             {description}
           </p>
         )}
-        {(getLocationDisplay() || ad.created_at) && (
+        {(getLocationDisplay()) && (
           <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
             {getLocationDisplay() && (
               <>
                 <MapPin className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate">{getLocationDisplay()}</span>
               </>
-            )}
-            {getLocationDisplay() && ad.created_at && (
-              <span className="text-gray-300 mx-0.5">·</span>
-            )}
-            {ad.created_at && (
-              <span className="whitespace-nowrap">{formatRelativeTime(ad.created_at)}</span>
             )}
           </div>
         )}

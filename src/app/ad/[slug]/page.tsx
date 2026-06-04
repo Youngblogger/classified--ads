@@ -327,15 +327,15 @@ export default function AdDetailPage() {
       <main className="flex-1 container mx-auto px-[5px] md:pb-6 md:pt-24">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
-          <div className="mb-1 sm:mb-4 flex items-center gap-2 text-sm text-gray-500">
-            <button onClick={() => router.back()} className="md:hidden p-1 -ml-1 rounded-lg active:bg-gray-200 transition-colors" aria-label="Go back">
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
+          <div className="mb-0 sm:mb-2 flex items-center gap-1 text-xs text-gray-500">
+            <button onClick={() => router.back()} className="md:hidden p-0.5 -ml-1 rounded-lg active:bg-gray-200 transition-colors" aria-label="Go back">
+              <ArrowLeft className="w-4 h-4 text-gray-700" />
             </button>
-            <Link href="/" className="hover:text-primary-600 flex items-center gap-1"><Home className="w-4 h-4" />Home</Link>
-            <ChevronRight className="w-4 h-4" />
+            <Link href="/" className="hover:text-primary-600 flex items-center gap-0.5"><Home className="w-3 h-3" />Home</Link>
+            <ChevronRight className="w-3 h-3" />
             <Link href={`/ads?category=${ad.category?.slug || ad.category}`} className="hover:text-primary-600">{ad.category?.name || ad.category || 'Category'}</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 truncate max-w-[200px]">{ad.title}</span>
+            <ChevronRight className="w-3 h-3" />
+            <span className="text-gray-900 truncate max-w-[150px]">{ad.title}</span>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-3 md:gap-6">
