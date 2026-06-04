@@ -20,6 +20,10 @@ interface AdCardProps {
 function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardProps) {
   const [imgError, setImgError] = useState(false);
 
+  const handleImageError = useCallback(() => {
+    setImgError(true);
+  }, []);
+
   if (!ad || typeof ad !== 'object') {
     if (process.env.NODE_ENV === 'development') {
       console.warn('[AdCard] Received invalid ad object — skipping:', ad);
@@ -40,10 +44,6 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
   const safeId = ad.id;
   const safeSlug = ad.slug && ad.slug !== 'undefined' ? ad.slug : `ad-${safeId}`;
   const safeHref = `/ad/${encodeURIComponent(safeSlug)}`;
-
-  const handleImageError = useCallback(() => {
-    setImgError(true);
-  }, []);
 
   const showFallback = !imageUrl || imgError;
   const boostType = (ad as any)?.boost_type;
@@ -175,11 +175,9 @@ function AdCardComponent({ ad, variant = 'default', priority = false }: AdCardPr
         <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-1 mt-0.5">
           {safeTitle}
         </h3>
-        {(ad as any).short_description && (
-          <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2 mt-0.5 leading-relaxed">
-            {(ad as any).short_description}
-          </p>
-        )}
+        <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2 mt-0.5 leading-relaxed">
+          {(ad as any).short_description || ((ad as any).description?.substring(0, 120)) || ''}
+        </p>
         <div className="flex items-center gap-1 mt-1 text-[10px] sm:text-xs text-gray-400">
           <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{getLocationDisplay()}</span>
