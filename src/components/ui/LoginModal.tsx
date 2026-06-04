@@ -106,7 +106,9 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
       if (storedRedirect && storedRedirect !== window.location.pathname) {
         localStorage.removeItem('authRedirect');
         sessionStorage.removeItem('authRedirect');
-        router.push(storedRedirect);
+        router.replace(storedRedirect);
+      } else {
+        router.replace('/');
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';

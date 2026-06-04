@@ -147,7 +147,7 @@ function VerifyPageContent() {
         login(data.user, data.token);
         
         // Full page redirect to ensure auth state is loaded
-        window.location.href = '/dashboard';
+        window.location.replace('/dashboard');
         return;
       }
       
