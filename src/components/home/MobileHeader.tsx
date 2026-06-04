@@ -89,7 +89,7 @@ export default function MobileHeader() {
               onClick={toggleLocationModal}
               className="flex items-center gap-1 px-2 py-1.5 rounded-lg active:bg-white/10 transition-colors"
             >
-              <MapPin className="w-3.5 h-3.5 text-white/80" />
+              📍
               <span className="text-[11px] font-medium text-white/90 max-w-[65px] truncate capitalize">
                 {locationDisplay.toLowerCase()}
               </span>

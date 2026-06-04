@@ -652,7 +652,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                   onClick={openLocationModal}
                   className="flex items-center gap-1.5 text-white hover:text-primary-100 transition-colors"
                 >
-                  <MapPin className="w-3.5 h-3.5" />
+                  📍
                   <span className="hidden sm:inline capitalize">{selectedLocationState.toLowerCase()}</span>
                 </button>
               </div>
