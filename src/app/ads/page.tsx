@@ -169,7 +169,7 @@ function AdsPageContent() {
 
   const debouncedParams = useDebounce(queryParams, 400);
 
-  const { ads, isLoading, isLoadingMore, hasMore, isError, error, loadMore } = useSearchInfinite(debouncedParams);
+  const { ads, isLoading, isLoadingMore, hasMore, isError, error, loadMore, fallbackLevel, searchQuery } = useSearchInfinite(debouncedParams);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -431,6 +431,29 @@ function AdsPageContent() {
               </div>
             )}
 
+            {/* Fallback Search Banner */}
+            {!isLoading && fallbackLevel > 0 && ads.length > 0 && (
+              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-amber-700 font-medium text-sm">
+                    <span className="text-lg">🔍</span>
+                    <span>
+                      {fallbackLevel === 1 && 'Showing results from all locations'}
+                      {fallbackLevel === 2 && 'Showing broader matches for your search'}
+                      {fallbackLevel === 3 && 'Showing ads in this category'}
+                      {fallbackLevel === 4 && 'Showing recent ads'}
+                    </span>
+                  </div>
+                  <p className="text-amber-600 text-xs">
+                    {fallbackLevel === 1 && 'No exact matches found in your selected location. Try refining your location above.'}
+                    {fallbackLevel === 2 && 'Try using more specific keywords or browse by category.'}
+                    {fallbackLevel === 3 && 'Try adding a search term or location for more specific results.'}
+                    {fallbackLevel === 4 && 'We couldn\'t find ads matching your criteria.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Ads Grid/List */}
             {isLoading ? (
               viewMode === 'grid' ? (
@@ -473,18 +496,44 @@ function AdsPageContent() {
                 </div>
               )
             ) : (
-              <div className="bg-white rounded-xl p-12 text-center">
+              <div className="bg-white rounded-xl p-8 md:p-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Search className="w-8 h-8 text-gray-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">No ads found</h3>
-                <p className="text-gray-500 mb-6">Try adjusting your filters or search terms</p>
-                <button
-                  onClick={clearFilters}
-                  className="px-6 py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700"
-                >
-                  Clear Filters
-                </button>
+                <p className="text-gray-500 mb-2">Try adjusting your filters or search terms</p>
+                {searchQuery && (
+                  <p className="text-gray-400 text-sm mb-6">
+                    We couldn&apos;t find any results for &ldquo;{searchQuery}&rdquo;
+                  </p>
+                )}
+                <div className="flex flex-wrap justify-center gap-2 mb-6">
+                  <button
+                    onClick={clearFilters}
+                    className="px-6 py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+                {mainCategories.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-gray-100">
+                    <p className="text-sm text-gray-500 mb-3">Browse popular categories:</p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {mainCategories.slice(0, 6).map((cat: any) => (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            setSelectedCategoryId(cat.id);
+                            setSelectedSubcategoryId(null);
+                          }}
+                          className="px-4 py-2 bg-gray-50 hover:bg-primary-50 text-gray-700 hover:text-primary-600 rounded-full text-sm font-medium transition-colors"
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

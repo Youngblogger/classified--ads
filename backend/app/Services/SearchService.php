@@ -25,19 +25,7 @@ class SearchService
     public function search(array $params): array
     {
         $query = $params['search_query'] ?? '';
-        $categoryId = $params['category_id'] ?? null;
-        $subcategoryId = $params['subcategory_id'] ?? null;
-        $minPrice = $params['min_price'] ?? null;
-        $maxPrice = $params['max_price'] ?? null;
-        $location = $params['location'] ?? null;
         $limit = $params['limit'] ?? 60;
-
-        $attrFilters = [];
-        foreach ($params as $key => $value) {
-            if (str_starts_with($key, 'attr_') && $value !== null && $value !== '') {
-                $attrFilters[substr($key, 5)] = $value;
-            }
-        }
 
         $cacheKey = 'search:' . md5(serialize($params));
         if (!empty($query) && strlen($query) >= 2) {
@@ -47,37 +35,104 @@ class SearchService
             }
         }
 
-        $ads = $this->buildQuery($query, $categoryId, $subcategoryId, $minPrice, $maxPrice, $location, $attrFilters)
+        $result = $this->searchWithFallback($params);
+
+        if (!empty($query) && strlen($query) >= 2) {
+            Cache::put($cacheKey, $result, 120);
+        }
+
+        return $result;
+    }
+
+    private function searchWithFallback(array $params): array
+    {
+        $query = $params['search_query'] ?? '';
+        $categoryId = $params['category_id'] ?? null;
+        $limit = $params['limit'] ?? 60;
+        $fallbackLevel = 0;
+
+        $scoredResults = $this->executeSearch($params);
+        $formatted = $this->extractFormattedResults($scoredResults, $limit);
+
+        if (count($formatted) < 3 && !empty($params['location'])) {
+            $relaxed = $params;
+            unset($relaxed['location']);
+            $scoredResults = $this->executeSearch($relaxed);
+            $formatted = $this->extractFormattedResults($scoredResults, $limit);
+            $fallbackLevel = 1;
+        }
+
+        if (count($formatted) < 3 && !empty($query)) {
+            $relaxed = $params;
+            $relaxed['broad_match'] = true;
+            $scoredResults = $this->executeSearch($relaxed);
+            $formatted = $this->extractFormattedResults($scoredResults, $limit);
+            $fallbackLevel = 2;
+        }
+
+        if (count($formatted) < 3 && $categoryId) {
+            $scoredResults = $this->executeSearch([
+                'category_id' => $categoryId,
+                'limit' => $limit,
+            ]);
+            $formatted = $this->extractFormattedResults($scoredResults, $limit);
+            $fallbackLevel = 3;
+        }
+
+        if (empty($formatted)) {
+            $scoredResults = $this->executeSearch(['limit' => $limit]);
+            $formatted = $this->extractFormattedResults($scoredResults, $limit);
+            $fallbackLevel = 4;
+        }
+
+        $ads = array_filter(array_map(fn($i) => $i['ad'], $scoredResults));
+        $relatedAds = $this->findRelatedAds($scoredResults, $categoryId, (int) ($limit / 3));
+        $autocomplete = $this->getAutocompleteSuggestions($query, $ads);
+
+        return [
+            'results' => $formatted,
+            'related_ads' => $relatedAds,
+            'autocomplete_suggestions' => $autocomplete,
+            'total' => count($formatted),
+            'query' => $query,
+            'fallback_level' => $fallbackLevel,
+        ];
+    }
+
+    private function executeSearch(array $params): array
+    {
+        $query = $params['search_query'] ?? '';
+        $categoryId = $params['category_id'] ?? null;
+        $subcategoryId = $params['subcategory_id'] ?? null;
+        $minPrice = $params['min_price'] ?? null;
+        $maxPrice = $params['max_price'] ?? null;
+        $location = $params['location'] ?? null;
+        $limit = $params['limit'] ?? 60;
+        $broadMatch = $params['broad_match'] ?? false;
+
+        $attrFilters = [];
+        foreach ($params as $key => $value) {
+            if (str_starts_with($key, 'attr_') && $value !== null && $value !== '') {
+                $attrFilters[substr($key, 5)] = $value;
+            }
+        }
+
+        $ads = $this->buildQuery($query, $categoryId, $subcategoryId, $minPrice, $maxPrice, $location, $attrFilters, $broadMatch)
             ->limit($limit)
             ->get();
 
-        $scoredResults = $this->scoreAndSort($ads, $query, $categoryId);
+        return $this->scoreAndSort($ads, $query, $categoryId);
+    }
 
+    private function extractFormattedResults(array $scoredResults, int $limit): array
+    {
         $results = [];
         foreach ($scoredResults as $item) {
             if ($item['ad']) {
                 $results[] = $this->formatAdForResponse($item['ad']);
             }
         }
-
-        $results = array_slice($results, 0, $limit);
-
-        $relatedAds = $this->findRelatedAds($scoredResults, $categoryId, (int) ($limit / 3));
-        $autocomplete = $this->getAutocompleteSuggestions($query, $ads);
-
-        $returnData = [
-            'results' => $results,
-            'related_ads' => $relatedAds,
-            'autocomplete_suggestions' => $autocomplete,
-            'total' => count($results),
-            'query' => $query,
-        ];
-
-        if (!empty($query) && strlen($query) >= 2) {
-            Cache::put($cacheKey, $returnData, 120);
-        }
-
-        return $returnData;
+        return array_slice($results, 0, $limit);
     }
 
     private function formatAdForResponse($ad): array
@@ -124,7 +179,7 @@ class SearchService
         ];
     }
 
-    private function buildQuery(string $query, ?int $categoryId, ?int $subcategoryId, ?float $minPrice, ?float $maxPrice, ?string $location, array $attrFilters = [])
+    private function buildQuery(string $query, ?int $categoryId, ?int $subcategoryId, ?float $minPrice, ?float $maxPrice, ?string $location, array $attrFilters = [], bool $broadMatch = false)
     {
         $baseQuery = Ad::with(['images', 'category', 'location', 'user'])
             ->active()
@@ -134,7 +189,7 @@ class SearchService
             });
 
         if ($query) {
-            $searchTerms = $this->extractKeywords($query);
+            $searchTerms = $this->extractKeywords($query, $broadMatch);
             $baseQuery->where(function($q) use ($searchTerms) {
                 foreach ($searchTerms as $term) {
                     $q->orWhere('title', 'like', '%' . $term . '%')
@@ -163,8 +218,20 @@ class SearchService
         }
 
         if ($location) {
-            $baseQuery->whereHas('location', fn($q) => $q->where('name', 'like', '%' . $location . '%')
-                ->orWhere('slug', 'like', '%' . Str::slug($location) . '%'));
+            $exactLocation = $this->resolveLocationExact($location);
+            $fuzzyLocation = null;
+            if (!$exactLocation) {
+                $fuzzyLocation = $this->resolveLocationFuzzy($location);
+            }
+            $matchedLocation = $exactLocation ?: $fuzzyLocation;
+
+            if ($matchedLocation) {
+                $baseQuery->whereHas('location', fn($q) => $q->where('name', $matchedLocation)
+                    ->orWhere('slug', Str::slug($matchedLocation)));
+            } else {
+                $baseQuery->whereHas('location', fn($q) => $q->where('name', 'like', '%' . $location . '%')
+                    ->orWhere('slug', 'like', '%' . Str::slug($location) . '%'));
+            }
         }
 
         foreach ($attrFilters as $field => $value) {
@@ -217,55 +284,174 @@ class SearchService
         });
     }
 
-    private function extractKeywords(string $text): array
+    private function extractKeywords(string $text, bool $broadMatch = false): array
     {
         $text = strtolower($text);
         $text = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $text);
         $words = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
 
-        return array_values(array_filter($words, fn($word) =>
+        if ($broadMatch) {
+            return $words;
+        }
+
+        $normalized = array_map(fn($w) => $this->normalizeWord($w), $words);
+
+        return array_values(array_filter($normalized, fn($word) =>
             strlen($word) >= 2 && !in_array($word, $this->stopWords)
         ));
+    }
+
+    private function normalizeWord(string $word): string
+    {
+        $word = strtolower($word);
+        if (strlen($word) < 3) return $word;
+        if (preg_match('/^(.+?)ies$/', $word, $m)) return $m[1] . 'y';
+        if (preg_match('/^(.+?)(?:ves)$/', $word, $m)) return $m[1] . 'f';
+        if (preg_match('/^(.+?)(?:es)$/', $word, $m) && strlen($m[1]) >= 2) return $m[1];
+        if (preg_match('/^(.+?)s$/', $word, $m) && !preg_match('/ss$/', $word)) return $m[1];
+        return $word;
+    }
+
+    private function resolveLocationExact(string $location): ?string
+    {
+        return \App\Models\Location::where('name', $location)
+            ->orWhere('slug', Str::slug($location))
+            ->value('name');
+    }
+
+    private function resolveLocationFuzzy(string $location): ?string
+    {
+        $location = strtolower(trim($location));
+        $allLocations = \App\Models\Location::select('name', 'slug')->get();
+        $bestMatch = null;
+        $bestDistance = 3;
+
+        foreach ($allLocations as $loc) {
+            foreach ([$loc->name, str_replace('-', ' ', $loc->slug)] as $candidate) {
+                $candidateLower = strtolower($candidate);
+                $dist = levenshtein($location, $candidateLower);
+                if ($dist < $bestDistance) {
+                    $bestDistance = $dist;
+                    $bestMatch = $loc->name;
+                }
+                foreach (explode(' ', $candidateLower) as $part) {
+                    if (strlen($part) < 3) continue;
+                    $partDist = levenshtein($location, $part);
+                    if ($partDist < $bestDistance) {
+                        $bestDistance = $partDist;
+                        $bestMatch = $loc->name;
+                    }
+                }
+            }
+        }
+
+        return $bestMatch;
+    }
+
+    private function detectIntent(string $query): array
+    {
+        $queryLower = strtolower($query);
+        $intent = 'browse';
+        $hasPriceIntent = false;
+
+        $rentPatterns = ['/^rent\b/', '/\brent\b/', '/\blease\b/', '/\bshortlet\b/', '/\bshort let\b/',
+            '/\bfor rent\b/', '/\brental\b/', '/\bmonthly\b/'];
+        foreach ($rentPatterns as $pattern) {
+            if (preg_match($pattern, $queryLower)) { $intent = 'rent'; break; }
+        }
+
+        if ($intent === 'browse') {
+            $buyPatterns = ['/\bbuy\b/', '/\bpurchase\b/', '/\bshop\b/', '/\bwanted\b/', '/\blooking for\b/'];
+            foreach ($buyPatterns as $pattern) {
+                if (preg_match($pattern, $queryLower)) { $intent = 'buy'; break; }
+            }
+        }
+
+        $pricePatterns = ['/\bprice\b/', '/\bcost\b/', '/\bhow much\b/', '/\bcheap\b/', '/\bexpensive\b/',
+            '/\baffordable\b/', '/\bbudget\b/', '/\bunder\b/', '/\blower\b/'];
+        foreach ($pricePatterns as $pattern) {
+            if (preg_match($pattern, $queryLower)) { $hasPriceIntent = true; break; }
+        }
+
+        return ['intent' => $intent, 'has_price_intent' => $hasPriceIntent];
     }
 
     private function scoreAndSort($ads, string $query, ?int $categoryId): array
     {
         $queryTerms = $this->extractKeywords($query);
+        $queryLower = strtolower(trim($query));
         $results = [];
 
         if (!is_iterable($ads)) return $results;
 
+        $boostData = app(BoostTierService::class)->getBoostedAdsForListing();
+        $boostDataMap = $boostData['boost_data'] ?? [];
+        $boostedAdIds = $boostData['boosted_ad_ids'] ?? [];
+
         foreach ($ads as $ad) {
             if (!$ad) continue;
             $score = 0;
+
+            $isBoosted = isset($boostDataMap[$ad->id]);
+            if ($isBoosted) {
+                $score += 10000 + ($boostDataMap[$ad->id]['priority_score'] ?? 0);
+            }
 
             $adTitle = strtolower($ad->title ?? '');
             $adTags = is_array($ad->tags) ? $ad->tags : [];
             $adSummary = strtolower($ad->ai_summary ?? '');
             $adDescription = strtolower($ad->description ?? '');
 
-            foreach ($queryTerms as $term) {
-                if (str_contains($adTitle, $term)) $score += 40;
-                foreach ($adTags as $tag) {
-                    if (stripos($tag, $term) !== false) { $score += 25; break; }
+            if ($query) {
+                if ($queryLower === $adTitle) {
+                    $score += 7000;
+                } elseif (preg_match('/\b' . preg_quote($queryLower, '/') . '\b/', $adTitle)) {
+                    $score += 6000;
+                } elseif (str_contains($adTitle, $queryLower)) {
+                    $score += 5000;
                 }
-                if (str_contains($adSummary, $term) || str_contains($adDescription, $term)) $score += 15;
+
+                if (count($queryTerms) > 0) {
+                    $allInTitle = true;
+                    foreach ($queryTerms as $term) {
+                        if (str_contains($adTitle, $term)) {
+                            $score += 40;
+                        } else {
+                            $allInTitle = false;
+                        }
+                        foreach ($adTags as $tag) {
+                            if (stripos($tag, $term) !== false) { $score += 25; break; }
+                        }
+                        if (str_contains($adSummary, $term)) $score += 20;
+                        if (str_contains($adDescription, $term)) $score += 15;
+                    }
+                    if ($allInTitle) $score += 1000;
+                }
             }
 
             if ($categoryId && $ad->category_id == $categoryId) $score += 20;
+
             if ($ad->verification_status === 'verified') $score += 10;
+            if ($ad->is_featured) $score += 5;
 
             if ($ad->ai_confidence >= 80) $score += 10;
             elseif ($ad->ai_confidence >= 60) $score += 5;
 
-            $daysSinceCreated = $ad->created_at->diffInDays(now());
-            if ($daysSinceCreated < 1) $score += 15;
-            elseif ($daysSinceCreated < 7) $score += 10;
-            elseif ($daysSinceCreated < 30) $score += 5;
+            if ($ad->quality_score) $score += min((int) $ad->quality_score, 20);
 
-            if ($ad->is_featured) $score += 5;
+            $hoursSinceCreated = $ad->created_at->diffInHours(now());
+            if ($hoursSinceCreated < 1) $score += 25;
+            elseif ($hoursSinceCreated < 6) $score += 20;
+            elseif ($hoursSinceCreated < 24) $score += 15;
+            elseif ($hoursSinceCreated < 72) $score += 10;
+            elseif ($hoursSinceCreated < 168) $score += 5;
 
-            $results[] = ['score' => $score, 'ad' => $ad];
+            $results[] = [
+                'score' => $score,
+                'ad' => $ad,
+                'is_boosted' => $isBoosted,
+                'boost_priority' => $boostDataMap[$ad->id]['priority_score'] ?? 0,
+            ];
         }
 
         usort($results, fn($a, $b) => $b['score'] <=> $a['score']);
@@ -356,7 +542,17 @@ class SearchService
                     $q->orWhere('title', 'like', '%' . $term . '%');
                 }
             })
-            ->select('id', 'title', 'price', 'category_id')
+            ->select('id', 'title', 'price', 'currency', 'category_id')
+            ->limit(5)
+            ->get()
+            ->toArray();
+
+        $locationSuggestions = \App\Models\Location::where(function($q) use ($terms) {
+                foreach ($terms as $term) {
+                    $q->orWhere('name', 'like', '%' . $term . '%');
+                }
+            })
+            ->select('id', 'name', 'slug')
             ->limit(5)
             ->get()
             ->toArray();
@@ -364,6 +560,7 @@ class SearchService
         return [
             'categories' => $categorySuggestions,
             'ads' => $adSuggestions,
+            'locations' => $locationSuggestions,
         ];
     }
 }

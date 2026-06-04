@@ -480,10 +480,13 @@ export function useSearchInfinite(params: Record<string, any> = {}, pageSize: nu
   const total = data?.[0]?.meta?.total || 0;
   const hasMore = ads.length < total;
   const isLoadingMore: boolean = !!(isLoading || (size > 0 && data && typeof data[size - 1] === 'undefined'));
+  const fallbackLevel: number = data?.[0]?.meta?.fallback_level ?? 0;
+  const searchQuery: string = data?.[0]?.meta?.query || '';
+  const searchEngine: string = data?.[0]?.meta?.engine || '';
 
   return {
     ads, total, hasMore, isLoading, isLoadingMore, isValidating,
-    isError: !!error, error,
+    isError: !!error, error, fallbackLevel, searchQuery, searchEngine,
     loadMore: () => setSize(size + 1), mutate,
   };
 }

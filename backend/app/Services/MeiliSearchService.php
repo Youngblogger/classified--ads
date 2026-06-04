@@ -42,114 +42,135 @@ class MeiliSearchService
         }
 
         try {
-            $index = $this->client->index($this->indexName);
-            $query = $params['search_query'] ?? '';
-            $page = max((int) ($params['page'] ?? 1), 1);
-            $perPage = min((int) ($params['per_page'] ?? 20), 50);
+            $result = $this->searchMeili($params);
+            $count = count($result['results'] ?? []);
 
-            $filters = [];
-            if (!empty($params['category_id'])) {
-                $filters[] = 'category_id = ' . (int) $params['category_id'];
-            }
-            if (!empty($params['subcategory_id'])) {
-                $filters[] = 'subcategory_id = ' . (int) $params['subcategory_id'];
-            }
-            if (!empty($params['min_price'])) {
-                $filters[] = 'price >= ' . (float) $params['min_price'];
-            }
-            if (!empty($params['max_price'])) {
-                $filters[] = 'price <= ' . (float) $params['max_price'];
-            }
-            if (!empty($params['location'])) {
-                $locationIds = $this->resolveLocationIds($params['location']);
-                if (!empty($locationIds)) {
-                    $filters[] = 'location_id IN (' . implode(',', $locationIds) . ')';
-                }
-            }
-            if (!empty($params['condition'])) {
-                $filters[] = '`condition` = "' . addslashes($params['condition']) . '"';
+            if ($count < 3 && !empty($params['location'])) {
+                $relaxed = $params;
+                unset($relaxed['location']);
+                $result = $this->searchMeili($relaxed);
+                $result['fallback_level'] = 1;
+                $count = count($result['results'] ?? []);
             }
 
-            $searchParams = [
-                'limit' => $perPage,
-                'offset' => ($page - 1) * $perPage,
-                'attributesToRetrieve' => [
-                    'id', 'title', 'slug', 'price', 'currency', 'condition', 'status',
-                    'views', 'created_at', 'short_description', 'state', 'lga',
-                    'is_featured', 'is_verified', 'category_id', 'location_id', 'user_id',
-                ],
-                'attributesToCrop' => ['description'],
-                'cropLength' => 100,
-                'sort' => ['_rankingScore:desc'],
-            ];
-
-            if (!empty($filters)) {
-                $searchParams['filter'] = implode(' AND ', $filters);
+            if ($count < 3 && !empty($params['search_query'])) {
+                return $this->fallbackSearch($params);
             }
 
-            if (!empty($query)) {
-                $searchParams['attributesToHighlight'] = ['title', 'description'];
-                $result = $index->search($query, $searchParams);
-            } else {
-                $result = $index->search('', $searchParams);
-            }
-
-            $hits = $result->getHits();
-            $total = $result->getEstimatedTotalHits() ?? 0;
-            $adIds = array_column($hits, 'id');
-
-            $ads = [];
-            if (!empty($adIds)) {
-                $ads = Ad::with(['images', 'category', 'location', 'user', 'activeBoost.plan'])
-                    ->whereIn('id', $adIds)
-                    ->active()
-                    ->get()
-                    ->keyBy('id');
-            }
-
-            $boostData = app(BoostTierService::class)->getBoostedAdsForListing();
-            $boostDataMap = $boostData['boost_data'] ?? [];
-
-            $boostedHits = [];
-            $regularHits = [];
-            foreach ($hits as $hit) {
-                $ad = $ads[$hit['id']] ?? null;
-                if (!$ad) continue;
-                $isBoosted = isset($boostDataMap[$ad->id]);
-                $entry = [
-                    'score' => $hit['_rankingScore'] ?? 0,
-                    'ad' => $ad,
-                    'is_boosted' => $isBoosted,
-                    'boost_priority' => $boostDataMap[$ad->id]['priority_score'] ?? 0,
-                ];
-                if ($isBoosted) {
-                    $boostedHits[] = $entry;
-                } else {
-                    $regularHits[] = $entry;
-                }
-            }
-
-            usort($boostedHits, fn($a, $b) => $b['boost_priority'] <=> $a['boost_priority']);
-            $scored = array_merge($boostedHits, $regularHits);
-
-            $formatted = [];
-            foreach ($scored as $entry) {
-                $formatted[] = $this->formatResult($entry['ad']);
-            }
-
-            return [
-                'results' => $formatted,
-                'total' => $total,
-                'query' => $query,
-                'engine' => 'meilisearch',
-                'related_ads' => [],
-                'autocomplete_suggestions' => $this->getSuggestions($query, $adIds),
-            ];
+            return $result;
 
         } catch (\Throwable $e) {
             Log::error('Meilisearch search failed, falling back: ' . $e->getMessage());
             return $this->fallbackSearch($params);
         }
+    }
+
+    private function searchMeili(array $params): array
+    {
+        $index = $this->client->index($this->indexName);
+        $query = $params['search_query'] ?? '';
+        $page = max((int) ($params['page'] ?? 1), 1);
+        $perPage = min((int) ($params['per_page'] ?? 20), 50);
+
+        $filters = [];
+        if (!empty($params['category_id'])) {
+            $filters[] = 'category_id = ' . (int) $params['category_id'];
+        }
+        if (!empty($params['subcategory_id'])) {
+            $filters[] = 'subcategory_id = ' . (int) $params['subcategory_id'];
+        }
+        if (!empty($params['min_price'])) {
+            $filters[] = 'price >= ' . (float) $params['min_price'];
+        }
+        if (!empty($params['max_price'])) {
+            $filters[] = 'price <= ' . (float) $params['max_price'];
+        }
+        if (!empty($params['location'])) {
+            $locationIds = $this->resolveLocationIds($params['location']);
+            if (!empty($locationIds)) {
+                $filters[] = 'location_id IN (' . implode(',', $locationIds) . ')';
+            }
+        }
+        if (!empty($params['condition'])) {
+            $filters[] = '`condition` = "' . addslashes($params['condition']) . '"';
+        }
+
+        $searchParams = [
+            'limit' => $perPage,
+            'offset' => ($page - 1) * $perPage,
+            'attributesToRetrieve' => [
+                'id', 'title', 'slug', 'price', 'currency', 'condition', 'status',
+                'views', 'created_at', 'short_description', 'state', 'lga',
+                'is_featured', 'is_verified', 'category_id', 'location_id', 'user_id',
+            ],
+            'attributesToCrop' => ['description'],
+            'cropLength' => 100,
+            'sort' => ['priority_score:desc', '_rankingScore:desc'],
+        ];
+
+        if (!empty($filters)) {
+            $searchParams['filter'] = implode(' AND ', $filters);
+        }
+
+        if (!empty($query)) {
+            $searchParams['attributesToHighlight'] = ['title', 'description'];
+            $result = $index->search($query, $searchParams);
+        } else {
+            $result = $index->search('', $searchParams);
+        }
+
+        $hits = $result->getHits();
+        $total = $result->getEstimatedTotalHits() ?? 0;
+        $adIds = array_column($hits, 'id');
+
+        $ads = [];
+        if (!empty($adIds)) {
+            $ads = Ad::with(['images', 'category', 'location', 'user', 'activeBoost.plan'])
+                ->whereIn('id', $adIds)
+                ->active()
+                ->get()
+                ->keyBy('id');
+        }
+
+        $boostData = app(BoostTierService::class)->getBoostedAdsForListing();
+        $boostDataMap = $boostData['boost_data'] ?? [];
+
+        $boostedHits = [];
+        $regularHits = [];
+        foreach ($hits as $hit) {
+            $ad = $ads[$hit['id']] ?? null;
+            if (!$ad) continue;
+            $isBoosted = isset($boostDataMap[$ad->id]);
+            $entry = [
+                'score' => $hit['_rankingScore'] ?? 0,
+                'ad' => $ad,
+                'is_boosted' => $isBoosted,
+                'boost_priority' => $boostDataMap[$ad->id]['priority_score'] ?? 0,
+            ];
+            if ($isBoosted) {
+                $boostedHits[] = $entry;
+            } else {
+                $regularHits[] = $entry;
+            }
+        }
+
+        usort($boostedHits, fn($a, $b) => $b['boost_priority'] <=> $a['boost_priority']);
+        $scored = array_merge($boostedHits, $regularHits);
+
+        $formatted = [];
+        foreach ($scored as $entry) {
+            $formatted[] = $this->formatResult($entry['ad']);
+        }
+
+        return [
+            'results' => $formatted,
+            'total' => $total,
+            'query' => $query,
+            'engine' => 'meilisearch',
+            'related_ads' => [],
+            'autocomplete_suggestions' => $this->getSuggestions($query, $adIds),
+            'fallback_level' => 0,
+        ];
     }
 
     public function syncAd(int $adId): bool
@@ -231,11 +252,11 @@ class MeiliSearchService
         ]);
 
         $index->updateRankingRules([
+            'sort',
             'words',
             'typo',
             'proximity',
             'attribute',
-            'sort',
             'exactness',
         ]);
 
@@ -282,6 +303,7 @@ class MeiliSearchService
             'ai_summary' => $ad->ai_summary ?? '',
             'created_at' => $ad->created_at?->timestamp ?? time(),
             'updated_at' => $ad->updated_at?->timestamp ?? time(),
+            'priority_score' => (float) ($ad->activeBoost?->priority_score ?? 0),
         ];
     }
 

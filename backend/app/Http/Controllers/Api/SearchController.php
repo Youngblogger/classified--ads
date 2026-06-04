@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\SearchAnalytic;
 use App\Services\MeiliSearchService;
 use App\Services\SearchService;
 use App\Services\MonitoringService;
@@ -71,6 +72,8 @@ class SearchController extends Controller
             $duration = (microtime(true) - $start) * 1000;
             $this->monitoring->recordSearchLatency($duration, $engine);
 
+            $this->logSearchAnalytics($request, $params, $results, $engine, $duration);
+
             return response()->json([
                 'data' => $data,
                 'meta' => [
@@ -79,6 +82,7 @@ class SearchController extends Controller
                     'total' => $total,
                     'query' => $results['query'] ?? '',
                     'engine' => $engine,
+                    'fallback_level' => $results['fallback_level'] ?? 0,
                 ],
                 'related_ads' => $results['related_ads'] ?? [],
                 'autocomplete_suggestions' => $results['autocomplete_suggestions'] ?? [],
@@ -144,5 +148,37 @@ class SearchController extends Controller
     public function recentSearches(Request $request)
     {
         return response()->json(['data' => []]);
+    }
+
+    private function logSearchAnalytics(Request $request, array $params, array $results, string $engine, float $durationMs): void
+    {
+        try {
+            $query = $params['search_query'] ?? '';
+            if (empty($query) && empty($params['location']) && empty($params['category_id'])) {
+                return;
+            }
+
+            $intent = $this->dbSearch->detectIntent($query);
+
+            SearchAnalytic::create([
+                'query' => mb_substr($query, 0, 255),
+                'normalized_query' => mb_substr(implode(' ', $this->dbSearch->extractKeywords($query)), 0, 255),
+                'location' => $params['location'] ?? null,
+                'category_id' => $params['category_id'] ?? null,
+                'fallback_level' => $results['fallback_level'] ?? 0,
+                'results_count' => $results['total'] ?? count($results['results'] ?? []),
+                'results_before_fallback' => 0,
+                'intent' => $intent['intent'],
+                'has_price_intent' => $intent['has_price_intent'],
+                'engine' => $engine,
+                'user_id' => $request->user()?->id,
+                'ip_address' => $request->ip(),
+                'session_id' => $request->session()?->getId() ?? $request->header('X-Session-ID'),
+                'duration_ms' => (int) $durationMs,
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to log search analytics: ' . $e->getMessage());
+        }
     }
 }
