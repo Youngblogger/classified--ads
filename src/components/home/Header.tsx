@@ -331,7 +331,23 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     setIsSearching(true);
     try {
       const response = await api.get(`/search?q=${encodeURIComponent(query)}`);
-      setSearchResults(response.data);
+      const respData = response.data;
+      const adsList = respData?.data || respData?.results || [];
+      setSearchResults({
+        ads: adsList.map((ad: any) => ({
+          id: ad.id,
+          title: ad.title,
+          slug: ad.slug,
+          price: ad.price,
+          currency: ad.currency || 'NGN',
+          thumbnail: ad.thumbnail_url || ad.image_url,
+          location: ad.location?.name || ad.state || '',
+        })),
+        categories: [],
+        locations: [],
+        trending: respData?.trending || [],
+        typo_correction: respData?.typo_correction || null,
+      });
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults(null);

@@ -56,7 +56,19 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
     setIsSearching(true);
     try {
       const res = await api.get(`/search?q=${encodeURIComponent(q)}`);
-      setSearchResults(res.data);
+      const respData = res.data;
+      const adsList = respData?.data || respData?.results || [];
+      setSearchResults({
+        ads: adsList.map((ad: any) => ({
+          id: ad.id,
+          title: ad.title,
+          slug: ad.slug,
+          price: ad.price,
+          currency: ad.currency || 'NGN',
+          thumbnail: ad.thumbnail_url || ad.image_url,
+          location: ad.location?.name || ad.state || '',
+        })),
+      });
     } catch { setSearchResults(null); }
     finally { setIsSearching(false); }
   }, []);

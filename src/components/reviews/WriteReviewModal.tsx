@@ -196,7 +196,7 @@ export default function WriteReviewModal({ sellerId, sellerName, isOpen, onClose
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Share your experience buying from this seller. Was the item as described? Was the seller responsive and trustworthy?"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-                rows={4}
+                rows={5}
                 maxLength={1000}
               />
               <p className="text-xs text-gray-400 mt-1">{comment.length}/1000 characters</p>

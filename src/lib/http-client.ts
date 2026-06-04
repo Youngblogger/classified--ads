@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase';
+
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 interface HttpClientResponse<T = any> {
@@ -106,7 +108,14 @@ async function request<T = any>(
       document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
       localStorage.removeItem('user-auth-storage');
       localStorage.removeItem('authToken');
-      if (typeof window !== 'undefined') window.location.reload();
+      if (typeof window !== 'undefined') {
+        supabase.auth.signOut();
+        import('./store').then(({ useAuthStore }) => {
+          useAuthStore.getState().logout();
+        }).catch(() => {
+          window.location.href = '/';
+        });
+      }
     }
 
     return {

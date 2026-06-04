@@ -20,7 +20,7 @@ class AdListResource extends JsonResource
             'currency' => $this->currency ?? 'NGN',
             'condition' => $this->condition,
             'negotiable' => (bool) $this->negotiable,
-            'short_description' => $this->short_description,
+            'short_description' => $this->short_description ?: mb_substr(strip_tags($this->description ?? ''), 0, 120),
             'state' => $this->state,
             'lga' => $this->lga,
             'views' => $this->views,

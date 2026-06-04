@@ -92,12 +92,6 @@ export const useAuthStore = create<AuthStore>()(
         if (raw) {
           let user = { ...raw };
           let changed = false;
-          if (typeof user.id === 'string') {
-            user.id = (Math.abs(
-              (raw.id as unknown as string).split('').reduce((h, c) => ((h << 5) + h + c.charCodeAt(0)) | 0, 5381)
-            ) || 1) as any;
-            changed = true;
-          }
           if (normalizeReviewerName(user.name) !== user.name) {
             user.name = normalizeReviewerName(user.name);
             changed = true;

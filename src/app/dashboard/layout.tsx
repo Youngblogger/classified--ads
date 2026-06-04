@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '@/lib/store';
+import { supabase } from '@/lib/supabase';
 import Header from '@/components/home/Header';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -149,63 +150,18 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const authRestoreRef = useRef(false);
   
   // Get auth functions from store
-  const { user: authUser, logout, isAuthenticated, token } = useAuthStore();
+  const { user: authUser, logout, isAuthenticated, token, hasHydrated } = useAuthStore();
 
-  // Restore auth from localStorage on mount — runs ONCE to prevent infinite loop
+  // Redirect to login if not authenticated (only after hydration to avoid flash)
   useEffect(() => {
-    if (authRestoreRef.current) return;
-    authRestoreRef.current = true;
-
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('user-auth-storage');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed.state && parsed.state.user && parsed.state.token) {
-            const userWithAvatar = {
-              ...parsed.state.user,
-              full_avatar_url: parsed.state.user.full_avatar_url || 
-                (parsed.state.user.avatar ? `${API_URL}/storage/${parsed.state.user.avatar}` : null) ||
-                parsed.state.user.google_avatar ||
-                parsed.state.user.facebook_avatar,
-            };
-            useAuthStore.getState().login(userWithAvatar, parsed.state.token);
-            return;
-          }
-        }
-      } catch (e) {
-      }
-      
-      const storedUser = localStorage.getItem('user');
-      const storedToken = localStorage.getItem('authToken');
-      if (storedUser && storedToken) {
-        try {
-          const userData = JSON.parse(storedUser);
-          const userWithAvatar = {
-            ...userData,
-            full_avatar_url: userData.full_avatar_url || 
-              (userData.avatar ? `${API_URL}/storage/${userData.avatar}` : null) ||
-              userData.google_avatar ||
-              userData.facebook_avatar,
-          };
-          useAuthStore.getState().login(userWithAvatar, storedToken);
-        } catch (e) {
-          console.error('Failed to parse stored user:', e);
-        }
-      }
-    }
-  }, []);
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    const hasAuth = authUser || localStorage.getItem('authToken') || localStorage.getItem('user-auth-storage');
+    if (!hasHydrated) return;
+    const hasAuth = authUser || isAuthenticated;
     if (!hasAuth) {
       useUIStore.getState().toggleLoginModal();
     }
-  }, [authUser, router]);
+  }, [hasHydrated, authUser, isAuthenticated, router]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -221,6 +177,7 @@ export default function DashboardLayout({
     } catch (error) {
     }
     
+    await supabase.auth.signOut();
     logout();
     useAuthStore.persist.clearStorage();
     

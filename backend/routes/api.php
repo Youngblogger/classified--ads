@@ -442,16 +442,6 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/messages/{conversationId}/read', [MessageController::class, 'markAsRead']);
     Route::delete('/messages/message/{messageId}', [MessageController::class, 'deleteMessage']);
 
-    // Follow System
-    Route::post('/follow', [FollowController::class, 'follow']);
-    Route::delete('/unfollow', [FollowController::class, 'unfollow']);
-    Route::get('/follow/check', [FollowController::class, 'checkFollow']);
-    Route::get('/users/{userId}/followers', [FollowController::class, 'followers']);
-    Route::get('/users/{userId}/following', [FollowController::class, 'following']);
-    Route::get('/users/{userId}/stats', [FollowController::class, 'userStats']);
-    Route::get('/feed/following', [FollowController::class, 'followingFeed']);
-    Route::get('/sellers/suggested', [FollowController::class, 'suggestedSellers']);
-
     // Reviews
     Route::get('/reviews/user/{userId}', [ReviewController::class, 'userReviews']);
     Route::post('/reviews', [ReviewController::class, 'store'])->middleware('throttle:5,1');
@@ -547,6 +537,16 @@ Route::middleware('auth.api')->group(function () {
     Route::get('/analytics/top-ads', [AnalyticsController::class, 'topAds']);
     Route::get('/analytics/store', [AnalyticsController::class, 'storePerformance']);
 });
+
+// Follow System (no auth.api - uses body-based user_id to support Supabase auth)
+Route::post('/follow', [FollowController::class, 'follow']);
+Route::delete('/unfollow', [FollowController::class, 'unfollow']);
+Route::get('/follow/check', [FollowController::class, 'checkFollow']);
+Route::get('/users/{userId}/followers', [FollowController::class, 'followers']);
+Route::get('/users/{userId}/following', [FollowController::class, 'following']);
+Route::get('/users/{userId}/stats', [FollowController::class, 'userStats']);
+Route::get('/feed/following', [FollowController::class, 'followingFeed']);
+Route::get('/sellers/suggested', [FollowController::class, 'suggestedSellers']);
 
 // Review like/unlike (no auth.api - uses body-based user_id to support Supabase auth)
 Route::post('/reviews/{reviewId}/like', [ReviewController::class, 'likeReview'])->middleware('throttle:30,1');

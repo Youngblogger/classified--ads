@@ -220,9 +220,9 @@ export default function WriteAdReviewModal({ adId, isOpen, onClose, onSuccess }:
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Share your experience with this item. Was it as described? Would you recommend it to others?"
+              placeholder="Share your experience with this item. Was it as described? Would you recommend it to others? Your feedback helps other buyers make informed decisions."
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-              rows={4}
+              rows={5}
               maxLength={1000}
             />
             <p className="text-xs text-gray-400 mt-1">{comment.length}/1000 characters</p>

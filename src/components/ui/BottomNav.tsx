@@ -122,7 +122,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
       }}
     >
       <div className="bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-around h-12 max-w-lg mx-auto px-1">
+        <div className="flex items-center justify-between h-12 max-w-lg mx-auto px-1 gap-1">
           {tabs.map((tab) => {
             const active = isActive(tab);
             const Icon = active && tab.activeIcon ? tab.activeIcon : tab.icon;

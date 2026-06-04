@@ -358,6 +358,10 @@ class ReviewController extends Controller
 
         $review = Review::findOrFail($reviewId);
 
+        if ((int)$review->user_id === (int)$userId) {
+            return response()->json(['error' => 'You cannot like your own review'], 403);
+        }
+
         $existingLike = ReviewLike::where('review_id', $reviewId)
             ->where('user_id', $userId)
             ->first();

@@ -179,44 +179,20 @@ export default function SellerProfileCard({
 
   useEffect(() => {
     if (seller.id && isAuthenticated) {
-      const getToken = () => {
-        // Try zustand store first
-        const storeToken = useAuthStore.getState().token;
-        if (storeToken) return storeToken;
-        
-        // Try localStorage authToken
-        const localToken = localStorage.getItem('authToken');
-        if (localToken) return localToken;
-        
-        // Try auth-storage
-        const authData = localStorage.getItem('user-auth-storage');
-        if (authData) {
-          try {
-            const parsed = JSON.parse(authData);
-            return parsed.state?.token;
-          } catch (e) {}
-        }
-        
-        return null;
-      };
+      const currentUser = useAuthStore.getState().user;
+      const currentUserId = currentUser?.id;
       
-      const token = getToken();
-      if (token) {
-        fetch(`${API_URL}/users/${seller.id}/stats`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+      const params = new URLSearchParams();
+      if (currentUserId) params.set('user_id', String(currentUserId));
+      
+      fetch(`${API_URL}/users/${seller.id}/stats?${params.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+          setIsFollowing(data.is_following);
+          setFollowersCount(data.followers_count);
         })
-          .then(res => res.json())
-          .then(data => {
-            setIsFollowing(data.is_following);
-            setFollowersCount(data.followers_count);
-          })
-          .catch(console.error)
-          .finally(() => setIsInitializing(false));
-      } else {
-        setIsInitializing(false);
-      }
+        .catch(console.error)
+        .finally(() => setIsInitializing(false));
     } else {
       setIsInitializing(false);
     }
@@ -246,37 +222,10 @@ export default function SellerProfileCard({
     setIsLoading(true);
     
     try {
-      // Get token from multiple sources
-      const getToken = () => {
-        const storeToken = useAuthStore.getState().token;
-        if (storeToken) return storeToken;
-        
-        const localToken = localStorage.getItem('authToken');
-        if (localToken) return localToken;
-        
-        const authData = localStorage.getItem('user-auth-storage');
-        if (authData) {
-          try {
-            const parsed = JSON.parse(authData);
-            return parsed.state?.token;
-          } catch (e) {}
-        }
-        
-        // Try cookie
-        if (typeof document !== 'undefined') {
-          const cookies = document.cookie.split(';');
-          for (let cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'token') return value;
-          }
-        }
-        
-        return null;
-      };
+      const currentUser = useAuthStore.getState().user;
+      const currentUserId = currentUser?.id;
       
-      const token = getToken();
-      
-      if (!token) {
+      if (!currentUserId) {
         toast.error('Session expired. Please login again.');
         setIsLoading(false);
         return;
@@ -289,9 +238,11 @@ export default function SellerProfileCard({
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ following_id: seller.id }),
+        body: JSON.stringify({
+          following_id: seller.id,
+          user_id: currentUserId,
+        }),
       });
       
       console.log('Follow response status:', response.status);

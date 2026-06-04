@@ -167,7 +167,23 @@ export default function SearchBar({
         if (selectedCategoryId) params.append('category', selectedCategoryId.toString());
         
         const response = await api.get(`/search?${params.toString()}`);
-        setResults(response.data);
+        const respData = response.data;
+        const adsList = respData?.data || respData?.results || [];
+        setResults({
+          ads: adsList.map((ad: any) => ({
+            id: ad.id,
+            title: ad.title,
+            slug: ad.slug,
+            price: ad.price,
+            currency: ad.currency || 'NGN',
+            thumbnail: ad.thumbnail_url || ad.image_url,
+            location: ad.location?.name || ad.state || '',
+          })),
+          categories: [],
+          locations: [],
+          trending: respData?.trending || [],
+          typo_correction: respData?.typo_correction || null,
+        });
       } catch (error) {
         console.error('Search error:', error);
         setResults(null);

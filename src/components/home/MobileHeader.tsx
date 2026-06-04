@@ -97,7 +97,7 @@ export default function MobileHeader() {
             </button>
 
             {isAuthenticated && (
-              <button className="relative p-2 rounded-lg active:bg-white/10 transition-colors">
+              <button onClick={() => router.push('/dashboard/notifications')} className="relative p-2 rounded-lg active:bg-white/10 transition-colors">
                 <Bell className="w-5 h-5 text-white" />
               </button>
             )}
@@ -120,7 +120,7 @@ export default function MobileHeader() {
                         {(() => {
                           const avatarUrl = getUserAvatarUrl(user);
                           return avatarUrl ? (
-                            <Image src={avatarUrl} alt="" fill className="object-cover" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} sizes="32px" />
+                            <Image src={avatarUrl} alt="" fill className="rounded-full object-cover" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} sizes="32px" />
                           ) : (
                             <span className="text-white font-semibold text-xs">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                           );

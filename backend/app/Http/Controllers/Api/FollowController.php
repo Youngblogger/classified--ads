@@ -7,11 +7,63 @@ use App\Models\Ad;
 use App\Models\Follow;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\ReviewerNameUtility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class FollowController extends Controller
 {
+    private function resolveUserId($rawUserId, ?string $displayName = null): ?int
+    {
+        if (!$rawUserId) return null;
+
+        $userId = $rawUserId;
+        if (!is_numeric($userId)) {
+            $hash = 5381;
+            for ($i = 0; $i < strlen($userId); $i++) {
+                $hash = (($hash << 5) + $hash) + ord($userId[$i]);
+                $hash = unpack('l', pack('l', $hash))[1];
+            }
+            $userId = abs($hash) ?: 1;
+        } else {
+            $userId = (int) $userId;
+        }
+
+        $user = User::find($userId);
+        if (!$user) {
+            if (is_string($rawUserId) && !is_numeric($rawUserId)) {
+                $user = User::where('name', $rawUserId)->first();
+            }
+        }
+
+        if (!$user) {
+            try {
+                $resolvedName = $displayName ? ReviewerNameUtility::normalize($displayName) : 'FollowUser';
+                $user = new User();
+                $user->id = $userId;
+                $user->name = $resolvedName;
+                $user->email = $rawUserId . '@follow.placeholder.local';
+                $user->password = bcrypt(Str::random(32));
+                $user->save();
+            } catch (\Illuminate\Database\QueryException $e) {
+                $user = User::find($userId);
+                if (!$user) throw $e;
+            }
+        }
+
+        return $user ? (int) $user->id : null;
+    }
+
+    private function getAuthUserId(Request $request): ?int
+    {
+        $sanctumUser = $request->user();
+        if ($sanctumUser) return (int) $sanctumUser->id;
+        $userId = $request->input('user_id');
+        $userName = $request->input('user_name');
+        return $this->resolveUserId($userId, $userName);
+    }
+
     public function follow(Request $request)
     {
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
@@ -26,9 +78,9 @@ class FollowController extends Controller
             ], 422);
         }
 
-        $follower = $request->user();
+        $followerId = $this->getAuthUserId($request);
         
-        if (!$follower) {
+        if (!$followerId) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthenticated. Please login.'
@@ -38,7 +90,7 @@ class FollowController extends Controller
         $followingId = (int) $request->following_id;
 
         // Cannot follow yourself
-        if ($follower->id === $followingId) {
+        if ($followerId === $followingId) {
             return response()->json([
                 'success' => false,
                 'message' => 'You cannot follow yourself'
@@ -46,7 +98,7 @@ class FollowController extends Controller
         }
 
         // Check if already following
-        $existingFollow = Follow::where('follower_id', $follower->id)
+        $existingFollow = Follow::where('follower_id', $followerId)
             ->where('following_id', $followingId)
             ->first();
 
@@ -56,19 +108,19 @@ class FollowController extends Controller
                 'success' => true,
                 'is_following' => true,
                 'followers_count' => Follow::getFollowersCount($followingId),
-                'following_count' => Follow::getFollowingCount($follower->id),
+                'following_count' => Follow::getFollowingCount($followerId),
                 'message' => 'Already following'
             ]);
         }
 
         // Follow
         $follow = Follow::create([
-            'follower_id' => $follower->id,
+            'follower_id' => $followerId,
             'following_id' => $followingId,
         ]);
 
         Log::info('User followed', [
-            'follower_id' => $follower->id,
+            'follower_id' => $followerId,
             'following_id' => $followingId,
             'follow_id' => $follow->id
         ]);
@@ -77,7 +129,7 @@ class FollowController extends Controller
             'success' => true,
             'is_following' => true,
             'followers_count' => Follow::getFollowersCount($followingId),
-            'following_count' => Follow::getFollowingCount($follower->id),
+            'following_count' => Follow::getFollowingCount($followerId),
             'message' => 'Following successfully'
         ]);
     }
@@ -88,10 +140,14 @@ class FollowController extends Controller
             'following_id' => 'required|integer|exists:users,id',
         ]);
 
-        $follower = $request->user();
+        $followerId = $this->getAuthUserId($request);
+        if (!$followerId) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+        }
+
         $followingId = $request->following_id;
 
-        $follow = Follow::where('follower_id', $follower->id)
+        $follow = Follow::where('follower_id', $followerId)
             ->where('following_id', $followingId)
             ->first();
 
@@ -108,7 +164,7 @@ class FollowController extends Controller
             'success' => true,
             'is_following' => false,
             'followers_count' => Follow::getFollowersCount($followingId),
-            'following_count' => Follow::getFollowingCount($follower->id),
+            'following_count' => Follow::getFollowingCount($followerId),
             'message' => 'Unfollowed successfully'
         ]);
     }
@@ -119,10 +175,14 @@ class FollowController extends Controller
             'following_id' => 'required|integer|exists:users,id',
         ]);
 
-        $follower = $request->user();
+        $followerId = $this->getAuthUserId($request);
+        if (!$followerId) {
+            return response()->json(['is_following' => false], 200);
+        }
+
         $followingId = $request->following_id;
 
-        $isFollowing = Follow::isFollowing($follower->id, $followingId);
+        $isFollowing = Follow::isFollowing($followerId, $followingId);
 
         return response()->json([
             'is_following' => $isFollowing,
@@ -155,10 +215,13 @@ class FollowController extends Controller
 
     public function followingFeed(Request $request)
     {
-        $user = $request->user();
+        $userId = $this->getAuthUserId($request);
+        if (!$userId) {
+            return response()->json(['data' => [], 'message' => 'Unauthenticated'], 401);
+        }
         
         // Get IDs of users that this user follows
-        $followingIds = Follow::where('follower_id', $user->id)
+        $followingIds = Follow::where('follower_id', $userId)
             ->pluck('following_id')
             ->toArray();
 
@@ -181,14 +244,17 @@ class FollowController extends Controller
 
     public function suggestedSellers(Request $request)
     {
-        $user = $request->user();
+        $userId = $this->getAuthUserId($request);
+        if (!$userId) {
+            return response()->json(['data' => [], 'message' => 'Unauthenticated'], 401);
+        }
         
         // Get IDs of users that this user already follows
-        $followingIds = Follow::where('follower_id', $user->id)
+        $followingIds = Follow::where('follower_id', $userId)
             ->pluck('following_id')
             ->toArray();
         
-        $followingIds[] = $user->id; // Exclude self
+        $followingIds[] = $userId; // Exclude self
 
         // Get top sellers with most ads (excluding already followed)
         $sellers = User::whereNotIn('id', $followingIds)
@@ -199,7 +265,7 @@ class FollowController extends Controller
             ->orderBy('ads_count', 'desc')
             ->limit(10)
             ->get()
-            ->map(function ($seller) use ($user) {
+            ->map(function ($seller) use ($userId) {
                 return [
                     'id' => $seller->id,
                     'name' => $seller->name,
@@ -207,7 +273,7 @@ class FollowController extends Controller
                     'verified' => $seller->verified,
                     'ads_count' => $seller->ads_count,
                     'followers_count' => Follow::getFollowersCount($seller->id),
-                    'is_following' => Follow::isFollowing($user->id, $seller->id),
+                    'is_following' => Follow::isFollowing($userId, $seller->id),
                 ];
             });
 
@@ -223,10 +289,8 @@ class FollowController extends Controller
         $adsCount = Ad::where('user_id', $userId)->where('status', 'active')->count();
         
         // Check if current user is following
-        $isFollowing = false;
-        if ($request->user()) {
-            $isFollowing = Follow::isFollowing($request->user()->id, $userId);
-        }
+        $currentUserId = $this->getAuthUserId($request);
+        $isFollowing = $currentUserId ? Follow::isFollowing($currentUserId, $userId) : false;
 
         return response()->json([
             'followers_count' => $followersCount,

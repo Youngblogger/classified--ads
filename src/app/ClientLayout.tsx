@@ -9,6 +9,7 @@ import QueryProvider from '@/providers/QueryProvider';
 import LoginModal from '@/components/ui/LoginModal';
 import RegisterModal from '@/components/ui/RegisterModal';
 import LocationModal from '@/components/ui/LocationModal';
+import GoogleOneTap from '@/components/auth/GoogleOneTap';
 import Preloader from '@/components/ui/Preloader';
 import AuthProvider from '@/components/providers/AuthProvider';
 import BottomNav from '@/components/ui/BottomNav';
@@ -35,6 +36,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   ) : (
     <div className="min-h-screen flex flex-col">
       <AuthProvider>
+        <GoogleOneTap />
         <Preloader />
         {children}
         <div className="md:hidden h-12" />
