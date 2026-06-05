@@ -94,12 +94,17 @@ const CATEGORY_PALETTE: Record<string, string> = {
 };
 
 const DEFAULT_PALETTE = '9CA3AF';
+const FALLBACK_IMG = '/fallback-category.svg';
 
 function getCategoryImageUrl(cat: any): string {
   if (cat.image) return cat.image;
   const color = CATEGORY_PALETTE[cat.slug] ?? DEFAULT_PALETTE;
-  const letter = encodeURIComponent((cat.name?.charAt(0) ?? '?').toUpperCase());
-  return `https://placehold.co/100x100/${color}/FFFFFF?text=${letter}`;
+  const label = encodeURIComponent(cat.name ?? '');
+  return `https://placehold.co/100x100/${color}/FFFFFF?text=${label}`;
+}
+
+function handleImgError(e: React.SyntheticEvent<HTMLImageElement>) {
+  (e.target as HTMLImageElement).src = FALLBACK_IMG;
 }
 
 export default function HomePage() {
@@ -209,6 +214,7 @@ export default function HomePage() {
                         alt={cat.name}
                         className="w-11 h-11 rounded-full object-cover bg-gray-50"
                         loading="lazy"
+                        onError={handleImgError}
                       />
                       <span className="text-[11px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
                     </Link>
@@ -273,6 +279,7 @@ export default function HomePage() {
                       alt={cat.name}
                       className="w-9 h-9 rounded-full object-cover bg-gray-50"
                       loading="lazy"
+                      onError={handleImgError}
                     />
                     <span className="text-[10px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
                   </Link>
