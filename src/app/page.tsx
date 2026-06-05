@@ -159,7 +159,7 @@ export default function HomePage() {
       <ErrorBoundary>
         <ResponsiveHeader />
       </ErrorBoundary>
-      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 gap-4 mt-[8px] md:mt-[104px]">
+      <div className="flex flex-1 max-w-screen-2xl mx-auto w-full px-0 md:px-4 gap-4 mt-[8px] md:mt-[104px]">
         <ErrorBoundary>
           <EnterpriseSidebar />
         </ErrorBoundary>
@@ -267,18 +267,18 @@ export default function HomePage() {
           </div>
 
           {/* Category Grid */}
-          <div className="px-1 mb-2">
+          <div className="mb-2">
             {catLoading ? (
-              <div className="grid grid-cols-4 gap-1.5">
-                {Array.from({ length: 8 }).map((_, i) => (
+              <div className="grid gap-2 overflow-x-auto pb-2 scrollbar-thin" style={{ gridAutoFlow: 'column', gridTemplateRows: 'repeat(2, 1fr)' }}>
+                {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 animate-pulse">
-                    <div className="w-11 h-11 rounded-full bg-gray-200" />
+                    <div className="w-11 h-11 bg-gray-200" />
                     <div className="h-2 bg-gray-200 rounded w-12" />
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid gap-2 overflow-x-auto pb-2 scrollbar-thin" style={{ gridAutoFlow: 'column', gridTemplateRows: 'repeat(2, 1fr)' }}>
                 {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 8).map((cat: any) => (
                   <Link
                     key={cat.id}
@@ -288,7 +288,7 @@ export default function HomePage() {
                     <img
                         src={getCategoryImageSrc(cat.slug)}
                         alt={cat.name}
-                        className="w-11 h-11 rounded-full object-cover"
+                        className="w-11 h-11 object-cover"
                         loading="lazy"
                         decoding="async"
                         onError={handleImgError}
@@ -303,7 +303,7 @@ export default function HomePage() {
 
         {/* Unified Latest Ads Feed */}
         <section className="py-5 sm:py-6 bg-white">
-          <div className="px-2 sm:px-4 md:px-6 lg:px-10">
+          <div className="px-1 sm:px-3 md:px-4">
             <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
               <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">
                 Fresh Listings

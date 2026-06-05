@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useUIStore } from '@/lib/store';
+import { useUIStore, useAuthStore } from '@/lib/store';
 import { authApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
@@ -49,6 +49,8 @@ export default function LoginModal() {
       if (!data || !data.user || !data.token) {
         throw new Error('Invalid response from server');
       }
+
+      useAuthStore.getState().login(data.user, data.token);
 
       if (rememberMe && email) {
         localStorage.setItem('remember-email', email);

@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, setAuthCookie } from '@/lib/supabase';
+import { useAuthStore } from '@/lib/store';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -13,54 +14,41 @@ function CallbackContent() {
 
   useEffect(() => {
     let cancelled = false;
-    let retries = 0;
-    const MAX_RETRIES = 5;
 
     async function handleCallback() {
       try {
-        const queryParams = new URLSearchParams(window.location.search);
-        const code = queryParams.get('code');
+        // The Supabase client already auto-processes the OAuth code via
+        // detectSessionInUrl. Just wait for the session to be established.
+        let retries = 0;
+        const MAX_RETRIES = 10;
 
-        // If no code, try getSession (e.g. already exchanged)
-        if (!code) {
+        while (retries < MAX_RETRIES) {
+          if (cancelled) return;
+
           const { data: { session } } = await supabase.auth.getSession();
+
           if (session?.user && session.access_token) {
             setAuthCookie(session.access_token);
+            useAuthStore.getState().login(
+              {
+                id: session.user.id,
+                email: session.user.email,
+                name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+                avatar_url: session.user.user_metadata?.avatar_url || null,
+                google_avatar: session.user.user_metadata?.avatar_url || null,
+              } as any,
+              session.access_token
+            );
+
             const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
             localStorage.removeItem('authRedirect');
             sessionStorage.removeItem('authRedirect');
             if (!cancelled) window.location.href = redirectTo;
             return;
           }
-          setError('No authentication code found. Please try again.');
-          return;
-        }
 
-        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-        if (exchangeError) {
-          console.error('[Auth Callback] exchangeCodeForSession failed:', exchangeError);
-
-          // If code verifier is missing, retry after a delay (AuthProvider may have consumed it)
-          if (exchangeError.name === 'AuthPKCECodeVerifierMissingError' && retries < MAX_RETRIES) {
-            retries++;
-            console.log(`[Auth Callback] Retrying (${retries}/${MAX_RETRIES})...`);
-            await new Promise(r => setTimeout(r, 500));
-            if (!cancelled) return handleCallback();
-          }
-
-          setError('Authentication failed. Please try again.');
-          return;
-        }
-
-        const session = data?.session;
-        if (session?.user && session.access_token) {
-          setAuthCookie(session.access_token);
-          const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
-          localStorage.removeItem('authRedirect');
-          sessionStorage.removeItem('authRedirect');
-          if (!cancelled) window.location.href = redirectTo;
-          return;
+          retries++;
+          await new Promise(r => setTimeout(r, 800));
         }
 
         setError('Authentication completed but session could not be established. Please try again.');
