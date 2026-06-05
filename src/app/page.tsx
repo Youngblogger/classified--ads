@@ -269,8 +269,8 @@ export default function HomePage() {
           {/* Category Grid */}
           <div className="px-1 mb-2">
             {catLoading ? (
-              <div className="grid grid-cols-3 gap-1.5">
-                {Array.from({ length: 6 }).map((_, i) => (
+              <div className="grid grid-cols-4 gap-1.5">
+                {Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 animate-pulse">
                     <div className="w-11 h-11 rounded-full bg-gray-200" />
                     <div className="h-2 bg-gray-200 rounded w-12" />
@@ -278,8 +278,8 @@ export default function HomePage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-1.5">
-                {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 9).map((cat: any) => (
+              <div className="grid grid-cols-4 gap-1.5">
+                {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 8).map((cat: any) => (
                   <Link
                     key={cat.id}
                     href={`/ads?category=${cat.slug}`}
