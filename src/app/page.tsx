@@ -206,7 +206,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                   {Array.from({ length: 12 }).map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg p-2 border border-gray-100 animate-pulse">
-                      <div className="w-11 h-11 rounded-full bg-gray-200" />
+                      <div className="w-14 h-14 rounded-full bg-gray-200" />
                       <div className="h-2.5 bg-gray-200 rounded w-14" />
                     </div>
                   ))}
@@ -222,7 +222,7 @@ export default function HomePage() {
                       <img
                         src={getCategoryImageSrc(cat.slug)}
                         alt={cat.name}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="w-14 h-14 object-cover"
                         loading="lazy"
                         decoding="async"
                         onError={handleImgError}
@@ -272,7 +272,7 @@ export default function HomePage() {
               <div className="grid grid-cols-3 gap-1.5">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 animate-pulse">
-                    <div className="w-9 h-9 rounded-full bg-gray-200" />
+                    <div className="w-11 h-11 rounded-full bg-gray-200" />
                     <div className="h-2 bg-gray-200 rounded w-12" />
                   </div>
                 ))}
@@ -288,7 +288,7 @@ export default function HomePage() {
                     <img
                         src={getCategoryImageSrc(cat.slug)}
                         alt={cat.name}
-                        className="w-9 h-9 rounded-full object-cover"
+                        className="w-11 h-11 rounded-full object-cover"
                         loading="lazy"
                         decoding="async"
                         onError={handleImgError}

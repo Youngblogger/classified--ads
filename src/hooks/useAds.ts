@@ -385,7 +385,6 @@ export function useCategories() {
     {
       revalidateOnFocus: false,
       dedupingInterval: 300000,
-      refreshInterval: 300000,
       errorRetryCount: 2,
     }
   );
