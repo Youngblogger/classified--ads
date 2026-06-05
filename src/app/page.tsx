@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { Shield, Zap, Star, Search, Plus, ArrowUp } from 'lucide-react';
+import { Search, Plus, ArrowUp } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import EnterpriseSidebar from '@/components/home/EnterpriseSidebar';
 import Footer from '@/components/layout/Footer';
@@ -15,7 +15,7 @@ import { useInfiniteAds, useCategories } from '@/hooks/useAds';
 import { useRealtimeHomepage } from '@/hooks/useRealtime';
 import AdCard from '@/components/ui/AdCard';
 import { getBoostPlan, isBoostExpired, calculateBoostScore } from '@/lib/boost-config';
-import { safeArray, safeSlice } from '@/lib/safe-data';
+import { safeArray } from '@/lib/safe-data';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 function buildUnifiedFeed(ads: any[]): any[] {
@@ -86,7 +86,21 @@ function buildUnifiedFeed(ads: any[]): any[] {
   return result;
 }
 
-const CATEGORY_COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F97316', '#EC4899', '#06B6D4', '#EF4444', '#F59E0B', '#6366F1', '#14B8A6', '#A855F7', '#F43F5E', '#84CC16', '#0EA5E9', '#D946EF'];
+const CATEGORY_PALETTE: Record<string, string> = {
+  phones: '3B82F6', laptops: '10B981', vehicles: '8B5CF6',
+  electronics: 'F97316', fashion: 'EC4899', 'home-furniture': '06B6D4',
+  'real-estate': 'EF4444', jobs: '6366F1', services: '14B8A6',
+  'beauty-health': 'A855F7', sports: '84CC16',
+};
+
+const DEFAULT_PALETTE = '9CA3AF';
+
+function getCategoryImageUrl(cat: any): string {
+  if (cat.image) return cat.image;
+  const color = CATEGORY_PALETTE[cat.slug] ?? DEFAULT_PALETTE;
+  const letter = encodeURIComponent((cat.name?.charAt(0) ?? '?').toUpperCase());
+  return `https://placehold.co/100x100/${color}/FFFFFF?text=${letter}`;
+}
 
 export default function HomePage() {
   const { isAuthenticated, user } = useAuthStore();
@@ -136,141 +150,135 @@ export default function HomePage() {
         </ErrorBoundary>
         <main className="flex-1 min-w-0 relative pt-0">
           <ErrorBoundary>
-          {/* Hero Section - Hidden on mobile */}
-          <section className="hidden md:block w-full relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-xl">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }} />
-          </div>
-          
-          <div className="relative py-6 sm:py-8 md:py-10 lg:py-12 px-5 sm:px-6">
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-              {/* Hero Content */}
-              <div className="text-center lg:text-left">
-                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3 sm:mb-4 leading-tight">
-                  Find Anything,<br />
-                  <span className="text-accent-400">Sell Everything</span>
-                </h1>
-                <p className="text-sm sm:text-base lg:text-lg text-primary-100 mb-4 sm:mb-6 lg:mb-8 max-w-lg mx-auto lg:mx-0">
-                  Nigeria&apos;s trusted marketplace. Connect with buyers and sellers near you.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center lg:justify-start">
-                  <Link
-                    href="/ads"
-                    className="inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3.5 bg-white text-primary-600 rounded-full font-medium hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-xs sm:text-sm"
-                  >
-                    <Search className="w-4 h-4" />
-                    <span>Browse Ads</span>
-                  </Link>
-                  <Link
-                    href="/post-ad"
-                    className="inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3.5 bg-accent-600 text-white rounded-full font-medium hover:bg-accent-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-xs sm:text-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Post Free Ad</span>
-                  </Link>
-                </div>
-                
-                {/* Stats */}
-                <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-6 mt-4 sm:mt-6 lg:mt-8 pt-4 sm:pt-6 border-t border-primary-500/30">
+          {/* Hero + Category Grid - Hidden on mobile */}
+          <section className="hidden md:block w-full">
+            {/* Compact Hero Banner */}
+            <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-[5px] mb-6">
+              <div className="relative px-6 py-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div>
-                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">50K+</p>
-                    <p className="text-[10px] sm:text-xs text-primary-200">Active Ads</p>
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
+                      Find Anything,{' '}
+                      <span className="text-accent-400">Sell Everything</span>
+                    </h1>
+                    <p className="text-primary-100 text-sm mt-1">
+                      Nigeria&apos;s trusted marketplace
+                    </p>
                   </div>
-                  <div className="w-px h-6 sm:h-10 bg-primary-500/30" />
-                  <div>
-                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">100K+</p>
-                    <p className="text-[10px] sm:text-xs text-primary-200">Happy Users</p>
+                  <div className="flex gap-2 shrink-0">
+                    <Link
+                      href="/ads"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-50 transition-colors"
+                    >
+                      <Search className="w-4 h-4" />
+                      Browse Ads
+                    </Link>
+                    <Link
+                      href="/post-ad"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent-600 text-white rounded-lg text-sm font-medium hover:bg-accent-700 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Post Free Ad
+                    </Link>
                   </div>
-                  <div className="w-px h-6 sm:h-10 bg-primary-500/30" />
-                  <div>
-                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">36</p>
-                    <p className="text-[10px] sm:text-xs text-primary-200">States</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Hero Image / Illustration */}
-              <div className="hidden lg:block relative">
-                <div className="relative min-h-[200px]">
-                  {/* Floating Cards */}
-                  <div className="absolute -top-2 -left-4 bg-white rounded-2xl shadow-lg p-3.5 animate-fade-in">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                        <Shield className="w-5 h-5 text-emerald-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900 text-sm">100% Safe</p>
-                        <p className="text-[11px] text-slate-500">Verified transactions</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="absolute top-1/3 right-0 bg-white rounded-2xl shadow-lg p-3.5 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
-                        <Zap className="w-5 h-5 text-primary-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900 text-sm">Quick Sale</p>
-                        <p className="text-[11px] text-slate-500">Sell in 24 hours</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="absolute bottom-4 left-6 bg-white rounded-2xl shadow-lg p-3.5 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                        <Star className="w-5 h-5 text-amber-500" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900 text-sm">4.8/5 Rating</p>
-                        <p className="text-[11px] text-slate-500">10k+ reviews</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-
                 </div>
               </div>
             </div>
-          </div>
-          
-          {/* Wave Bottom */}
-          <div className="absolute bottom-0 left-0 right-0">
-            <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#F8FAFC"/>
-            </svg>
-          </div>
-        </section>
 
-        {/* Mobile Categories Showcase - sticky on scroll */}
-        <section className="block md:hidden sticky top-[7rem] z-30 bg-[#F5F7FA] px-3 pt-1 pb-1 shadow-sm">
-          <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory -mx-3 px-3 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
-            {catLoading ? (
-              [...Array(6)].map((_, i) => (
-                <div key={i} className="snap-start shrink-0 w-[80px] flex flex-col items-center gap-1 bg-white rounded-xl py-2 px-1.5 border border-gray-100/80 shadow-sm animate-pulse">
-                  <div className="w-9 h-9 rounded-lg bg-gray-200" />
-                  <div className="h-3 bg-gray-200 rounded w-12" />
+            {/* Category Grid */}
+            <div>
+              {catLoading ? (
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg p-2 border border-gray-100 animate-pulse">
+                      <div className="w-11 h-11 rounded-full bg-gray-200" />
+                      <div className="h-2.5 bg-gray-200 rounded w-14" />
+                    </div>
+                  ))}
                 </div>
-              ))
-            ) : safeSlice(supabaseCategories, 0, 8).filter(Boolean).map((cat: any, i: number) => (
-              <Link
-                key={cat?.id ?? i}
-                href={`/ads?category=${cat?.slug ?? ''}`}
-                className="snap-start shrink-0 w-[80px] flex flex-col items-center gap-1 bg-white rounded-xl py-2 px-1.5 border border-gray-100/80 shadow-sm active:scale-95 transition-all duration-150"
-              >
-                <div
-                  className="w-9 h-9 rounded-lg overflow-hidden shadow-sm flex items-center justify-center text-white text-xs font-bold"
-                  style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                  {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 12).map((cat: any) => (
+                    <Link
+                      key={cat.id}
+                      href={`/ads?category=${cat.slug}`}
+                      className="flex flex-col items-center gap-1 bg-white rounded-lg p-2 border border-gray-100 hover:border-gray-200 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200"
+                    >
+                      <img
+                        src={getCategoryImageUrl(cat)}
+                        alt={cat.name}
+                        className="w-11 h-11 rounded-full object-cover bg-gray-50"
+                        loading="lazy"
+                      />
+                      <span className="text-[11px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+        {/* Mobile Hero + Category Grid */}
+        <section className="block md:hidden">
+          {/* Compact Hero */}
+          <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-[5px] mb-4">
+            <div className="relative px-4 py-4">
+              <h1 className="text-lg font-bold text-white">
+                Find Anything,{' '}
+                <span className="text-accent-400">Sell Everything</span>
+              </h1>
+              <p className="text-primary-100 text-xs mt-0.5 mb-3">
+                Nigeria&apos;s trusted marketplace
+              </p>
+              <div className="flex gap-2">
+                <Link
+                  href="/ads"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-primary-600 rounded-lg text-xs font-medium"
                 >
-                  {cat?.name?.charAt(0) ?? ''}
-                </div>
-                <span className="text-[10px] font-semibold text-gray-800 text-center leading-tight line-clamp-2">{cat?.name ?? 'Category'}</span>
-              </Link>
-            ))}
+                  <Search className="w-3.5 h-3.5" />
+                  Browse Ads
+                </Link>
+                <Link
+                  href="/post-ad"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-accent-600 text-white rounded-lg text-xs font-medium"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Post Free Ad
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Grid */}
+          <div className="px-1 mb-2">
+            {catLoading ? (
+              <div className="grid grid-cols-3 gap-1.5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 animate-pulse">
+                    <div className="w-9 h-9 rounded-full bg-gray-200" />
+                    <div className="h-2 bg-gray-200 rounded w-12" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5">
+                {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 9).map((cat: any) => (
+                  <Link
+                    key={cat.id}
+                    href={`/ads?category=${cat.slug}`}
+                    className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 active:scale-95 transition-all duration-150"
+                  >
+                    <img
+                      src={getCategoryImageUrl(cat)}
+                      alt={cat.name}
+                      className="w-9 h-9 rounded-full object-cover bg-gray-50"
+                      loading="lazy"
+                    />
+                    <span className="text-[10px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

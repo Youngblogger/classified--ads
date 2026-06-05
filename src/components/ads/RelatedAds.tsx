@@ -94,7 +94,7 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
                       {formatPrice(ad.price, ad.currency)}
                     </p>
                     {ad.negotiable && (
-                      <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
+                      <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-[4px] whitespace-nowrap">Negotiable</span>
                     )}
                   </div>
                   <h4 className="font-medium text-gray-900 text-sm leading-snug line-clamp-2">

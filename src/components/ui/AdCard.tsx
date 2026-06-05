@@ -84,7 +84,7 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
             {formatPrice(ad.price, ad.currency)}
           </p>
           {ad.negotiable && (
-            <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+            <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-[4px] whitespace-nowrap">
               Negotiable
             </span>
           )}

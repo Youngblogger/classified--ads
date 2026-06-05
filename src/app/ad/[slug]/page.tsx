@@ -365,7 +365,7 @@ export default function AdDetailPage() {
       <main className="flex-1 container mx-auto px-2 sm:px-4 md:pb-6 md:pt-24">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
-          <div className="pt-2 mb-3 sm:mb-4 md:pt-4 flex items-center gap-1 text-xs text-gray-500">
+          <div className="pt-2 mb-1 sm:mb-4 md:pt-4 flex items-center gap-1 text-xs text-gray-500">
             <Link href="/" className="hover:text-primary-600 flex items-center gap-0.5"><Home className="w-3 h-3" />Home</Link>
             <ChevronRight className="w-3 h-3" />
             <Link href={`/ads?category=${ad.category?.slug || ad.category}`} className="hover:text-primary-600">{ad.category?.name || ad.category || 'Category'}</Link>

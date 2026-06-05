@@ -89,7 +89,7 @@ function AdCard({ ad }: { ad: BoostedAd }) {
             {formatPrice(ad.price, ad.currency)}
           </p>
           {ad.negotiable && (
-            <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full whitespace-nowrap">Negotiable</span>
+            <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-[4px] whitespace-nowrap">Negotiable</span>
           )}
         </div>
         <h3 className="font-medium text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5">
