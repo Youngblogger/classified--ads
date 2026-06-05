@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
+import { useAuthContext } from '@/components/providers/AuthProvider';
 import Header from '@/components/home/Header';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -152,16 +153,17 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Get auth functions from store
-  const { user: authUser, logout, isAuthenticated, token, hasHydrated } = useAuthStore();
+  const { user: authUser, logout, token, hasHydrated } = useAuthStore();
+  const { authState } = useAuthContext();
 
-  // Redirect to login if not authenticated (only after hydration to avoid flash)
+  // Show login modal if guest (only after both zustand hydration and authState resolved)
   useEffect(() => {
-    if (!hasHydrated) return;
-    const hasAuth = authUser || isAuthenticated;
+    if (!hasHydrated || authState === 'loading') return;
+    const hasAuth = authState === 'authenticated' || authUser;
     if (!hasAuth) {
       useUIStore.getState().toggleLoginModal();
     }
-  }, [hasHydrated, authUser, isAuthenticated, router]);
+  }, [hasHydrated, authState, authUser]);
 
   // Handle logout
   const handleLogout = async () => {

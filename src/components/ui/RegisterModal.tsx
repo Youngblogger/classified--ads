@@ -3,15 +3,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Mail, Lock, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
-import { useUIStore, useAuthStore } from '@/lib/store';
+import { useUIStore } from '@/lib/store';
 import { authApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import OtpModal from './OtpModal';
 import toast from 'react-hot-toast';
 
 export default function RegisterModal() {
-  const { isRegisterModalOpen, toggleRegisterModal, toggleLoginModal, closeAllModals } = useUIStore();
-  const { login, setLoading } = useAuthStore();
+  const { isRegisterModalOpen, toggleLoginModal, closeAllModals } = useUIStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,27 +18,12 @@ export default function RegisterModal() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [redirectUrl, setRedirectUrl] = useState('/');
-  
+
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
-  
+
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [pendingPhone, setPendingPhone] = useState('');
-
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined' && window.location?.search) {
-        const params = new URLSearchParams(window.location.search);
-        const redirect = params.get('redirect');
-        if (redirect) {
-          setRedirectUrl(redirect);
-        }
-      }
-    } catch (e) {
-      // Ignore
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +50,6 @@ export default function RegisterModal() {
     }
 
     setIsSubmitting(true);
-    setLoading(true);
 
     try {
       if (typeof window !== 'undefined') {
@@ -81,11 +64,10 @@ export default function RegisterModal() {
         toast.success('Account created successfully!');
         closeAllModals();
         resetForm();
-
-        const targetUrl = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || redirectUrl || '/';
-        localStorage.removeItem('authRedirect');
-        sessionStorage.removeItem('authRedirect');
-        window.location.href = targetUrl;
+      } else if (regData?.user && !regData?.session) {
+        toast.success('Account created! Check your email to verify.');
+        closeAllModals();
+        resetForm();
       } else {
         throw new Error('Registration failed. Please try again.');
       }
@@ -94,42 +76,14 @@ export default function RegisterModal() {
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
-      setLoading(false);
     }
   };
 
-  const handleOtpVerified = async (data?: { token: string; user: any }) => {
-    toast.success('Account created successfully! Welcome!');
+  const handleOtpVerified = (_data?: { token: string; user: any }) => {
+    toast.success('Account created successfully!');
     setShowOtpModal(false);
     closeAllModals();
     resetForm();
-    
-    // Store auth data if available from OTP verification
-    if (data?.token && data?.user) {
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Also store in zustand persist format for compatibility
-      localStorage.setItem('user-auth-storage', JSON.stringify({
-        state: {
-          token: data.token,
-          user: data.user,
-          isAuthenticated: true,
-          isLoading: false,
-          hasHydrated: true
-        },
-        version: 0
-      }));
-      
-      document.cookie = `token=${data.token};path=/;max-age=${7*24*60*60};SameSite=Lax`;
-      login(data.user, data.token);
-      
-      // Redirect to homepage for new users
-      window.location.href = '/';
-    } else {
-      // Fallback to homepage if no auth data
-      window.location.href = '/';
-    }
   };
 
   const resetForm = () => {
@@ -147,11 +101,6 @@ export default function RegisterModal() {
     setError('');
 
     try {
-      if (typeof window !== 'undefined' && redirectUrl) {
-        localStorage.setItem('authRedirect', redirectUrl);
-        sessionStorage.setItem('authRedirect', redirectUrl);
-      }
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -174,11 +123,6 @@ export default function RegisterModal() {
     setError('');
 
     try {
-      if (typeof window !== 'undefined' && redirectUrl) {
-        localStorage.setItem('authRedirect', redirectUrl);
-        sessionStorage.setItem('authRedirect', redirectUrl);
-      }
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: { redirectTo: `${window.location.origin}/auth/facebook/callback` },
@@ -197,8 +141,6 @@ export default function RegisterModal() {
     }
   };
 
-
-
   const handleClose = () => {
     closeAllModals();
     resetForm();
@@ -206,31 +148,31 @@ export default function RegisterModal() {
 
   return (
     <div className={isRegisterModalOpen ? '' : 'hidden'}>
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-0 sm:p-4"
           onClick={handleClose}
         >
-          <div 
+          <div
             className="bg-white w-full h-full sm:w-[90%] sm:max-w-md sm:max-h-[95vh] sm:rounded-2xl flex flex-col sm:shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header - Match homepage hero gradient */}
-            <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-6 py-5 shrink-0">
+            {/* Header */}
+            <div className="px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Create Account</h2>
-                  <p className="text-primary-100 text-sm mt-1">Join iList - it&apos;s free!</p>
+                  <h2 className="text-xl font-bold text-gray-900">Create account</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Join iList &mdash; it&apos;s free!</p>
                 </div>
                 <button
                   onClick={handleClose}
-                  className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors -mr-1"
                 >
-                  <X className="w-5 h-5 text-white" />
+                  <X className="w-5 h-5 text-gray-400" />
                 </button>
               </div>
             </div>
 
-          <div className="p-5 overflow-y-auto flex-1">
+          <div className="px-5 py-4 overflow-y-auto flex-1">
             {error && (
               <div className="p-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm mb-3 flex items-center gap-2">
                 <X className="w-4 h-4 flex-shrink-0" />
@@ -304,11 +246,11 @@ export default function RegisterModal() {
               </div>
 
               <label className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors text-xs">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="w-3.5 h-3.5 mt-0.5 text-primary-600 rounded border-gray-300" 
+                  className="w-3.5 h-3.5 mt-0.5 text-primary-600 rounded border-gray-300"
                 />
                 <span className="text-gray-600">
                   I agree to the{' '}
@@ -323,8 +265,14 @@ export default function RegisterModal() {
                 disabled={isSubmitting}
                 className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                <CheckCircle className="w-4 h-4" />
-                Create Account
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Create Account
+                  </>
+                )}
               </button>
             </form>
 
@@ -355,7 +303,7 @@ export default function RegisterModal() {
               Continue with Google
             </button>
 
-            <button 
+            <button
               onClick={handleFacebookLogin}
               disabled={facebookLoading}
               className="flex items-center justify-center gap-1 py-2.5 px-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 w-full mb-3"

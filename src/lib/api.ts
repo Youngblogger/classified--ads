@@ -258,7 +258,7 @@ export const authApi = {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       console.error('[Auth API] Login failed:', error.message);
-      return sbError(error);
+      throw new Error(error.message);
     }
     const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', data.user?.id).single();
     if (profileError) {

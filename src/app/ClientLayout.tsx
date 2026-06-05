@@ -4,7 +4,8 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { SWRConfig } from 'swr';
 import { patchFedCmWidgetMode } from '@/lib/fedcm-patch';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, ToastBar, toast } from 'react-hot-toast';
+import { X } from 'lucide-react';
 import QueryProvider from '@/providers/QueryProvider';
 import LoginModal from '@/components/ui/LoginModal';
 import RegisterModal from '@/components/ui/RegisterModal';
@@ -45,27 +46,44 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
         <RegisterModal />
         <LocationModal />
         <Toaster
-          position="top-right"
+          position="top-center"
           toastOptions={{
             duration: 4000,
             style: {
-              borderRadius: '12px',
-              padding: '16px',
+              padding: 0,
+              margin: 0,
+              background: 'transparent',
+              boxShadow: 'none',
+              width: '100%',
+              maxWidth: '100vw',
             },
             success: {
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#fff',
-              },
+              iconTheme: { primary: '#10b981', secondary: '#fff' },
             },
             error: {
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
-              },
+              iconTheme: { primary: '#ef4444', secondary: '#fff' },
             },
           }}
-        />
+        >
+          {(t: any) => (
+            <ToastBar toast={t}>
+              {({ icon, message }: { icon: React.ReactNode; message: React.ReactNode }) => (
+                <div className={`flex items-start gap-3 px-4 py-3.5 bg-white border-b sm:border sm:rounded-xl sm:shadow-xl border-gray-100 w-full sm:max-w-md sm:mx-auto transition-all duration-300 ${
+                  t.visible ? 'animate-slide-down' : 'opacity-0 translate-y-[-8px]'
+                }`}>
+                  <div className="flex-shrink-0 mt-0.5">{icon}</div>
+                  <div className="flex-1 min-w-0 text-sm text-gray-900 font-medium leading-snug">{message}</div>
+                  <button
+                    onClick={() => toast.dismiss(t.id)}
+                    className="flex-shrink-0 p-1 -mr-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                </div>
+              )}
+            </ToastBar>
+          )}
+        </Toaster>
       </AuthProvider>
     </div>
   );

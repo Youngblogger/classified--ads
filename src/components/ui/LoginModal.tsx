@@ -1,71 +1,29 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { X, Mail, Lock, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
-import { useUIStore, useAuthStore } from '@/lib/store';
+import { X, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useUIStore } from '@/lib/store';
 import { authApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
-function hasStoredToken(): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    const authStorage = localStorage.getItem('user-auth-storage');
-    if (authStorage) {
-      const parsed = JSON.parse(authStorage);
-      if (parsed?.state?.token) return true;
-    }
-  } catch {}
-  return false;
-}
-
-export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: string } = {}) {
-  const router = useRouter();
-  const { isLoginModalOpen, toggleLoginModal, toggleRegisterModal, closeAllModals } = useUIStore();
-  const { isAuthenticated, login, setLoading, hasHydrated } = useAuthStore();
+export default function LoginModal() {
+  const { isLoginModalOpen, toggleRegisterModal, closeAllModals } = useUIStore();
   const [email, setEmail] = useState('');
-  const [redirectUrl, setRedirectUrl] = useState('/');
-
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        if (forceRedirectUrl && forceRedirectUrl !== '/') {
-          setRedirectUrl(forceRedirectUrl);
-          localStorage.setItem('authRedirect', forceRedirectUrl);
-          sessionStorage.setItem('authRedirect', forceRedirectUrl);
-          return;
-        }
-        const params = new URLSearchParams(window.location.search);
-        const redirect = params.get('redirect');
-        if (redirect) {
-          setRedirectUrl(redirect);
-          localStorage.setItem('authRedirect', redirect);
-          sessionStorage.setItem('authRedirect', redirect);
-        } else {
-          const storedRedirect = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect');
-          if (storedRedirect) {
-            setRedirectUrl(storedRedirect);
-          }
-        }
-      }
-    } catch (e) {}
-  }, [forceRedirectUrl]);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | React.ReactNode>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
-  
   const [usedEmails, setUsedEmails] = useState<string[]>([]);
   const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
     const savedEmails = localStorage.getItem('used-emails');
     if (savedEmails) setUsedEmails(JSON.parse(savedEmails));
-    
+
     const savedRememberEmail = localStorage.getItem('remember-email');
     if (savedRememberEmail) {
       setEmail(savedRememberEmail);
@@ -77,18 +35,11 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
-    setLoading(true);
 
     if (!email || !password) {
       setError('Please fill in all fields');
       setIsSubmitting(false);
-      setLoading(false);
       return;
-    }
-
-    if (typeof window !== 'undefined' && redirectUrl) {
-      localStorage.setItem('authRedirect', redirectUrl);
-      sessionStorage.setItem('authRedirect', redirectUrl);
     }
 
     try {
@@ -99,21 +50,19 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
         throw new Error('Invalid response from server');
       }
 
-      login(data.user, data.token);
-
-      const storedRedirect = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect');
-      closeAllModals();
-      if (storedRedirect && storedRedirect !== window.location.pathname) {
-        localStorage.removeItem('authRedirect');
-        sessionStorage.removeItem('authRedirect');
-        router.push(storedRedirect);
+      if (rememberMe && email) {
+        localStorage.setItem('remember-email', email);
+      } else {
+        localStorage.removeItem('remember-email');
       }
+
+      toast.success('Signed in successfully');
+      closeAllModals();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
-      setLoading(false);
     }
   };
 
@@ -133,11 +82,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
     setError('');
 
     try {
-      if (redirectUrl) {
-        localStorage.setItem('authRedirect', redirectUrl);
-        sessionStorage.setItem('authRedirect', redirectUrl);
-      }
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -160,11 +104,6 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
     setError('');
 
     try {
-      if (redirectUrl) {
-        localStorage.setItem('authRedirect', redirectUrl);
-        sessionStorage.setItem('authRedirect', redirectUrl);
-      }
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: { redirectTo: `${window.location.origin}/auth/facebook/callback` },
@@ -186,27 +125,27 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
 
   return (
     <>
-      <div 
+      <div
         className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center"
         onClick={handleClose}
       >
-      <div 
+      <div
         className="bg-white w-full h-full md:w-[90%] md:max-w-md md:max-h-[95vh] md:rounded-2xl flex flex-col z-[201] md:shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-          <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-4 py-4 md:px-6 md:py-5">
+          <div className="px-5 pt-5 pb-3 border-b border-gray-100">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-bold text-white">Welcome Back!</h2>
-                <p className="text-primary-100 text-sm mt-1">Sign in to continue to iList</p>
+                <h2 className="text-xl font-bold text-gray-900">Sign in</h2>
+                <p className="text-sm text-gray-500 mt-0.5">to your iList account</p>
               </div>
-              <button onClick={handleClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                <X className="w-5 h-5 text-white" />
+              <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors -mr-1">
+                <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
           </div>
 
-          <div className="p-5 flex-1 overflow-y-auto">
+          <div className="px-5 py-4 flex-1 overflow-y-auto">
             {error && (
               <div className="p-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm mb-3 flex items-center gap-2">
                 <X className="w-4 h-4 flex-shrink-0" />
@@ -263,11 +202,11 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
 
               <div className="flex justify-between items-center text-xs">
                 <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-3.5 h-3.5 text-primary-600 rounded border-gray-300 focus:ring-primary-500 cursor-pointer" 
+                    className="w-3.5 h-3.5 text-primary-600 rounded border-gray-300 focus:ring-primary-500 cursor-pointer"
                   />
                   <span className="text-gray-600">Remember me</span>
                 </label>
@@ -281,7 +220,9 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
                 disabled={isSubmitting}
                 className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Sign In
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : 'Sign In'}
               </button>
             </form>
 
@@ -312,7 +253,7 @@ export default function LoginModal({ forceRedirectUrl }: { forceRedirectUrl?: st
               Continue with Google
             </button>
 
-            <button 
+            <button
               onClick={handleFacebookLogin}
               disabled={facebookLoading}
               className="flex items-center justify-center gap-1 py-2.5 px-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 w-full mb-3"

@@ -1,32 +1,42 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, createContext, useContext } from 'react';
 import { supabase, setAuthCookie, clearAuthCookie } from '@/lib/supabase';
 import { useAuthStore, useGlobalStore } from '@/lib/store';
+import type { User } from '@supabase/supabase-js';
 
 const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000;
+const AUTH_INIT_TIMEOUT = 8000;
 
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
+export type AuthState = 'loading' | 'authenticated' | 'guest';
+
+interface AuthContextValue {
+  authState: AuthState;
+  user: User | null;
 }
 
-function setCookie(name: string, value: string, days: number) {
-  if (typeof document === 'undefined') return;
-  const expires = new Date();
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
-}
+const AuthContext = createContext<AuthContextValue>({ authState: 'loading', user: null });
+
+export const useAuthContext = () => useContext(AuthContext);
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  const [initDone, setInitDone] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>('loading');
+  const [user, setUser] = useState<User | null>(null);
   const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
   const authInitRef = useRef(false);
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const finishInit = useCallback((state: 'authenticated' | 'guest', sessionUser?: User | null) => {
+    if (!mountedRef.current) return;
+    setAuthState(state);
+    setUser(sessionUser || null);
+  }, []);
 
   const resetLocation = useCallback(() => {
     const globalStore = useGlobalStore.getState();
@@ -67,6 +77,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Safety timeout — if init never completes, fail to guest
+  useEffect(() => {
+    if (authState !== 'loading') return;
+    const timer = setTimeout(() => {
+      if (authState === 'loading' && mountedRef.current) {
+        finishInit('guest');
+      }
+    }, AUTH_INIT_TIMEOUT);
+    return () => clearTimeout(timer);
+  }, [authState, finishInit]);
+
   // Single source of truth for Supabase auth state
   useEffect(() => {
     if (authInitRef.current) return;
@@ -77,141 +98,94 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       sessionStorage.removeItem('just_logged_out');
       const store = useAuthStore.getState();
       if (store.isAuthenticated) store.logout();
-      setMounted(true);
-      setInitDone(true);
+      finishInit('guest');
       return;
     }
 
-    // Skip session restoration on OAuth callback pages — the callback page
-    // handles the PKCE code exchange and we must not consume the code verifier.
+    // Skip session restoration on OAuth callback pages
     const isCallbackRoute = typeof window !== 'undefined' && (
       window.location.pathname.startsWith('/auth/callback') ||
       window.location.pathname.startsWith('/auth/google/callback') ||
       window.location.pathname.startsWith('/auth/facebook/callback')
     );
     if (isCallbackRoute) {
-      setMounted(true);
-      setInitDone(true);
+      finishInit('guest');
       return;
     }
 
-    // Restore session on mount — first check localStorage for existing auth
-    const storedAuth = localStorage.getItem('user-auth-storage');
-    let hasLocalToken = false;
-    if (storedAuth) {
-      try {
-        const parsed = JSON.parse(storedAuth);
-        const token = parsed?.state?.token;
-        if (token) {
-          hasLocalToken = true;
-          // Validate expiry
-          try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.exp && payload.exp * 1000 > Date.now()) {
-              hasLocalToken = true;
-            } else {
-              hasLocalToken = false;
-            }
-          } catch {
-            hasLocalToken = true;
-          }
-        }
-      } catch {}
-    }
-
-    setMounted(true);
-
-    // Restore Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mountedRef.current) return;
+
       if (session?.user) {
         const token = session.access_token;
+        const user = session.user;
         setAuthCookie(token);
-        supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
+        finishInit('authenticated', user);
+        supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data: profile }) => {
           if (profile) {
             useAuthStore.getState().login(
-              { ...profile, id: session.user.id, email: session.user.email },
+              { ...profile, id: user.id, email: user.email },
               token
             );
-          }
-          setInitDone(true);
-        }, () => {
-          // Profile fetch failed but session is valid — keep the auth
-          const store = useAuthStore.getState();
-          if (store.token) {
-            store.setUser({ ...store.user, id: session.user.id, email: session.user.email } as any);
           } else {
             useAuthStore.getState().login(
-              { id: session.user.id, email: session.user.email, name: session.user.user_metadata?.full_name || 'User' } as any,
+              {
+                id: user.id,
+                email: user.email,
+                name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              } as any,
               token
             );
           }
-          setInitDone(true);
-        });
-      } else if (hasLocalToken) {
-        // Local token exists but no Supabase session — try to restore it
-        supabase.auth.refreshSession().then(({ data: { session: refreshed } }) => {
-          if (refreshed?.user) {
-            setAuthCookie(refreshed.access_token);
-            supabase.from('profiles').select('*').eq('id', refreshed.user.id).single().then(({ data: profile }) => {
-              if (profile) {
-                useAuthStore.getState().login(
-                  { ...profile, id: refreshed.user.id, email: refreshed.user.email },
-                  refreshed.access_token
-                );
-              }
-              setInitDone(true);
-            }, () => {
-              setInitDone(true);
-            });
-          } else {
-            useAuthStore.getState().logout();
-            setInitDone(true);
-          }
-        }).catch(() => {
-          useAuthStore.getState().logout();
-          setInitDone(true);
         });
       } else {
         const store = useAuthStore.getState();
         if (store.isAuthenticated) store.logout();
         clearAuthCookie();
-        setInitDone(true);
+        finishInit('guest');
       }
     }).catch(() => {
-      // getSession failed — still mark as done
-      setInitDone(true);
+      if (mountedRef.current) finishInit('guest');
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mountedRef.current) return;
+
       if (event === 'SIGNED_IN' && session?.user) {
         setAuthCookie(session.access_token);
+        if (mountedRef.current) {
+          setAuthState('authenticated');
+          setUser(session.user);
+        }
         supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
           if (profile) {
             useAuthStore.getState().login(
               { ...profile, id: session.user.id, email: session.user.email },
+              session.access_token
+            );
+          } else {
+            useAuthStore.getState().login(
+              {
+                id: session.user.id,
+                email: session.user.email,
+                name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+              } as any,
               session.access_token
             );
           }
         });
       } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
         setAuthCookie(session.access_token);
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        setAuthCookie(session.access_token);
-        supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
-          if (profile) {
-            useAuthStore.getState().login(
-              { ...profile, id: session.user.id, email: session.user.email },
-              session.access_token
-            );
-          }
-        });
       } else if (event === 'SIGNED_OUT') {
         const { isAuthenticated } = useAuthStore.getState();
         if (isAuthenticated) {
           useAuthStore.getState().logout();
         }
         clearAuthCookie();
+        if (mountedRef.current) {
+          setAuthState('guest');
+          setUser(null);
+        }
       }
     });
 
@@ -225,10 +199,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   // Reset selected location to All Nigeria when a logged-out user visits
   useEffect(() => {
-    if (!mounted) return;
+    if (authState === 'loading') return;
     const timer = setTimeout(() => {
-      const { isAuthenticated } = useAuthStore.getState();
-      if (!isAuthenticated) {
+      if (authState === 'guest') {
         const { selectedLocation, setSelectedLocation } = useGlobalStore.getState();
         if (selectedLocation) {
           setSelectedLocation(null);
@@ -236,7 +209,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [mounted]);
+  }, [authState]);
 
-  return <>{children}</>;
+  return (
+    <AuthContext.Provider value={{ authState, user }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }

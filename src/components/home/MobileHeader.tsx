@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, Bell, User, ChevronDown, Menu, X } from 'lucide-react';
 import { useGlobalStore, useUIStore, useAuthStore } from '@/lib/store';
+import { useAuthContext } from '@/components/providers/AuthProvider';
 import { api } from '@/lib/api';
 import { getUserAvatarUrl } from '@/lib/utils';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
@@ -15,7 +16,8 @@ export default function MobileHeader() {
   const router = useRouter();
   const { selectedLocation } = useGlobalStore();
   const { toggleLocationModal, toggleLoginModal } = useUIStore();
-  const { isAuthenticated, user, isLoading: authLoading, hasHydrated, logout } = useAuthStore();
+  const { user, hasHydrated, logout } = useAuthStore();
+  const { authState } = useAuthContext();
   const { isAtTop, scrollY } = useScrollDirection({ threshold: 5, throttleMs: 50 });
 
   const [searchOpen, setSearchOpen] = useState(false);
@@ -96,17 +98,17 @@ export default function MobileHeader() {
               <ChevronDown className="w-3 h-3 text-white/60" />
             </button>
 
-            {isAuthenticated && (
+            {authState === 'authenticated' && (
               <button onClick={() => router.push('/dashboard/notifications')} className="relative p-2 rounded-lg active:bg-white/10 transition-colors">
                 <Bell className="w-5 h-5 text-white" />
               </button>
             )}
 
-            {hasHydrated && (
+            {hasHydrated && authState !== 'loading' && (
               <div className="relative animate-fade-in" ref={profileRef}>
                 <button
                   onClick={() => {
-                    if (!isAuthenticated) {
+                    if (authState !== 'authenticated') {
                       toggleLoginModal();
                     } else {
                       setShowProfileMenu(!showProfileMenu);
@@ -115,7 +117,7 @@ export default function MobileHeader() {
                   className="p-1 rounded-lg active:bg-white/10 transition-colors"
                 >
                   <div className="w-7 h-7 rounded-full overflow-hidden bg-white/20 flex items-center justify-center ring-2 ring-white/30">
-                    {isAuthenticated ? (
+                    {authState === 'authenticated' ? (
                       <>
                         {(() => {
                           const avatarUrl = getUserAvatarUrl(user);
@@ -132,7 +134,7 @@ export default function MobileHeader() {
                   </div>
                 </button>
 
-                {isAuthenticated && showProfileMenu && (
+                {authState === 'authenticated' && showProfileMenu && (
                   <div
                     className="absolute right-0 top-full mt-1.5 w-48 py-1.5 bg-white dark:bg-gray-800 rounded-[7px] shadow-xl shadow-black/5 border border-gray-100 dark:border-gray-700 z-[9999] overflow-hidden"
                     style={{ animation: 'fadeSlideIn 0.15s ease-out' }}

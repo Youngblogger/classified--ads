@@ -16,6 +16,8 @@ import {
   CheckCircle, UserPlus, UserMinus, Dumbbell
 } from 'lucide-react';
 import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
+import { useAuthContext } from '@/components/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
 import { cn, BACKEND_URL } from '@/lib/utils';
 import { getCategoryIcon } from '@/lib/categoryIcons';
@@ -153,7 +155,7 @@ function formatNotificationTime(dateString: string): string {
 
 export default function Header({ variant = 'home', onMenuToggle }: { variant?: 'home' | 'dashboard'; onMenuToggle?: () => void }) {
   const router = useRouter();
-  const { isAuthenticated, user, logout, hasHydrated } = useAuthStore();
+  const { user, logout, hasHydrated } = useAuthStore();
   const { toggleLoginModal, toggleRegisterModal, toggleLocationModal } = useUIStore();
   const { selectedLocation, setSelectedLocation } = useGlobalStore();
   
@@ -279,7 +281,8 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     fetchData();
   }, []);
 
-  const isLoading = !hasHydrated || !isMounted;
+  const { authState } = useAuthContext();
+  const isLoading = authState === 'loading' || !hasHydrated || !isMounted;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -410,6 +413,8 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
     } catch (error) {
     }
     
+    await supabase.auth.signOut();
+    
     logout();
     
     if (typeof window !== 'undefined') {
@@ -501,11 +506,11 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated && hasValidToken()) {
+    if (authState === 'authenticated' && hasValidToken()) {
       fetchNotifications();
       fetchRecentMessages();
     }
-  }, [isAuthenticated, hasValidToken]);
+  }, [authState, hasValidToken]);
 
   const fetchNotifications = async () => {
     try {
@@ -699,14 +704,14 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                       }}
                       onFocus={() => setShowSearchDropdown(true)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="w-full pl-12 pr-14 py-2.5 md:py-3 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-[15px] shadow-sm transition-all duration-300"
+                      className="w-full pl-10 pr-14 py-2.5 md:py-3 bg-white rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-primary-400 text-[15px] shadow-sm transition-all duration-300"
                       autoComplete="off"
                       autoCorrect="off"
                       spellCheck="false"
                     />
                     {!searchQuery && (
                       <span 
-                        className="absolute left-12 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none"
+                        className="absolute left-10 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none"
                       >
                         Search{' '}
                         {isMounted ? (
@@ -745,9 +750,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                     </button>
                   )}
                 </div>
-                
-                {/* Search Button - now inside input */}
-                {/* Search Button removed - now inside search input */}
                 
                 {/* Search Dropdown */}
                 {showSearchDropdown && (
@@ -906,7 +908,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
               )}
               {/* Desktop Actions */}
               <div className="hidden md:flex items-center gap-1">
-                {isAuthenticated ? (
+                {authState === 'authenticated' ? (
                   <>
                     {/* Notifications Bell with Tabs */}
                     {variant === 'home' && (

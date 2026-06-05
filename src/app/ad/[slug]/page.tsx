@@ -220,6 +220,22 @@ export default function AdDetailPage() {
     return clean;
   };
 
+  const formatPhoneDisplay = (phone: string): string => {
+    const clean = phone.replace(/\D/g, '');
+    if (clean.startsWith('234') && clean.length === 13) {
+      return `+234 ${clean.slice(3, 6)} ${clean.slice(6, 9)} ${clean.slice(9)}`;
+    }
+    if (clean.length === 11 && clean.startsWith('0')) {
+      const national = '234' + clean.slice(1);
+      return `+234 ${national.slice(3, 6)} ${national.slice(6, 9)} ${national.slice(9)}`;
+    }
+    if (clean.length >= 10) {
+      const national = clean.length > 10 ? clean.slice(-10) : clean;
+      return `+234 ${national.slice(0, 3)} ${national.slice(3, 6)} ${national.slice(6)}`;
+    }
+    return phone;
+  };
+
   const handleWhatsApp = () => {
     if (!ad) return;
     const sellerPhone = ad.user?.phone || ad.sellerPhone;
@@ -349,7 +365,7 @@ export default function AdDetailPage() {
       <main className="flex-1 container mx-auto px-2 sm:px-4 md:pb-6 md:pt-24">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
-          <div className="mb-3 sm:mb-4 md:pt-2 flex items-center gap-1 text-xs text-gray-500">
+          <div className="mb-3 sm:mb-4 md:pt-4 flex items-center gap-1 text-xs text-gray-500">
             <button onClick={() => router.back()} className="md:hidden p-0.5 -ml-1 rounded-lg active:bg-gray-200 transition-colors" aria-label="Go back">
               <ArrowLeft className="w-4 h-4 text-gray-700" />
             </button>
@@ -479,8 +495,8 @@ export default function AdDetailPage() {
 
               {/* Price, Title, Description - All in One Card */}
               <div className="bg-white rounded-2xl shadow-sm px-4 sm:px-6 pt-1 pb-3 -mt-2 space-y-[2px]">
-                {/* Price */}
-                <div className="flex flex-row justify-between items-center gap-2 sm:gap-4">
+                {/* Price + Desktop Actions */}
+                <div className="flex flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
                     {ad.negotiable && (
@@ -691,12 +707,16 @@ export default function AdDetailPage() {
                         return <p className="text-sm text-gray-500 mb-3 text-center">No phone number available</p>;
                       }
                       
+                      const displayPhone = showPhone ? formatPhoneDisplay(formatNigerianPhone(contactPhone)) : '';
+                      
                       return (
                         <>
                           {showPhone ? (
-                            <a href={`tel:${contactPhone}`} className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3">
-                              <Phone className="w-5 h-5" />{contactPhone}
-                            </a>
+                            <div className="mb-3">
+                              <a href={`tel:${contactPhone}`} className="w-full py-3.5 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-lg tracking-wide transition-colors flex items-center justify-center gap-3">
+                                <Phone className="w-5 h-5" />{displayPhone}
+                              </a>
+                            </div>
                           ) : (
                             <button 
                               onClick={() => {
@@ -707,26 +727,26 @@ export default function AdDetailPage() {
                                 }
                                 setShowPhone(true);
                               }} 
-                              className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-3"
+                              className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 mb-3"
                             >
-                              <Phone className="w-5 h-5" />Show Phone Number
+                              <Phone className="w-4 h-4" />Show Phone Number
                             </button>
                           )}
                         </>
                       );
                     })()}
                     
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2.5">
                       {(ad.user?.phone || ad.whatsapp || ad.phone || ad.sellerPhone) ? (
-                        <button onClick={handleWhatsApp} className="py-2 px-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                        <button onClick={handleWhatsApp} className="py-2.5 px-3 bg-green-500 hover:bg-green-600 active:scale-[0.98] text-white rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-sm">
                           <WhatsAppIcon className="w-4 h-4" />WhatsApp
                         </button>
                       ) : (
-                        <button disabled className="py-2 px-2 bg-gray-300 text-gray-500 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center gap-1">
+                        <button disabled className="py-2.5 px-3 bg-gray-200 text-gray-400 rounded-xl font-medium text-sm cursor-not-allowed flex items-center justify-center gap-2">
                           <WhatsAppIcon className="w-4 h-4" />WhatsApp
                         </button>
                       )}
-                      <button onClick={handleChat} className="py-2 px-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                      <button onClick={handleChat} className="py-2.5 px-3 bg-gray-900 hover:bg-gray-800 active:scale-[0.98] text-white rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-sm">
                         <MessageCircle className="w-4 h-4" />Chat Seller
                       </button>
                     </div>
