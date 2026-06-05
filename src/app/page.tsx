@@ -86,21 +86,31 @@ function buildUnifiedFeed(ads: any[]): any[] {
   return result;
 }
 
-const CATEGORY_PALETTE: Record<string, string> = {
-  phones: '3B82F6', laptops: '10B981', vehicles: '8B5CF6',
-  electronics: 'F97316', fashion: 'EC4899', 'home-furniture': '06B6D4',
-  'real-estate': 'EF4444', jobs: '6366F1', services: '14B8A6',
-  'beauty-health': 'A855F7', sports: '84CC16',
-};
-
-const DEFAULT_PALETTE = '9CA3AF';
 const FALLBACK_IMG = '/fallback-category.svg';
 
-function getCategoryImageUrl(cat: any): string {
-  if (cat.image) return cat.image;
-  const color = CATEGORY_PALETTE[cat.slug] ?? DEFAULT_PALETTE;
-  const label = encodeURIComponent(cat.name ?? '');
-  return `https://placehold.co/100x100/${color}/FFFFFF?text=${label}`;
+const CATEGORY_IMAGE_MAP: Record<string, string> = {
+  'mobile-phones': 'Mobile-phone',
+  'baby-kids': 'babyandKids',
+  'home-furniture': 'furniture',
+  'health-beauty': 'healthandbeuty',
+  'jobs': 'job',
+  'sports': 'sportandfitness',
+  'sports-fitness': 'sportandfitness',
+  'vehicles': 'vehicles',
+  'pets': 'pets',
+  'property': 'property',
+  'services': 'services',
+  'electronics': 'Electronics',
+  'fashion': 'fashion',
+  'laptops': 'laptop',
+  'pet-food': 'Petfood',
+  'smartwatches': 'smartwatch',
+  'accessories': 'accessories',
+};
+
+function getCategoryImageSrc(slug: string) {
+  const name = CATEGORY_IMAGE_MAP[slug] || slug;
+  return `/categoryPictures/${name}.webp`;
 }
 
 function handleImgError(e: React.SyntheticEvent<HTMLImageElement>) {
@@ -210,10 +220,11 @@ export default function HomePage() {
                       className="flex flex-col items-center gap-1 bg-white rounded-lg p-2 border border-gray-100 hover:border-gray-200 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200"
                     >
                       <img
-                        src={getCategoryImageUrl(cat)}
+                        src={getCategoryImageSrc(cat.slug)}
                         alt={cat.name}
-                        className="w-11 h-11 rounded-full object-cover bg-gray-50"
+                        className="w-12 h-12 rounded-full object-cover"
                         loading="lazy"
+                        decoding="async"
                         onError={handleImgError}
                       />
                       <span className="text-[11px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
@@ -275,12 +286,13 @@ export default function HomePage() {
                     className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 active:scale-95 transition-all duration-150"
                   >
                     <img
-                      src={getCategoryImageUrl(cat)}
-                      alt={cat.name}
-                      className="w-9 h-9 rounded-full object-cover bg-gray-50"
-                      loading="lazy"
-                      onError={handleImgError}
-                    />
+                        src={getCategoryImageSrc(cat.slug)}
+                        alt={cat.name}
+                        className="w-9 h-9 rounded-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                        onError={handleImgError}
+                      />
                     <span className="text-[10px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
                   </Link>
                 ))}
