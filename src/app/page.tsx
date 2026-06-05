@@ -20,12 +20,19 @@ import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 function buildUnifiedFeed(ads: any[]): any[] {
   const safeAds = safeArray<any>(ads);
-  const boosted = safeAds.filter((ad: any) => {
+  const seen = new Set<number | string>();
+  const deduped = safeAds.filter((ad: any) => {
+    if (!ad || ad.id == null) return true;
+    if (seen.has(ad.id)) return false;
+    seen.add(ad.id);
+    return true;
+  });
+  const boosted = deduped.filter((ad: any) => {
     if (!ad || !ad.id) return false;
     const plan = getBoostPlan(ad.boost_type);
     return plan && ad.boost_status === 'active' && !isBoostExpired(ad);
   });
-  const normal = safeAds.filter((ad: any) => {
+  const normal = deduped.filter((ad: any) => {
     const plan = getBoostPlan(ad?.boost_type);
     const isActiveBoost = plan && ad?.boost_status === 'active' && !isBoostExpired(ad);
     return !isActiveBoost;
@@ -239,8 +246,8 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Mobile Categories Showcase */}
-        <section className="block md:hidden px-3 pt-1 pb-1">
+        {/* Mobile Categories Showcase - sticky on scroll */}
+        <section className="block md:hidden sticky top-[7rem] z-30 bg-[#F5F7FA] px-3 pt-1 pb-1 shadow-sm">
           <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory -mx-3 px-3 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
             {catLoading ? (
               [...Array(6)].map((_, i) => (

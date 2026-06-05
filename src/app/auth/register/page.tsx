@@ -377,7 +377,7 @@ export default function RegisterPage() {
       // Clear auth redirect and redirect to intended page
       localStorage.removeItem('authRedirect');
       sessionStorage.removeItem('authRedirect');
-      window.location.replace(redirectUrl);
+      window.location.href = redirectUrl;
       
     } catch (error) {
       console.error('Verification error:', error);

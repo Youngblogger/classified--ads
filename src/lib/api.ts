@@ -490,6 +490,7 @@ export const adsApi = {
     const { data, error } = await supabase.from('listings').insert(listing).select().single();
     if (error) return sbError(error);
 
+    // Handle raw file uploads
     const images = formData.getAll('images[]').concat(formData.getAll('image')).filter(Boolean);
     if (images.length > 0) {
       for (let i = 0; i < images.length; i++) {
@@ -507,6 +508,30 @@ export const adsApi = {
         });
       }
     }
+
+    // Handle pre-uploaded image URLs — create listing_images records so the ad is visible
+    const imageUrlsStr = formData.get('image_urls');
+    if (imageUrlsStr) {
+      try {
+        const imageData = JSON.parse(imageUrlsStr as string);
+        for (let i = 0; i < imageData.length; i++) {
+          const img = imageData[i];
+          await supabase.from('listing_images').insert({
+            listing_id: data.id,
+            url: img.url,
+            thumbnail_url: img.thumbnail_url || img.url,
+            medium_url: img.medium_url || img.url,
+            original_url: img.original_url || img.url,
+            image_hash: img.image_hash || null,
+            is_primary: i === 0,
+            sort_order: i,
+          });
+        }
+      } catch (e) {
+        console.error('Failed to create listing_images from pre-uploaded URLs:', e);
+      }
+    }
+
     return sbResponse({ data });
   },
 

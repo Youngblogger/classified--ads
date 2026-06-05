@@ -29,8 +29,8 @@ export const useAuthStore = create<AuthStore>()(
       setHasHydrated: (state) => set({ hasHydrated: state }),
       
       login: (user, token) => {
-        // Set cookie with 24h max-age (matches token expiration), secure flags
-        setCookie('token', token, 1);
+        // Set cookie with 7-day max-age for persistence across browser reopen
+        setCookie('token', token, 7);
         
         set({ user, token, isAuthenticated: true, isLoading: false, hasHydrated: true });
       },

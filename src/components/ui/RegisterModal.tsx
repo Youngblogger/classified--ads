@@ -230,12 +230,117 @@ export default function RegisterModal() {
               </div>
             </div>
 
-          <div className="p-6 overflow-y-auto flex-1">
-            {/* Google Login - at top */}
+          <div className="p-5 overflow-y-auto flex-1">
+            {error && (
+              <div className="p-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm mb-3 flex items-center gap-2">
+                <X className="w-4 h-4 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-1.5">Email Address *</label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full pl-10 pr-4 py-3 text-sm font-medium border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 bg-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-1.5">Password *</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type="password" aria-hidden="true" tabIndex={-1} autoComplete="off" className="absolute w-0 h-0 p-0 -z-10" style={{ left: '-9999px', position: 'absolute' }} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create a strong password"
+                    className="w-full pl-10 pr-10 py-3 text-sm font-medium border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 bg-white"
+                    required
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-1.5">Confirm Password *</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                    className="w-full pl-10 pr-10 py-3 text-sm font-medium border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 bg-white"
+                    required
+                    autoComplete="new-password"
+                  />
+                  {confirmPassword && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {password === confirmPassword ? (
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <X className="w-4 h-4 text-red-400" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <label className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors text-xs">
+                <input 
+                  type="checkbox" 
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  className="w-3.5 h-3.5 mt-0.5 text-primary-600 rounded border-gray-300" 
+                />
+                <span className="text-gray-600">
+                  I agree to the{' '}
+                  <Link href="/terms" className="text-primary-600 font-medium underline">Terms</Link>
+                  {' '}and{' '}
+                  <Link href="/privacy" className="text-primary-600 font-medium underline">Privacy Policy</Link>
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Create Account
+              </button>
+            </form>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="px-3 bg-white text-xs text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
             <button
               onClick={handleGoogleLogin}
               disabled={googleLoading}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 w-full mb-3"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium text-gray-700 w-full mb-2"
             >
               {googleLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -250,11 +355,10 @@ export default function RegisterModal() {
               Continue with Google
             </button>
 
-            {/* Facebook */}
             <button 
               onClick={handleFacebookLogin}
               disabled={facebookLoading}
-              className="flex items-center justify-center gap-1 py-2 px-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 w-full mb-4"
+              className="flex items-center justify-center gap-1 py-2.5 px-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 w-full mb-3"
             >
               {facebookLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -266,124 +370,14 @@ export default function RegisterModal() {
               Continue with Facebook
             </button>
 
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <span className="px-3 bg-white text-xs text-gray-500">Or create account with email</span>
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm mb-4 flex items-center gap-2">
-                <X className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-base font-semibold text-gray-800 mb-2">Email Address *</label>
-                <div className="relative">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    className="w-full pl-14 pr-5 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
-                    style={{ height: '60px' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-base font-semibold text-gray-800 mb-2">Password *</label>
-                <div className="relative">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
-                  {/* Dummy hidden input to trap browser autofill */}
-                  <input type="password" aria-hidden="true" tabIndex={-1} autoComplete="off" className="absolute w-0 h-0 p-0 -z-10" style={{ left: '-9999px', position: 'absolute' }} />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Create a strong password"
-                    className="w-full pl-14 pr-14 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
-                    style={{ height: '60px' }}
-                    required
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-base font-semibold text-gray-800 mb-2">Confirm Password *</label>
-                <div className="relative">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your password"
-                    className="w-full pl-14 pr-12 py-4 text-lg font-medium border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all text-gray-900 placeholder:text-base placeholder:font-normal placeholder:text-gray-400 bg-white"
-                    style={{ height: '60px' }}
-                    required
-                    autoComplete="new-password"
-                  />
-                  {confirmPassword && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                      {password === confirmPassword ? (
-                        <CheckCircle className="w-6 h-6 text-green-500" />
-                      ) : (
-                        <X className="w-6 h-6 text-red-400" />
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <label className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors text-sm">
-                <input 
-                  type="checkbox" 
-                  checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 text-primary-600 rounded border-gray-300" 
-                />
-                <span className="text-gray-600">
-                  I agree to the{' '}
-                  <Link href="/terms" className="text-primary-600 font-medium underline">Terms</Link>
-                  {' '}and{' '}
-                  <Link href="/privacy" className="text-primary-600 font-medium underline">Privacy Policy</Link>
-                </span>
-              </label>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="w-4 h-4" />
-                Create Account
-              </button>
-            </form>
-
-            <p className="text-center mt-4 text-sm text-gray-600">
+            <p className="text-center text-sm text-gray-600">
               Already have an account?{' '}
               <button
                 onClick={() => {
                   closeAllModals();
                   toggleLoginModal();
                 }}
-                className="text-primary-600 hover:text-[#3a3f18] font-semibold"
+                className="text-primary-600 hover:text-primary-700 font-semibold"
               >
                 Sign in
               </button>

@@ -29,7 +29,7 @@ function CallbackContent() {
             const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
             localStorage.removeItem('authRedirect');
             sessionStorage.removeItem('authRedirect');
-            if (!cancelled) window.location.replace(redirectTo);
+            if (!cancelled) window.location.href = redirectTo;
             return;
           }
           setError('No authentication code found. Please try again.');
@@ -59,7 +59,7 @@ function CallbackContent() {
           const redirectTo = localStorage.getItem('authRedirect') || sessionStorage.getItem('authRedirect') || '/';
           localStorage.removeItem('authRedirect');
           sessionStorage.removeItem('authRedirect');
-          if (!cancelled) window.location.replace(redirectTo);
+          if (!cancelled) window.location.href = redirectTo;
           return;
         }
 
@@ -80,7 +80,7 @@ function CallbackContent() {
         <div className="text-center max-w-md mx-auto p-8">
           <div className="text-red-500 mb-4 text-lg font-semibold">Authentication Failed</div>
           <p className="text-gray-600 mb-6">{error}</p>
-          <button onClick={() => router.replace('/')} className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors">
+          <button onClick={() => router.push('/')} className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors">
             Go to Home
           </button>
         </div>

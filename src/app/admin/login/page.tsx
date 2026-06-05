@@ -1,20 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, AlertCircle, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Shield, AlertCircle, Eye, EyeOff, Lock, Mail, LogOut } from 'lucide-react';
 import { api } from '@/lib/api';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@example.com');
+  const [email, setEmail] = useState('admin@ilist.com');
   const [password, setPassword] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [alreadyAuthenticated, setAlreadyAuthenticated] = useState(false);
   const [attemptsInfo, setAttemptsInfo] = useState<string | null>(null);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -25,7 +27,10 @@ export default function AdminLoginPage() {
         try {
           const userData = JSON.parse(user);
           if (userData.role === 'admin') {
-            window.location.href = '/admin/ads-moderation';
+            setAlreadyAuthenticated(true);
+            redirectTimerRef.current = setTimeout(() => {
+              router.replace('/admin/ads-moderation');
+            }, 2000);
             return;
           }
         } catch {}
@@ -34,7 +39,58 @@ export default function AdminLoginPage() {
     };
 
     checkAuth();
-  }, []);
+
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, [router]);
+
+  const handleClearAuth = () => {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_user');
+    localStorage.removeItem('admin-auth-storage');
+    if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    setAlreadyAuthenticated(false);
+    setCheckingAuth(false);
+  };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-950 to-black">
+        <div className="text-center">
+          <Shield className="w-12 h-12 text-red-400 animate-pulse mx-auto" />
+          <p className="text-gray-400 mt-4">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (alreadyAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-950 to-black">
+        <div className="text-center max-w-md px-6">
+          <Shield className="w-14 h-14 text-green-400 mx-auto" />
+          <h2 className="text-xl font-bold text-white mt-4">Already Logged In</h2>
+          <p className="text-gray-400 mt-2">You are already authenticated as admin. Redirecting to dashboard...</p>
+          <div className="mt-6 flex gap-3 justify-center">
+            <button
+              onClick={() => router.replace('/admin/ads-moderation')}
+              className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-colors"
+            >
+              Go to Dashboard
+            </button>
+            <button
+              onClick={handleClearAuth}
+              className="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold rounded-xl transition-colors inline-flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Login as Different Admin
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (checkingAuth) {
     return (
@@ -83,7 +139,7 @@ export default function AdminLoginPage() {
           version: 0
         }));
         
-        window.location.href = '/admin/ads-moderation';
+        router.replace('/admin/ads-moderation');
         return;
       }
 

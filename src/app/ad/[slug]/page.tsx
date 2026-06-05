@@ -71,6 +71,7 @@ export default function AdDetailPage() {
   const [favoriteAnimating, setFavoriteAnimating] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [mouseDown, setMouseDown] = useState<number | null>(null);
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [boostButtonLoading, setBoostButtonLoading] = useState(false);
@@ -104,6 +105,27 @@ export default function AdDetailPage() {
     } else if (isRightSwipe) {
       prevImage();
     }
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    setMouseDown(e.clientX);
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (mouseDown === null) return;
+    const distance = mouseDown - e.clientX;
+    if (Math.abs(distance) > minSwipeDistance) {
+      if (distance > 0) {
+        nextImage();
+      } else {
+        prevImage();
+      }
+      setMouseDown(null);
+    }
+  };
+
+  const onMouseUp = () => {
+    setMouseDown(null);
   };
 
   const { ad: fetchedAd, isLoading: adLoading, isError: adError, error: adFetchError } = useAdDetail(slug && slug !== '[slug]' && slug !== 'undefined' && slug !== 'ad-undefined' && slug !== 'null' && slug !== 'ad-null' ? slug : '');
@@ -324,10 +346,10 @@ export default function AdDetailPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <ResponsiveHeader />
-      <main className="flex-1 container mx-auto px-[5px] md:pb-6 md:pt-24">
+      <main className="flex-1 container mx-auto px-2 sm:px-4 md:pb-6 md:pt-24">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
-          <div className="mb-0 sm:mb-2 flex items-center gap-1 text-xs text-gray-500">
+          <div className="mb-3 sm:mb-4 md:pt-2 flex items-center gap-1 text-xs text-gray-500">
             <button onClick={() => router.back()} className="md:hidden p-0.5 -ml-1 rounded-lg active:bg-gray-200 transition-colors" aria-label="Go back">
               <ArrowLeft className="w-4 h-4 text-gray-700" />
             </button>
@@ -344,10 +366,14 @@ export default function AdDetailPage() {
               {/* Image Gallery */}
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden border-t-8 border-primary-600">
                 <div 
-                  className="relative aspect-[4/3] bg-gray-100"
+                  className="relative aspect-[4/3] bg-gray-100 select-none"
                   onTouchStart={onTouchStart}
                   onTouchMove={onTouchMove}
                   onTouchEnd={onTouchEnd}
+                  onMouseDown={onMouseDown}
+                  onMouseMove={onMouseMove}
+                  onMouseUp={onMouseUp}
+                  onMouseLeave={onMouseUp}
                 >
                   {imagesUrls.length > 0 ? (
                     <Image 
@@ -423,17 +449,6 @@ export default function AdDetailPage() {
                     )}
                   </div>
 
-                  {/* Navigation Arrows */}
-                  {showArrows && (
-                    <>
-                      <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group">
-                        <span className="text-white text-xl font-bold group-hover:scale-110 transition-transform">‹</span>
-                      </button>
-                      <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group">
-                        <span className="text-white text-xl font-bold group-hover:scale-110 transition-transform">›</span>
-                      </button>
-                    </>
-                  )}
                 </div>
 
                 {/* Thumbnail Strip */}
@@ -626,27 +641,6 @@ export default function AdDetailPage() {
 
             {/* Right Column - Seller & Contact */}
             <div className="space-y-px lg:max-w-sm">
-              {/* Seller Card - handle both API and seeded ads */}
-              {(ad.user && ad.user.id) || ad.sellerName ? (
-                <SellerProfileCard
-                  seller={{
-                    id: ad.user?.id || ad.id || 0,
-                    name: ad.user?.name || ad.sellerName || 'Unknown Seller',
-                    avatar: ad.user?.avatar,
-                    full_avatar_url: ad.user?.full_avatar_url,
-                    google_avatar: ad.user?.google_avatar,
-                    facebook_avatar: ad.user?.facebook_avatar,
-                    verified: ad.user?.verified || ad.is_verified || false,
-                    created_at: ad.user?.created_at || ad.createdAt,
-                    phone: ad.user?.phone || ad.sellerPhone,
-                    location: ad.user?.location,
-                  } as any}
-                  showFollowButton={true}
-                  showLocation={false}
-                  showPhone={false}
-                />
-              ) : null}
-
               {/* Boost Ad Card - Owner Only */}
               {user && ad.user && user.id === ad.user.id && (
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-sm p-5 border border-amber-200">
@@ -740,6 +734,27 @@ export default function AdDetailPage() {
                 )}
 
               </div>
+
+              {/* Seller Card - handle both API and seeded ads */}
+              {(ad.user && ad.user.id) || ad.sellerName ? (
+                <SellerProfileCard
+                  seller={{
+                    id: ad.user?.id || ad.id || 0,
+                    name: ad.user?.name || ad.sellerName || 'Unknown Seller',
+                    avatar: ad.user?.avatar,
+                    full_avatar_url: ad.user?.full_avatar_url,
+                    google_avatar: ad.user?.google_avatar,
+                    facebook_avatar: ad.user?.facebook_avatar,
+                    verified: ad.user?.verified || ad.is_verified || false,
+                    created_at: ad.user?.created_at || ad.createdAt,
+                    phone: ad.user?.phone || ad.sellerPhone,
+                    location: ad.user?.location,
+                  } as any}
+                  showFollowButton={true}
+                  showLocation={false}
+                  showPhone={false}
+                />
+              ) : null}
 
               {/* Latest Reviews - Separate Card */}
               <div className="bg-white rounded-2xl shadow-sm p-4">

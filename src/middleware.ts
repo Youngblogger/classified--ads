@@ -27,9 +27,7 @@ const CALLBACK_ROUTES = [
 ];
 
 function redirectToLogin(request: NextRequest) {
-  const url = new URL('/', request.url);
-  url.searchParams.set('redirect', request.nextUrl.pathname);
-  return NextResponse.redirect(url);
+  return NextResponse.redirect(new URL('/', request.url));
 }
 
 export async function middleware(request: NextRequest) {
@@ -87,7 +85,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthRoute && hasSession) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();

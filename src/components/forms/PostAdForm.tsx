@@ -146,6 +146,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [draftRestored, setDraftRestored] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const [showPostModal, setShowPostModal] = useState(false);
   const [postedAdId, setPostedAdId] = useState<number | null>(null);
@@ -204,6 +206,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
   // Restore draft if available and form is empty
   useEffect(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('draft-banner-dismissed')) return;
     const raw = typeof window !== 'undefined' ? localStorage.getItem('post-ad-draft') : null;
     if (!raw) return;
     try {
@@ -244,8 +247,22 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         }
         setDraftRestored(true);
       }
-    } catch {}
+      } catch {}
   }, [draftRestored, title, description, price, images]);
+
+  // Auto-hide draft banner after 3s with animation
+  useEffect(() => {
+    if (!draftRestored) return;
+    const showTimer = setTimeout(() => setBannerVisible(true), 50);
+    bannerTimerRef.current = setTimeout(() => {
+      setBannerVisible(false);
+      sessionStorage.setItem('draft-banner-dismissed', '1');
+    }, 3000);
+    return () => {
+      clearTimeout(showTimer);
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+    };
+  }, [draftRestored]);
 
   // Pre-fill category & location from last ad
   useEffect(() => {
@@ -788,10 +805,12 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       }
     }
     setStep(prev => Math.min(prev + 1, 2));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const prevStep = () => {
     setStep(prev => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const canSubmit = title && description && price && categoryId && locationId && images.length > 0 && condition && images.every(i => i.status === 'completed');
@@ -980,7 +999,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     <div className="space-y-6">
       {/* Draft Restored Banner */}
       {draftRestored && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+        <div className={`bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 transition-all duration-500 ease-in-out ${
+          bannerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+        }`}>
           <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
             <AlertCircle className="w-5 h-5 text-amber-600" />
           </div>
@@ -989,7 +1010,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             <p className="text-sm text-amber-700 mt-1">Your previous draft has been restored. Review your details and click &quot;Post Ad&quot; when ready.</p>
           </div>
           <button
-            onClick={() => setDraftRestored(false)}
+            onClick={() => {
+              setDraftRestored(false);
+              setBannerVisible(false);
+              sessionStorage.setItem('draft-banner-dismissed', '1');
+            }}
             className="p-1.5 hover:bg-amber-100 rounded-lg transition-colors flex-shrink-0"
           >
             <X className="w-4 h-4 text-amber-500" />

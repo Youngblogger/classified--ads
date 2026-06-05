@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { MapPin, AlertCircle } from 'lucide-react';
-import { formatPrice, formatRelativeTime, getAdMainImage } from '@/lib/utils';
+import { formatPrice, getAdMainImage } from '@/lib/utils';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses } from '@/lib/boost-config';
 import { useSimilarAds } from '@/hooks/useAds';
@@ -103,12 +103,6 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
                   <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
                     <MapPin className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">{ad.location?.name || ad.state || ad.lga || 'N/A'}</span>
-                    {ad.created_at && (
-                      <>
-                        <span className="text-gray-300 mx-0.5">·</span>
-                        <span className="whitespace-nowrap">{formatRelativeTime(ad.created_at)}</span>
-                      </>
-                    )}
                   </div>
                 </div>
               </Link>

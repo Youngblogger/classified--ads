@@ -23,6 +23,7 @@ function setCookie(name: string, value: string, days: number) {
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
+  const [initDone, setInitDone] = useState(false);
   const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
   const authInitRef = useRef(false);
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
@@ -69,17 +70,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // Single source of truth for Supabase auth state
   useEffect(() => {
     if (authInitRef.current) return;
+    authInitRef.current = true;
 
     const justLoggedOut = sessionStorage.getItem('just_logged_out');
     if (justLoggedOut === 'true') {
       sessionStorage.removeItem('just_logged_out');
-      authInitRef.current = true;
+      const store = useAuthStore.getState();
+      if (store.isAuthenticated) store.logout();
       setMounted(true);
+      setInitDone(true);
       return;
     }
-
-    authInitRef.current = true;
-    setMounted(true);
 
     // Skip session restoration on OAuth callback pages — the callback page
     // handles the PKCE code exchange and we must not consume the code verifier.
@@ -88,26 +89,97 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       window.location.pathname.startsWith('/auth/google/callback') ||
       window.location.pathname.startsWith('/auth/facebook/callback')
     );
-    if (isCallbackRoute) return;
+    if (isCallbackRoute) {
+      setMounted(true);
+      setInitDone(true);
+      return;
+    }
 
-    // Restore session on mount
+    // Restore session on mount — first check localStorage for existing auth
+    const storedAuth = localStorage.getItem('user-auth-storage');
+    let hasLocalToken = false;
+    if (storedAuth) {
+      try {
+        const parsed = JSON.parse(storedAuth);
+        const token = parsed?.state?.token;
+        if (token) {
+          hasLocalToken = true;
+          // Validate expiry
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.exp && payload.exp * 1000 > Date.now()) {
+              hasLocalToken = true;
+            } else {
+              hasLocalToken = false;
+            }
+          } catch {
+            hasLocalToken = true;
+          }
+        }
+      } catch {}
+    }
+
+    setMounted(true);
+
+    // Restore Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) {
+      if (session?.user) {
+        const token = session.access_token;
+        setAuthCookie(token);
+        supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
+          if (profile) {
+            useAuthStore.getState().login(
+              { ...profile, id: session.user.id, email: session.user.email },
+              token
+            );
+          }
+          setInitDone(true);
+        }, () => {
+          // Profile fetch failed but session is valid — keep the auth
+          const store = useAuthStore.getState();
+          if (store.token) {
+            store.setUser({ ...store.user, id: session.user.id, email: session.user.email } as any);
+          } else {
+            useAuthStore.getState().login(
+              { id: session.user.id, email: session.user.email, name: session.user.user_metadata?.full_name || 'User' } as any,
+              token
+            );
+          }
+          setInitDone(true);
+        });
+      } else if (hasLocalToken) {
+        // Local token exists but no Supabase session — try to restore it
+        supabase.auth.refreshSession().then(({ data: { session: refreshed } }) => {
+          if (refreshed?.user) {
+            setAuthCookie(refreshed.access_token);
+            supabase.from('profiles').select('*').eq('id', refreshed.user.id).single().then(({ data: profile }) => {
+              if (profile) {
+                useAuthStore.getState().login(
+                  { ...profile, id: refreshed.user.id, email: refreshed.user.email },
+                  refreshed.access_token
+                );
+              }
+              setInitDone(true);
+            }, () => {
+              setInitDone(true);
+            });
+          } else {
+            useAuthStore.getState().logout();
+            setInitDone(true);
+          }
+        }).catch(() => {
+          useAuthStore.getState().logout();
+          setInitDone(true);
+        });
+      } else {
         const store = useAuthStore.getState();
         if (store.isAuthenticated) store.logout();
         clearAuthCookie();
-        return;
+        setInitDone(true);
       }
-      const token = session.access_token;
-      setAuthCookie(token);
-      supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
-        if (profile) {
-          useAuthStore.getState().login(
-            { ...profile, id: session.user.id, email: session.user.email },
-            token
-          );
-        }
-      });
+    }).catch(() => {
+      // getSession failed — still mark as done
+      setInitDone(true);
     });
 
     // Listen for auth changes
@@ -123,9 +195,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           }
         });
       } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
-        // Token refresh is internal housekeeping — just sync the cookie.
-        // Don't fetch profiles here, as the Supabase client itself
-        // may need to refresh *again* to serve the query, creating a loop.
         setAuthCookie(session.access_token);
       } else if (event === 'USER_UPDATED' && session?.user) {
         setAuthCookie(session.access_token);
