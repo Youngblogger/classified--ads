@@ -202,12 +202,38 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
     const params = Object.fromEntries(new URLSearchParams(endpoint.replace('search?', '')));
     const hasQuery = !!params.q;
     if (hasQuery) {
-      /* [DEBUG] search endpoint — /search (MeiliSearch) */
-      console.debug('[AdsFetch] Using /search endpoint (text query)');
-      const res = await http.get('/search', { params: params as any });
-      const responseData = res?.data || { data: [], meta: null };
+      let responseData: any = { data: [], meta: null };
+      try {
+        const res = await http.get('/search', { params: params as any });
+        responseData = res?.data || { data: [], meta: null };
+      } catch (e) {
+        console.warn('[AdsFetch] Laravel search failed, trying Supabase fallback', e);
+      }
+      const mapped = (responseData.data || []).map(fromLaravelAd);
+      if (mapped.length === 0 && params.q) {
+        console.debug('[AdsFetch] Laravel search returned 0 results — falling back to Supabase ILIKE', { q: params.q });
+        try {
+          const origin = window.location.origin;
+          const fallbackParams = new URLSearchParams({ q: params.q, page: params.page || '1', per_page: params.per_page || '20' });
+          const fbRes = await fetch(`${origin}/api/ads/search?${fallbackParams}`);
+          const fbData = await fbRes.json();
+          if (fbData?.data?.length > 0) {
+            console.debug('[AdsFetch] Supabase fallback returned', fbData.data.length, 'results');
+            const fbMeta = fbData.meta || { total: fbData.data.length, current_page: 1, per_page: 20, last_page: 1 };
+            fbMeta.engine = 'supabase-ilike';
+            return {
+              data: fbData.data,
+              meta: fbMeta,
+              related_ads: [],
+              autocomplete_suggestions: [],
+            };
+          }
+        } catch (fbErr) {
+          console.warn('[AdsFetch] Supabase fallback also failed', fbErr);
+        }
+      }
       return {
-        data: (responseData.data || []).map(fromLaravelAd),
+        data: mapped,
         meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
         related_ads: (responseData.related_ads || []).map(fromLaravelAd),
         autocomplete_suggestions: responseData.autocomplete_suggestions || [],

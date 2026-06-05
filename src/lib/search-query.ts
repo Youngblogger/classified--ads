@@ -128,8 +128,5 @@ export function buildSearchParams(parsed: ParsedQuery): Record<string, string> {
   if (parsed.location && !parsed.isLocationOnly) {
     params.location = parsed.location;
   }
-  if (parsed.category && !parsed.isCategoryOnly) {
-    params.category = parsed.category;
-  }
   return params;
 }
