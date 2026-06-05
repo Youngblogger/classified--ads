@@ -312,7 +312,7 @@ export default function SellerProfileCard({
                 onClick={handleFollow}
                 disabled={isLoading || isInitializing || isOwnProfile}
                 className={`
-                  flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all duration-300 shadow-sm hover:shadow-md flex-shrink-0
+                  flex items-center gap-1 px-2.5 py-1 rounded-[7px] text-[11px] font-bold transition-all duration-300 shadow-sm hover:shadow-md flex-shrink-0
                   ${isFollowing 
                     ? 'bg-accent-600 text-white border border-accent-600 cursor-default' 
                     : 'bg-gray-100 text-gray-700 hover:bg-accent-600 hover:text-white border border-gray-300'

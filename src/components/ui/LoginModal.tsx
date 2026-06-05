@@ -134,12 +134,12 @@ export default function LoginModal() {
         onClick={(e) => e.stopPropagation()}
       >
           <div className="px-5 pt-5 pb-3 border-b border-gray-100">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Sign in</h2>
-                <p className="text-sm text-gray-500 mt-0.5">to your iList account</p>
+            <div className="flex items-center justify-center relative">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-900">Sign In</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Welcome back to iList</p>
               </div>
-              <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors -mr-1">
+              <button onClick={handleClose} className="absolute right-0 p-2 hover:bg-gray-100 rounded-xl transition-colors">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>

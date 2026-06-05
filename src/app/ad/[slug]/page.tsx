@@ -15,7 +15,7 @@ import ReportAdModal from '@/components/ui/ReportAdModal';
 import BoostAdModal from '@/components/ui/BoostAdModal';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import { Heart, Phone, ChevronRight, MessageCircle, Home, CheckCircle, ArrowLeft, Flag, ImageIcon, Zap, Ban } from 'lucide-react';
+import { Heart, Phone, ChevronRight, MessageCircle, Home, CheckCircle, Flag, ImageIcon, Zap, Ban } from 'lucide-react';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 import toast from 'react-hot-toast';
@@ -365,10 +365,7 @@ export default function AdDetailPage() {
       <main className="flex-1 container mx-auto px-2 sm:px-4 md:pb-6 md:pt-24">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
-          <div className="mb-3 sm:mb-4 md:pt-4 flex items-center gap-1 text-xs text-gray-500">
-            <button onClick={() => router.back()} className="md:hidden p-0.5 -ml-1 rounded-lg active:bg-gray-200 transition-colors" aria-label="Go back">
-              <ArrowLeft className="w-4 h-4 text-gray-700" />
-            </button>
+          <div className="pt-2 mb-3 sm:mb-4 md:pt-4 flex items-center gap-1 text-xs text-gray-500">
             <Link href="/" className="hover:text-primary-600 flex items-center gap-0.5"><Home className="w-3 h-3" />Home</Link>
             <ChevronRight className="w-3 h-3" />
             <Link href={`/ads?category=${ad.category?.slug || ad.category}`} className="hover:text-primary-600">{ad.category?.name || ad.category || 'Category'}</Link>
@@ -500,7 +497,7 @@ export default function AdDetailPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(ad.price, ad.currency)}</span>
                     {ad.negotiable && (
-                      <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-[7px] whitespace-nowrap">Negotiable</span>
+                      <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-[5px] whitespace-nowrap">Negotiable</span>
                     )}
                   </div>
 

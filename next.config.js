@@ -4,14 +4,16 @@ const isProduction = process.env.NODE_ENV === 'production';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : '';
 const supabaseWildcard = supabaseUrl ? supabaseUrl.replace(/\/\/[^.]*\./, '//*.') : 'https://*.supabase.co';
+const apiOrigin = process.env.NEXT_PUBLIC_API_URL ? new URL(process.env.NEXT_PUBLIC_API_URL).origin : '';
+const backendOrigin = apiOrigin || 'https://classified-ads-production.up.railway.app';
 
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://connect.facebook.net;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
-  img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://source.unsplash.com https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com ${supabaseOrigin};
+  img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://source.unsplash.com https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com https://placehold.co ${supabaseOrigin} ${backendOrigin};
   font-src 'self' data: https://fonts.gstatic.com;
-  connect-src 'self' https://accounts.google.com ${supabaseOrigin} ${supabaseWildcard} wss://*.supabase.co https://classified-ads-production.up.railway.app;
+  connect-src 'self' https://accounts.google.com ${supabaseOrigin} ${supabaseWildcard} wss://*.supabase.co ${backendOrigin};
   frame-src https://accounts.google.com https://connect.facebook.net;
   object-src 'none';
   base-uri 'self';
@@ -111,6 +113,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'platform-lookaside.fbsbx.com' },
       { protocol: 'https', hostname: '*.supabase.co' },
       { protocol: 'https', hostname: 'picsum.photos' },
+      { protocol: 'https', hostname: 'placehold.co' },
       ...(process.env.NEXT_PUBLIC_API_URL
         ? [{ protocol: 'https', hostname: new URL(process.env.NEXT_PUBLIC_API_URL).hostname }]
         : []),

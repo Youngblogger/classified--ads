@@ -145,9 +145,8 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
             }
 
             return (
-              <Link
+              <button
                 key={tab.key}
-                href={tab.href}
                 onClick={(e) => handleTabPress(tab, e)}
                 className="flex flex-col items-center justify-center py-1 min-w-[48px] active:scale-90 transition-transform duration-150"
               >
@@ -157,7 +156,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
                 <span className={`text-[9px] font-medium mt-0.5 transition-colors duration-150 ${active ? 'text-gray-900' : 'text-gray-900'}`}>
                   {tab.label}
                 </span>
-              </Link>
+              </button>
             );
           })}
         </div>

@@ -255,24 +255,31 @@ function buildMeta(total: number, page: number, perPage: number) {
 // ==============================
 export const authApi = {
   login: async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      console.error('[Auth API] Login failed:', error.message);
-      throw new Error(error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.error('[Auth API] Login failed:', error.message);
+        throw new Error(error.message);
+      }
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', data.user?.id).single();
+      if (profileError) {
+        console.error('[Auth API] Profile fetch after login failed:', profileError.message);
+      }
+      const token = data.session?.access_token || '';
+      return sbResponse({
+        data: {
+          user: { ...(profile || {}), id: data.user?.id },
+          token,
+          access_token: token,
+        },
+        message: 'Login successful',
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error('Connection timed out. Please check your internet and try again.');
+      }
+      throw err;
     }
-    const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', data.user?.id).single();
-    if (profileError) {
-      console.error('[Auth API] Profile fetch after login failed:', profileError.message);
-    }
-    const token = data.session?.access_token || '';
-    return sbResponse({
-      data: {
-        user: { ...(profile || {}), id: data.user?.id },
-        token,
-        access_token: token,
-      },
-      message: 'Login successful',
-    });
   },
 
   register: async (name: string, email: string, password: string, phone?: string) => {

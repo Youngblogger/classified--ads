@@ -700,10 +700,10 @@ export default function ChatModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-[9999] overflow-hidden">
-      <div className="bg-[#efeae2] w-full h-[85dvh] md:h-[75vh] xl:h-[600px] xl:w-[90%] xl:max-w-[500px] flex flex-col mt-8 md:mt-16 xl:mt-0 rounded-[7px]">
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-[#efeae2] overflow-hidden md:bg-black/50 md:flex md:items-center md:justify-center">
+      <div className="flex-1 flex flex-col min-h-0 w-full md:max-h-[85vh] xl:max-h-[600px] xl:w-[90%] xl:max-w-[500px] md:mt-8 xl:mt-0 md:rounded-[7px] md:overflow-hidden bg-[#efeae2]">
         {/* Header */}
-        <div className="bg-[#f0f2f5] px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2 border-b border-[#d1d7db] flex-shrink-0 rounded-t-[7px]">
+        <div className="bg-[#f0f2f5] px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2 border-b border-[#d1d7db] flex-shrink-0 md:rounded-t-[7px]">
           <button onClick={onClose} className="p-1.5 sm:p-1 hover:bg-[#d1d7db] rounded-full transition-colors">
             <X className="w-5 h-5 sm:w-6 sm:h-6 text-[#54656f]" />
           </button>
@@ -911,8 +911,8 @@ export default function ChatModal({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick Messages - hidden on mobile */}
-        <div className="hidden md:block px-2 py-1.5 bg-[#f0f2f5] border-t border-[#d1d7db]">
+        {/* Quick Messages */}
+        <div className="block px-2 py-1.5 bg-[#f0f2f5] border-t border-[#d1d7db]">
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => {
