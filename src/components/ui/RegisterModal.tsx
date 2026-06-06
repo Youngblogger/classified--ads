@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { X, Mail, Lock, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
+import { X, Mail, Lock, Eye, EyeOff, CheckCircle, Loader2, Search, Plus, Shield } from 'lucide-react';
 import { useUIStore } from '@/lib/store';
 import { authApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
@@ -158,31 +158,91 @@ export default function RegisterModal() {
     resetForm();
   };
 
+  if (!isRegisterModalOpen) return null;
+
   return (
-    <div className={isRegisterModalOpen ? '' : 'hidden'}>
-        <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[200] p-0 sm:p-4"
-          onClick={handleClose}
-        >
-          <div
-            className="bg-white w-full h-[50vh] sm:w-[90%] sm:max-w-md sm:max-h-[95vh] sm:rounded-2xl rounded-t-2xl flex flex-col sm:shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
-              <div className="flex items-center justify-center relative">
-                <div className="text-center">
-                  <h2 className="text-xl font-bold text-gray-900">Create Account</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">Start buying &amp; selling on iList</p>
-                </div>
-                <button
-                  onClick={handleClose}
-                  className="absolute right-0 p-2 hover:bg-gray-100 rounded-xl transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-400" />
-                </button>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[200] p-0 sm:p-4"
+      onClick={handleClose}
+    >
+      <div
+        className="bg-white w-full sm:max-w-2xl lg:max-w-4xl sm:rounded-2xl rounded-t-2xl flex flex-col lg:flex-row z-[201] sm:shadow-2xl overflow-hidden max-h-[95vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Branding Panel - Desktop (lg+) */}
+        <div className="hidden lg:flex lg:w-2/5 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 p-8 flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">i</span>
+              </div>
+              <span className="text-white font-bold text-lg">iList</span>
+            </div>
+            <h3 className="text-white font-bold text-2xl mt-8">Join iList Today</h3>
+            <p className="text-primary-100 text-sm mt-2 leading-relaxed">
+              Create your free account and start buying and selling on Nigeria&apos;s trusted marketplace.
+            </p>
+          </div>
+
+          <div className="space-y-5 mt-8">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center shrink-0">
+                <Search className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium">Find Anything</p>
+                <p className="text-primary-200 text-xs">Browse millions of listings near you</p>
               </div>
             </div>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center shrink-0">
+                <Plus className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium">Sell Everything</p>
+                <p className="text-primary-200 text-xs">Post free ads and reach buyers instantly</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium">Shop Safely</p>
+                <p className="text-primary-200 text-xs">Trusted by thousands of Nigerians</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Form Panel */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Branding Strip - Tablet */}
+          <div className="hidden sm:flex lg:hidden bg-gradient-to-r from-primary-600 to-primary-700 px-5 py-3 items-center gap-3">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
+              <span className="text-white font-bold">i</span>
+            </div>
+            <div>
+              <p className="text-white text-sm font-medium">Nigeria&apos;s Trusted Marketplace</p>
+              <p className="text-primary-200 text-xs">Buy &amp; sell locally for free</p>
+            </div>
+          </div>
+
+          {/* Header */}
+          <div className="px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Create Account</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Start buying &amp; selling on iList</p>
+              </div>
+              <button
+                onClick={handleClose}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+          </div>
 
           <div className="px-5 py-4 overflow-y-auto flex-1">
             {error && (

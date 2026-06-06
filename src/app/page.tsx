@@ -159,19 +159,19 @@ export default function HomePage() {
       <ErrorBoundary>
         <ResponsiveHeader />
       </ErrorBoundary>
-      <div className="flex flex-1 max-w-screen-2xl mx-auto w-full px-0 md:px-4 gap-4 mt-0 md:mt-[104px]">
+      <div className="flex flex-1 max-w-screen-2xl mx-auto w-full px-0 md:px-4 mt-0 md:mt-[96px]">
         <ErrorBoundary>
           <EnterpriseSidebar />
         </ErrorBoundary>
         <main className="flex-1 min-w-0 relative pt-0">
           <ErrorBoundary>
-          {/* Hero + Category Grid - Hidden on mobile */}
-          <section className="hidden md:block w-full">
-            {/* Compact Hero Banner */}
-            <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-b-[5px] mb-6">
-              <div className="relative px-6 py-6">
+          {/* Desktop Hero */}
+          <section className="hidden md:block w-full overflow-visible">
+            <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-b-[5px] mb-6"
+              style={{ marginRight: 'calc(-1rem + min(0px, (1536px - 100vw) / 2))' }}>
+              <div className="relative py-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  <div>
+                  <div className="pl-6">
                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
                       Find Anything,{' '}
                       <span className="text-accent-400">Sell Everything</span>
@@ -180,7 +180,7 @@ export default function HomePage() {
                       Nigeria&apos;s trusted marketplace
                     </p>
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex gap-2 shrink-0 px-6">
                     <Link
                       href="/ads"
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-50 transition-colors"
@@ -200,8 +200,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Category Grid */}
-            <div>
+            {/* Desktop Category Grid */}
+            <div className="mb-6">
               {catLoading ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                   {Array.from({ length: 12 }).map((_, i) => (
@@ -235,141 +235,140 @@ export default function HomePage() {
             </div>
           </section>
 
-        {/* Mobile Hero + Category Grid */}
-        <section className="block md:hidden">
-          {/* Compact Hero */}
-          <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-b-[5px] mb-4">
-            <div className="relative px-4 py-4">
-              <h1 className="text-lg font-bold text-white">
-                Find Anything,{' '}
-                <span className="text-accent-400">Sell Everything</span>
-              </h1>
-              <p className="text-primary-100 text-xs mt-0.5 mb-3">
-                Nigeria&apos;s trusted marketplace
-              </p>
-              <div className="flex gap-2">
-                <Link
-                  href="/ads"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-primary-600 rounded-lg text-xs font-medium"
-                >
-                  <Search className="w-3.5 h-3.5" />
-                  Browse Ads
-                </Link>
-                <Link
-                  href="/post-ad"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-accent-600 text-white rounded-lg text-xs font-medium"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Post Free Ad
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Category Grid */}
-          <div className="mb-2">
-            {catLoading ? (
-              <div className="grid grid-cols-4 gap-2">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 animate-pulse">
-                    <div className="w-11 h-11 bg-gray-200" />
-                    <div className="h-2 bg-gray-200 rounded w-12" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-4 gap-2">
-                {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 12).map((cat: any) => (
+          {/* Mobile Hero */}
+          <section className="block md:hidden">
+            <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-b-[5px] mb-4">
+              <div className="relative py-4">
+                <h1 className="text-lg font-bold text-white px-4">
+                  Find Anything,{' '}
+                  <span className="text-accent-400">Sell Everything</span>
+                </h1>
+                <p className="text-primary-100 text-xs mt-0.5 mb-3 px-4">
+                  Nigeria&apos;s trusted marketplace
+                </p>
+                <div className="flex gap-2 px-4">
                   <Link
-                    key={cat.id}
-                    href={`/ads?category=${cat.slug}`}
-                    className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 active:scale-95 transition-all duration-150"
+                    href="/ads"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-primary-600 rounded-lg text-xs font-medium"
                   >
-                    <img
-                        src={getCategoryImageSrc(cat.slug)}
-                        alt={cat.name}
-                        className="w-11 h-11 object-cover"
-                        loading="lazy"
-                        decoding="async"
-                        onError={handleImgError}
-                      />
-                    <span className="text-[10px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
+                    <Search className="w-3.5 h-3.5" />
+                    Browse Ads
                   </Link>
-                ))}
+                  <Link
+                    href="/post-ad"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-accent-600 text-white rounded-lg text-xs font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Post Free Ad
+                  </Link>
+                </div>
               </div>
-            )}
-          </div>
-        </section>
-
-        {/* Unified Latest Ads Feed */}
-        <section className="py-5 sm:py-6 bg-white">
-          <div className="px-1 sm:px-3 md:px-4">
-            <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
-              <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">
-                Fresh Listings
-              </h2>
-              <Link href="/ads" className="text-xs sm:text-sm text-primary-600 hover:underline font-medium whitespace-nowrap">
-                View All
-              </Link>
             </div>
-            
-            {isLoading ? (
-              <AdMasonrySkeleton count={8} />
-            ) : adsError ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">⚠️</span>
-                </div>
-                <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
-                <p className="text-gray-500 mb-4">Please try again later.</p>
-                <button 
-                  onClick={() => window.location.reload()} 
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
-                >
-                  <span>Try Again</span>
-                </button>
-              </div>
-            ) : recentAds.length > 0 ? (
-              <>
-                <MasonryGrid>
-                  {buildUnifiedFeed(recentAds).filter((ad: any) => {
-                    if (!ad || !ad.id) {
-                      if (process.env.NODE_ENV === 'development') {
-                        console.warn('[HomePage] Skipping invalid ad in feed:', ad);
-                      }
-                      return false;
-                    }
-                    return true;
-                  }).map((ad: any) => (
-                    <AdCard key={`ad-${ad.id}`} ad={ad} />
+
+            {/* Mobile Category Grid */}
+            <div className="mb-2">
+              {catLoading ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 animate-pulse">
+                      <div className="w-11 h-11 bg-gray-200" />
+                      <div className="h-2 bg-gray-200 rounded w-12" />
+                    </div>
                   ))}
-                </MasonryGrid>
-                {!isLoading && !adsError && (
-                  <LoadMoreButton
-                    onClick={handleLoadMore}
-                    loading={isLoadingMore}
-                    hasMore={hasMore}
-                  />
-                )}
-              </>
-            ) : (
-              <div className="text-center py-16">
-                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <span className="text-4xl text-gray-400">📭</span>
                 </div>
-                <h3 className="text-xl font-semibold text-dark mb-2">No ads yet</h3>
-                <p className="text-gray-500 mb-5">Be the first to post an ad in your area!</p>
-                <Link href="/post-ad" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors">
-                  <Plus className="w-5 h-5" />
-                  <span>Post Your First Ad</span>
+              ) : (
+                <div className="grid grid-cols-4 gap-2">
+                  {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 12).map((cat: any) => (
+                    <Link
+                      key={cat.id}
+                      href={`/ads?category=${cat.slug}`}
+                      className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 active:scale-95 transition-all duration-150"
+                    >
+                      <img
+                          src={getCategoryImageSrc(cat.slug)}
+                          alt={cat.name}
+                          className="w-11 h-11 object-cover"
+                          loading="lazy"
+                          decoding="async"
+                          onError={handleImgError}
+                        />
+                      <span className="text-[10px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Unified Latest Ads Feed */}
+          <section className="py-5 sm:py-6 bg-white">
+            <div className="px-1 sm:px-3 md:px-4">
+              <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">
+                  Fresh Listings
+                </h2>
+                <Link href="/ads" className="text-xs sm:text-sm text-primary-600 hover:underline font-medium whitespace-nowrap">
+                  View All
                 </Link>
               </div>
-            )}
-          </div>
-        </section>
+              
+              {isLoading ? (
+                <AdMasonrySkeleton count={8} />
+              ) : adsError ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">⚠️</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
+                  <p className="text-gray-500 mb-4">Please try again later.</p>
+                  <button 
+                    onClick={() => window.location.reload()} 
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
+                  >
+                    <span>Try Again</span>
+                  </button>
+                </div>
+              ) : recentAds.length > 0 ? (
+                <>
+                  <MasonryGrid>
+                    {buildUnifiedFeed(recentAds).filter((ad: any) => {
+                      if (!ad || !ad.id) {
+                        if (process.env.NODE_ENV === 'development') {
+                          console.warn('[HomePage] Skipping invalid ad in feed:', ad);
+                        }
+                        return false;
+                      }
+                      return true;
+                    }).map((ad: any) => (
+                      <AdCard key={`ad-${ad.id}`} ad={ad} />
+                    ))}
+                  </MasonryGrid>
+                  {!isLoading && !adsError && (
+                    <LoadMoreButton
+                      onClick={handleLoadMore}
+                      loading={isLoadingMore}
+                      hasMore={hasMore}
+                    />
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-5">
+                    <span className="text-4xl text-gray-400">📭</span>
+                  </div>
+                  <h3 className="text-xl font-semibold text-dark mb-2">No ads yet</h3>
+                  <p className="text-gray-500 mb-5">Be the first to post an ad in your area!</p>
+                  <Link href="/post-ad" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors">
+                    <Plus className="w-5 h-5" />
+                    <span>Post Your First Ad</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
 
-          </ErrorBoundary>
-      </main>
+            </ErrorBoundary>
+        </main>
       </div>
 
       {/* Back to Top Button */}

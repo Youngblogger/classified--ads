@@ -180,7 +180,7 @@ export default function MobileHeader() {
         </div>
       </header>
 
-      <div className="h-[7rem]" />
+      <div className="h-[110px]" />
 
       {/* Mobile Search Page */}
       <MobileSearchPage isOpen={searchOpen} onClose={() => setSearchOpen(false)} />

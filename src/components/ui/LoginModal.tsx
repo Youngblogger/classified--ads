@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { X, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { X, Mail, Lock, Eye, EyeOff, Loader2, Search, Plus, Shield } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import { authApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
@@ -139,22 +139,81 @@ export default function LoginModal() {
   if (!isLoginModalOpen) return null;
 
   return (
-    <>
+    <div
+      className="fixed inset-0 bg-black/60 z-[200] flex items-end md:items-center justify-center"
+      onClick={handleClose}
+    >
       <div
-        className="fixed inset-0 bg-black/60 z-[200] flex items-end md:items-center justify-center"
-        onClick={handleClose}
-      >
-      <div
-        className="bg-white w-full h-[50vh] md:w-[90%] md:max-w-md md:max-h-[95vh] md:rounded-2xl rounded-t-2xl flex flex-col z-[201] md:shadow-2xl overflow-hidden md:mb-0"
+        className="bg-white w-full md:max-w-2xl lg:max-w-4xl md:rounded-2xl rounded-t-2xl flex flex-col lg:flex-row z-[201] md:shadow-2xl overflow-hidden max-h-[95vh]"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Branding Panel - Desktop (lg+) */}
+        <div className="hidden lg:flex lg:w-2/5 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 p-8 flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">i</span>
+              </div>
+              <span className="text-white font-bold text-lg">iList</span>
+            </div>
+            <h3 className="text-white font-bold text-2xl mt-8">Welcome Back!</h3>
+            <p className="text-primary-100 text-sm mt-2 leading-relaxed">
+              Sign in to continue browsing, buying, and selling on Nigeria&apos;s trusted marketplace.
+            </p>
+          </div>
+
+          <div className="space-y-5 mt-8">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center shrink-0">
+                <Search className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium">Find Anything</p>
+                <p className="text-primary-200 text-xs">Browse millions of listings near you</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center shrink-0">
+                <Plus className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium">Sell Everything</p>
+                <p className="text-primary-200 text-xs">Post free ads and reach buyers instantly</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium">Shop Safely</p>
+                <p className="text-primary-200 text-xs">Trusted by thousands of Nigerians</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Form Panel */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Branding Strip - Tablet (md only) */}
+          <div className="hidden md:flex lg:hidden bg-gradient-to-r from-primary-600 to-primary-700 px-5 py-3 items-center gap-3">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
+              <span className="text-white font-bold">i</span>
+            </div>
+            <div>
+              <p className="text-white text-sm font-medium">Nigeria&apos;s Trusted Marketplace</p>
+              <p className="text-primary-200 text-xs">Buy &amp; sell locally for free</p>
+            </div>
+          </div>
+
+          {/* Header */}
           <div className="px-5 pt-5 pb-3 border-b border-gray-100">
-            <div className="flex items-center justify-center relative">
-              <div className="text-center">
+            <div className="flex items-center justify-between">
+              <div>
                 <h2 className="text-xl font-bold text-gray-900">Sign In</h2>
                 <p className="text-sm text-gray-500 mt-0.5">Welcome back to iList</p>
               </div>
-              <button onClick={handleClose} className="absolute right-0 p-2 hover:bg-gray-100 rounded-xl transition-colors">
+              <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
@@ -298,6 +357,6 @@ export default function LoginModal() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
