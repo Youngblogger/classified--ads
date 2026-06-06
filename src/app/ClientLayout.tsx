@@ -4,8 +4,7 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { SWRConfig } from 'swr';
 import { patchFedCmWidgetMode } from '@/lib/fedcm-patch';
-import { Toaster, ToastBar, toast } from 'react-hot-toast';
-import { X } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 import QueryProvider from '@/providers/QueryProvider';
 import LoginModal from '@/components/ui/LoginModal';
 import RegisterModal from '@/components/ui/RegisterModal';
@@ -46,16 +45,16 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
         </AuthProvider>
       )}
       <Toaster
-        position={isAdminPage ? 'top-right' : 'top-center'}
+        position="top-center"
         toastOptions={{
           duration: 3000,
           style: {
-            padding: 0,
-            margin: 0,
-            background: 'transparent',
-            boxShadow: 'none',
-            width: '100%',
-            maxWidth: '100vw',
+            borderRadius: '12px',
+            background: '#fff',
+            color: '#111827',
+            fontSize: '14px',
+            padding: '14px 16px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           },
           success: {
             iconTheme: { primary: '#10b981', secondary: '#fff' },
@@ -64,26 +63,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
             iconTheme: { primary: '#ef4444', secondary: '#fff' },
           },
         }}
-      >
-        {(t: any) => (
-          <ToastBar toast={t}>
-            {({ icon, message }: { icon: React.ReactNode; message: React.ReactNode }) => (
-              <div className={`flex items-start gap-3 px-4 py-3.5 bg-white border-b sm:border sm:rounded-xl sm:shadow-xl border-gray-100 w-full sm:max-w-md sm:mx-auto transition-all duration-300 ${
-                t.visible ? 'animate-slide-down' : 'opacity-0 translate-y-[-8px]'
-              }`}>
-                <div className="flex-shrink-0 mt-0.5">{icon}</div>
-                <div className="flex-1 min-w-0 text-sm text-gray-900 font-medium leading-snug">{message}</div>
-                <button
-                  onClick={() => toast.dismiss(t.id)}
-                  className="flex-shrink-0 p-1 -mr-1 hover:bg-red-50 rounded-lg transition-colors ml-auto"
-                >
-                  <X className="w-4 h-4 text-red-400 hover:text-red-600" />
-                </button>
-              </div>
-            )}
-          </ToastBar>
-        )}
-      </Toaster>
+      />
     </div>
   );
 

@@ -161,11 +161,11 @@ export default function RegisterModal() {
   return (
     <div className={isRegisterModalOpen ? '' : 'hidden'}>
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-0 sm:p-4"
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[200] p-0 sm:p-4"
           onClick={handleClose}
         >
           <div
-            className="bg-white w-full h-full sm:w-[90%] sm:max-w-md sm:max-h-[95vh] sm:rounded-2xl flex flex-col sm:shadow-2xl overflow-hidden"
+            className="bg-white w-full h-[50vh] sm:w-[90%] sm:max-w-md sm:max-h-[95vh] sm:rounded-2xl rounded-t-2xl flex flex-col sm:shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

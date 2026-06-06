@@ -141,11 +141,11 @@ export default function LoginModal() {
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center"
+        className="fixed inset-0 bg-black/60 z-[200] flex items-end md:items-center justify-center"
         onClick={handleClose}
       >
       <div
-        className="bg-white w-full h-full md:w-[90%] md:max-w-md md:max-h-[95vh] md:rounded-2xl flex flex-col z-[201] md:shadow-2xl overflow-hidden"
+        className="bg-white w-full h-[50vh] md:w-[90%] md:max-w-md md:max-h-[95vh] md:rounded-2xl rounded-t-2xl flex flex-col z-[201] md:shadow-2xl overflow-hidden md:mb-0"
         onClick={(e) => e.stopPropagation()}
       >
           <div className="px-5 pt-5 pb-3 border-b border-gray-100">
