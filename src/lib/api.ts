@@ -593,11 +593,16 @@ export const adsApi = {
   getMyAds: async (params?: Record<string, any>) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
-    const existingResult = await adsApi.getAll({ ...params, user_id: userId });
-    const existingData = ((existingResult.data as any)?.data || []);
-    if (existingData.length > 0) return existingResult;
-
-    console.debug('[AdsApi] getMyAds Laravel returned empty — falling back to Supabase', { userId, params });
+    try {
+      const res = await http.get('/my-ads', { params: { ...params } as any });
+      const responseData = res?.data || { data: [], meta: null };
+      if (Array.isArray(responseData.data) && responseData.data.length > 0) {
+        return sbResponse({
+          data: responseData.data.map(fromLaravelAd),
+          meta: responseData.meta || responseData.pagination || null,
+        });
+      }
+    } catch {}
     try {
       let query = supabase.from('listings').select('*, listing_images(*)').eq('user_id', userId).order('created_at', { ascending: false });
       if (params?.status && params.status !== 'all') query = query.eq('status', params.status);
@@ -665,26 +670,42 @@ export const adsApi = {
       return sbResponse({ data: mapped });
     } catch (e: any) {
       console.warn('[AdsApi] Supabase fallback for my-ads failed:', e);
-      return existingResult;
+      return sbResponse({ data: [] });
     }
   },
 
   pause: async (id: number) => {
+    try {
+      const res = await http.post(`/ads/${id}/pause`);
+      if (res?.data) return sbResponse({ data: res.data });
+    } catch {}
     const { error } = await supabase.from('listings').update({ status: 'inactive' }).eq('id', String(id));
     return error ? sbError(error) : sbResponse({ data: { message: 'Ad paused' } });
   },
 
   reactivate: async (id: number) => {
+    try {
+      const res = await http.post(`/ads/${id}/reactivate`);
+      if (res?.data) return sbResponse({ data: res.data });
+    } catch {}
     const { error } = await supabase.from('listings').update({ status: 'active' }).eq('id', String(id));
     return error ? sbError(error) : sbResponse({ data: { message: 'Ad reactivated' } });
   },
 
   sold: async (id: number) => {
+    try {
+      const res = await http.post(`/ads/${id}/sold`);
+      if (res?.data) return sbResponse({ data: res.data });
+    } catch {}
     const { error } = await supabase.from('listings').update({ status: 'sold' }).eq('id', String(id));
     return error ? sbError(error) : sbResponse({ data: { message: 'Marked as sold' } });
   },
 
   renew: async (id: number) => {
+    try {
+      const res = await http.post(`/ads/${id}/renew`);
+      if (res?.data) return sbResponse({ data: res.data });
+    } catch {}
     const { error } = await supabase.from('listings').update({ status: 'active', created_at: new Date().toISOString() }).eq('id', String(id));
     return error ? sbError(error) : sbResponse({ data: { message: 'Ad renewed' } });
   },

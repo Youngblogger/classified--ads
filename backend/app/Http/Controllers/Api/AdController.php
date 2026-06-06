@@ -262,7 +262,6 @@ class AdController extends Controller
                 }
             }
 
-            $autoApproval = $this->checkAutoApproval();
             $user = $request->user();
 
             $locationId = $this->resolveLocationId($validated['location_id'] ?? null);
@@ -270,7 +269,7 @@ class AdController extends Controller
 
             $t0 = microtime(true);
 
-            $ad = DB::transaction(function () use ($validated, $user, $locationId, $attributes, $autoApproval, $request) {
+            $ad = DB::transaction(function () use ($validated, $user, $locationId, $attributes, $request) {
                 $ad = Ad::create([
                     'user_id' => $user->id,
                     'title' => $validated['title'],
@@ -287,7 +286,8 @@ class AdController extends Controller
                     'phone' => $validated['phone'],
                     'whatsapp' => $validated['whatsapp'] ?? null,
                     'slug' => Str::slug($validated['title']) . '-' . time(),
-                    'status' => $autoApproval['should_auto_approve'] ? 'active' : 'pending',
+                    'status' => 'active',
+                    'is_published' => true,
                     'idempotency_key' => $validated['_idempotency_key'] ?? null,
                 ]);
 
@@ -370,13 +370,11 @@ class AdController extends Controller
             $t2 = microtime(true);
             event(new AdSaved($ad));
 
-            if ($autoApproval['should_auto_approve']) {
-                try {
-                    \App\Jobs\NotifyFollowersOfNewAdJob::dispatch($ad->id, $user->id);
-                    \App\Jobs\CheckSavedSearchesJob::dispatch($ad->id);
-                } catch (\Exception $e) {
-                    Log::warning('Failed to dispatch notifications: ' . $e->getMessage());
-                }
+            try {
+                \App\Jobs\NotifyFollowersOfNewAdJob::dispatch($ad->id, $user->id);
+                \App\Jobs\CheckSavedSearchesJob::dispatch($ad->id);
+            } catch (\Exception $e) {
+                Log::warning('Failed to dispatch notifications: ' . $e->getMessage());
             }
 
             $t3 = microtime(true);
@@ -396,11 +394,9 @@ class AdController extends Controller
             }
 
             return response()->json([
-                'message' => $autoApproval['should_auto_approve']
-                    ? 'Ad created successfully and is now live!'
-                    : 'Ad created successfully and is pending approval.',
+                'message' => 'Ad created successfully and is now live!',
                 'data' => new AdDetailResource($ad),
-                'auto_approved' => $autoApproval['should_auto_approve'],
+                'auto_approved' => true,
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['error' => 'Validation failed', 'errors' => $e->errors()], 422);

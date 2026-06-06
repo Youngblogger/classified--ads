@@ -31,6 +31,9 @@ class AdminController extends Controller
     // Dashboard Stats
     public function dashboard()
     {
+        // Auto-approve pending ads based on settings
+        $this->autoApprovePendingAds();
+
         $stats = [
             'total_users' => User::count(),
             'total_ads' => Ad::count(),
