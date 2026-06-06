@@ -59,7 +59,7 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
   return (
     <Link
       href={safeHref}
-      className={`block bg-white rounded-xl overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group break-inside-avoid ${cardBoostClasses}`}
+      className={`block bg-white rounded-t-[5px] overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group break-inside-avoid ${cardBoostClasses}`}
     >
       <div className="relative max-h-[200px] md:max-h-[280px] overflow-hidden bg-gray-100 flex items-center justify-center">
         <img

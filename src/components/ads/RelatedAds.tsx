@@ -24,11 +24,11 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
     return (
       <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6">
         <h3 className="text-base sm:text-lg font-bold text-dark mb-3 sm:mb-4">Similar Ads</h3>
-        <div className="columns-2 sm:columns-3 md:columns-4 gap-4 [&>*]:mb-4">
+        <div className="columns-2 sm:columns-3 md:columns-4 gap-3 [&>*]:mb-3">
           {[...Array(4)].map((_, i) => {
             const heights = ['h-44', 'h-52', 'h-36', 'h-48'];
             return (
-              <div key={i} className="animate-pulse break-inside-avoid bg-white rounded-xl overflow-hidden border border-gray-100">
+              <div key={i} className="animate-pulse break-inside-avoid bg-white rounded-t-[5px] overflow-hidden border border-gray-100">
                 <div className={`w-full ${heights[i % heights.length]} bg-gray-200`}></div>
                 <div className="p-3 space-y-2">
                   <div className="h-4 bg-gray-200 rounded w-1/2"></div>
@@ -74,7 +74,7 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
               <Link
                 key={ad.id}
                 href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`}
-                className={`block bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 break-inside-avoid group ${boostCardCls}`}
+                className={`block bg-white rounded-t-[5px] overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 break-inside-avoid group ${boostCardCls}`}
               >
                 <div className="relative max-h-[200px] md:max-h-[280px] overflow-hidden bg-gray-100 flex items-center justify-center">
                   <img

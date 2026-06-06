@@ -10,7 +10,7 @@ const IMG_HEIGHTS = ['h-48', 'h-56', 'h-64', 'h-52', 'h-60', 'h-44', 'h-72', 'h-
 export const AdCardSkeleton = memo(function AdCardSkeleton({ className = '', index = 0 }: { className?: string; index?: number }) {
   const imgHeight = IMG_HEIGHTS[index % IMG_HEIGHTS.length];
   return (
-    <div className={`bg-white rounded-xl border border-gray-100 overflow-hidden break-inside-avoid mb-4 ${className}`}>
+    <div className={`bg-white rounded-t-[5px] border border-gray-100 overflow-hidden break-inside-avoid ${className}`}>
       <div className={`w-full ${imgHeight} ${shimmerClass}`}>
         <div className={shimmerOverlay} />
       </div>
@@ -36,7 +36,7 @@ export const AdCardSkeleton = memo(function AdCardSkeleton({ className = '', ind
 
 export const AdMasonrySkeleton = memo(function AdMasonrySkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 [&>*]:mb-4">
+    <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 [&>*]:mb-3">
       {Array.from({ length: count }).map((_, i) => (
         <AdCardSkeleton key={i} index={i} />
       ))}
