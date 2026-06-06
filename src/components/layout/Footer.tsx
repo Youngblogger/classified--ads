@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { Facebook, Instagram } from '@/lib/social-icons';
 import {
-  Facebook,
-  Instagram,
   ArrowRight,
   Search
 } from 'lucide-react';

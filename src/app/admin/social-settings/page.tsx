@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { Loader2, RefreshCw, CheckCircle, XCircle, Facebook, Instagram, Save, AlertTriangle } from 'lucide-react';
+import { Facebook, Instagram } from '@/lib/social-icons';
+import { Loader2, RefreshCw, CheckCircle, XCircle, Save, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface SocialSettings {

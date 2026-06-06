@@ -1,5 +1,3 @@
-import jsPDF from 'jspdf';
-
 interface ReceiptData {
   reference: string;
   type: string;
@@ -95,6 +93,7 @@ async function loadLogo(): Promise<string | null> {
 }
 
 export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
+  const jsPDF = (await import('jspdf')).default;
   const doc = new jsPDF({ unit: 'mm', format: 'a5' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();

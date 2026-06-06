@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { Loader2, Send, Calendar, Facebook, Instagram, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Facebook, Instagram } from '@/lib/social-icons';
+import { Loader2, Send, Calendar, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Ad {

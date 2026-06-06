@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { Facebook, Linkedin } from '@/lib/social-icons';
 import { 
   Calendar,
   Clock,
@@ -12,8 +13,6 @@ import {
   Share2,
   Check,
   MessageCircle,
-  Facebook,
-  Linkedin,
   Link as LinkIcon,
   ChevronLeft,
   ChevronRight,

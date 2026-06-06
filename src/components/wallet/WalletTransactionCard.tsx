@@ -19,7 +19,7 @@ import {
 import clsx from 'clsx';
 import StatusBadge from './StatusBadge';
 import toast from 'react-hot-toast';
-import { downloadReceipt } from '@/lib/receipt';
+
 
 interface WalletTransaction {
   id: number;
@@ -468,6 +468,7 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
                     if (downloading) return;
                     setDownloading(true);
                     try {
+                      const { downloadReceipt } = await import('@/lib/receipt');
                       await downloadReceipt({
                         reference: txRef,
                         type: transaction.type,

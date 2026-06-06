@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { SWRConfig } from 'swr';
 import { patchFedCmWidgetMode } from '@/lib/fedcm-patch';
@@ -20,7 +20,7 @@ interface ClientLayoutProps {
   children: React.ReactNode;
 }
 
-export default function ClientLayout({ children }: ClientLayoutProps) {
+function ClientLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -121,5 +121,13 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
         {content}
       </SWRConfig>
     </QueryProvider>
+  );
+}
+
+export default function ClientLayout({ children }: ClientLayoutProps) {
+  return (
+    <Suspense fallback={null}>
+      <ClientLayoutInner>{children}</ClientLayoutInner>
+    </Suspense>
   );
 }

@@ -9,11 +9,12 @@ import { useAuthStore } from '@/lib/store';
 import { getAdImageUrl, formatPrice } from '@/lib/utils';
 import Header from '@/components/home/Header';
 import toast from 'react-hot-toast';
+import { Instagram, Twitter, Facebook } from '@/lib/social-icons';
 import {
   MapPin, Globe, Users, ImageIcon, Eye, Heart,
   Mail, Phone, ExternalLink, Calendar, Loader2,
   AlertCircle, ChevronDown, ChevronUp, Share2, Copy,
-  Check, Store, Instagram, Twitter, Facebook
+  Check, Store
 } from 'lucide-react';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
