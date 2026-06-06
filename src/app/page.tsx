@@ -159,7 +159,7 @@ export default function HomePage() {
       <ErrorBoundary>
         <ResponsiveHeader />
       </ErrorBoundary>
-      <div className="flex flex-1 max-w-screen-2xl mx-auto w-full px-0 md:px-4 gap-4 mt-[8px] md:mt-[104px]">
+      <div className="flex flex-1 max-w-screen-2xl mx-auto w-full px-0 md:px-4 gap-4 mt-0 md:mt-[104px]">
         <ErrorBoundary>
           <EnterpriseSidebar />
         </ErrorBoundary>
