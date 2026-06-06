@@ -212,9 +212,10 @@ class CloudinaryService
 
         return $this->retry(function () use ($publicId) {
             $result = $this->uploadApi->destroy($publicId);
+            $res = $result['result'] ?? 'error';
             return [
-                'success' => $result->getResult() === 'ok',
-                'result' => $result->getResult(),
+                'success' => $res === 'ok',
+                'result' => $res,
                 'public_id' => $publicId,
             ];
         }, self::MAX_DELETE_RETRIES, 'delete', $context);
@@ -563,16 +564,16 @@ class CloudinaryService
 
     protected function buildSuccessResponse($result, string $publicId): array
     {
-        $fullPublicId = $result->getPublicId();
+        $fullPublicId = $result['public_id'] ?? $publicId;
         return [
             'success' => true,
             'public_id' => $fullPublicId,
-            'secure_url' => $result->getSecureUrl(),
-            'url' => $result->getUrl(),
-            'width' => $result->getWidth(),
-            'height' => $result->getHeight(),
-            'format' => $result->getFormat(),
-            'bytes' => $result->getBytes(),
+            'secure_url' => $result['secure_url'] ?? '',
+            'url' => $result['url'] ?? '',
+            'width' => $result['width'] ?? null,
+            'height' => $result['height'] ?? null,
+            'format' => $result['format'] ?? null,
+            'bytes' => $result['bytes'] ?? null,
             'thumbnail_url' => $this->getThumbnailUrl($fullPublicId),
             'listing_url' => $this->getListingUrl($fullPublicId),
             'optimized_url' => $this->getOptimizedUrl($fullPublicId),
