@@ -6,8 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export default function GoogleCallbackPage() {
   useEffect(() => {
-    const params = window.location.search;
-    window.location.replace(`/auth/callback${params}`);
+    window.location.replace('/auth/callback');
   }, []);
 
   return (
