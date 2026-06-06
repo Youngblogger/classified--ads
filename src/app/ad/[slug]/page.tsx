@@ -153,6 +153,19 @@ export default function AdDetailPage() {
       setLoading(false);
       setError(adFetchError?.message || 'Ad not found');
     } else if (fetchedAd) {
+      console.log('[DETAIL PAGE] fetchedAd:', {
+        id: fetchedAd.id,
+        title: fetchedAd.title,
+        imagesCount: fetchedAd.images?.length,
+        images: fetchedAd.images?.slice(0, 2),
+        specsCount: fetchedAd.specifications?.length,
+        specs: fetchedAd.specifications?.slice(0, 2),
+        attributes: fetchedAd.attributes,
+        user: fetchedAd.user?.name,
+        location: fetchedAd.location,
+        image_url: fetchedAd.image_url,
+        slider_images: fetchedAd.slider_images?.slice(0, 2),
+      });
       setAd(fetchedAd);
       setLoading(false);
       setError(null);

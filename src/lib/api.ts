@@ -2,6 +2,7 @@ import { supabase, getServiceRoleClient } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import { http, type RequestConfig } from '@/lib/http-client';
 import type { Database, Tables } from '@/types/supabase';
+import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
 
 type SupabaseResponse<T = any> = {
   data: T;
@@ -30,211 +31,12 @@ async function ensureUserId(): Promise<string | null> {
   return user?.id || null;
 }
 
-function transformListing(listing: any, includeImages = true): any {
-  if (!listing) return listing;
-  const result: any = {
-    id: listing.id,
-    title: listing.title,
-    slug: listing.slug,
-    description: listing.description,
-    short_description: listing.short_description,
-    price: listing.price,
-    currency: listing.currency || 'NGN',
-    condition: listing.condition,
-    status: listing.status,
-    is_featured: listing.is_featured,
-    is_boosted: listing.is_boosted,
-    boost_type: listing.boost_type,
-    negotiable: listing.negotiable,
-    views: listing.views_count || 0,
-    views_count: listing.views_count || 0,
-    favorites_count: listing.favorites_count || 0,
-    whatsapp: listing.whatsapp_number,
-    phone: listing.phone_number,
-    sellerPhone: listing.phone_number,
-    phone_number: listing.phone_number,
-    state: listing.state,
-    lga: listing.lga,
-    city: listing.city,
-    location: listing.location,
-    specifications: listing.specifications,
-    attributes: listing.specifications,
-    metadata: listing.metadata,
-    created_at: listing.created_at,
-    updated_at: listing.updated_at,
-    expires_at: listing.expires_at,
-    category_id: listing.category_id,
-    subcategory_id: listing.subcategory_id,
-    user_id: listing.user_id,
-  };
-
-  if (listing.category) {
-    result.category = listing.category;
-  }
-
-  if (listing.subcategory) {
-    result.subcategory = listing.subcategory;
-  }
-
-  if (listing.user) {
-    result.user = {
-      id: listing.user.id,
-      name: listing.user.full_name || listing.user.username || '',
-      full_name: listing.user.full_name,
-      username: listing.user.username,
-      email: listing.user.email,
-      phone: listing.user.phone,
-      avatar: listing.user.avatar_url,
-      avatar_url: listing.user.avatar_url,
-      full_avatar_url: listing.user.avatar_url,
-      location: listing.user.location,
-      created_at: listing.user.created_at,
-      verified: listing.user.is_verified || false,
-      is_verified_seller: listing.user.is_verified || false,
-      is_verified_business: (listing.user as any)?.is_verified_business || false,
-      rating_avg: listing.user.rating_avg,
-      response_time: listing.user.response_time_avg,
-      completed_transactions: listing.user.completed_transactions,
-    };
-    if (!result.sellerName) result.sellerName = result.user.name;
-  }
-
-  if (listing.profiles) {
-    result.user = {
-      id: listing.profiles.id,
-      name: listing.profiles.full_name || listing.profiles.username || '',
-      full_name: listing.profiles.full_name,
-      username: listing.profiles.username,
-      email: listing.profiles.email,
-      phone: listing.profiles.phone,
-      avatar: listing.profiles.avatar_url,
-      avatar_url: listing.profiles.avatar_url,
-      full_avatar_url: listing.profiles.avatar_url,
-      location: listing.profiles.location,
-      created_at: listing.profiles.created_at,
-      verified: listing.profiles.is_verified || false,
-      is_verified_seller: listing.profiles.is_verified || false,
-      rating_avg: listing.profiles.rating_avg,
-      response_time: listing.profiles.response_time_avg,
-      completed_transactions: listing.profiles.completed_transactions,
-    };
-  }
-
-  return result;
+function transformListing(listing: any): any {
+  return normalizeAd(listing);
 }
 
 function transformListings(listings: any[]): any[] {
-  return (listings || []).map(l => transformListing(l));
-}
-
-function imgAbs(url: string | undefined | null): string {
-  if (!url || url.startsWith('http://') || url.startsWith('https://')) return url || '';
-  const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
-  return `${base}${url.startsWith('/') ? url : `/${url}`}`;
-}
-
-function fromLaravelAd(ad: any): any {
-  if (!ad) return ad;
-  const images = (ad.images || []).map((img: any) => ({
-    id: img.id,
-    url: imgAbs(img.url),
-    thumbnail_url: imgAbs(img.thumbnail_url || img.thumbnail),
-    medium_url: imgAbs(img.medium_url),
-    is_primary: img.is_primary,
-  }));
-  const singleImage = images.length > 0 ? images[0] : (ad.image ? {
-    id: ad.image.id,
-    url: imgAbs(ad.image.url),
-    thumbnail_url: imgAbs(ad.image.thumbnail_url || ad.image.thumbnail),
-    medium_url: imgAbs(ad.image.medium_url),
-    is_primary: true,
-  } : null);
-  return {
-    id: ad.id,
-    title: ad.title,
-    slug: ad.slug,
-    description: ad.short_description || '',
-    short_description: ad.short_description || '',
-    price: ad.price,
-    currency: ad.currency || 'NGN',
-    condition: ad.condition,
-    status: ad.status || 'active',
-    negotiable: ad.negotiable,
-    views: ad.views || 0,
-    views_count: ad.views || 0,
-    favorites_count: 0,
-    is_featured: false,
-    is_boosted: ad.is_boosted || false,
-    boost_type: ad.boost_type || null,
-    boost_status: ad.boost_status || null,
-    boost_expires_at: ad.boost_expires_at || null,
-    badge_icon: ad.badge_icon || null,
-    badge_label: ad.badge_label || null,
-    plan_name: ad.plan_name || null,
-    whatsapp: ad.whatsapp || ad.phone || '',
-    phone: ad.phone || '',
-    sellerPhone: ad.phone || '',
-    phone_number: ad.phone || '',
-    state: ad.state || '',
-    lga: ad.lga || '',
-    city: '',
-    location: ad.location?.name || ad.state || '',
-    specifications: [],
-    attributes: [],
-    metadata: null,
-    created_at: ad.created_at,
-    updated_at: ad.updated_at || ad.created_at,
-    expires_at: null,
-    category_id: ad.category?.id,
-    subcategory_id: ad.subcategory?.id,
-    user_id: ad.user?.id,
-    category: ad.category || null,
-    subcategory: ad.subcategory || null,
-    user: ad.user ? {
-      id: ad.user.id,
-      name: ad.user.name || '',
-      full_name: ad.user.name || '',
-      username: '',
-      email: ad.user.email || '',
-      phone: ad.user.phone || '',
-      avatar: imgAbs(ad.user.avatar || ad.user.avatar_url || ''),
-      avatar_url: imgAbs(ad.user.avatar || ad.user.avatar_url || ''),
-      full_avatar_url: imgAbs(ad.user.avatar || ad.user.avatar_url || ''),
-      location: '',
-      created_at: null,
-      verified: ad.user.is_verified || false,
-      is_verified: ad.user.is_verified || false,
-      is_verified_seller: ad.user.is_verified || false,
-      is_verified_business: false,
-      rating_avg: null,
-      response_time: null,
-      completed_transactions: null,
-    } : undefined,
-    image_url: singleImage?.url || imgAbs(ad.image_url) || null,
-    images_count: images.length || (singleImage ? 1 : 0),
-    images: images.length > 0 ? images : (singleImage ? [singleImage] : []),
-  };
-}
-
-function fromLaravelAdDetail(ad: any): any {
-  if (!ad) return ad;
-  const base = fromLaravelAd(ad);
-  base.description = ad.description || base.description;
-  base.specifications = ad.specifications || ad.attributes || [];
-  base.attributes = ad.attributes || [];
-  if (ad.user) {
-    base.user = {
-      ...base.user,
-      full_avatar_url: ad.user.full_avatar_url || ad.user.avatar || ad.user.avatar_url,
-      google_avatar: ad.user.google_avatar,
-      facebook_avatar: ad.user.facebook_avatar,
-      location: ad.user.location || '',
-      created_at: ad.user.created_at,
-      is_verified_seller: ad.user.is_verified || false,
-      is_verified_business: ad.user.is_verified_business || false,
-    };
-  }
-  return base;
+  return normalizeAds(listings);
 }
 
 const PAGE_SIZE = 20;
@@ -425,7 +227,7 @@ export const adsApi = {
       const res = await http.get(`/ads/${id}`);
       const ad = res?.data?.data || res?.data || null;
       if (!ad) return sbError({ message: 'Ad not found' });
-      return sbResponse({ data: fromLaravelAdDetail(ad) });
+      return sbResponse({ data: normalizeAd(ad, true) });
     } catch (e: any) {
       return sbError(e);
     }
@@ -436,7 +238,7 @@ export const adsApi = {
       const res = await http.get('/ads', { params: params as any });
       const responseData = res?.data || { data: [], meta: null };
       return sbResponse({
-        data: (responseData.data || []).map(fromLaravelAd),
+        data: normalizeAds(responseData.data || []),
         meta: responseData.meta || buildMeta(0, params?.page || 1, params?.per_page || params?.limit || PAGE_SIZE),
       });
     } catch (e: any) {
@@ -451,7 +253,7 @@ export const adsApi = {
       const res = await http.get(`/ads/${slug}`);
       const ad = res?.data?.data || res?.data || null;
       if (!ad) return sbError({ message: 'Ad not found' });
-      return sbResponse({ data: fromLaravelAdDetail(ad) });
+      return sbResponse({ data: normalizeAd(ad, true) });
     } catch (e: any) {
       return sbError(e);
     }
@@ -460,7 +262,7 @@ export const adsApi = {
   getFeatured: async (limit = 10) => {
     try {
       const res = await http.get('/ads/featured');
-      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+      return sbResponse({ data: normalizeAds(res?.data?.data || []) });
     } catch (e: any) {
       return sbError(e);
     }
@@ -469,7 +271,7 @@ export const adsApi = {
   getRecent: async (limit = 20) => {
     try {
       const res = await http.get('/ads/recent');
-      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+      return sbResponse({ data: normalizeAds(res?.data?.data || []) });
     } catch (e: any) {
       return sbError(e);
     }
@@ -478,7 +280,7 @@ export const adsApi = {
   getSimilar: async (adId: number, limit = 8) => {
     try {
       const res = await http.get('/ads/similar', { params: { ad_id: adId, limit } as any });
-      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+      return sbResponse({ data: normalizeAds(res?.data?.data || []) });
     } catch (e: any) {
       return sbError(e);
     }
@@ -598,7 +400,7 @@ export const adsApi = {
       const responseData = res?.data || { data: [], meta: null };
       if (Array.isArray(responseData.data) && responseData.data.length > 0) {
         return sbResponse({
-          data: responseData.data.map(fromLaravelAd),
+          data: normalizeAds(responseData.data),
           meta: responseData.meta || responseData.pagination || null,
         });
       }
@@ -609,63 +411,7 @@ export const adsApi = {
       const { data, error } = await query;
       if (error) return sbError(error);
       const mapped = (data || []).map((listing: any) => {
-        const images = listing.listing_images || [];
-        const sorted = [...images].sort((a: any, b: any) => (a.is_primary ? -1 : b.is_primary ? 1 : 0));
-        const firstImage = sorted[0];
-        return {
-          id: listing.id,
-          title: listing.title,
-          slug: listing.slug,
-          description: listing.description || '',
-          short_description: listing.short_description || '',
-          price: listing.price,
-          currency: listing.currency || 'NGN',
-          condition: listing.condition,
-          status: listing.status || 'active',
-          negotiable: listing.negotiable,
-          views: listing.views_count || 0,
-          views_count: listing.views_count || 0,
-          favorites_count: listing.favorites_count || 0,
-          is_featured: listing.is_featured || false,
-          is_boosted: listing.is_boosted || false,
-          boost_type: listing.boost_type || null,
-          boost_status: listing.boost_status || null,
-          boost_expires_at: listing.boost_expires_at || null,
-          boost_end_time: listing.boost_end_time || listing.boost_expires_at || null,
-          boost_plan: listing.boost_plan || null,
-          badge_label: listing.badge_label || null,
-          badge_icon: listing.badge_icon || null,
-          boost_priority_score: listing.boost_priority_score || 0,
-          whatsapp: listing.whatsapp_number || listing.phone_number || '',
-          phone: listing.phone_number || '',
-          sellerPhone: listing.phone_number || '',
-          phone_number: listing.phone_number || '',
-          state: listing.state || '',
-          lga: listing.lga || '',
-          city: listing.city || '',
-          location: listing.location || '',
-          specifications: [],
-          attributes: [],
-          metadata: null,
-          created_at: listing.created_at,
-          updated_at: listing.updated_at || listing.created_at,
-          expires_at: null,
-          category_id: listing.category_id,
-          subcategory_id: listing.subcategory_id,
-          user_id: listing.user_id,
-          category: null,
-          subcategory: null,
-          user: undefined,
-          image_url: firstImage?.url || null,
-          images_count: images.length,
-          images: sorted.map((img: any) => ({
-            id: img.id,
-            url: img.url || '',
-            thumbnail_url: img.thumbnail_url || img.url || '',
-            medium_url: img.medium_url || img.url || '',
-            is_primary: img.is_primary,
-          })),
-        };
+        return normalizeAd({ ...listing, images: listing.listing_images || [], listing_images: listing.listing_images || [] });
       });
       return sbResponse({ data: mapped });
     } catch (e: any) {
@@ -722,7 +468,7 @@ export const favoritesApi = {
       const res = await http.get('/favorites');
       const data = res?.data?.data || res?.data || [];
       if (Array.isArray(data) && data.length > 0) {
-        return sbResponse({ data: data.map(fromLaravelAd) });
+        return sbResponse({ data: normalizeAds(data) });
       }
     } catch {}
     const { data, error } = await supabase.from('listing_favorites').select('*, listings(*, profiles(*))').eq('user_id', userId).limit(50);
@@ -975,7 +721,7 @@ export const followApi = {
     try {
       const res = await http.get('/feed/following', { params: { page } as any });
       const data = res?.data?.data || [];
-      return sbResponse({ data: Array.isArray(data) ? data.map(fromLaravelAd) : [] });
+      return sbResponse({ data: normalizeAds(data) });
     } catch { return sbResponse({ data: [] }); }
   },
   getSuggestedSellers: async () => {
@@ -1246,7 +992,7 @@ export const dashboardApi = {
     if (!userId) return sbResponse({ data: [] });
     try {
       const res = await http.get('/my-ads');
-      const ads = (res?.data?.data || res?.data || []).slice(0, 5).map(fromLaravelAd);
+      const ads = normalizeAds((res?.data?.data || res?.data || []).slice(0, 5));
       if (ads.length > 0) return sbResponse({ data: ads });
     } catch {}
     try {
@@ -1310,7 +1056,7 @@ export const searchApi = {
       const res = await http.get('/search', { params: params as any });
       const responseData = res?.data || { data: [], meta: null };
       return sbResponse({
-        data: (responseData.data || []).map(fromLaravelAd),
+        data: normalizeAds(responseData.data || []),
         meta: responseData.meta || buildMeta(0, params.page || 1, params.per_page || PAGE_SIZE),
       });
     } catch (e: any) {
@@ -1331,7 +1077,7 @@ export const searchApi = {
   trending: async () => {
     try {
       const res = await http.get('/ads', { params: { limit: 10, order_by: 'views' } as any });
-      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+      return sbResponse({ data: normalizeAds(res?.data?.data || []) });
     } catch (e: any) {
       return sbError(e);
     }
@@ -1587,22 +1333,22 @@ export const growthApi = {
     try {
       const res = await http.get('/user/saved-ads');
       const data = res?.data?.data || res?.data || [];
-      if (Array.isArray(data)) return sbResponse({ data: data.map(fromLaravelAd) });
+      if (Array.isArray(data)) return sbResponse({ data: normalizeAds(data) });
     } catch {}
     return favoritesApi.getAll();
+  },
+  getRecentlyViewed: async (_params?: any) => {
+    try {
+      const res = await http.get('/user/recently-viewed');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data)) return sbResponse({ data: normalizeAds(data) });
+    } catch { return sbResponse({ data: [] }); }
   },
   getShareLink: async (adId: number) => {
     try {
       const res = await http.get(`/ads/${adId}/share-link`);
       return sbResponse({ data: res?.data?.data || { url: '' } });
     } catch { return sbResponse({ data: { url: '' } }); }
-  },
-  getRecentlyViewed: async (_params?: any) => {
-    try {
-      const res = await http.get('/user/recently-viewed');
-      const data = res?.data?.data || res?.data || [];
-      if (Array.isArray(data)) return sbResponse({ data: data.map(fromLaravelAd) });
-    } catch { return sbResponse({ data: [] }); }
   },
   clearRecentlyViewed: async () => {
     try {
@@ -2365,7 +2111,7 @@ export const adminApi = {
       const res = await http.get(`${STEALTH_PREFIX}/ads`, { params: params as any });
       const responseData = res?.data || { data: [], meta: null };
       return sbResponse({
-        data: (responseData.data || []).map(fromLaravelAd),
+        data: normalizeAds(responseData.data || []),
         meta: responseData.meta || buildMeta(0, params?.page || 1, params?.per_page || 20),
       });
     } catch (e: any) {
@@ -2377,7 +2123,7 @@ export const adminApi = {
       const res = await http.get('/ads', { params: params as any });
       const responseData = res?.data || { data: [], meta: null };
       return sbResponse({
-        data: (responseData.data || []).map(fromLaravelAd),
+        data: normalizeAds(responseData.data || []),
         meta: responseData.meta || buildMeta(0, params?.page || 1, params?.per_page || 20),
       });
     } catch (e: any) {

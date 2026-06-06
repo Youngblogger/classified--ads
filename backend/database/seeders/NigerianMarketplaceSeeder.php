@@ -27,6 +27,8 @@ class NigerianMarketplaceSeeder extends Seeder
             return;
         }
 
+        $categoryImages = $this->getCategoryImagePool();
+
         $created = 0;
         foreach ($adsData as $adData) {
             $user = $users->random();
@@ -54,10 +56,16 @@ class NigerianMarketplaceSeeder extends Seeder
                 'attributes' => $adData['specifications'],
             ]);
 
-            foreach ($adData['images'] as $index => $imagePath) {
+            $pool = $categoryImages[$adData['category']] ?? $categoryImages['default'];
+            $imageCount = min(rand(1, 3), count($pool));
+            $selected = array_rand($pool, $imageCount);
+            if (!is_array($selected)) {
+                $selected = [$selected];
+            }
+            foreach ($selected as $index => $poolKey) {
                 AdImage::create([
                     'ad_id' => $ad->id,
-                    'url' => $imagePath,
+                    'url' => $pool[$poolKey],
                     'is_primary' => $index === 0,
                     'sort_order' => $index + 1,
                 ]);
@@ -67,6 +75,61 @@ class NigerianMarketplaceSeeder extends Seeder
         }
 
         $this->command->info("Created {$created} Nigerian marketplace ads!");
+    }
+
+    private function getCategoryImagePool(): array
+    {
+        return [
+            'cars' => [
+                'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&h=600&fit=crop',
+            ],
+            'mobile-phones' => [
+                'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1598327105666-5b89351aff70?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1603891128711-11b4b03bb138?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1632661674596-df6be585f3c83?w=800&h=600&fit=crop',
+            ],
+            'electronics' => [
+                'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1461151304267-38535e780c79?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600&fit=crop',
+            ],
+            'property' => [
+                'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
+            ],
+            'fashion' => [
+                'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=800&h=600&fit=crop',
+            ],
+            'jobs' => [
+                'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1556745757-8d76bdb6984b?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=600&fit=crop',
+            ],
+            'default' => [
+                'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=800&h=600&fit=crop',
+            ],
+        ];
     }
 
     private function getAdsData(): array
