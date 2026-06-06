@@ -116,13 +116,32 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      // Skip session restoration on OAuth callback pages
+      // If onAuthStateChange already set the store (e.g. SIGNED_IN fired during
+      // listener registration on this mount), use that state without overriding.
+      const storeAlreadyAuthed = useAuthStore.getState().isAuthenticated;
+      if (storeAlreadyAuthed) {
+        const userData = useAuthStore.getState().user;
+        finishInit('authenticated', userData as any);
+        // Still verify with getSession() for token validity, but don't block UI
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session?.user) {
+            useAuthStore.getState().logout();
+            finishInit('guest');
+          }
+        });
+        return;
+      }
+
       const isCallbackRoute = typeof window !== 'undefined' && (
         window.location.pathname.startsWith('/auth/callback') ||
         window.location.pathname.startsWith('/auth/google/callback') ||
         window.location.pathname.startsWith('/auth/facebook/callback')
       );
       if (isCallbackRoute) {
+        // On OAuth callback pages, don't try getSession() — the callback page
+        // owns session setup. The onAuthStateChange listener (registered below)
+        // will fire SIGNED_IN and set authState when Supabase detects the
+        // OAuth code in the URL.
         finishInit('guest');
         return;
       }

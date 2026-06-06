@@ -90,7 +90,8 @@ export const useAuthStore = create<AuthStore>()(
         // finishes rehydrating, then rehydration overwrites the auth state.
         const currentState = useAuthStore.getState();
         if (currentState.isAuthenticated && currentState.token) {
-          state.hasHydrated = true;
+          // Signal hydration complete so AuthProvider can proceed
+          currentState.setHasHydrated(true);
           return;
         }
 

@@ -159,8 +159,11 @@ export default function DashboardLayout({
 
   // Show login modal if guest (only after both zustand hydration and authState resolved)
   useEffect(() => {
-    if (!hasHydrated || authState === 'loading') return;
-    const hasAuth = authState === 'authenticated' || authUser;
+    if (!hasHydrated) return;
+    // If Zustand already has auth, skip the loading gate (handles OAuth callback race)
+    if (authState === 'loading' && authUser) return;
+    if (authState === 'loading') return;
+    const hasAuth = authState === 'authenticated' || !!authUser;
     if (!hasAuth) {
       saveRedirectPath(window.location.pathname + window.location.search);
       useUIStore.getState().toggleLoginModal();

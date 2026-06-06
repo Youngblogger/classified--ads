@@ -282,7 +282,9 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   }, []);
 
   const { authState } = useAuthContext();
-  const isLoading = authState === 'loading' || !hasHydrated || !isMounted;
+  const isDefinitelyGuest = authState === 'guest' && !hasHydrated;
+  const isDefinitelyAuthed = authState === 'authenticated' || isAuthenticated;
+  const isLoading = (authState === 'loading' || !hasHydrated || !isMounted) && !isDefinitelyAuthed;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

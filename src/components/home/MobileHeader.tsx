@@ -134,7 +134,7 @@ export default function MobileHeader() {
                   </div>
                 </button>
 
-                {authState === 'authenticated' && showProfileMenu && (
+                {(authState === 'authenticated' || isAuthenticated) && showProfileMenu && (
                   <div
                     className="absolute right-0 top-full mt-1.5 w-48 py-1.5 bg-white dark:bg-gray-800 rounded-[7px] shadow-xl shadow-black/5 border border-gray-100 dark:border-gray-700 z-[9999] overflow-hidden"
                     style={{ animation: 'fadeSlideIn 0.15s ease-out' }}
