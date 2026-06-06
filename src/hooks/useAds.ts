@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import { http } from '@/lib/http-client';
+import { supabase } from '@/lib/supabase';
 import { useDebounce } from './useDebounce';
 
 function imgAbs(url: string | undefined | null): string {
@@ -117,6 +118,145 @@ function fromDetailLaravelAd(ad: any): any {
   return base;
 }
 
+function fromSupabaseListing(listing: any, images: any[] = []): any {
+  if (!listing) return listing;
+  const sorted = [...images].sort((a, b) => (a.is_primary ? -1 : b.is_primary ? 1 : (a.sort_order || 0) - (b.sort_order || 0)));
+  const firstImage = sorted[0];
+
+  return {
+    id: listing.id,
+    title: listing.title,
+    slug: listing.slug,
+    description: listing.description || '',
+    short_description: listing.short_description || (listing.description || '').slice(0, 200),
+    price: listing.price,
+    currency: listing.currency || 'NGN',
+    condition: listing.condition,
+    status: listing.status || 'active',
+    negotiable: listing.negotiable,
+    views: listing.views_count || 0,
+    views_count: listing.views_count || 0,
+    favorites_count: listing.favorites_count || 0,
+    is_featured: listing.is_featured || false,
+    is_boosted: listing.is_boosted || false,
+    boost_type: listing.boost_type || null,
+    boost_status: listing.boost_status || null,
+    boost_expires_at: listing.boost_expires_at || null,
+    boost_end_time: listing.boost_end_time || listing.boost_expires_at || null,
+    boost_plan: listing.boost_plan || null,
+    badge_label: listing.badge_label || null,
+    badge_icon: listing.badge_icon || null,
+    boost_priority_score: listing.boost_priority_score || 0,
+    whatsapp: listing.whatsapp_number || listing.phone_number || '',
+    phone: listing.phone_number || '',
+    sellerPhone: listing.phone_number || '',
+    phone_number: listing.phone_number || '',
+    state: listing.state || '',
+    lga: listing.lga || '',
+    city: listing.city || '',
+    location: listing.location || listing.state || '',
+    specifications: [],
+    attributes: [],
+    metadata: listing.metadata || null,
+    created_at: listing.created_at,
+    updated_at: listing.updated_at || listing.created_at,
+    expires_at: listing.expires_at || null,
+    category_id: listing.category_id,
+    subcategory_id: listing.subcategory_id,
+    user_id: listing.user_id,
+    category: null,
+    subcategory: null,
+    user: undefined,
+    image_url: firstImage?.url || null,
+    images_count: images.length,
+    images: sorted.map((img: any) => ({
+      id: img.id,
+      url: img.url,
+      thumbnail_url: img.thumbnail_url || img.url,
+      medium_url: img.medium_url || img.url,
+      is_primary: img.is_primary,
+    })),
+  };
+}
+
+async function fetchSupabaseListings(params: Record<string, string>, page: number = 1, perPage: number = 20, forUser?: string): Promise<{ data: any[], meta: any }> {
+  try {
+    let query = supabase
+      .from('listings')
+      .select('*, listing_images(*)', { count: 'estimated' });
+
+    if (params.status) {
+      query = query.eq('status', params.status);
+    } else {
+      query = query.eq('status', 'active');
+    }
+
+    if (params.category) {
+      const { data: cat } = await supabase.from('categories').select('id').eq('slug', params.category).maybeSingle();
+      if (cat) query = query.eq('category_id', cat.id);
+    }
+
+    if (params.category_id) query = query.eq('category_id', params.category_id);
+    if (params.subcategory_id) query = query.eq('subcategory_id', params.subcategory_id);
+    if (params.state) query = query.eq('state', params.state);
+    if (params.lga) query = query.eq('lga', params.lga);
+    if (params.location) query = query.eq('location', params.location);
+    if (params.condition) query = query.eq('condition', params.condition);
+    if (params.min_price) query = query.gte('price', params.min_price);
+    if (params.max_price) query = query.lte('price', params.max_price);
+    if (forUser) query = query.eq('user_id', forUser);
+    if (params.user_id) query = query.eq('user_id', params.user_id);
+
+    const sortBy = params.sort_by || 'created_at';
+    const sortOrder = params.sort_order || 'desc';
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+    const from = (page - 1) * perPage;
+    const to = from + perPage - 1;
+    query = query.range(from, to);
+
+    const { data, count } = await query;
+
+    if (!data || data.length === 0) {
+      return { data: [], meta: { total: 0, current_page: page, per_page: perPage, last_page: 1 } };
+    }
+
+    const mapped = data.map((listing: any) => {
+      const images = listing.listing_images || [];
+      return fromSupabaseListing(listing, images);
+    });
+
+    return {
+      data: mapped,
+      meta: {
+        total: count || mapped.length,
+        current_page: page,
+        per_page: perPage,
+        last_page: Math.ceil((count || mapped.length) / perPage),
+        engine: 'supabase-ilike',
+      },
+    };
+  } catch (e) {
+    console.warn('[SupabaseFallback] Query failed:', e);
+    return { data: [], meta: { total: 0, current_page: page, per_page: perPage, last_page: 1 } };
+  }
+}
+
+async function fetchSupabaseAdDetail(slug: string): Promise<any> {
+  try {
+    const { data } = await supabase
+      .from('listings')
+      .select('*, listing_images(*)')
+      .eq('slug', slug)
+      .maybeSingle();
+    if (!data) return null;
+    const images = data.listing_images || [];
+    return fromSupabaseListing(data, images);
+  } catch {
+    return null;
+  }
+}
+
 async function fetchFromLaravel(endpoint: string): Promise<any> {
   if (endpoint === 'categories_data') {
     const [catsRes] = await Promise.all([
@@ -150,10 +290,20 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
       http.get('/ads', { params: { limit: 20, is_boosted: 1 } }),
       http.get('/categories'),
     ]);
-    const featured = (featuredRes?.data?.data || []).map(fromLaravelAd);
-    const recent = (recentRes?.data?.data || []).map(fromLaravelAd);
-    const boosted = (boostedRes?.data?.data || []).filter((a: any) => a.is_boosted).map(fromLaravelAd);
+    let featured = (featuredRes?.data?.data || []).map(fromLaravelAd);
+    let recent = (recentRes?.data?.data || []).map(fromLaravelAd);
+    let boosted = (boostedRes?.data?.data || []).filter((a: any) => a.is_boosted).map(fromLaravelAd);
     const categories = (catsRes?.data?.data || []);
+
+    if (recent.length === 0 && featured.length === 0) {
+      console.debug('[AdsFetch] Homepage Laravel returned 0 results — falling back to Supabase');
+      const supabaseRecent = await fetchSupabaseListings({ status: 'active' }, 1, 20);
+      if (supabaseRecent.data.length > 0) {
+        recent = supabaseRecent.data;
+        featured = supabaseRecent.data.slice(0, 10);
+      }
+    }
+
     return {
       data: {
         featured,
@@ -174,9 +324,21 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
   if (endpoint.startsWith('ads?')) {
     const params = Object.fromEntries(new URLSearchParams(endpoint.replace('ads?', '')));
     const res = await http.get('/ads', { params: params as any });
-    const responseData = res?.data || { data: [], meta: null };
+    let responseData = res?.data || { data: [], meta: null };
+    let mapped = (responseData.data || []).map(fromLaravelAd);
+
+    if (mapped.length === 0) {
+      console.debug('[AdsFetch] Laravel returned 0 results — falling back to Supabase', params);
+      const page = parseInt(params.page || '1', 10);
+      const perPage = parseInt(params.limit || params.per_page || '20', 10);
+      const supabaseResult = await fetchSupabaseListings(params, page, perPage);
+      if (supabaseResult.data.length > 0) {
+        return { data: supabaseResult.data, meta: supabaseResult.meta };
+      }
+    }
+
     return {
-      data: (responseData.data || []).map(fromLaravelAd),
+      data: mapped,
       meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
     };
   }
@@ -186,8 +348,11 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
     if (slug && slug.length > 0 && !slug.includes('?')) {
       const res = await http.get(`/ads/${slug}`);
       const ad = res?.data?.data || res?.data || null;
-      if (!ad) return { data: null };
-      return { data: fromDetailLaravelAd(ad) };
+      if (ad) return { data: fromDetailLaravelAd(ad) };
+      console.debug('[AdsFetch] Laravel ad detail returned null — falling back to Supabase', slug);
+      const supabaseAd = await fetchSupabaseAdDetail(slug);
+      if (supabaseAd) return { data: supabaseAd };
+      return { data: null };
     }
     const params = Object.fromEntries(new URLSearchParams(slug));
     const res = await http.get('/ads', { params: params as any });

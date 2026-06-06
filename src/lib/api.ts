@@ -15,8 +15,8 @@ function sbResponse<T>(data: T, status = 200): SupabaseResponse<T> {
   return { data, status, statusText: 'OK', headers: {}, config: {} };
 }
 
-function sbError(error: any): SupabaseResponse<null> {
-  return { data: null, status: error?.status || 500, statusText: error?.message || 'Error', headers: {}, config: {} };
+function sbError(error: any): SupabaseResponse<any> {
+  return { data: {} as any, status: error?.status || 500, statusText: error?.message || 'Error', headers: {}, config: {} };
 }
 
 function getUserId(): string | null {
@@ -487,6 +487,10 @@ export const adsApi = {
   create: async (formData: FormData) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/ads', formData);
+      if (res?.data?.data) return sbResponse({ data: res.data.data });
+    } catch {}
     const listing: any = { user_id: userId, status: 'active' };
     for (const [key, value] of Array.from(formData.entries())) {
       if (key !== 'images[]' && key !== 'image') {
@@ -497,7 +501,6 @@ export const adsApi = {
     const { data, error } = await supabase.from('listings').insert(listing).select().single();
     if (error) return sbError(error);
 
-    // Handle raw file uploads
     const images = formData.getAll('images[]').concat(formData.getAll('image')).filter(Boolean);
     if (images.length > 0) {
       for (let i = 0; i < images.length; i++) {
@@ -507,16 +510,12 @@ export const adsApi = {
         await supabase.storage.from('listing-images').upload(path, file);
         const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(path);
         await supabase.from('listing_images').insert({
-          listing_id: data.id,
-          url: publicUrl,
-          storage_path: path,
-          is_primary: i === 0,
-          sort_order: i,
+          listing_id: data.id, url: publicUrl, storage_path: path,
+          is_primary: i === 0, sort_order: i,
         });
       }
     }
 
-    // Handle pre-uploaded image URLs — create listing_images records so the ad is visible
     const imageUrlsStr = formData.get('image_urls');
     if (imageUrlsStr) {
       try {
@@ -524,14 +523,12 @@ export const adsApi = {
         for (let i = 0; i < imageData.length; i++) {
           const img = imageData[i];
           await supabase.from('listing_images').insert({
-            listing_id: data.id,
-            url: img.url,
+            listing_id: data.id, url: img.url,
             thumbnail_url: img.thumbnail_url || img.url,
             medium_url: img.medium_url || img.url,
             original_url: img.original_url || img.url,
             image_hash: img.image_hash || null,
-            is_primary: i === 0,
-            sort_order: i,
+            is_primary: i === 0, sort_order: i,
           });
         }
       } catch (e) {
@@ -545,6 +542,11 @@ export const adsApi = {
   update: async (id: number, formData: FormData) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      formData.append('_method', 'PUT');
+      const res = await http.post(`/ads/${id}`, formData);
+      if (res?.data?.data) return sbResponse({ data: res.data.data });
+    } catch {}
     const updates: any = {};
     for (const [key, value] of Array.from(formData.entries())) {
       if (key !== 'images[]' && key !== 'image' && key !== '_method') {
@@ -558,6 +560,10 @@ export const adsApi = {
   delete: async (slug: string) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.delete(`/ads/${slug}`);
+      if (res?.data) return sbResponse({ data: { message: 'Deleted' } });
+    } catch {}
     const { data: listing } = await supabase.from('listings').select('id').eq('slug', slug).single();
     if (!listing) return sbError({ message: 'Not found' });
     const { error } = await supabase.from('listings').delete().eq('id', listing.id).eq('user_id', userId);
@@ -567,11 +573,19 @@ export const adsApi = {
   deleteById: async (id: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.delete(`/ads/${id}`);
+      if (res?.data) return sbResponse({ data: { message: 'Deleted' } });
+    } catch {}
     const { error } = await supabase.from('listings').delete().eq('id', String(id)).eq('user_id', userId);
     return error ? sbError(error) : sbResponse({ data: { message: 'Deleted' } });
   },
 
   incrementViews: async (id: number) => {
+    try {
+      await http.post(`/analytics/record-view/${id}`);
+      return sbResponse({ data: { message: 'View counted' } });
+    } catch {}
     await supabase.rpc('increment_listing_views', { listing_id: String(id) } as any);
     return sbResponse({ data: { message: 'View counted' } });
   },
@@ -579,7 +593,80 @@ export const adsApi = {
   getMyAds: async (params?: Record<string, any>) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
-    return adsApi.getAll({ ...params, user_id: userId });
+    const existingResult = await adsApi.getAll({ ...params, user_id: userId });
+    const existingData = ((existingResult.data as any)?.data || []);
+    if (existingData.length > 0) return existingResult;
+
+    console.debug('[AdsApi] getMyAds Laravel returned empty — falling back to Supabase', { userId, params });
+    try {
+      let query = supabase.from('listings').select('*, listing_images(*)').eq('user_id', userId).order('created_at', { ascending: false });
+      if (params?.status && params.status !== 'all') query = query.eq('status', params.status);
+      const { data, error } = await query;
+      if (error) return sbError(error);
+      const mapped = (data || []).map((listing: any) => {
+        const images = listing.listing_images || [];
+        const sorted = [...images].sort((a: any, b: any) => (a.is_primary ? -1 : b.is_primary ? 1 : 0));
+        const firstImage = sorted[0];
+        return {
+          id: listing.id,
+          title: listing.title,
+          slug: listing.slug,
+          description: listing.description || '',
+          short_description: listing.short_description || '',
+          price: listing.price,
+          currency: listing.currency || 'NGN',
+          condition: listing.condition,
+          status: listing.status || 'active',
+          negotiable: listing.negotiable,
+          views: listing.views_count || 0,
+          views_count: listing.views_count || 0,
+          favorites_count: listing.favorites_count || 0,
+          is_featured: listing.is_featured || false,
+          is_boosted: listing.is_boosted || false,
+          boost_type: listing.boost_type || null,
+          boost_status: listing.boost_status || null,
+          boost_expires_at: listing.boost_expires_at || null,
+          boost_end_time: listing.boost_end_time || listing.boost_expires_at || null,
+          boost_plan: listing.boost_plan || null,
+          badge_label: listing.badge_label || null,
+          badge_icon: listing.badge_icon || null,
+          boost_priority_score: listing.boost_priority_score || 0,
+          whatsapp: listing.whatsapp_number || listing.phone_number || '',
+          phone: listing.phone_number || '',
+          sellerPhone: listing.phone_number || '',
+          phone_number: listing.phone_number || '',
+          state: listing.state || '',
+          lga: listing.lga || '',
+          city: listing.city || '',
+          location: listing.location || '',
+          specifications: [],
+          attributes: [],
+          metadata: null,
+          created_at: listing.created_at,
+          updated_at: listing.updated_at || listing.created_at,
+          expires_at: null,
+          category_id: listing.category_id,
+          subcategory_id: listing.subcategory_id,
+          user_id: listing.user_id,
+          category: null,
+          subcategory: null,
+          user: undefined,
+          image_url: firstImage?.url || null,
+          images_count: images.length,
+          images: sorted.map((img: any) => ({
+            id: img.id,
+            url: img.url || '',
+            thumbnail_url: img.thumbnail_url || img.url || '',
+            medium_url: img.medium_url || img.url || '',
+            is_primary: img.is_primary,
+          })),
+        };
+      });
+      return sbResponse({ data: mapped });
+    } catch (e: any) {
+      console.warn('[AdsApi] Supabase fallback for my-ads failed:', e);
+      return existingResult;
+    }
   },
 
   pause: async (id: number) => {
@@ -610,6 +697,13 @@ export const favoritesApi = {
   getAll: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
+    try {
+      const res = await http.get('/favorites');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data) && data.length > 0) {
+        return sbResponse({ data: data.map(fromLaravelAd) });
+      }
+    } catch {}
     const { data, error } = await supabase.from('listing_favorites').select('*, listings(*, profiles(*))').eq('user_id', userId).limit(50);
     if (error) return sbError(error);
     return sbResponse({
@@ -620,6 +714,10 @@ export const favoritesApi = {
   add: async (adId: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/favorites', { ad_id: adId });
+      if (res?.data) return sbResponse({ data: { message: 'Added to favorites' } });
+    } catch {}
     const { error } = await supabase.from('listing_favorites').insert({ user_id: userId, listing_id: String(adId) });
     return error ? sbError(error) : sbResponse({ data: { message: 'Added to favorites' } });
   },
@@ -627,6 +725,10 @@ export const favoritesApi = {
   remove: async (adId: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.delete(`/favorites/${adId}`);
+      if (res?.data) return sbResponse({ data: { message: 'Removed from favorites' } });
+    } catch {}
     const { error } = await supabase.from('listing_favorites').delete().eq('user_id', userId).eq('listing_id', String(adId));
     return error ? sbError(error) : sbResponse({ data: { message: 'Removed from favorites' } });
   },
@@ -634,6 +736,11 @@ export const favoritesApi = {
   check: async (adId: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: { is_favorited: false } });
+    try {
+      const res = await http.get(`/favorites/check/${adId}`);
+      const is_favorited = res?.data?.data?.is_favorited ?? res?.data?.is_favorited;
+      if (is_favorited !== undefined) return sbResponse({ data: { is_favorited } });
+    } catch {}
     const { data } = await supabase.from('listing_favorites').select('id').eq('user_id', userId).eq('listing_id', String(adId)).maybeSingle();
     return sbResponse({ data: { is_favorited: !!data } });
   },
@@ -646,52 +753,54 @@ export const messagesApi = {
   getConversations: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
+    try {
+      const res = await http.get('/messages/conversations');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data) && data.length > 0) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('conversations').select('*, listings(title, slug), buyer:profiles!conversations_buyer_id_fkey(*), seller:profiles!conversations_seller_id_fkey(*)')
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
       .order('last_message_at', { ascending: false })
       .limit(50);
     if (error) return sbError(error);
     return sbResponse({ data: (data || []).map((c: any) => ({
-      id: c.id,
-      ad_id: c.listing_id,
-      ad_title: c.listings?.title,
-      ad: c.listings,
+      id: c.id, ad_id: c.listing_id, ad_title: c.listings?.title, ad: c.listings,
       other_user: c.buyer_id === userId ? c.seller : c.buyer,
-      last_message: c.last_message_preview,
-      last_message_at: c.last_message_at,
-      unread_count: 0,
-      is_blocked: c.is_blocked,
+      last_message: c.last_message_preview, last_message_at: c.last_message_at,
+      unread_count: 0, is_blocked: c.is_blocked,
     })) });
   },
 
   getMessages: async (conversationId: number) => {
+    try {
+      const res = await http.get(`/messages/${conversationId}`);
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data) && data.length > 0) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('messages').select('*, sender:profiles!messages_sender_id_fkey(*)').eq('conversation_id', String(conversationId)).order('created_at', { ascending: true }).limit(100);
     if (error) return sbError(error);
     return sbResponse({ data: (data || []).map((m: any) => ({
-      id: m.id,
-      conversation_id: m.conversation_id,
-      sender_id: m.sender_id,
+      id: m.id, conversation_id: m.conversation_id, sender_id: m.sender_id,
       sender: m.sender ? { id: m.sender.id, name: m.sender.full_name || m.sender.username, avatar: m.sender.avatar_url } : null,
-      message: m.content,
-      content: m.content,
-      message_type: m.message_type,
-      attachment: m.attachment_url,
-      attachment_url: m.attachment_url,
-      duration: m.duration,
-      is_read: m.is_read,
-      created_at: m.created_at,
+      message: m.content, content: m.content, message_type: m.message_type,
+      attachment: m.attachment_url, attachment_url: m.attachment_url,
+      duration: m.duration, is_read: m.is_read, created_at: m.created_at,
     })) });
   },
 
   sendMessage: async (conversationId: number, content: string, attachment?: File | Blob, messageType?: string) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
-    const msg: any = {
-      conversation_id: String(conversationId),
-      sender_id: userId,
-      content,
-      message_type: messageType || 'text',
-    };
+    try {
+      const formData = new FormData();
+      formData.append('conversation_id', String(conversationId));
+      formData.append('content', content);
+      formData.append('message_type', messageType || 'text');
+      if (attachment) formData.append('attachment', attachment);
+      const res = await http.post(`/messages/${conversationId}`, formData);
+      if (res?.data?.data) return sbResponse({ data: res.data.data });
+    } catch {}
+    const msg: any = { conversation_id: String(conversationId), sender_id: userId, content, message_type: messageType || 'text' };
     if (attachment) {
       const isBlob = attachment instanceof Blob && !(attachment instanceof File);
       const fileName = isBlob ? `voice_${Date.now()}.webm` : (attachment as File).name;
@@ -708,16 +817,21 @@ export const messagesApi = {
   sendVoiceMessage: async (conversationId: number, audioBlob: Blob, duration: number, _onProgress?: (pct: number) => void) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const formData = new FormData();
+      formData.append('conversation_id', String(conversationId));
+      formData.append('audio', audioBlob, 'voice.webm');
+      formData.append('duration', String(duration));
+      formData.append('message_type', 'voice');
+      const res = await http.post(`/messages/${conversationId}`, formData);
+      if (res?.data?.data) return sbResponse({ data: res.data.data });
+    } catch {}
     const path = `messages/${conversationId}/voice_${Date.now()}.webm`;
     await supabase.storage.from('message-attachments').upload(path, audioBlob);
     const { data: { publicUrl } } = supabase.storage.from('message-attachments').getPublicUrl(path);
     const { data, error } = await supabase.from('messages').insert({
-      conversation_id: String(conversationId),
-      sender_id: userId,
-      content: '',
-      message_type: 'voice',
-      attachment_url: publicUrl,
-      duration,
+      conversation_id: String(conversationId), sender_id: userId,
+      content: '', message_type: 'voice', attachment_url: publicUrl, duration,
     }).select().single();
     return error ? sbError(error) : sbResponse({ data });
   },
@@ -725,6 +839,10 @@ export const messagesApi = {
   sendMessageNew: async (receiverId: number, adId: number | null, content: string, _messageType?: string, _attachment?: File | Blob, _duration?: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/messages/start', { receiver_id: receiverId, listing_id: adId, content });
+      if (res?.data?.data) return sbResponse({ data: res.data.data });
+    } catch {}
     let convId: string | null = null;
     const { data: existing } = await supabase.from('conversations').select('id')
       .or(`and(buyer_id.eq.${userId},seller_id.eq.${String(receiverId)}),and(buyer_id.eq.${String(receiverId)},seller_id.eq.${userId})`)
@@ -733,18 +851,13 @@ export const messagesApi = {
       convId = existing.id;
     } else {
       const { data: newConv } = await supabase.from('conversations').insert({
-        listing_id: adId ? String(adId) : null,
-        buyer_id: userId,
-        seller_id: String(receiverId),
+        listing_id: adId ? String(adId) : null, buyer_id: userId, seller_id: String(receiverId),
       }).select().single();
       convId = newConv?.id || null;
     }
     if (!convId) return sbError({ message: 'Failed to create conversation' });
     const { data, error } = await supabase.from('messages').insert({
-      conversation_id: convId,
-      sender_id: userId,
-      content,
-      message_type: 'text',
+      conversation_id: convId, sender_id: userId, content, message_type: 'text',
     }).select().single();
     await supabase.from('conversations').update({ last_message_at: new Date().toISOString(), last_message_preview: content }).eq('id', convId);
     return error ? sbError(error) : sbResponse({ data });
@@ -753,6 +866,10 @@ export const messagesApi = {
   startConversation: async (adId: number, content: string) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/messages/start', { listing_id: adId, content });
+      if (res?.data?.data) return sbResponse({ data: res.data.data });
+    } catch {}
     const { data: listing } = await supabase.from('listings').select('user_id').eq('id', String(adId)).single();
     if (!listing) return sbError({ message: 'Ad not found' });
     return messagesApi.sendMessageNew(listing.user_id as any, adId, content);
@@ -761,12 +878,20 @@ export const messagesApi = {
   markAsRead: async (conversationId: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post(`/messages/${conversationId}/read`);
+      if (res?.data) return sbResponse({ data: { message: 'Marked as read' } });
+    } catch {}
     const { error } = await supabase.from('messages').update({ is_read: true, read_at: new Date().toISOString() })
       .eq('conversation_id', String(conversationId)).neq('sender_id', userId);
     return error ? sbError(error) : sbResponse({ data: { message: 'Marked as read' } });
   },
 
   deleteMessage: async (messageId: number) => {
+    try {
+      const res = await http.delete(`/messages/message/${messageId}`);
+      if (res?.data) return sbResponse({ data: { message: 'Deleted' } });
+    } catch {}
     const { error } = await supabase.from('messages').delete().eq('id', String(messageId));
     return error ? sbError(error) : sbResponse({ data: { message: 'Deleted' } });
   },
@@ -779,26 +904,65 @@ export const followApi = {
   follow: async (followingId: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/follow', { following_id: followingId });
+      if (res?.data) return sbResponse({ data: { message: 'Followed' } });
+    } catch {}
     const { error } = await supabase.from('follows' as any).insert({ follower_id: userId, following_id: String(followingId) } as any);
     return error ? sbError(error) : sbResponse({ data: { message: 'Followed' } });
   },
   unfollow: async (followingId: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.delete('/unfollow', { data: { following_id: followingId } } as any);
+      if (res?.data) return sbResponse({ data: { message: 'Unfollowed' } });
+    } catch {}
     const { error } = await supabase.from('follows' as any).delete().eq('follower_id', userId).eq('following_id', String(followingId)) as any;
     return error ? sbError(error) : sbResponse({ data: { message: 'Unfollowed' } });
   },
   checkFollow: async (followingId: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: { is_following: false } });
+    try {
+      const res = await http.get('/follow/check', { params: { following_id: followingId } as any });
+      const is_following = res?.data?.data?.is_following ?? res?.data?.is_following;
+      if (is_following !== undefined) return sbResponse({ data: { is_following } });
+    } catch {}
     const { data } = await supabase.from('follows' as any).select('id').eq('follower_id', userId).eq('following_id', String(followingId)).maybeSingle() as any;
     return sbResponse({ data: { is_following: !!data } });
   },
-  getFollowers: async (_userId: number, _page = 1) => sbResponse({ data: [] }),
-  getFollowing: async (_userId: number, _page = 1) => sbResponse({ data: [] }),
-  getUserStats: async (_userId: number) => sbResponse({ data: { followers_count: 0, following_count: 0 } }),
-  getFollowingFeed: async (_page = 1) => sbResponse({ data: [] }),
-  getSuggestedSellers: async () => sbResponse({ data: [] }),
+  getFollowers: async (userId: number, page = 1) => {
+    try {
+      const res = await http.get(`/users/${userId}/followers`, { params: { page } as any });
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  getFollowing: async (userId: number, page = 1) => {
+    try {
+      const res = await http.get(`/users/${userId}/following`, { params: { page } as any });
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  getUserStats: async (userId: number) => {
+    try {
+      const res = await http.get(`/users/${userId}/stats`);
+      return sbResponse({ data: res?.data?.data || { followers_count: 0, following_count: 0 } });
+    } catch { return sbResponse({ data: { followers_count: 0, following_count: 0 } }); }
+  },
+  getFollowingFeed: async (page = 1) => {
+    try {
+      const res = await http.get('/feed/following', { params: { page } as any });
+      const data = res?.data?.data || [];
+      return sbResponse({ data: Array.isArray(data) ? data.map(fromLaravelAd) : [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  getSuggestedSellers: async () => {
+    try {
+      const res = await http.get('/sellers/suggested');
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
 };
 
 // ==============================
@@ -908,17 +1072,24 @@ export const reportsApi = {
   create: async (data: { ad_id: number; reason: string; description: string }) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/reports', data);
+      if (res?.data) return sbResponse({ data: res?.data?.data || { message: 'Report submitted' } });
+    } catch {}
     const { error } = await supabase.from('reports').insert({
-      reporter_id: userId,
-      listing_id: String(data.ad_id),
-      reason: data.reason,
-      description: data.description,
+      reporter_id: userId, listing_id: String(data.ad_id),
+      reason: data.reason, description: data.description,
     });
     return error ? sbError(error) : sbResponse({ data: { message: 'Report submitted' } });
   },
   getMyReports: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
+    try {
+      const res = await http.get('/reports/my-reports');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data) && data.length > 0) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('reports').select('*').eq('reporter_id', userId);
     return error ? sbError(error) : sbResponse({ data: data || [] });
   },
@@ -931,48 +1102,78 @@ export const notificationsApi = {
   getAll: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
+    try {
+      const res = await http.get('/notifications');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data) && data.length > 0) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
     return error ? sbError(error) : sbResponse({ data: data || [] });
   },
   markAsRead: async (id: number) => {
+    try {
+      const res = await http.post(`/notifications/${id}/read`);
+      if (res?.data) return sbResponse({ data: { message: 'Marked as read' } });
+    } catch {}
     const { error } = await supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', String(id));
     return error ? sbError(error) : sbResponse({ data: { message: 'Marked as read' } });
   },
   getUnread: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
+    try {
+      const res = await http.get('/notifications/unread');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data)) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('notifications').select('*').eq('user_id', userId).eq('is_read', false).order('created_at', { ascending: false }).limit(50);
     return error ? sbError(error) : sbResponse({ data: data || [] });
   },
   markAllAsRead: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/notifications/mark-all-read');
+      if (res?.data) return sbResponse({ data: { message: 'All marked as read' } });
+    } catch {}
     const { error } = await supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('user_id', userId).is('is_read', false);
     return error ? sbError(error) : sbResponse({ data: { message: 'All marked as read' } });
   },
-  markAllRead: async () => {
-    const userId = await ensureUserId();
-    if (!userId) return sbError({ message: 'Not authenticated' });
-    const { error } = await supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('user_id', userId).is('is_read', false);
-    return error ? sbError(error) : sbResponse({ data: { message: 'All marked as read' } });
-  },
+  markAllRead: async () => notificationsApi.markAllAsRead(),
   markRead: async (id: string) => {
+    try {
+      const res = await http.post(`/notifications/${id}/read`);
+      if (res?.data) return sbResponse({ data: { message: 'Marked as read' } });
+    } catch {}
     const { error } = await supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id);
     return error ? sbError(error) : sbResponse({ data: { message: 'Marked as read' } });
   },
   deleteAll: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/notifications/delete-all');
+      if (res?.data) return sbResponse({ data: { message: 'All deleted' } });
+    } catch {}
     const { error } = await supabase.from('notifications').delete().eq('user_id', userId);
     return error ? sbError(error) : sbResponse({ data: { message: 'All deleted' } });
   },
   remove: async (id: string) => {
+    try {
+      const res = await http.delete(`/notifications/${id}`);
+      if (res?.data) return sbResponse({ data: { message: 'Deleted' } });
+    } catch {}
     const { error } = await supabase.from('notifications').delete().eq('id', id);
     return error ? sbError(error) : sbResponse({ data: { message: 'Deleted' } });
   },
   getUnreadCount: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: { count: 0 } });
+    try {
+      const res = await http.get('/notifications/unread-count');
+      const count = res?.data?.data?.count ?? res?.data?.count;
+      if (count !== undefined) return sbResponse({ data: { count } });
+    } catch {}
     const { count, error } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_read', false);
     return error ? sbError(error) : sbResponse({ data: { count: count || 0 } });
   },
@@ -983,26 +1184,101 @@ export const notificationsApi = {
 // ==============================
 export const bannersApi = {
   getAll: async (_position?: string) => sbResponse({ data: [] }),
-  getActive: async (_position?: string) => sbResponse({ data: [] }),
+  getActive: async (position?: string) => {
+    try {
+      const params = position ? { position } : undefined;
+      const res = await http.get('/banners/active', { params: params as any });
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
 };
 
 // ==============================
 //  DASHBOARD API
 // ==============================
 export const dashboardApi = {
-  getStats: async () => sbResponse({ data: { total_ads: 0, active_ads: 0, total_views: 0, total_favorites: 0 } }),
+  getStats: async () => {
+    const userId = await ensureUserId();
+    if (!userId) return sbResponse({ data: { total_ads: 0, active_ads: 0, total_views: 0, total_favorites: 0 } });
+    try {
+      const { data: listings } = await supabase.from('listings').select('id, status, views_count').eq('user_id', userId);
+      const { count: favorites } = await supabase.from('listing_favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+      const total_ads = listings?.length || 0;
+      const active_ads = listings?.filter(l => l.status === 'active').length || 0;
+      const total_views = listings?.reduce((sum, l) => sum + (l.views_count || 0), 0) || 0;
+      return sbResponse({ data: { total_ads, active_ads, total_views, total_favorites: favorites || 0 } });
+    } catch {
+      try {
+        const res = await http.get('/my-ads');
+        const ads = (res?.data?.data || res?.data || []);
+        const total_ads = ads.length;
+        const active_ads = ads.filter((a: any) => a.status === 'active').length;
+        const total_views = ads.reduce((s: number, a: any) => s + (a.views || 0), 0);
+        return sbResponse({ data: { total_ads, active_ads, total_views, total_favorites: 0 } });
+      } catch {
+        return sbResponse({ data: { total_ads: 0, active_ads: 0, total_views: 0, total_favorites: 0 } });
+      }
+    }
+  },
   getRecentAds: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
     try {
-      const res = await http.get('/ads', { params: { user_id: userId, limit: 5 } as any });
-      return sbResponse({ data: ((res?.data?.data || []).map(fromLaravelAd)) });
+      const res = await http.get('/my-ads');
+      const ads = (res?.data?.data || res?.data || []).slice(0, 5).map(fromLaravelAd);
+      if (ads.length > 0) return sbResponse({ data: ads });
+    } catch {}
+    try {
+      const { data } = await supabase.from('listings').select('*, listing_images(*)').eq('user_id', userId).order('created_at', { ascending: false }).limit(5);
+      return sbResponse({ data: (data || []).map(l => fromSupabaseListing(l, l.listing_images || [])) });
     } catch {
       return sbResponse({ data: [] });
     }
   },
-  getAnalytics: async (_period?: string) => sbResponse({ data: { views: [], clicks: [] } }),
+  getAnalytics: async (period?: string) => {
+    try {
+      const res = await http.get('/analytics/overview', { params: { period } as any });
+      return sbResponse({ data: res?.data?.data || res?.data || { views: [], clicks: [] } });
+    } catch {
+      return sbResponse({ data: { views: [], clicks: [] } });
+    }
+  },
 };
+
+function fromSupabaseListing(listing: any, images: any[] = []): any {
+  if (!listing) return listing;
+  const sorted = [...images].sort((a, b) => (a.is_primary ? -1 : b.is_primary ? 1 : (a.sort_order || 0) - (b.sort_order || 0)));
+  const firstImage = sorted[0];
+  return {
+    id: listing.id, title: listing.title, slug: listing.slug,
+    description: listing.description || '', short_description: listing.short_description || (listing.description || '').slice(0, 200),
+    price: listing.price, currency: listing.currency || 'NGN', condition: listing.condition,
+    status: listing.status || 'active', negotiable: listing.negotiable,
+    views: listing.views_count || 0, views_count: listing.views_count || 0,
+    favorites_count: listing.favorites_count || 0,
+    is_featured: listing.is_featured || false, is_boosted: listing.is_boosted || false,
+    boost_type: listing.boost_type || null, boost_status: listing.boost_status || null,
+    boost_expires_at: listing.boost_expires_at || null,
+    boost_end_time: listing.boost_end_time || listing.boost_expires_at || null,
+    boost_plan: listing.boost_plan || null, badge_label: listing.badge_label || null,
+    badge_icon: listing.badge_icon || null, boost_priority_score: listing.boost_priority_score || 0,
+    whatsapp: listing.whatsapp_number || listing.phone_number || '',
+    phone: listing.phone_number || '', sellerPhone: listing.phone_number || '',
+    phone_number: listing.phone_number || '',
+    state: listing.state || '', lga: listing.lga || '', city: listing.city || '',
+    location: listing.location || listing.state || '',
+    specifications: [], attributes: [], metadata: listing.metadata || null,
+    created_at: listing.created_at, updated_at: listing.updated_at || listing.created_at,
+    expires_at: listing.expires_at || null,
+    category_id: listing.category_id, subcategory_id: listing.subcategory_id,
+    user_id: listing.user_id, category: null, subcategory: null, user: undefined,
+    image_url: firstImage?.url || null, images_count: images.length,
+    images: sorted.map((img: any) => ({
+      id: img.id, url: img.url, thumbnail_url: img.thumbnail_url || img.url,
+      medium_url: img.medium_url || img.url, is_primary: img.is_primary,
+    })),
+  };
+}
 
 // ==============================
 //  SEARCH API
@@ -1048,12 +1324,21 @@ export const notificationsPreferencesApi = {
   get: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: {} });
+    try {
+      const res = await http.get('/notification-preferences');
+      const data = res?.data?.data || res?.data;
+      if (data) return sbResponse({ data });
+    } catch {}
     const { data } = await supabase.from('profiles').select('notification_preferences').eq('id', userId).single();
     return sbResponse({ data: (data as any)?.notification_preferences || {} });
   },
   update: async (prefs: any) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.put('/notification-preferences', prefs);
+      if (res?.data) return sbResponse({ data: prefs });
+    } catch {}
     const { error } = await supabase.from('profiles').update({ notification_preferences: prefs } as any).eq('id', userId);
     return error ? sbError(error) : sbResponse({ data: prefs });
   },
@@ -1064,31 +1349,38 @@ export const notificationsPreferencesApi = {
 // ==============================
 export const promotionsApi = {
   getPlans: async () => {
+    try {
+      const res = await http.get('/ads/boost-plans');
+      const plans = res?.data?.data || res?.data || [];
+      if (Array.isArray(plans) && plans.length > 0) {
+        return sbResponse({ data: plans.map((p: any) => ({
+          id: p.id, name: p.name, type: p.type, price: p.price,
+          duration_days: p.duration_days, priority_score: p.priority_score,
+          badge_label: p.badge_label, badge_icon: p.badge_icon,
+          color_scheme: p.color_scheme, features: p.features,
+        })) });
+      }
+    } catch {}
     const { data, error } = await supabase.from('boost_plans').select('*').eq('is_active', true).order('sort_order');
     return error ? sbError(error) : sbResponse({ data: (data || []).map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      type: p.type,
-      price: p.price,
-      duration_days: p.duration_days,
-      priority_score: p.priority_score,
-      badge_label: p.badge_label,
-      badge_icon: p.badge_icon,
-      color_scheme: p.color_scheme,
-      features: p.features,
+      id: p.id, name: p.name, type: p.type, price: p.price,
+      duration_days: p.duration_days, priority_score: p.priority_score,
+      badge_label: p.badge_label, badge_icon: p.badge_icon,
+      color_scheme: p.color_scheme, features: p.features,
     })) });
   },
   buy: async (data: { ad_id: number; plan_id: number; payment_method: string }) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post(`/ads/${data.ad_id}/boost`, data);
+      if (res?.data) return sbResponse({ data: res?.data?.data || { message: 'Promotion purchased' } });
+    } catch {}
     const { data: plan } = await supabase.from('boost_plans').select('*').eq('id', String(data.plan_id)).single();
     if (!plan) return sbError({ message: 'Plan not found' });
     const { error } = await supabase.from('boosted_listings').insert({
-      listing_id: String(data.ad_id),
-      user_id: userId,
-      plan_id: String(data.plan_id),
-      boost_type: plan.type,
-      start_date: new Date().toISOString(),
+      listing_id: String(data.ad_id), user_id: userId, plan_id: String(data.plan_id),
+      boost_type: plan.type, start_date: new Date().toISOString(),
       end_date: new Date(Date.now() + plan.duration_days * 86400000).toISOString(),
       payment_amount: plan.price,
       payment_status: data.payment_method === 'wallet' ? 'completed' : 'pending',
@@ -1096,15 +1388,35 @@ export const promotionsApi = {
     });
     return error ? sbError(error) : sbResponse({ data: { message: 'Promotion purchased' } });
   },
-  verifyPayment: async (_reference: string) => sbResponse({ data: { message: 'Payment verified' } }),
+  verifyPayment: async (reference: string) => {
+    try {
+      const res = await http.post('/payments/verify', { reference });
+      return sbResponse({ data: res?.data?.data || { message: 'Payment verified' } });
+    } catch { return sbResponse({ data: { message: 'Payment verified' } }); }
+  },
   getMyPromotions: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
+    try {
+      const res = await http.get('/my-boosts');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data) && data.length > 0) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('boosted_listings').select('*, boost_plans(*)').eq('user_id', userId).limit(50);
     return error ? sbError(error) : sbResponse({ data: data || [] });
   },
-  getAdPromotions: async (_adId: number) => sbResponse({ data: [] }),
-  cancel: async (_promotionId: number) => sbResponse({ data: { message: 'Cancelled' } }),
+  getAdPromotions: async (adId: number) => {
+    try {
+      const res = await http.get(`/ads/${adId}/boost-status`);
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  cancel: async (promotionId: number) => {
+    try {
+      const res = await http.post(`/boosts/${promotionId}/deactivate`);
+      return sbResponse({ data: res?.data?.data || { message: 'Cancelled' } });
+    } catch { return sbResponse({ data: { message: 'Cancelled' } }); }
+  },
 };
 
 // ==============================
@@ -1114,6 +1426,11 @@ export const walletApi = {
   getBalance: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: { balance: 0 } });
+    try {
+      const res = await http.get('/wallet/balance');
+      if (res?.data?.data?.balance !== undefined) return sbResponse({ data: res.data.data });
+      if (res?.data?.balance !== undefined) return sbResponse({ data: res.data });
+    } catch {}
     const { data, error } = await supabase.from('transactions').select('amount, type').eq('user_id', userId);
     if (error) return sbError(error);
     const balance = (data || []).reduce((acc: number, t: any) => t.type === 'credit' ? acc + (t.amount || 0) : acc - (t.amount || 0), 0);
@@ -1122,20 +1439,60 @@ export const walletApi = {
   getTransactions: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
+    try {
+      const res = await http.get('/wallet/transactions');
+      const txns = res?.data?.data || res?.data || [];
+      if (Array.isArray(txns) && txns.length > 0) return sbResponse({ data: txns });
+    } catch {}
     const { data, error } = await supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100);
     return error ? sbError(error) : sbResponse({ data: data || [] });
   },
-  fundWallet: async (_amount: number, _method: string) => sbResponse({ data: { message: 'Funding initiated', reference: `REF-${Date.now()}` } }),
-  verifyPayment: async (_reference: string) => sbResponse({ data: { message: 'Payment verified' } }),
-  checkBalance: async (_amount: number) => sbResponse({ data: { sufficient: true } }),
-  uploadBankProof: async (_reference: string, _proof: File) => sbResponse({ data: { message: 'Proof uploaded' } }),
+  fundWallet: async (amount: number, method: string) => {
+    try {
+      const res = await http.post('/wallet/fund', { amount, method });
+      return sbResponse({ data: res?.data?.data || { message: 'Funding initiated', reference: `REF-${Date.now()}` } });
+    } catch {
+      return sbResponse({ data: { message: 'Funding initiated', reference: `REF-${Date.now()}` } });
+    }
+  },
+  verifyPayment: async (reference: string) => {
+    try {
+      const res = await http.post('/wallet/verify', { reference });
+      return sbResponse({ data: res?.data?.data || { message: 'Payment verified' } });
+    } catch {
+      return sbResponse({ data: { message: 'Payment verified' } });
+    }
+  },
+  checkBalance: async (amount: number) => {
+    try {
+      const res = await http.post('/wallet/check-balance', { amount });
+      const sufficient = res?.data?.data?.sufficient ?? res?.data?.sufficient ?? true;
+      return sbResponse({ data: { sufficient } });
+    } catch { return sbResponse({ data: { sufficient: true } }); }
+  },
+  uploadBankProof: async (reference: string, proof: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('reference', reference);
+      formData.append('proof', proof);
+      const res = await http.post('/wallet/bank-transfer-proof', formData);
+      return sbResponse({ data: res?.data?.data || { message: 'Proof uploaded' } });
+    } catch { return sbResponse({ data: { message: 'Proof uploaded' } }); }
+  },
 };
 
 // ==============================
 //  IMAGE UPLOAD API
 // ==============================
 export const imageUploadApi = {
-  upload: async (file: File, _onProgress?: (pct: number) => void) => {
+  upload: async (file: File, onProgress?: (pct: number) => void) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await http.upload('/uploads/image', formData, onProgress);
+      const url = res?.data?.data?.url || res?.data?.url;
+      if (url) return sbResponse({ data: { url, path: url } });
+    } catch {}
     const path = `uploads/${Date.now()}_${file.name}`;
     const { error } = await supabase.storage.from('uploads').upload(path, file);
     if (error) return sbError(error);
@@ -1148,43 +1505,147 @@ export const imageUploadApi = {
 //  GROWTH & BOOST API
 // ==============================
 export const growthApi = {
-  getBoostPrices: async () => sbResponse({ data: [] }),
+  getBoostPrices: async () => {
+    try {
+      const res = await http.get('/ads/boost-prices');
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
   myBoosts: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
-    const { data, error } = await supabase.from('boosted_listings').select('*').eq('user_id', userId).limit(50);
+    try {
+      const res = await http.get('/my-boosts');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data)) return sbResponse({ data });
+    } catch {}
+    const { data, error } = await supabase.from('boosted_listings').select('*, boost_plans(*)').eq('user_id', userId).limit(50);
     return error ? sbError(error) : sbResponse({ data: data || [] });
   },
-  boostAd: async (_adId: number, _data: any) => sbResponse({ data: { message: 'Boosted' } }),
-  postSubmissionBoost: async (_adId: number, _data: any) => sbResponse({ data: { message: 'Boosted' } }),
-  getBoostStatus: async (_adId: number) => sbResponse({ data: { is_boosted: false } }),
-  saveAd: async (adId: number) => favoritesApi.add(adId),
-  unsaveAd: async (adId: number) => favoritesApi.remove(adId),
-  checkSavedStatus: async (adId: number) => favoritesApi.check(adId),
-  getSavedAds: async (_params?: any) => favoritesApi.getAll(),
-  getShareLink: async (_adId: number) => sbResponse({ data: { url: '' } }),
-  getRecentlyViewed: async (_params?: any) => sbResponse({ data: [] }),
-  clearRecentlyViewed: async () => sbResponse({ data: { message: 'Cleared' } }),
+  boostAd: async (adId: number, data: any) => {
+    try {
+      const res = await http.post(`/ads/${adId}/boost`, data);
+      return sbResponse({ data: res?.data?.data || { message: 'Boosted' } });
+    } catch { return sbResponse({ data: { message: 'Boosted' } }); }
+  },
+  postSubmissionBoost: async (adId: number, data: any) => {
+    try {
+      const res = await http.post(`/ads/${adId}/post-submission-boost`, data);
+      return sbResponse({ data: res?.data?.data || { message: 'Boosted' } });
+    } catch { return sbResponse({ data: { message: 'Boosted' } }); }
+  },
+  getBoostStatus: async (adId: number) => {
+    try {
+      const res = await http.get(`/ads/${adId}/boost-status`);
+      return sbResponse({ data: res?.data?.data || { is_boosted: false } });
+    } catch { return sbResponse({ data: { is_boosted: false } }); }
+  },
+  saveAd: async (adId: number) => {
+    try {
+      const res = await http.post(`/ads/${adId}/save`);
+      if (res?.data) return sbResponse({ data: { message: 'Saved' } });
+    } catch {}
+    return favoritesApi.add(adId);
+  },
+  unsaveAd: async (adId: number) => {
+    try {
+      const res = await http.delete(`/ads/${adId}/unsave`);
+      if (res?.data) return sbResponse({ data: { message: 'Unsaved' } });
+    } catch {}
+    return favoritesApi.remove(adId);
+  },
+  checkSavedStatus: async (adId: number) => {
+    try {
+      const res = await http.get(`/ads/${adId}/saved-check`);
+      const is_favorited = res?.data?.data?.is_favorited ?? res?.data?.is_favorited ?? false;
+      if (is_favorited !== undefined) return sbResponse({ data: { is_favorited } });
+    } catch {}
+    return favoritesApi.check(adId);
+  },
+  getSavedAds: async (_params?: any) => {
+    try {
+      const res = await http.get('/user/saved-ads');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data)) return sbResponse({ data: data.map(fromLaravelAd) });
+    } catch {}
+    return favoritesApi.getAll();
+  },
+  getShareLink: async (adId: number) => {
+    try {
+      const res = await http.get(`/ads/${adId}/share-link`);
+      return sbResponse({ data: res?.data?.data || { url: '' } });
+    } catch { return sbResponse({ data: { url: '' } }); }
+  },
+  getRecentlyViewed: async (_params?: any) => {
+    try {
+      const res = await http.get('/user/recently-viewed');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data)) return sbResponse({ data: data.map(fromLaravelAd) });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  clearRecentlyViewed: async () => {
+    try {
+      const res = await http.delete('/user/recently-viewed');
+      if (res?.data) return sbResponse({ data: { message: 'Cleared' } });
+    } catch {}
+    return sbResponse({ data: { message: 'Cleared' } });
+  },
 };
 
 // ==============================
 //  PAYMENT API
 // ==============================
 export const paymentApi = {
-  verifyPayment: async (_reference: string) => sbResponse({ data: { message: 'Verified' } }),
+  verifyPayment: async (reference: string) => {
+    try {
+      const res = await http.post('/payments/verify', { reference });
+      return sbResponse({ data: res?.data?.data || { message: 'Verified' } });
+    } catch { return sbResponse({ data: { message: 'Verified' } }); }
+  },
   getPaystackPublicKey: async () => sbResponse({ data: { public_key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '' } }),
-  getPendingPayments: async () => sbResponse({ data: [] }),
-  cancelPayment: async (_id: number) => sbResponse({ data: { message: 'Cancelled' } }),
+  getPendingPayments: async () => {
+    try {
+      const res = await http.get('/payments/pending');
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  cancelPayment: async (id: number) => {
+    try {
+      const res = await http.post(`/payments/${id}/cancel`);
+      return sbResponse({ data: res?.data?.data || { message: 'Cancelled' } });
+    } catch { return sbResponse({ data: { message: 'Cancelled' } }); }
+  },
 };
 
 // ==============================
 //  ADMIN BANK TRANSFERS API
 // ==============================
 export const adminBankTransfersApi = {
-  getTransfers: async (_status?: string) => sbResponse({ data: [] }),
-  getStats: async () => sbResponse({ data: { total: 0, pending: 0, approved: 0, rejected: 0 } }),
-  approve: async (_id: number) => sbResponse({ data: { message: 'Approved' } }),
-  reject: async (_id: number, _note?: string) => sbResponse({ data: { message: 'Rejected' } }),
+  getTransfers: async (status?: string) => {
+    try {
+      const params = status && status !== 'all' ? { status } : undefined;
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/bank-transfers`, params);
+      return sbResponse({ data: res?.data || [] });
+    } catch (e: any) { return sbError(e); }
+  },
+  getStats: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/bank-transfers/stats`);
+      return sbResponse({ data: res?.data || { total: 0, pending: 0, approved: 0, rejected: 0 } });
+    } catch (e: any) { return sbError(e); }
+  },
+  approve: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/bank-transfers/${id}/approve`);
+      return sbResponse({ data: res?.data || { message: 'Approved' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  reject: async (id: number, note?: string) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/bank-transfers/${id}/reject`, { note });
+      return sbResponse({ data: res?.data || { message: 'Rejected' } });
+    } catch (e: any) { return sbError(e); }
+  },
 };
 
 // ==============================
@@ -1194,26 +1655,61 @@ export const storeApi = {
   getMyStore: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.get('/my-store');
+      const data = res?.data?.data || res?.data;
+      if (data) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
     return error ? sbError(error) : sbResponse({ data: { ...data, name: data?.full_name || data?.username } });
   },
-  getBySlug: async (_slug: string) => sbResponse({ data: null }),
+  getBySlug: async (slug: string) => {
+    try {
+      const res = await http.get(`/stores/${slug}`);
+      return sbResponse({ data: res?.data?.data || res?.data || null });
+    } catch { return sbResponse({ data: null }); }
+  },
   getByUser: async (userId: number) => {
+    try {
+      const res = await http.get(`/stores/by-user/${userId}`);
+      const data = res?.data?.data || res?.data;
+      if (data) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('profiles').select('*').eq('id', String(userId)).single();
     return error ? sbError(error) : sbResponse({ data });
   },
   create: async (formData: FormData) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/stores', formData);
+      if (res?.data) return sbResponse({ data: res?.data?.data || { message: 'Created' } });
+    } catch {}
     const updates: any = {};
     for (const [k, v] of Array.from(formData.entries())) updates[k] = v;
     const { data, error } = await supabase.from('profiles').update(updates).eq('id', userId).select().single();
     return error ? sbError(error) : sbResponse({ data });
   },
-  update: async (formData: FormData) => storeApi.create(formData),
+  update: async (formData: FormData) => {
+    const userId = await ensureUserId();
+    if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      formData.append('_method', 'PUT');
+      const res = await http.post('/stores/update', formData);
+      if (res?.data) return sbResponse({ data: res?.data?.data || { message: 'Updated' } });
+    } catch {}
+    return storeApi.create(formData);
+  },
   uploadLogo: async (file: File) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const res = await http.post('/stores/upload-logo', formData);
+      const url = res?.data?.data?.url || res?.data?.url;
+      if (url) return sbResponse({ data: { url } });
+    } catch {}
     const path = `stores/${userId}/logo_${Date.now()}`;
     await supabase.storage.from('store-assets').upload(path, file);
     const { data: { publicUrl } } = supabase.storage.from('store-assets').getPublicUrl(path);
@@ -1222,30 +1718,104 @@ export const storeApi = {
   uploadBanner: async (file: File) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const formData = new FormData();
+      formData.append('banner', file);
+      const res = await http.post('/stores/upload-banner', formData);
+      const url = res?.data?.data?.url || res?.data?.url;
+      if (url) return sbResponse({ data: { url } });
+    } catch {}
     const path = `stores/${userId}/banner_${Date.now()}`;
     await supabase.storage.from('store-assets').upload(path, file);
     const { data: { publicUrl } } = supabase.storage.from('store-assets').getPublicUrl(path);
     return sbResponse({ data: { url: publicUrl } });
   },
-  follow: async (_storeId: number) => sbResponse({ data: { message: 'Followed' } }),
-  unfollow: async (_storeId: number) => sbResponse({ data: { message: 'Unfollowed' } }),
-  checkFollow: async (_storeId: number) => sbResponse({ data: { is_following: false } }),
-  getFollowers: async (_storeId: number) => sbResponse({ data: [] }),
-  getAnalytics: async (_period?: string) => sbResponse({ data: {} }),
-  getDashboardAnalytics: async () => sbResponse({ data: {} }),
-  checkSlug: async (_slug: string) => sbResponse({ data: { available: true } }),
+  follow: async (storeId: number) => {
+    try {
+      const res = await http.post(`/stores/${storeId}/follow`);
+      return sbResponse({ data: res?.data?.data || { message: 'Followed' } });
+    } catch { return sbResponse({ data: { message: 'Followed' } }); }
+  },
+  unfollow: async (storeId: number) => {
+    try {
+      const res = await http.delete(`/stores/${storeId}/unfollow`);
+      return sbResponse({ data: res?.data?.data || { message: 'Unfollowed' } });
+    } catch { return sbResponse({ data: { message: 'Unfollowed' } }); }
+  },
+  checkFollow: async (storeId: number) => {
+    try {
+      const res = await http.get(`/stores/${storeId}/check-follow`);
+      const is_following = res?.data?.data?.is_following ?? res?.data?.is_following ?? false;
+      return sbResponse({ data: { is_following } });
+    } catch { return sbResponse({ data: { is_following: false } }); }
+  },
+  getFollowers: async (storeId: number) => {
+    try {
+      const res = await http.get(`/stores/${storeId}/followers`);
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  getAnalytics: async (period?: string) => {
+    try {
+      const res = await http.get('/store/analytics', { params: { period } as any });
+      return sbResponse({ data: res?.data?.data || {} });
+    } catch { return sbResponse({ data: {} }); }
+  },
+  getDashboardAnalytics: async () => {
+    try {
+      const res = await http.get('/store/dashboard-analytics');
+      return sbResponse({ data: res?.data?.data || {} });
+    } catch { return sbResponse({ data: {} }); }
+  },
+  checkSlug: async (slug: string) => {
+    try {
+      const res = await http.get('/stores/check-slug', { params: { slug } as any });
+      const available = res?.data?.data?.available ?? res?.data?.available ?? true;
+      return sbResponse({ data: { available } });
+    } catch { return sbResponse({ data: { available: true } }); }
+  },
 };
 
 // ==============================
 //  SAVED SEARCHES API
 // ==============================
 export const savedSearchesApi = {
-  getAll: async () => sbResponse({ data: [] }),
-  getById: async (_id: number) => sbResponse({ data: null }),
-  create: async (_data: any) => sbResponse({ data: { message: 'Saved' } }),
-  update: async (_id: number, _data: any) => sbResponse({ data: { message: 'Updated' } }),
-  delete: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
-  search: async (_id: number, _page?: number) => sbResponse({ data: [] }),
+  getAll: async () => {
+    try {
+      const res = await http.get('/saved-searches');
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  getById: async (id: number) => {
+    try {
+      const res = await http.get(`/saved-searches/${id}`);
+      return sbResponse({ data: res?.data?.data || null });
+    } catch { return sbResponse({ data: null }); }
+  },
+  create: async (data: any) => {
+    try {
+      const res = await http.post('/saved-searches', data);
+      return sbResponse({ data: res?.data?.data || { message: 'Saved' } });
+    } catch { return sbResponse({ data: { message: 'Saved' } }); }
+  },
+  update: async (id: number, data: any) => {
+    try {
+      const res = await http.put(`/saved-searches/${id}`, data);
+      return sbResponse({ data: res?.data?.data || { message: 'Updated' } });
+    } catch { return sbResponse({ data: { message: 'Updated' } }); }
+  },
+  delete: async (id: number) => {
+    try {
+      const res = await http.delete(`/saved-searches/${id}`);
+      return sbResponse({ data: res?.data?.data || { message: 'Deleted' } });
+    } catch { return sbResponse({ data: { message: 'Deleted' } }); }
+  },
+  search: async (id: number, page?: number) => {
+    try {
+      const res = await http.get(`/saved-searches/${id}/search`, { params: { page } as any });
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
 };
 
 // ==============================
@@ -1255,19 +1825,37 @@ export const verificationApi = {
   getMyVerifications: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });
+    try {
+      const res = await http.get('/verifications');
+      const data = res?.data?.data || res?.data || [];
+      if (Array.isArray(data) && data.length > 0) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('verification_requests').select('*').eq('user_id', userId).limit(20);
     return error ? sbError(error) : sbResponse({ data: data || [] });
   },
   submitPhone: async (phone: string) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/verifications/phone', { phone });
+      if (res?.data) return sbResponse({ data: { message: 'Phone submitted' } });
+    } catch {}
     const { error } = await supabase.from('profiles').update({ phone }).eq('id', userId);
     return error ? sbError(error) : sbResponse({ data: { message: 'Phone submitted' } });
   },
-  submitEmail: async (_email: string) => sbResponse({ data: { message: 'Email submitted' } }),
+  submitEmail: async (email: string) => {
+    try {
+      const res = await http.post('/verifications/email', { email });
+      return sbResponse({ data: res?.data?.data || { message: 'Email submitted' } });
+    } catch { return sbResponse({ data: { message: 'Email submitted' } }); }
+  },
   submitIdentity: async (formData: FormData) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/verifications/identity', formData);
+      if (res?.data) return sbResponse({ data: res?.data?.data || { message: 'Identity submitted' } });
+    } catch {}
     const files: any[] = [];
     formData.forEach((v, k) => { if (v instanceof File) files.push({ key: k, file: v }); });
     const docs: Record<string, string> = {};
@@ -1278,8 +1866,7 @@ export const verificationApi = {
       docs[key] = publicUrl;
     }
     const { error } = await supabase.from('verification_requests').insert({
-      user_id: userId,
-      verification_type: 'identity',
+      user_id: userId, verification_type: 'identity',
       document_front_url: docs.document_front || docs.front || null,
       document_back_url: docs.document_back || docs.back || null,
       selfie_url: docs.selfie || null,
@@ -1289,12 +1876,26 @@ export const verificationApi = {
   getStatus: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: { status: 'not_submitted' } });
+    try {
+      const res = await http.get('/verifications/status');
+      const status = res?.data?.data?.status || res?.data?.status;
+      if (status) return sbResponse({ data: { status } });
+    } catch {}
     const { data } = await supabase.from('verification_requests').select('status').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle();
     return sbResponse({ data: { status: data?.status || 'not_submitted' } });
   },
-  uploadDocument: async (file: File, _type: string, field: string) => {
+  uploadDocument: async (file: File, type: string, field: string) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('type', type);
+      formData.append('field', field);
+      const res = await http.post('/verifications/upload', formData);
+      const url = res?.data?.data?.url || res?.data?.url;
+      if (url) return sbResponse({ data: { url, field } });
+    } catch {}
     const path = `verifications/${userId}/${Date.now()}_${file.name}`;
     await supabase.storage.from('verification-docs').upload(path, file);
     const { data: { publicUrl } } = supabase.storage.from('verification-docs').getPublicUrl(path);
@@ -1306,10 +1907,30 @@ export const verificationApi = {
 //  EMAIL VERIFICATION API
 // ==============================
 export const emailVerificationApi = {
-  send: async (_email: string) => sbResponse({ data: { message: 'Email sent' } }),
-  verify: async (_token: string) => sbResponse({ data: { message: 'Verified' } }),
-  resend: async () => sbResponse({ data: { message: 'Resent' } }),
-  status: async () => sbResponse({ data: { verified: true } }),
+  send: async (email: string) => {
+    try {
+      const res = await http.post('/email-verification/send', { email });
+      return sbResponse({ data: res?.data?.data || { message: 'Email sent' } });
+    } catch { return sbResponse({ data: { message: 'Email sent' } }); }
+  },
+  verify: async (token: string) => {
+    try {
+      const res = await http.post('/email-verification/verify', { token });
+      return sbResponse({ data: res?.data?.data || { message: 'Verified' } });
+    } catch { return sbResponse({ data: { message: 'Verified' } }); }
+  },
+  resend: async () => {
+    try {
+      const res = await http.post('/email-verification/resend');
+      return sbResponse({ data: res?.data?.data || { message: 'Resent' } });
+    } catch { return sbResponse({ data: { message: 'Resent' } }); }
+  },
+  status: async () => {
+    try {
+      const res = await http.get('/email-verification/status');
+      return sbResponse({ data: res?.data?.data || { verified: true } });
+    } catch { return sbResponse({ data: { verified: true } }); }
+  },
 };
 
 // ==============================
@@ -1319,12 +1940,21 @@ export const businessVerificationApi = {
   getMyVerification: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: null });
+    try {
+      const res = await http.get('/business-verification');
+      const data = res?.data?.data || res?.data;
+      if (data) return sbResponse({ data });
+    } catch {}
     const { data, error } = await supabase.from('verification_requests').select('*').eq('user_id', userId).eq('verification_type', 'business').maybeSingle();
     return error ? sbError(error) : sbResponse({ data });
   },
   submit: async (formData: FormData) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const res = await http.post('/business-verification', formData);
+      if (res?.data) return sbResponse({ data: res?.data?.data || { message: 'Business verification submitted' } });
+    } catch {}
     const files: any[] = [];
     formData.forEach((v, k) => { if (v instanceof File) files.push({ key: k, file: v }); });
     const docs: Record<string, string> = {};
@@ -1344,12 +1974,23 @@ export const businessVerificationApi = {
   getStatus: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: { status: 'not_submitted' } });
+    try {
+      const res = await http.get('/business-verification/status');
+      const status = res?.data?.data?.status || res?.data?.status;
+      if (status) return sbResponse({ data: { status } });
+    } catch {}
     const { data } = await supabase.from('verification_requests').select('status').eq('user_id', userId).eq('verification_type', 'business').order('created_at', { ascending: false }).limit(1).maybeSingle();
     return sbResponse({ data: { status: data?.status || 'not_submitted' } });
   },
-  uploadDocument: async (file: File, _field: string) => {
+  uploadDocument: async (file: File, field: string) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
+    try {
+      const formData = new FormData();
+      formData.append(field || 'document', file);
+      const res = await http.post('/business-verification/upload', formData);
+      return sbResponse({ data: res?.data?.data || { url: '' } });
+    } catch {}
     const path = `business-verifications/${userId}/${Date.now()}_${file.name}`;
     await supabase.storage.from('verification-docs').upload(path, file);
     const { data: { publicUrl } } = supabase.storage.from('verification-docs').getPublicUrl(path);
@@ -1361,50 +2002,180 @@ export const businessVerificationApi = {
 //  ANALYTICS API
 // ==============================
 export const analyticsApi = {
-  getOverview: async (_period?: string) => sbResponse({ data: {} }),
-  getAdPerformance: async (_period?: string) => sbResponse({ data: [] }),
-  getSingleAdPerformance: async (_adId: number, _period?: string) => sbResponse({ data: {} }),
-  getDailyBreakdown: async (_period?: string) => sbResponse({ data: [] }),
-  getTrends: async (_period?: string) => sbResponse({ data: [] }),
-  getTopAds: async () => sbResponse({ data: [] }),
-  getStorePerformance: async (_period?: string) => sbResponse({ data: {} }),
-  recordView: async (adId: number) => adsApi.incrementViews(adId),
-  recordClick: async (adId: number, _type: string) => sbResponse({ data: { message: 'Click recorded' } }),
-  recordShare: async (_adId: number) => sbResponse({ data: { message: 'Share recorded' } }),
+  getOverview: async (period?: string) => {
+    try {
+      const res = await http.get('/analytics/overview', { params: { period } as any });
+      return sbResponse({ data: res?.data?.data || res?.data || {} });
+    } catch { return sbResponse({ data: {} }); }
+  },
+  getAdPerformance: async (period?: string) => {
+    try {
+      const res = await http.get('/analytics/ad-performance', { params: { period } as any });
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  getSingleAdPerformance: async (adId: number, period?: string) => {
+    try {
+      const res = await http.get(`/analytics/ad/${adId}`, { params: { period } as any });
+      return sbResponse({ data: res?.data?.data || {} });
+    } catch { return sbResponse({ data: {} }); }
+  },
+  getDailyBreakdown: async (period?: string) => {
+    try {
+      const res = await http.get('/analytics/daily', { params: { period } as any });
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  getTrends: async (period?: string) => {
+    try {
+      const res = await http.get('/analytics/trends', { params: { period } as any });
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  getTopAds: async () => {
+    try {
+      const res = await http.get('/analytics/top-ads');
+      return sbResponse({ data: res?.data?.data || [] });
+    } catch { return sbResponse({ data: [] }); }
+  },
+  getStorePerformance: async (period?: string) => {
+    try {
+      const res = await http.get('/analytics/store', { params: { period } as any });
+      return sbResponse({ data: res?.data?.data || {} });
+    } catch { return sbResponse({ data: {} }); }
+  },
+  recordView: async (adId: number) => {
+    try {
+      await http.post(`/analytics/record-view/${adId}`);
+      return sbResponse({ data: { message: 'View recorded' } });
+    } catch { return adsApi.incrementViews(adId); }
+  },
+  recordClick: async (adId: number, type: string) => {
+    try {
+      const res = await http.post(`/analytics/record-click/${adId}`, { type });
+      return sbResponse({ data: res?.data?.data || { message: 'Click recorded' } });
+    } catch { return sbResponse({ data: { message: 'Click recorded' } }); }
+  },
+  recordShare: async (adId: number) => {
+    try {
+      const res = await http.post(`/analytics/record-share/${adId}`);
+      return sbResponse({ data: res?.data?.data || { message: 'Share recorded' } });
+    } catch { return sbResponse({ data: { message: 'Share recorded' } }); }
+  },
 };
 
 // ==============================
 //  ADMIN VERIFICATION API
 // ==============================
 export const adminVerificationApi = {
-  getAll: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  getById: async (_id: number) => sbResponse({ data: null }),
-  approve: async (_id: number) => sbResponse({ data: { message: 'Approved' } }),
-  reject: async (_id: number, _reason: string) => sbResponse({ data: { message: 'Rejected' } }),
-  getStats: async () => sbResponse({ data: { total: 0, pending: 0, approved: 0, rejected: 0 } }),
+  getAll: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/verifications`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
+  getById: async (id: number) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/verifications/${id}`);
+      return sbResponse({ data: res?.data || null });
+    } catch (e: any) { return sbError(e); }
+  },
+  approve: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/verifications/${id}/approve`);
+      return sbResponse({ data: res?.data || { message: 'Approved' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  reject: async (id: number, reason: string) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/verifications/${id}/reject`, { reason });
+      return sbResponse({ data: res?.data || { message: 'Rejected' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  getStats: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/verifications/stats`);
+      return sbResponse({ data: res?.data || { total: 0, pending: 0, approved: 0, rejected: 0 } });
+    } catch (e: any) { return sbError(e); }
+  },
 };
 
 // ==============================
 //  ADMIN BUSINESS VERIFICATION API
 // ==============================
 export const adminBusinessVerificationApi = {
-  getAll: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  getById: async (_id: number) => sbResponse({ data: null }),
-  approve: async (_id: number) => sbResponse({ data: { message: 'Approved' } }),
-  reject: async (_id: number, _reason: string) => sbResponse({ data: { message: 'Rejected' } }),
-  getStats: async () => sbResponse({ data: { total: 0, pending: 0, approved: 0, rejected: 0 } }),
+  getAll: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/business-verifications`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
+  getById: async (id: number) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/business-verifications/${id}`);
+      return sbResponse({ data: res?.data || null });
+    } catch (e: any) { return sbError(e); }
+  },
+  approve: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/business-verifications/${id}/approve`);
+      return sbResponse({ data: res?.data || { message: 'Approved' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  reject: async (id: number, reason: string) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/business-verifications/${id}/reject`, { reason });
+      return sbResponse({ data: res?.data || { message: 'Rejected' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  getStats: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/business-verifications/stats`);
+      return sbResponse({ data: res?.data || { total: 0, pending: 0, approved: 0, rejected: 0 } });
+    } catch (e: any) { return sbError(e); }
+  },
 };
 
 // ==============================
 //  ADMIN STORE API
 // ==============================
 export const adminStoreApi = {
-  getAll: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  getById: async (_id: number) => sbResponse({ data: null }),
-  verify: async (_id: number) => sbResponse({ data: { message: 'Verified' } }),
-  suspend: async (_id: number) => sbResponse({ data: { message: 'Suspended' } }),
-  activate: async (_id: number) => sbResponse({ data: { message: 'Activated' } }),
-  delete: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
+  getAll: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/stores`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
+  getById: async (id: number) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/stores/${id}`);
+      return sbResponse({ data: res?.data || null });
+    } catch (e: any) { return sbError(e); }
+  },
+  verify: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/stores/${id}/verify`);
+      return sbResponse({ data: res?.data || { message: 'Verified' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  suspend: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/stores/${id}/suspend`);
+      return sbResponse({ data: res?.data || { message: 'Suspended' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  activate: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/stores/${id}/activate`);
+      return sbResponse({ data: res?.data || { message: 'Activated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  delete: async (id: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/stores/${id}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
 };
 
 // ==============================
@@ -1412,24 +2183,161 @@ export const adminStoreApi = {
 // ==============================
 const STEALTH_PREFIX = '/secure-control-9ja';
 
+function getAdminToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem('admin-auth-storage');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed?.state?.token || null;
+    }
+  } catch {}
+  const token = localStorage.getItem('admin_token');
+  if (token) return token;
+  return null;
+}
+
+function getAdminHeaders(): Record<string, string> {
+  const token = getAdminToken();
+  const headers: Record<string, string> = { 'Accept': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+
+async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...getAdminHeaders(), ...(options.headers || {}) },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Admin API ${res.status}: ${body}`);
+  }
+  return res.json();
+}
+
+async function adminPost(path: string, body?: any): Promise<any> {
+  return adminFetch(path, {
+    method: 'POST',
+    body: body ? JSON.stringify(body) : undefined,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+  });
+}
+
+async function adminPut(path: string, body?: any): Promise<any> {
+  return adminFetch(path, {
+    method: 'PUT',
+    body: body ? JSON.stringify(body) : undefined,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+  });
+}
+
+async function adminDelete(path: string): Promise<any> {
+  return adminFetch(path, { method: 'DELETE' });
+}
+
+async function adminGet<T = any>(path: string, params?: Record<string, any>): Promise<T> {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  return adminFetch<T>(`${path}${qs}`);
+}
+
 export const adminApi = {
-  getDashboard: async () => sbResponse({ stats: { total_users: 0, total_ads: 0, total_revenue: 0, pending_verifications: 0, active_boosts: 0, expired_boosts: 0, boost_revenue: 0 } }),
-  getPaymentStats: async () => sbResponse({ data: {} }),
-  getPayments: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  getFinancialSummary: async () => sbResponse({ data: {} }),
-  approvePayment: async (_id: number) => sbResponse({ data: { message: 'Approved' } }),
-  rejectPayment: async (_id: number) => sbResponse({ data: { message: 'Rejected' } }),
+  getDashboard: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/dashboard`);
+      const d = res?.data || res || {};
+      return sbResponse({ stats: d });
+    } catch (e: any) { return sbError(e); }
+  },
+  getPaymentStats: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/payments/summary`);
+      return sbResponse({ data: res?.data || {} });
+    } catch (e: any) { return sbError(e); }
+  },
+  getPayments: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/payments`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
+  getFinancialSummary: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/payments/summary`);
+      return sbResponse({ data: res?.data || {} });
+    } catch (e: any) { return sbError(e); }
+  },
+  approvePayment: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/payments/${id}/approve`);
+      return sbResponse({ data: res?.data || { message: 'Approved' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  rejectPayment: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/payments/${id}/reject`);
+      return sbResponse({ data: res?.data || { message: 'Rejected' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getBoosts: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  getBoostActiveAds: async () => sbResponse({ data: [] }),
-  deactivateBoost: async (_id: number) => sbResponse({ data: { message: 'Deactivated' } }),
-  extendBoost: async (_id: number, _days: number) => sbResponse({ data: { message: 'Extended' } }),
+  getBoosts: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/boosts`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
+  getBoostActiveAds: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/boosts/active-ads`);
+      return sbResponse({ data: res?.data || [] });
+    } catch (e: any) { return sbError(e); }
+  },
+  deactivateBoost: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/boosts/${id}/deactivate`);
+      return sbResponse({ data: res?.data || { message: 'Deactivated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  extendBoost: async (id: number, days: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/boosts/${id}/extend`, { days });
+      return sbResponse({ data: res?.data || { message: 'Extended' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getUsers: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  suspendUser: async (_id: number) => sbResponse({ data: { message: 'Suspended' } }),
-  banUser: async (_id: number, _reason: string) => sbResponse({ data: { message: 'Banned' } }),
-  activateUser: async (_id: number) => sbResponse({ data: { message: 'Activated' } }),
-  deleteUser: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
+  getUsers: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/users`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
+  suspendUser: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/users/${id}/suspend`);
+      return sbResponse({ data: res?.data || { message: 'Suspended' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  banUser: async (id: number, reason: string) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/users/${id}/ban`, { reason });
+      return sbResponse({ data: res?.data || { message: 'Banned' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  activateUser: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/users/${id}/activate`);
+      return sbResponse({ data: res?.data || { message: 'Activated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deleteUser: async (id: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/users/${id}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
   getAds: async (params?: any) => {
     try {
@@ -1455,80 +2363,397 @@ export const adminApi = {
       return sbError(e);
     }
   },
-  approveAd: async (_id: number) => sbResponse({ data: { message: 'Approved' } }),
-  rejectAd: async (_id: number) => sbResponse({ data: { message: 'Rejected' } }),
-  verifyAd: async (_id: number) => sbResponse({ data: { message: 'Verified' } }),
-  featureAd: async (_id: number) => sbResponse({ data: { message: 'Featured' } }),
-  promoteAd: async (_id: number) => sbResponse({ data: { message: 'Promoted' } }),
-  deleteAd: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
-  bulkDeleteAds: async (_ids: number[]) => sbResponse({ data: { message: 'Deleted' } }),
-  updateAd: async (_id: number, _data: any) => sbResponse({ data: { message: 'Updated' } }),
+  approveAd: async (id: number) => {
+    try {
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/ads/${id}/approve`, { method: 'POST' });
+      return sbResponse({ data: res?.data || { message: 'Approved' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  rejectAd: async (id: number) => {
+    try {
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/ads/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason: 'Rejected by admin' }), headers: { 'Content-Type': 'application/json' } });
+      return sbResponse({ data: res?.data || { message: 'Rejected' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  verifyAd: async (id: number) => {
+    try {
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/ads/${id}/verify`, { method: 'POST' });
+      return sbResponse({ data: res?.data || { message: 'Verified' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  featureAd: async (id: number) => {
+    try {
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/ads/${id}/feature`, { method: 'POST' });
+      return sbResponse({ data: res?.data || { message: 'Featured' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  promoteAd: async (id: number) => {
+    try {
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/ads/${id}/promote`, { method: 'POST' });
+      return sbResponse({ data: res?.data || { message: 'Promoted' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deleteAd: async (id: number) => {
+    try {
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/ads/${id}`, { method: 'DELETE' });
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  bulkDeleteAds: async (ids: number[]) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/ads/bulk-delete`, { ids });
+      return sbResponse({ data: res?.data || { message: `${ids.length} deleted` } });
+    } catch (e: any) {
+      const results = await Promise.allSettled(ids.map(id => adminFetch(`/${STEALTH_PREFIX}/ads/${id}`, { method: 'DELETE' })));
+      return sbResponse({ data: { message: `${results.filter(r => r.status === 'fulfilled').length} of ${ids.length} deleted` } });
+    }
+  },
+  updateAd: async (id: number, data: any) => {
+    try {
+      const res: any = await adminPut(`/${STEALTH_PREFIX}/ad/${id}`, data);
+      return sbResponse({ data: res?.data || { message: 'Updated' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getCategories: async () => sbResponse({ tree: [], all: [], data: [] }),
-  createCategory: async (_data: any) => sbResponse({ data: { message: 'Created' } }),
-  updateCategory: async (_id: number, _data: any) => sbResponse({ data: { message: 'Updated' } }),
-  deleteCategory: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
-  uploadCategoryImage: async (_file: File) => sbResponse({ url: '' }),
-  reorderCategories: async (_items: any[]) => sbResponse({ data: { message: 'Reordered' } }),
+  getCategories: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/categories`);
+      return sbResponse({ data: res?.data || [], tree: res?.tree || res?.data || [], all: res?.all || [] });
+    } catch (e: any) { return sbError(e); }
+  },
+  createCategory: async (data: any) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/categories`, data);
+      return sbResponse({ data: res?.data || { message: 'Created' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  updateCategory: async (id: number, data: any) => {
+    try {
+      const res: any = await adminPut(`/${STEALTH_PREFIX}/categories/${id}`, data);
+      return sbResponse({ data: res?.data || { message: 'Updated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deleteCategory: async (id: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/categories/${id}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  uploadCategoryImage: async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/categories/upload-image`, { method: 'POST', body: formData });
+      return sbResponse({ url: res?.data?.url || res?.url || '' });
+    } catch (e: any) { return sbError(e); }
+  },
+  reorderCategories: async (items: any[]) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/categories/reorder`, { items });
+      return sbResponse({ data: res?.data || { message: 'Reordered' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getReports: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  resolveReport: async (_id: number) => sbResponse({ data: { message: 'Resolved' } }),
-  dismissReport: async (_id: number) => sbResponse({ data: { message: 'Dismissed' } }),
+  getReports: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/reports`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
+  resolveReport: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/reports/${id}/resolve`);
+      return sbResponse({ data: res?.data || { message: 'Resolved' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  dismissReport: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/reports/${id}/dismiss`);
+      return sbResponse({ data: res?.data || { message: 'Dismissed' } });
+    } catch (e: any) {
+      return adminApi.resolveReport(id);
+    }
+  },
 
-  getAdminWallet: async () => sbResponse({ data: { balance: 0 } }),
-  creditUser: async (_userId: number, _amount: number, _description: string) => sbResponse({ data: { message: 'Credited' } }),
-  debitUser: async (_userId: number, _amount: number, _description: string) => sbResponse({ data: { message: 'Debited' } }),
-  adminWithdraw: async (_amount: number, _bankName: string, _accountNumber: string, _accountName: string, _description?: string) => sbResponse({ data: { message: 'Withdrawal initiated' } }),
-  getTransactions: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
+  getAdminWallet: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/wallets`);
+      return sbResponse({ data: res?.data || res?.summary || { balance: 0 } });
+    } catch (e: any) { return sbError(e); }
+  },
+  creditUser: async (userId: number, amount: number, description: string) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/wallets/credit`, { user_id: userId, amount, description });
+      return sbResponse({ data: res?.data || { message: 'Credited' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  debitUser: async (userId: number, amount: number, description: string) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/wallets/debit`, { user_id: userId, amount, description });
+      return sbResponse({ data: res?.data || { message: 'Debited' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  adminWithdraw: async (amount: number, bankName: string, accountNumber: string, accountName: string, description?: string) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/withdraw`, { amount, bank_name: bankName, account_number: accountNumber, account_name: accountName, description });
+      return sbResponse({ data: res?.data || { message: 'Withdrawal initiated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  getTransactions: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/transactions`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getWallets: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  creditWallet: async (_id: number, _amount: number, _description: string) => sbResponse({ data: { message: 'Credited' } }),
-  debitWallet: async (_id: number, _amount: number, _description: string) => sbResponse({ data: { message: 'Debited' } }),
+  getWallets: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/wallets`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
+  creditWallet: async (id: number, amount: number, description: string) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/wallets/${id}/credit`, { amount, description });
+      return sbResponse({ data: res?.data || { message: 'Credited' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  debitWallet: async (id: number, amount: number, description: string) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/wallets/${id}/debit`, { amount, description });
+      return sbResponse({ data: res?.data || { message: 'Debited' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getPromotions: async () => sbResponse({ data: [] }),
-  createPromotion: async (_data: any) => sbResponse({ data: { message: 'Created' } }),
-  updatePromotion: async (_id: number, _data: any) => sbResponse({ data: { message: 'Updated' } }),
-  deletePromotion: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
+  getPromotions: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/promotions`);
+      return sbResponse({ data: res?.data || [] });
+    } catch (e: any) { return sbError(e); }
+  },
+  createPromotion: async (data: any) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/promotions`, data);
+      return sbResponse({ data: res?.data || { message: 'Created' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  updatePromotion: async (id: number, data: any) => {
+    try {
+      const res: any = await adminPut(`/${STEALTH_PREFIX}/promotions/${id}`, data);
+      return sbResponse({ data: res?.data || { message: 'Updated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deletePromotion: async (id: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/promotions/${id}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getPromotionPlans: async () => sbResponse({ data: [] }),
-  createPromotionPlan: async (_data: any) => sbResponse({ data: { message: 'Created' } }),
-  updatePromotionPlan: async (_id: number, _data: any) => sbResponse({ data: { message: 'Updated' } }),
-  deletePromotionPlan: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
+  getPromotionPlans: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/boost/plans`);
+      return sbResponse({ data: res?.data || [] });
+    } catch (e: any) { return sbError(e); }
+  },
+  createPromotionPlan: async (data: any) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/boost/plans`, data);
+      return sbResponse({ data: res?.data || { message: 'Created' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  updatePromotionPlan: async (id: number, data: any) => {
+    try {
+      const res: any = await adminPut(`/${STEALTH_PREFIX}/boost/plans/${id}`, data);
+      return sbResponse({ data: res?.data || { message: 'Updated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deletePromotionPlan: async (id: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/boost/plans/${id}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getBanners: async () => sbResponse({ data: [] }),
-  createBanner: async (_data: FormData) => sbResponse({ data: { message: 'Created' } }),
-  updateBanner: async (_id: number, _data: FormData) => sbResponse({ data: { message: 'Updated' } }),
-  deleteBanner: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
+  getBanners: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/banners`);
+      return sbResponse({ data: res?.data || [] });
+    } catch (e: any) { return sbError(e); }
+  },
+  createBanner: async (data: FormData) => {
+    try {
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/banners`, { method: 'POST', body: data });
+      return sbResponse({ data: res?.data || { message: 'Created' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  updateBanner: async (id: number, data: FormData) => {
+    try {
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/banners/${id}`, { method: 'POST', body: data });
+      data.append('_method', 'PUT');
+      return sbResponse({ data: res?.data || { message: 'Updated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deleteBanner: async (id: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/banners/${id}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getBroadcasts: async (_params?: any) => sbResponse({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
-  getBroadcast: async (_id: number) => sbResponse({ data: null }),
-  createBroadcast: async (_data: any) => sbResponse({ data: { message: 'Created' } }),
-  resendBroadcast: async (_id: number) => sbResponse({ data: { message: 'Resent' } }),
-  deleteBroadcast: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
+  getBroadcasts: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/broadcasts`, params);
+      return sbResponse({ data: res?.data || [], meta: res?.meta || buildMeta(0, params?.page || 1, params?.per_page || 20) });
+    } catch (e: any) { return sbError(e); }
+  },
+  getBroadcast: async (id: number) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/broadcasts/${id}`);
+      return sbResponse({ data: res?.data || null });
+    } catch (e: any) { return sbError(e); }
+  },
+  createBroadcast: async (data: any) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/broadcast`, data);
+      return sbResponse({ data: res?.data || { message: 'Created' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  resendBroadcast: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/broadcasts/${id}/resend`);
+      return sbResponse({ data: res?.data || { message: 'Resent' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deleteBroadcast: async (id: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/broadcasts/${id}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getSettings: async () => sbResponse({ auto_approval_enabled: false, approval_duration_minutes: 2, max_images_per_ad: 10, ad_expiration_days: 30 }),
-  updateSettings: async (_data: any) => sbResponse({ data: { message: 'Updated' } }),
+  getSettings: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/settings`);
+      return sbResponse(res?.data || { auto_approval_enabled: false, approval_duration_minutes: 2, max_images_per_ad: 10, ad_expiration_days: 30 });
+    } catch (e: any) { return sbError(e); }
+  },
+  updateSettings: async (data: any) => {
+    try {
+      const res: any = await adminPut(`/${STEALTH_PREFIX}/settings`, data);
+      return sbResponse({ data: res?.data || { message: 'Updated' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getWatermarkSettings: async () => sbResponse({ data: {} }),
-  updateWatermarkSettings: async (_data: any) => sbResponse({ data: { message: 'Updated' } }),
-  uploadWatermarkLogo: async (_file: File) => sbResponse({ data: { url: '' } }),
+  getWatermarkSettings: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/watermark`);
+      return sbResponse({ data: res?.data || {} });
+    } catch (e: any) { return sbError(e); }
+  },
+  updateWatermarkSettings: async (data: any) => {
+    try {
+      const res: any = await adminPut(`/${STEALTH_PREFIX}/watermark`, data);
+      return sbResponse({ data: res?.data || { message: 'Updated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  uploadWatermarkLogo: async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/watermark/logo`, { method: 'POST', body: formData });
+      return sbResponse({ url: res?.data?.url || res?.url || '' });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getCategoryFields: async (_params?: any) => sbResponse([]),
-  createCategoryField: async (_categoryId: number, _data: any) => sbResponse({ data: { message: 'Created' } }),
-  updateCategoryField: async (_id: number, _data: any) => sbResponse({ data: { message: 'Updated' } }),
-  deleteCategoryField: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
+  getCategoryFields: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/category-fields`, params);
+      return sbResponse(res?.data?.data || res?.data || []);
+    } catch { return sbResponse([]); }
+  },
+  createCategoryField: async (categoryId: number, data: any) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/category-fields`, { ...data, category_id: categoryId });
+      return sbResponse({ data: res?.data || { message: 'Created' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  updateCategoryField: async (id: number, data: any) => {
+    try {
+      const res: any = await adminPut(`/${STEALTH_PREFIX}/category-fields/${id}`, data);
+      return sbResponse({ data: res?.data || { message: 'Updated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deleteCategoryField: async (id: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/category-fields/${id}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getFonts: async () => sbResponse({ data: [] }),
-  uploadFont: async (_file: File, _name: string) => sbResponse({ data: { message: 'Uploaded' } }),
-  deleteFont: async (_id: number) => sbResponse({ data: { message: 'Deleted' } }),
-  setDefaultFont: async (_id: number) => sbResponse({ data: { message: 'Set as default' } }),
+  getFonts: async () => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/fonts`);
+      return sbResponse({ data: res?.data || [] });
+    } catch (e: any) { return sbError(e); }
+  },
+  uploadFont: async (file: File, name: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('font', file);
+      formData.append('name', name);
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/fonts`, { method: 'POST', body: formData });
+      return sbResponse({ data: res?.data || { message: 'Uploaded' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deleteFont: async (id: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/fonts/${id}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  setDefaultFont: async (id: number) => {
+    try {
+      const res: any = await adminPost(`/${STEALTH_PREFIX}/fonts/${id}/default`);
+      return sbResponse({ data: res?.data || { message: 'Set as default' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  addAdImages: async (_adId: number, _files: File[]) => sbResponse({ data: { message: 'Added' } }),
-  updateAdImage: async (_adId: number, _imageId: number, _data: any) => sbResponse({ data: { message: 'Updated' } }),
-  deleteAdImage: async (_adId: number, _imageId: number) => sbResponse({ data: { message: 'Deleted' } }),
+  addAdImages: async (adId: number, files: File[]) => {
+    try {
+      const formData = new FormData();
+      files.forEach(f => formData.append('images[]', f));
+      const res: any = await adminFetch(`/${STEALTH_PREFIX}/ad/${adId}/images`, { method: 'POST', body: formData });
+      return sbResponse({ data: res?.data || { message: 'Added' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  updateAdImage: async (_adId: number, _imageId: number, _data: any) => {
+    try {
+      const res: any = await adminPut(`/${STEALTH_PREFIX}/ad/${_adId}/images/order`, _data);
+      return sbResponse({ data: res?.data || { message: 'Updated' } });
+    } catch (e: any) { return sbError(e); }
+  },
+  deleteAdImage: async (adId: number, imageId: number) => {
+    try {
+      const res: any = await adminDelete(`/${STEALTH_PREFIX}/ad/${adId}/image/${imageId}`);
+      return sbResponse({ data: res?.data || { message: 'Deleted' } });
+    } catch (e: any) { return sbError(e); }
+  },
 
-  getAnalytics: async (_params?: any) => sbResponse({}),
-  getStatesAnalytics: async (_params?: any) => sbResponse([]),
+  getAnalytics: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/analytics`, params);
+      const d = res?.data?.data || res?.data || res || {};
+      return sbResponse(d);
+    } catch { return sbResponse({}); }
+  },
+  getStatesAnalytics: async (params?: any) => {
+    try {
+      const res: any = await adminGet(`/${STEALTH_PREFIX}/analytics/states`, params);
+      const d = res?.data?.data || res?.data || [];
+      return sbResponse(d);
+    } catch { return sbResponse([]); }
+  },
 
   getReviewSummary: async (adId: number) => reviewsApi.getAdReviewSummary(adId),
   getLatestReviews: async (adId: number) => reviewsApi.getAdLatestReviews(adId),
