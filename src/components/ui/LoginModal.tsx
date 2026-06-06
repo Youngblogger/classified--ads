@@ -65,7 +65,7 @@ export default function LoginModal() {
       const redirectTo = consumeRedirectPath();
       if (redirectTo && redirectTo !== '/') {
         // Use timeout to let Zustand persist flush before navigation
-        setTimeout(() => { window.location.href = redirectTo; }, 100);
+        setTimeout(() => { window.location.href = redirectTo; }, 200);
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';

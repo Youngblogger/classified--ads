@@ -74,9 +74,10 @@ function CallbackContent() {
             localStorage.removeItem('authRedirect');
             sessionStorage.removeItem('authRedirect');
 
-            // Give Zustand persist a tick to flush state to localStorage
-            await new Promise(r => setTimeout(r, 100));
-            // Also wait one animation frame for React to commit the render
+            // Give Zustand persist multiple ticks to fully flush to localStorage.
+            // This prevents a race where the redirect causes a full page navigation
+            // before the persist middleware writes the auth state to storage.
+            await new Promise(r => setTimeout(r, 200));
             await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 
             if (!cancelled && mountedRef.current) {

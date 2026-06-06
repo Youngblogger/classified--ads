@@ -6,7 +6,7 @@ import { useAuthStore, useGlobalStore, hydrationComplete } from '@/lib/store';
 import type { User } from '@supabase/supabase-js';
 
 const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000;
-const AUTH_INIT_TIMEOUT = 8000;
+const AUTH_INIT_TIMEOUT = 15000;
 const LOGOUT_DEBOUNCE_MS = 3000;
 
 export type AuthState = 'loading' | 'authenticated' | 'guest';
@@ -124,28 +124,20 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         finishInit('authenticated', userData as any);
         // Still verify with getSession() for token validity, but don't block UI
         supabase.auth.getSession().then(({ data: { session } }) => {
-          if (!session?.user) {
+          if (!cancelled && !session?.user) {
             useAuthStore.getState().logout();
-            finishInit('guest');
+            if (mountedRef.current) finishInit('guest');
           }
         });
         return;
       }
 
-      const isCallbackRoute = typeof window !== 'undefined' && (
-        window.location.pathname.startsWith('/auth/callback') ||
-        window.location.pathname.startsWith('/auth/google/callback') ||
-        window.location.pathname.startsWith('/auth/facebook/callback')
-      );
-      if (isCallbackRoute) {
-        // On OAuth callback pages, don't try getSession() — the callback page
-        // owns session setup. The onAuthStateChange listener (registered below)
-        // will fire SIGNED_IN and set authState when Supabase detects the
-        // OAuth code in the URL.
-        finishInit('guest');
-        return;
-      }
-
+      // On ALL routes (including callback routes), try to get the session.
+      // On callback routes, Supabase SDK will have processed the OAuth code
+      // by the time hydrationComplete resolves (the PKCE exchange is async
+      // and fires onAuthStateChange with SIGNED_IN which updates Zustand).
+      // If the store was updated by the listener, the storeAlreadyAuthed check
+      // above catches it. Otherwise, getSession() will find the session directly.
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!mountedRef.current || cancelled) return;
 

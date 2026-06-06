@@ -89,20 +89,32 @@ export const useAuthStore = create<AuthStore>()(
         // This prevents the race where getSession() resolves before persist
         // finishes rehydrating, then rehydration overwrites the auth state.
         const currentState = useAuthStore.getState();
-        if (currentState.isAuthenticated && currentState.token) {
-          // Signal hydration complete so AuthProvider can proceed
-          currentState.setHasHydrated(true);
-          return;
-        }
 
-        if (state.token) {
+        // Always validate token expiry first — even if the persisted state
+        // claims isAuthenticated=true, the token may have expired since the
+        // last session. If expired, clear auth to prevent a flash of
+        // 'authenticated' followed by background logout.
+        const persistedToken = state.token || currentState.token;
+        if (persistedToken) {
           try {
-            const payload = JSON.parse(atob(state.token.split('.')[1]));
+            const payload = JSON.parse(atob(persistedToken.split('.')[1]));
             if (payload.exp && payload.exp * 1000 < Date.now()) {
               useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
             }
-          } catch {}
+          } catch {
+            // Malformed token — treat as invalid
+            useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
+          }
         }
+
+        // Re-check after potential expiry-clear above
+        const updatedState = useAuthStore.getState();
+        if (updatedState.isAuthenticated && updatedState.token) {
+          // Signal hydration complete so AuthProvider can proceed
+          updatedState.setHasHydrated(true);
+          return;
+        }
+
         const raw = state.user;
         if (raw) {
           let user = { ...raw };

@@ -157,6 +157,8 @@ export default function DashboardLayout({
   const { user: authUser, logout, token, hasHydrated } = useAuthStore();
   const { authState } = useAuthContext();
 
+  // Loading gate — show spinner while auth is being determined
+  const authLoading = !hasHydrated || (authState === 'loading' && !authUser);
   // Show login modal if guest (only after both zustand hydration and authState resolved)
   useEffect(() => {
     if (!hasHydrated) return;
@@ -197,6 +199,17 @@ export default function DashboardLayout({
     
     router.push('/');
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-gray-500">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
