@@ -53,6 +53,72 @@ export interface NormalizedAd {
   slider_images?: any[];
 }
 
+// Maps legacy display-name keys to machine-name keys for backward compatibility
+export const LEGACY_KEY_MAP: Record<string, string> = {
+  'Year': 'year',
+  'Fuel Type': 'fuel_type',
+  'Transmission': 'transmission',
+  'Mileage': 'mileage',
+  'Engine Capacity': 'engine_capacity',
+  'Drive Type': 'drive_type',
+  'Body Type': 'body_type',
+  'Color': 'color',
+  'Interior Color': 'interior_color',
+  'Condition': 'condition',
+  'Make': 'brand',
+  'Model': 'model',
+  'Storage': 'storage',
+  'RAM': 'ram',
+  'Screen Size': 'screen_size',
+  'Battery Capacity': 'battery_capacity',
+  'Processor': 'processor',
+  'Operating System': 'operating_system',
+  'Camera': 'camera_megapixels',
+  'Connectivity': 'connectivity',
+  'SIM Type': 'sim_type',
+  'Cellular': 'cellular',
+  'Property Type': 'property_type',
+  'Bedrooms': 'bedrooms',
+  'Bathrooms': 'bathrooms',
+  'Furnishing': 'furnishing',
+  'Status': 'status',
+  'Job Type': 'job_type',
+  'Experience Level': 'experience_level',
+  'Education Level': 'education_level',
+  'Salary Range': 'salary_range',
+  'Service Type': 'service_type',
+  'Service Level': 'service_level',
+  'Size': 'size',
+  'Gender': 'gender',
+  'Pet Type': 'pet_type',
+  'Breed': 'breed',
+  'Age': 'age',
+  'Age Group': 'age_group',
+  'Used For': 'used_for',
+  'Category': 'subcategory',
+  'Registration': 'registration',
+  'VIN': 'vin',
+  'Air Conditioning': 'air_conditioning',
+  'Sunroof': 'sunroof',
+  'Leather Seats': 'leather_seats',
+  'Heated Seats': 'heated_seats',
+  'Navigation': 'navigation',
+  'Reverse Camera': 'reverse_camera',
+  'Parking Sensors': 'parking_sensors',
+  'Bluetooth': 'bluetooth',
+  'ABS': 'abs',
+  'Airbags': 'airbags',
+};
+
+export function normalizeAttributeKeys(attrs: Record<string, any>): Record<string, any> {
+  if (!attrs) return {};
+  const normalized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(attrs)) {
+    normalized[LEGACY_KEY_MAP[key] ?? key] = value;
+  }
+  return normalized;
+}
+
 function imgAbs(url: string | undefined | null): string {
   if (!url || url.startsWith('http://') || url.startsWith('https://')) return url || '';
   const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
@@ -119,7 +185,13 @@ function extractSpecifications(src: any): any[] {
   if (!src) return [];
 
   if (Array.isArray(src)) {
-    return src.filter(Boolean);
+    return src.filter(Boolean).map((item: any) => {
+      if (item && item.name) {
+        const machineName = LEGACY_KEY_MAP[item.name] ?? item.name;
+        return item.name !== machineName ? { ...item, name: machineName } : item;
+      }
+      return item;
+    });
   }
 
   if (typeof src === 'object') {
@@ -136,9 +208,10 @@ function extractSpecifications(src: any): any[] {
         if (fields && typeof fields === 'object' && !Array.isArray(fields)) {
           for (const [key, value] of Object.entries(fields as Record<string, any>)) {
             if (value != null && value !== '') {
+              const machineName = LEGACY_KEY_MAP[key] ?? key;
               result.push({
-                name: key,
-                label: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+                name: machineName,
+                label: machineName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
                 value: String(value),
                 raw_value: value,
                 type: typeof value === 'boolean' ? 'boolean' : 'text',
@@ -152,15 +225,18 @@ function extractSpecifications(src: any): any[] {
       return result;
     }
 
-    return entries.map(([key, value]) => ({
-      name: key,
-      label: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-      value: String(value),
-      raw_value: value,
-      type: typeof value === 'boolean' ? 'boolean' : 'text',
-      group_name: null,
-      sort_order: 0,
-    }));
+    return entries.map(([key, value]) => {
+      const machineName = LEGACY_KEY_MAP[key] ?? key;
+      return {
+        name: machineName,
+        label: machineName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+        value: String(value),
+        raw_value: value,
+        type: typeof value === 'boolean' ? 'boolean' : 'text',
+        group_name: null,
+        sort_order: 0,
+      };
+    });
   }
 
   return [];

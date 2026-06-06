@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, ChevronLeft, GripVertical, Loader2, Phone, MessageCircle, MapPinned, ArrowLeft, ChevronDown, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -14,8 +14,9 @@ import { nigeriaLocations } from '@/lib/nigeriaLocations';
 import toast from 'react-hot-toast';
 import CategorySelector from '@/components/ui/CategorySelector';
 import LocationSelector from '@/components/ui/LocationSelector';
-import DynamicField, { CategoryField } from './DynamicField';
+import { CategoryField } from './DynamicField';
 import structuredCategories from '@/data/structured-categories.json';
+import { getCategorySpec, SpecField } from '@/lib/category-spec-schema';
 import { usePostAdDraft, clearPostAdDraft, DraftImage } from '@/hooks/usePostAdDraft';
 import { compressImage, CompressedImage } from '@/lib/imageCompression';
 import { imageUploadApi } from '@/lib/api';
@@ -565,7 +566,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     }));
   };
   
-  // Store brand/model/config in attributes when they change
+  // Store brand/model/config in attributes when they change (matches seed data format)
   useEffect(() => {
     if (selectedBrand) {
       setAttributes(prev => ({ ...prev, brand: selectedBrand }));
@@ -580,9 +581,13 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   
   useEffect(() => {
     if (selectedConfig) {
-      setAttributes(prev => ({ ...prev, configuration: selectedConfig }));
+      // Append trim to model name to match seed data format (e.g., "Camry SE")
+      setAttributes(prev => ({
+        ...prev,
+        model: selectedConfig ? `${selectedModel} ${selectedConfig}` : selectedModel,
+      }));
     }
-  }, [selectedConfig]);
+  }, [selectedConfig, selectedModel]);
 
   useEffect(() => {
     // Use local categories as default
@@ -606,6 +611,56 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     
     fetchCategories();
   }, []);
+
+  // Resolve schema spec for current category
+  const currentSpec = useMemo(() => {
+    if (!selectedStructuredCategory) return undefined;
+    return getCategorySpec(selectedStructuredCategory.category);
+  }, [selectedStructuredCategory]);
+
+  // Render a single schema field with the form's styled select/input pattern
+  const renderSchemaField = useCallback((field: SpecField) => {
+    const value = attributes[field.name] ?? '';
+    if (field.type === 'select') {
+      return (
+        <div key={field.name} className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            {field.label}
+          </label>
+          <div className="relative group">
+            <select
+              value={value}
+              onChange={(e) => handleAttributeChange(field.name, e.target.value)}
+              className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
+            >
+              <option value="">Select {field.label}</option>
+              {field.options?.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
+          </div>
+        </div>
+      );
+    }
+    if (field.type === 'number' || field.type === 'text') {
+      return (
+        <div key={field.name} className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            {field.label}
+          </label>
+          <input
+            type={field.type === 'number' ? 'number' : 'text'}
+            value={value}
+            onChange={(e) => handleAttributeChange(field.name, e.target.value)}
+            placeholder={`Enter ${field.label.toLowerCase()}`}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition-all bg-white"
+          />
+        </div>
+      );
+    }
+    return null;
+  }, [attributes, handleAttributeChange]);
 
   // Get LGAs for selected state from local data
   const getLgasForState = (stateSlug: string): string[] => {
@@ -1310,96 +1365,19 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 )}
               </div>
 
-              {/* Vehicle-specific fields: Year, Transmission, Fuel Type */}
-              {selectedStructuredCategory?.category === 'Vehicles' && selectedModel && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                  {/* Year */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Year
-                    </label>
-                    <div className="relative group">
-                      <select
-                        value={attributes['Year'] || ''}
-                        onChange={(e) => handleAttributeChange('Year', e.target.value)}
-                        className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
-                      >
-                        <option value="">Select Year</option>
-                        {selectedStructuredCategory.fields.find(f => f.name === 'Year')?.options.map((year) => (
-                          <option key={year} value={year}>{year}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
-                    </div>
-                  </div>
-
-                  {/* Transmission */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Transmission
-                    </label>
-                    <div className="relative group">
-                      <select
-                        value={attributes['Transmission'] || ''}
-                        onChange={(e) => handleAttributeChange('Transmission', e.target.value)}
-                        className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
-                      >
-                        <option value="">Select Transmission</option>
-                        {selectedStructuredCategory.fields.find(f => f.name === 'Transmission')?.options.map((trans) => (
-                          <option key={trans} value={trans}>{trans}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
-                    </div>
-                  </div>
-
-                  {/* Fuel Type */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Fuel Type
-                    </label>
-                    <div className="relative group">
-                      <select
-                        value={attributes['Fuel Type'] || ''}
-                        onChange={(e) => handleAttributeChange('Fuel Type', e.target.value)}
-                        className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
-                      >
-                        <option value="">Select Fuel Type</option>
-                        {selectedStructuredCategory.fields.find(f => f.name === 'Fuel Type')?.options.map((fuel) => (
-                          <option key={fuel} value={fuel}>{fuel}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
-                    </div>
-                  </div>
+              {/* Schema-driven specification fields for categories with brands */}
+              {currentSpec && selectedModel && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                  {currentSpec.fields.map((field) => renderSchemaField(field))}
                 </div>
               )}
             </div>
           )}
 
-          {/* Dynamic Fields for categories without brands */}
-          {selectedStructuredCategory && !selectedStructuredCategory.hasBrand && selectedStructuredCategory.fields.length > 0 && (
+          {/* Schema-driven specification fields for categories without brands */}
+          {currentSpec && !selectedStructuredCategory?.hasBrand && currentSpec.fields.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {selectedStructuredCategory.fields.map((field) => (
-                <div key={field.name} className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    {field.name}
-                  </label>
-                  <div className="relative group">
-                    <select
-                      value={attributes[field.name] || ''}
-                      onChange={(e) => handleAttributeChange(field.name, e.target.value)}
-                      className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
-                    >
-                      <option value="">Select {field.name}</option>
-                      {field.options.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
-                  </div>
-                </div>
-              ))}
+              {currentSpec.fields.map((field) => renderSchemaField(field))}
             </div>
           )}
 
