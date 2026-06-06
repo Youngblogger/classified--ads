@@ -168,7 +168,7 @@ export default function HomePage() {
           {/* Hero + Category Grid - Hidden on mobile */}
           <section className="hidden md:block w-full">
             {/* Compact Hero Banner */}
-            <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-[5px] mb-6">
+            <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-b-[5px] mb-6">
               <div className="relative px-6 py-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div>
@@ -238,7 +238,7 @@ export default function HomePage() {
         {/* Mobile Hero + Category Grid */}
         <section className="block md:hidden">
           {/* Compact Hero */}
-          <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-[5px] mb-4">
+          <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-b-[5px] mb-4">
             <div className="relative px-4 py-4">
               <h1 className="text-lg font-bold text-white">
                 Find Anything,{' '}
@@ -269,8 +269,8 @@ export default function HomePage() {
           {/* Category Grid */}
           <div className="mb-2">
             {catLoading ? (
-              <div className="grid gap-2 overflow-x-auto pb-2 scrollbar-thin" style={{ gridAutoFlow: 'column', gridTemplateRows: 'repeat(2, 1fr)' }}>
-                {Array.from({ length: 6 }).map((_, i) => (
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: 12 }).map((_, i) => (
                   <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 animate-pulse">
                     <div className="w-11 h-11 bg-gray-200" />
                     <div className="h-2 bg-gray-200 rounded w-12" />
@@ -278,8 +278,8 @@ export default function HomePage() {
                 ))}
               </div>
             ) : (
-              <div className="grid gap-2 overflow-x-auto pb-2 scrollbar-thin" style={{ gridAutoFlow: 'column', gridTemplateRows: 'repeat(2, 1fr)' }}>
-                {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 8).map((cat: any) => (
+              <div className="grid grid-cols-4 gap-2">
+                {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 12).map((cat: any) => (
                   <Link
                     key={cat.id}
                     href={`/ads?category=${cat.slug}`}

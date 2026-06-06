@@ -155,7 +155,7 @@ function formatNotificationTime(dateString: string): string {
 
 export default function Header({ variant = 'home', onMenuToggle }: { variant?: 'home' | 'dashboard'; onMenuToggle?: () => void }) {
   const router = useRouter();
-  const { user, logout, hasHydrated } = useAuthStore();
+  const { user, logout, hasHydrated, isAuthenticated } = useAuthStore();
   const { toggleLoginModal, toggleRegisterModal, toggleLocationModal } = useUIStore();
   const { selectedLocation, setSelectedLocation } = useGlobalStore();
   
@@ -908,7 +908,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
               )}
               {/* Desktop Actions */}
               <div className="hidden md:flex items-center gap-1">
-                {authState === 'authenticated' ? (
+                {(authState === 'authenticated' || isAuthenticated) ? (
                   <>
                     {/* Notifications Bell with Tabs */}
                     {variant === 'home' && (

@@ -7,6 +7,7 @@ import type { User } from '@supabase/supabase-js';
 
 const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000;
 const AUTH_INIT_TIMEOUT = 8000;
+const LOGOUT_DEBOUNCE_MS = 3000;
 
 export type AuthState = 'loading' | 'authenticated' | 'guest';
 
@@ -133,6 +134,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 id: user.id,
                 email: user.email,
                 name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+                avatar_url: user.user_metadata?.avatar_url || null,
+                google_avatar: user.user_metadata?.avatar_url || null,
+                facebook_avatar: user.user_metadata?.facebook_avatar || null,
               } as any,
               token
             );
@@ -169,6 +173,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 id: session.user.id,
                 email: session.user.email,
                 name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+                avatar_url: session.user.user_metadata?.avatar_url || null,
+                google_avatar: session.user.user_metadata?.avatar_url || null,
+                facebook_avatar: session.user.user_metadata?.facebook_avatar || null,
               } as any,
               session.access_token
             );
@@ -177,15 +184,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
         setAuthCookie(session.access_token);
       } else if (event === 'SIGNED_OUT') {
-        const { isAuthenticated } = useAuthStore.getState();
-        if (isAuthenticated) {
-          useAuthStore.getState().logout();
-        }
-        clearAuthCookie();
-        if (mountedRef.current) {
-          setAuthState('guest');
-          setUser(null);
-        }
+        if (!mountedRef.current) return;
+        setTimeout(() => {
+          if (!mountedRef.current) return;
+          supabase.auth.getSession().then(({ data: { session: refreshedSession } }) => {
+            if (refreshedSession?.user) {
+              return;
+            }
+            if (!mountedRef.current) return;
+            const { isAuthenticated } = useAuthStore.getState();
+            if (isAuthenticated) {
+              useAuthStore.getState().logout();
+            }
+            clearAuthCookie();
+            setAuthState('guest');
+            setUser(null);
+          });
+        }, LOGOUT_DEBOUNCE_MS);
       }
     });
 

@@ -2,8 +2,10 @@
 
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
+import { useEffect } from 'react';
 import { http } from '@/lib/http-client';
 import { supabase } from '@/lib/supabase';
+import { useGlobalStore } from '@/lib/store';
 import { useDebounce } from './useDebounce';
 
 function imgAbs(url: string | undefined | null): string {
@@ -544,17 +546,31 @@ export function useHomepage() {
 }
 
 export function useCategories() {
+  const globalCategories = useGlobalStore((s) => s.categories);
+  const setGlobalCategories = useGlobalStore((s) => s.setCategories);
+
   const { data, error, isLoading } = useSWR(
     'categories_data',
     fetchFromLaravel,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 300000,
+      dedupingInterval: 86400000,
+      revalidateIfStale: false,
       errorRetryCount: 2,
     }
   );
 
-  return { categories: data?.data || [], isLoading, isError: !!error };
+  const live = data?.data || [];
+
+  useEffect(() => {
+    if (live.length > 0) {
+      setGlobalCategories(live);
+    }
+  }, [live, setGlobalCategories]);
+
+  const categories = live.length > 0 ? live : globalCategories;
+
+  return { categories, isLoading: isLoading && categories.length === 0, isError: !!error };
 }
 
 export function useLocations() {
