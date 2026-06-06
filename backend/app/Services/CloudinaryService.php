@@ -138,16 +138,12 @@ class CloudinaryService
 
         Log::info('Cloudinary upload started', $context);
 
-        $eager = $this->buildEagerTransformations($options['eager'] ?? true);
-
         $uploadParams = [
             'folder' => $folder,
             'public_id' => $publicId,
             'resource_type' => 'image',
             'quality' => 'auto',
             'fetch_format' => 'auto',
-            'eager' => $eager,
-            'eager_async' => true,
             'invalidate' => true,
         ];
 
@@ -567,20 +563,21 @@ class CloudinaryService
 
     protected function buildSuccessResponse($result, string $publicId): array
     {
+        $fullPublicId = $result->getPublicId();
         return [
             'success' => true,
-            'public_id' => $publicId,
+            'public_id' => $fullPublicId,
             'secure_url' => $result->getSecureUrl(),
             'url' => $result->getUrl(),
             'width' => $result->getWidth(),
             'height' => $result->getHeight(),
             'format' => $result->getFormat(),
             'bytes' => $result->getBytes(),
-            'thumbnail_url' => $this->getThumbnailUrl($publicId),
-            'listing_url' => $this->getListingUrl($publicId),
-            'optimized_url' => $this->getOptimizedUrl($publicId),
-            'blur_url' => $this->getBlurPlaceholderUrl($publicId),
-            'responsive' => $this->buildImageUrl($publicId),
+            'thumbnail_url' => $this->getThumbnailUrl($fullPublicId),
+            'listing_url' => $this->getListingUrl($fullPublicId),
+            'optimized_url' => $this->getOptimizedUrl($fullPublicId),
+            'blur_url' => $this->getBlurPlaceholderUrl($fullPublicId),
+            'responsive' => $this->buildImageUrl($fullPublicId),
         ];
     }
 
@@ -608,9 +605,6 @@ class CloudinaryService
 
     protected function generatePublicId(string $folder): string
     {
-        $prefix = str_replace('classified-ads/', '', $folder);
-        $prefix = str_replace('/', '_', $prefix);
-
-        return "{$prefix}/" . now()->timestamp . '_' . bin2hex(random_bytes(4));
+        return now()->timestamp . '_' . bin2hex(random_bytes(4));
     }
 }
