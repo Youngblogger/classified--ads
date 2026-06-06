@@ -125,7 +125,7 @@ class Ad extends Model
 
     public function scopeForListing($query)
     {
-        return $query->with(['images', 'category', 'location', 'activeBoost.plan'])
+        return $query->with(['images', 'category', 'location', 'user', 'activeBoost.plan'])
             ->active()
             ->orderBy('created_at', 'desc');
     }

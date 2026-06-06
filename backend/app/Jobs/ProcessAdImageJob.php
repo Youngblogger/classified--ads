@@ -4,36 +4,34 @@ namespace App\Jobs;
 
 use App\Models\Ad;
 use App\Models\AdImage;
-use App\Services\ImageProcessingService;
+use App\Services\ImageStorageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class ProcessAdImageJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
-    public int $timeout = 60;
+    public int $timeout = 120;
     public int $backoff = 30;
 
     public function __construct(
         public int $adId,
-        public string $tempPath,
+        public string $filePath,
         public int $sortOrder,
-        public bool $isPrimary = false
+        public bool $isPrimary = false,
     ) {
         $this->onQueue('image-processing');
     }
 
-    public function handle(ImageProcessingService $imageService): void
+    public function handle(ImageStorageService $storage): void
     {
         Log::info("Processing image for ad {$this->adId}", [
-            'temp_path' => $this->tempPath,
             'sort_order' => $this->sortOrder,
         ]);
 
@@ -44,16 +42,18 @@ class ProcessAdImageJob implements ShouldQueue
                 return;
             }
 
-            $fullTempPath = Storage::disk('public')->path($this->tempPath);
-
-            if (!file_exists($fullTempPath)) {
-                Log::error("Temp file not found: {$fullTempPath}");
-                throw new \Exception("Temp file not found");
+            if (!file_exists($this->filePath)) {
+                Log::error("File not found: {$this->filePath}");
+                throw new \Exception("File not found: {$this->filePath}");
             }
 
-            $result = $imageService->processAdImage(
-                new \Illuminate\Http\File($fullTempPath),
-                $this->adId
+            $result = $storage->upload(
+                new \Illuminate\Http\File($this->filePath),
+                [
+                    'folder' => 'ads',
+                    'tags' => ['ad', 'ad_' . $this->adId],
+                    'check_rate_limit' => false,
+                ]
             );
 
             AdImage::create([
@@ -62,17 +62,17 @@ class ProcessAdImageJob implements ShouldQueue
                 'original_url' => $result['original_url'],
                 'medium_url' => $result['medium_url'],
                 'thumbnail_url' => $result['thumbnail_url'],
+                'public_id' => $result['public_id'],
+                'width' => $result['width'],
+                'height' => $result['height'],
                 'file_size' => $result['file_size'],
                 'is_primary' => $this->isPrimary,
                 'sort_order' => $this->sortOrder,
             ]);
 
-            Storage::disk('public')->delete($this->tempPath);
+            @unlink($this->filePath);
 
-            Log::info("Image processed successfully for ad {$this->adId}", [
-                'url' => $result['url'],
-            ]);
-
+            Log::info("Image processed successfully for ad {$this->adId}");
         } catch (\Exception $e) {
             Log::error("Failed to process image for ad {$this->adId}", [
                 'error' => $e->getMessage(),
@@ -88,6 +88,6 @@ class ProcessAdImageJob implements ShouldQueue
             'error' => $exception->getMessage(),
         ]);
 
-        Storage::disk('public')->delete($this->tempPath);
+        @unlink($this->filePath);
     }
 }

@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Ad;
 use App\Models\AdImage;
-use App\Services\ImageProcessingService;
+use App\Services\ImageStorageService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class AdImageController extends Controller
 {
+    public function __construct(
+        protected ImageStorageService $storage,
+    ) {}
+
     public function store(Request $request, int $adId)
     {
         $ad = Ad::findOrFail($adId);
@@ -21,44 +23,48 @@ class AdImageController extends Controller
         }
 
         $existingCount = $ad->images()->count();
-        $maxImages = ImageProcessingService::getMaxImagesPerAd();
-        
+        $maxImages = ImageStorageService::getMaxImagesPerAd();
+
         $request->validate([
             'images' => 'required|array|min:1|max:' . ($maxImages - $existingCount),
             'images.*' => 'image|mimes:jpg,jpeg,png,webp,gif,heic,heif|max:5120',
         ]);
 
-        $imageService = new ImageProcessingService();
         $createdImages = [];
 
         foreach ($request->file('images') as $index => $file) {
-            $imageService->validateImage($file);
-            
-            $tempFilename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $tempPath = 'temp/' . $tempFilename;
-            
-            Storage::disk('public')->put($tempPath, file_get_contents($file->getPathname()));
+            $this->storage->validateImage($file);
+
+            $result = $this->storage->upload($file, [
+                'folder' => 'ads',
+                'user_id' => $request->user()->id,
+                'tags' => ['ad', 'ad_' . $ad->id],
+                'check_rate_limit' => false,
+            ]);
 
             $isPrimary = ($existingCount === 0 && $index === 0);
 
-            \App\Jobs\ProcessAdImageJob::dispatch(
-                $ad->id,
-                $tempPath,
-                $existingCount + $index,
-                $isPrimary
-            );
-
-            $createdImages[] = [
-                'temp_path' => $tempPath,
-                'sort_order' => $existingCount + $index,
+            $image = AdImage::create([
+                'ad_id' => $ad->id,
+                'url' => $result['url'],
+                'original_url' => $result['original_url'],
+                'medium_url' => $result['medium_url'],
+                'thumbnail_url' => $result['thumbnail_url'],
+                'public_id' => $result['public_id'],
+                'width' => $result['width'],
+                'height' => $result['height'],
+                'file_size' => $result['file_size'],
                 'is_primary' => $isPrimary,
-            ];
+                'sort_order' => $existingCount + $index,
+            ]);
+
+            $createdImages[] = $image;
         }
 
         return response()->json([
-            'message' => 'Images queued for processing',
+            'message' => 'Images uploaded successfully',
             'images' => $createdImages,
-        ], 202);
+        ]);
     }
 
     public function update(Request $request, int $adId, int $imageId)
@@ -93,25 +99,12 @@ class AdImageController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $this->deleteImageFiles($image);
+        if ($image->public_id) {
+            $this->storage->delete($image->public_id);
+        }
+
         $image->delete();
 
         return response()->json(['message' => 'Image deleted successfully']);
-    }
-
-    private function deleteImageFiles(AdImage $image): void
-    {
-        $paths = array_filter([
-            $image->url,
-            $image->original_url,
-            $image->thumbnail_url,
-        ]);
-
-        foreach ($paths as $path) {
-            $storagePath = str_replace('/storage/', '', parse_url($path, PHP_URL_PATH));
-            if (Storage::disk('public')->exists($storagePath)) {
-                Storage::disk('public')->delete($storagePath);
-            }
-        }
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\ImageStorageService;
+use App\Services\CloudinaryService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -14,7 +16,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ImageStorageService::class, function () {
+            return new ImageStorageService(
+                new CloudinaryService(),
+            );
+        });
     }
 
     /**

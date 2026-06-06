@@ -4,22 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdImage;
-use App\Services\ImageProcessingService;
+use App\Services\ImageStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 
 class ImageUploadController extends Controller
 {
-    private ImageProcessingService $imageService;
-
-    public function __construct(ImageProcessingService $imageService)
-    {
-        $this->imageService = $imageService;
-    }
+    public function __construct(
+        protected ImageStorageService $storage,
+    ) {}
 
     public function upload(Request $request)
     {
@@ -30,7 +23,6 @@ class ImageUploadController extends Controller
         $file = $request->file('image');
         $imageHash = hash_file('sha256', $file->getPathname());
 
-        // Server-side duplicate detection
         $existing = AdImage::where('image_hash', $imageHash)->first();
         if ($existing) {
             return response()->json([
@@ -40,29 +32,41 @@ class ImageUploadController extends Controller
         }
 
         try {
-            $result = $this->imageService->processAdImage($file);
+            $this->storage->validateImage($file);
+
+            $result = $this->storage->upload($file, [
+                'folder' => 'ads',
+                'user_id' => $request->user()?->id,
+                'tags' => ['temp'],
+            ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Image uploaded successfully',
                 'data' => [
-                    'url' => url($result['url']),
-                    'thumbnail_url' => url($result['thumbnail_url']),
-                    'medium_url' => url($result['medium_url']),
-                    'original_url' => url($result['original_url']),
+                    'url' => $result['url'],
+                    'thumbnail_url' => $result['thumbnail_url'],
+                    'medium_url' => $result['medium_url'],
+                    'original_url' => $result['original_url'],
+                    'public_id' => $result['public_id'],
                     'image_hash' => $imageHash,
                     'width' => $result['width'] ?? 0,
                     'height' => $result['height'] ?? 0,
                     'file_size' => $result['file_size'] ?? 0,
                 ],
             ]);
-        } catch (\Exception $e) {
+        } catch (\RuntimeException $e) {
             Log::error('Image upload failed', ['error' => $e->getMessage()]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to process image: ' . $e->getMessage(),
             ], 500);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
         }
     }
 }

@@ -343,33 +343,39 @@ class AdminController extends Controller
     public function uploadImages(Request $request, $id)
     {
         $ad = Ad::findOrFail($id);
-        
+
         $request->validate([
             'images' => 'required|array',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
+        $storage = app(ImageStorageService::class);
         $uploadedImages = [];
-        
+
         foreach ($request->file('images') as $imageFile) {
-            $path = $imageFile->store('ads/' . $ad->id, 'public');
-            $fullUrl = \Storage::url($path);
-            
+            $result = $storage->upload($imageFile, [
+                'folder' => 'ads',
+                'tags' => ['ad', 'ad_' . $ad->id],
+                'check_rate_limit' => false,
+            ]);
+
             $adImage = $ad->images()->create([
-                'url' => $fullUrl,
-                'display_url' => $fullUrl,
-                'thumbnail_url' => $fullUrl,
-                'full_url' => $fullUrl,
-                'full_thumbnail_url' => $fullUrl,
+                'url' => $result['url'],
+                'original_url' => $result['original_url'],
+                'thumbnail_url' => $result['thumbnail_url'],
+                'medium_url' => $result['medium_url'],
+                'public_id' => $result['public_id'],
+                'width' => $result['width'],
+                'height' => $result['height'],
+                'file_size' => $result['file_size'],
                 'is_primary' => $ad->images()->count() === 0,
             ]);
-            
+
             $uploadedImages[] = $adImage;
         }
-        
+
         $ad->load('images');
-        
-        // Return full URLs in the response
+
         $images = $ad->images->map(function ($img) {
             return [
                 'id' => $img->id,
@@ -381,7 +387,7 @@ class AdminController extends Controller
                 'is_primary' => $img->is_primary,
             ];
         });
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Images uploaded',
@@ -393,25 +399,22 @@ class AdminController extends Controller
     {
         $ad = Ad::findOrFail($id);
         $image = $ad->images()->findOrFail($imageId);
-        
-        // Delete file if exists
-        if ($image->url && \Storage::disk('public')->exists($image->url)) {
-            \Storage::disk('public')->delete($image->url);
+
+        if ($image->public_id) {
+            app(ImageStorageService::class)->delete($image->public_id);
         }
-        
+
         $image->delete();
-        
-        // If deleted image was primary, make another image primary
+
         if ($image->is_primary) {
             $firstImage = $ad->images()->first();
             if ($firstImage) {
                 $firstImage->update(['is_primary' => true]);
             }
         }
-        
+
         $ad->load('images');
-        
-        // Return full URLs
+
         $images = $ad->images->map(function ($img) {
             return [
                 'id' => $img->id,
@@ -423,7 +426,7 @@ class AdminController extends Controller
                 'is_primary' => $img->is_primary,
             ];
         });
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Image deleted',

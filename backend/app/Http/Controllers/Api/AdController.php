@@ -16,14 +16,10 @@ use App\Services\RecentlyViewedService;
 use App\Services\CacheService;
 use App\Services\BoostTierService;
 use App\Services\SavedAdService;
-use App\Services\CloudinaryService;
-use App\Services\ImageProcessingService;
+use App\Services\ImageStorageService;
 use App\Services\AdImageCacheService;
-use App\Jobs\Cloudinary\DeleteCloudinaryFileJob;
-use App\Jobs\ProcessAdImageJob;
 use App\Events\AdSaved;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -304,36 +300,16 @@ class AdController extends Controller
                             $thumbnailUrl = is_string($imageData) ? $mainUrl : ($imageData['thumbnail_url'] ?? $mainUrl);
                             $mediumUrl = is_string($imageData) ? $mainUrl : ($imageData['medium_url'] ?? $mainUrl);
                             $originalUrl = is_string($imageData) ? $mainUrl : ($imageData['original_url'] ?? $mainUrl);
-
-                            $storedMainUrl = $mainUrl;
-                            $storedThumbnailUrl = $thumbnailUrl;
-                            $storedMediumUrl = $mediumUrl;
-                            $storedOriginalUrl = $originalUrl;
-
-                            $tempPaths = $this->resolveTempPaths($mainUrl);
-                            if ($tempPaths !== null) {
-                                $adDir = "ads/{$ad->id}";
-                                foreach ($tempPaths as $variant => $tempPath) {
-                                    if (Storage::disk('public')->exists($tempPath)) {
-                                        $newPath = str_replace('temp/', "{$adDir}/", $tempPath);
-                                        Storage::disk('public')->copy($tempPath, $newPath);
-                                        Storage::disk('public')->delete($tempPath);
-                                        $variantUrl = url('/storage/' . $newPath);
-                                        if ($variant === 'large') $storedMainUrl = $variantUrl;
-                                        if ($variant === 'original') $storedOriginalUrl = $variantUrl;
-                                        if ($variant === 'medium') $storedMediumUrl = $variantUrl;
-                                        if ($variant === 'thumb') $storedThumbnailUrl = $variantUrl;
-                                    }
-                                }
-                            }
-
+                            $publicId = is_string($imageData) ? null : ($imageData['public_id'] ?? null);
                             $imageHash = is_string($imageData) ? null : ($imageData['image_hash'] ?? null);
+
                             AdImage::create([
                                 'ad_id' => $ad->id,
-                                'url' => $storedMainUrl,
-                                'original_url' => $storedOriginalUrl,
-                                'thumbnail_url' => $storedThumbnailUrl,
-                                'medium_url' => $storedMediumUrl,
+                                'url' => $mainUrl,
+                                'original_url' => $originalUrl,
+                                'thumbnail_url' => $thumbnailUrl,
+                                'medium_url' => $mediumUrl,
+                                'public_id' => $publicId,
                                 'image_hash' => $imageHash,
                                 'is_primary' => $index === 0,
                                 'sort_order' => $index,
@@ -342,17 +318,37 @@ class AdController extends Controller
                     }
                 }
 
-                // Handle raw file uploads ASYNC via job
                 if ($request->hasFile('images')) {
+                    $storage = app(ImageStorageService::class);
                     foreach ($request->file('images') as $index => $image) {
-                        $uuid = (string) Str::uuid();
-                        $tempPath = $image->store("temp/{$uuid}", 'public');
-                        ProcessAdImageJob::dispatch(
-                            $ad->id,
-                            $tempPath,
-                            $index,
-                            $index === 0
-                        );
+                        try {
+                            $result = $storage->upload($image, [
+                                'folder' => 'ads',
+                                'user_id' => $user->id,
+                                'tags' => ['ad', 'ad_' . $ad->id],
+                                'check_rate_limit' => false,
+                            ]);
+
+                            AdImage::create([
+                                'ad_id' => $ad->id,
+                                'url' => $result['url'],
+                                'original_url' => $result['original_url'],
+                                'medium_url' => $result['medium_url'],
+                                'thumbnail_url' => $result['thumbnail_url'],
+                                'public_id' => $result['public_id'],
+                                'width' => $result['width'],
+                                'height' => $result['height'],
+                                'file_size' => $result['file_size'],
+                                'is_primary' => $index === 0,
+                                'sort_order' => $index,
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error('Ad store: image upload failed', [
+                                'ad_id' => $ad->id,
+                                'index' => $index,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
                     }
                 }
 
@@ -635,9 +631,10 @@ class AdController extends Controller
 
             CacheService::invalidateAdCache($ad->id, $ad->category?->slug);
 
+            $storage = app(ImageStorageService::class);
             foreach ($ad->images as $image) {
                 if ($image->public_id) {
-                    DeleteCloudinaryFileJob::dispatch($image->public_id, 'ad_image');
+                    $storage->delete($image->public_id);
                 }
             }
 
@@ -766,75 +763,29 @@ class AdController extends Controller
         }
     }
 
-    private function resolveTempPaths(string $url): ?array
-    {
-        $path = parse_url($url, PHP_URL_PATH);
-        if (!$path) return null;
-        $path = ltrim($path, '/');
-        // Remove 'storage/' prefix if present
-        if (strpos($path, 'storage/') === 0) {
-            $path = substr($path, 8);
-        }
-        // Only handle temp/ paths
-        if (strpos($path, 'temp/') !== 0) return null;
-
-        $filePart = basename($path);
-        $baseName = pathinfo($filePart, PATHINFO_FILENAME);
-        $uuid = preg_replace('/_(original|large|medium|thumb)$/', '', $baseName);
-
-        if (!$uuid || $uuid === $baseName) return null;
-
-        return [
-            'original' => "temp/{$uuid}_original.webp",
-            'large' => "temp/{$uuid}_large.webp",
-            'medium' => "temp/{$uuid}_medium.webp",
-            'thumb' => "temp/{$uuid}_thumb.webp",
-        ];
-    }
-
     private function uploadAdImages(Request $request, Ad $ad, $user): void
     {
-        $useCloudinary = !empty(config('services.cloudinary.url'));
-        $imageService = app(ImageProcessingService::class);
+        $storage = app(ImageStorageService::class);
 
         foreach ($request->file('images') as $index => $image) {
             try {
-                if ($useCloudinary) {
-                    $cloudinary = new CloudinaryService();
-                    $result = $cloudinary->uploadImage($image->getPathname(), [
-                        'folder' => 'ads',
-                        'user_id' => $user->id,
-                        'tags' => ['ad', 'ad_' . $ad->id],
-                    ]);
-                    if ($result['success']) {
-                        AdImage::create([
-                            'ad_id' => $ad->id,
-                            'url' => $result['secure_url'],
-                            'original_url' => $result['secure_url'],
-                            'thumbnail_url' => $result['thumbnail_url'],
-                            'medium_url' => $result['optimized_url'] ?? null,
-                            'public_id' => $result['public_id'],
-                            'width' => $result['width'] ?? null,
-                            'height' => $result['height'] ?? null,
-                            'file_size' => $result['bytes'] ?? null,
-                            'is_primary' => $index === 0,
-                            'sort_order' => $index,
-                        ]);
-                        continue;
-                    }
-                }
+                $result = $storage->upload($image, [
+                    'folder' => 'ads',
+                    'user_id' => $user->id,
+                    'tags' => ['ad', 'ad_' . $ad->id],
+                    'check_rate_limit' => false,
+                ]);
 
-                $result = $imageService->processAdImage($image, $ad->id);
                 AdImage::create([
                     'ad_id' => $ad->id,
-                    'url' => url($result['url']),
-                    'original_url' => url($result['original_url']),
-                    'thumbnail_url' => url($result['thumbnail_url']),
-                    'medium_url' => url($result['medium_url']),
-                    'public_id' => null,
-                    'width' => $result['width'] ?? null,
-                    'height' => $result['height'] ?? null,
-                    'file_size' => $result['file_size'] ?? null,
+                    'url' => $result['url'],
+                    'original_url' => $result['original_url'],
+                    'thumbnail_url' => $result['thumbnail_url'],
+                    'medium_url' => $result['medium_url'],
+                    'public_id' => $result['public_id'],
+                    'width' => $result['width'],
+                    'height' => $result['height'],
+                    'file_size' => $result['file_size'],
                     'is_primary' => $index === 0,
                     'sort_order' => $index,
                 ]);
@@ -850,9 +801,9 @@ class AdController extends Controller
     {
         if ($image->public_id) {
             try {
-                app(CloudinaryService::class)->deleteImage($image->public_id);
+                app(ImageStorageService::class)->delete($image->public_id);
             } catch (\Exception $e) {
-                Log::warning('Failed to delete Cloudinary image: ' . $e->getMessage());
+                Log::warning('Failed to delete image: ' . $e->getMessage());
             }
         }
     }
