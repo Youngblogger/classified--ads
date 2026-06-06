@@ -96,6 +96,8 @@ export default function RegisterModal() {
     setPendingPhone('');
   };
 
+  const brandedRedirect = `${window.location.origin}/auth/callback`;
+
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     setError('');
@@ -103,17 +105,21 @@ export default function RegisterModal() {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo: brandedRedirect },
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes('popup')) throw new Error('Popup was blocked. Please allow popups and try again.');
+        if (error.message?.includes('cancelled')) throw new Error('Sign up cancelled. Please try again.');
+        throw error;
+      }
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('No redirect URL received');
+        throw new Error('Unable to start Google sign up. Please try again.');
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Google login failed');
+      setError(err instanceof Error ? err.message : 'Google sign up failed. Please try again.');
       setGoogleLoading(false);
     }
   };
@@ -125,18 +131,21 @@ export default function RegisterModal() {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
-        options: { redirectTo: `${window.location.origin}/auth/facebook/callback` },
+        options: { redirectTo: brandedRedirect },
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes('popup')) throw new Error('Popup was blocked. Please allow popups and try again.');
+        if (error.message?.includes('cancelled')) throw new Error('Sign up cancelled. Please try again.');
+        throw error;
+      }
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('No redirect URL received');
+        throw new Error('Unable to start Facebook sign up. Please try again.');
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Facebook login failed';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Facebook sign up failed. Please try again.');
       setFacebookLoading(false);
     }
   };

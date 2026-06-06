@@ -98,7 +98,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (justLoggedOut === 'true') {
       sessionStorage.removeItem('just_logged_out');
       const store = useAuthStore.getState();
-      if (store.isAuthenticated) store.logout();
+      if (store.isAuthenticated) {
+        useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+      }
       finishInit('guest');
       return;
     }
