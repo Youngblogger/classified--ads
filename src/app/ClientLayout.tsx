@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { SWRConfig } from 'swr';
 import { patchFedCmWidgetMode } from '@/lib/fedcm-patch';
 import { Toaster, toast } from 'react-hot-toast';
@@ -13,6 +13,7 @@ import GoogleOneTap from '@/components/auth/GoogleOneTap';
 import Preloader from '@/components/ui/Preloader';
 import AuthProvider from '@/components/providers/AuthProvider';
 import BottomNav from '@/components/ui/BottomNav';
+import { useUIStore } from '@/lib/store';
 
 
 interface ClientLayoutProps {
@@ -21,10 +22,30 @@ interface ClientLayoutProps {
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     patchFedCmWidgetMode();
   }, []);
+
+  // Restore redirect from middleware query params (backup for localStorage)
+  useEffect(() => {
+    const loginRedirect = searchParams?.get('login_redirect');
+    const loginRequired = searchParams?.get('login');
+    if (loginRedirect) {
+      localStorage.setItem('authRedirect', loginRedirect);
+      sessionStorage.setItem('authRedirect', loginRedirect);
+    }
+    if (loginRequired === 'required') {
+      // Clean the URL by removing the query params
+      const cleanUrl = window.location.pathname + window.location.search
+        .replace(/[?&]login(_redirect=[^&]*|=[^&]*)/g, '')
+        .replace(/^&/, '');
+      window.history.replaceState(null, '', cleanUrl || window.location.pathname);
+      // Open login modal after a brief delay to let auth init
+      setTimeout(() => useUIStore.getState().toggleLoginModal(), 500);
+    }
+  }, [searchParams]);
 
   const isAdminPage = pathname?.startsWith('/admin');
 

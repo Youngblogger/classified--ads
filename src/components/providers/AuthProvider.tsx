@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, createContext, useContext } from 'react';
 import { supabase, setAuthCookie, clearAuthCookie } from '@/lib/supabase';
-import { useAuthStore, useGlobalStore } from '@/lib/store';
+import { useAuthStore, useGlobalStore, hydrationComplete } from '@/lib/store';
 import type { User } from '@supabase/supabase-js';
 
 const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000;
@@ -94,68 +94,82 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (authInitRef.current) return;
     authInitRef.current = true;
 
-    const justLoggedOut = sessionStorage.getItem('just_logged_out');
-    if (justLoggedOut === 'true') {
-      sessionStorage.removeItem('just_logged_out');
-      const store = useAuthStore.getState();
-      if (store.isAuthenticated) {
-        useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
-      }
-      finishInit('guest');
-      return;
-    }
+    let cancelled = false;
 
-    // Skip session restoration on OAuth callback pages
-    const isCallbackRoute = typeof window !== 'undefined' && (
-      window.location.pathname.startsWith('/auth/callback') ||
-      window.location.pathname.startsWith('/auth/google/callback') ||
-      window.location.pathname.startsWith('/auth/facebook/callback')
-    );
-    if (isCallbackRoute) {
-      finishInit('guest');
-      return;
-    }
+    async function initialize() {
+      // Wait for Zustand persist to finish hydrating before checking session.
+      // This prevents the race where persist rehydrates AFTER we set auth state,
+      // overwriting isAuthenticated back to false.
+      try {
+        await hydrationComplete;
+      } catch {}
+      if (!mountedRef.current || cancelled) return;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mountedRef.current) return;
-
-      if (session?.user) {
-        const token = session.access_token;
-        const user = session.user;
-        setAuthCookie(token);
-        finishInit('authenticated', user);
-        supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data: profile }) => {
-          if (profile) {
-            useAuthStore.getState().login(
-              { ...profile, id: user.id, email: user.email },
-              token
-            );
-          } else {
-            useAuthStore.getState().login(
-              {
-                id: user.id,
-                email: user.email,
-                name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-                avatar_url: user.user_metadata?.avatar_url || null,
-                google_avatar: user.user_metadata?.avatar_url || null,
-                facebook_avatar: user.user_metadata?.facebook_avatar || null,
-              } as any,
-              token
-            );
-          }
-        });
-      } else {
+      const justLoggedOut = sessionStorage.getItem('just_logged_out');
+      if (justLoggedOut === 'true') {
+        sessionStorage.removeItem('just_logged_out');
         const store = useAuthStore.getState();
-        if (store.isAuthenticated) store.logout();
-        clearAuthCookie();
+        if (store.isAuthenticated) {
+          useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+        }
         finishInit('guest');
+        return;
       }
-    }).catch(() => {
-      if (mountedRef.current) finishInit('guest');
-    });
+
+      // Skip session restoration on OAuth callback pages
+      const isCallbackRoute = typeof window !== 'undefined' && (
+        window.location.pathname.startsWith('/auth/callback') ||
+        window.location.pathname.startsWith('/auth/google/callback') ||
+        window.location.pathname.startsWith('/auth/facebook/callback')
+      );
+      if (isCallbackRoute) {
+        finishInit('guest');
+        return;
+      }
+
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!mountedRef.current || cancelled) return;
+
+        if (session?.user) {
+          const token = session.access_token;
+          const user = session.user;
+          setAuthCookie(token);
+          finishInit('authenticated', user);
+          supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data: profile }) => {
+            if (profile) {
+              useAuthStore.getState().login(
+                { ...profile, id: user.id, email: user.email },
+                token
+              );
+            } else {
+              useAuthStore.getState().login(
+                {
+                  id: user.id,
+                  email: user.email,
+                  name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+                  avatar_url: user.user_metadata?.avatar_url || null,
+                  google_avatar: user.user_metadata?.avatar_url || null,
+                  facebook_avatar: user.user_metadata?.facebook_avatar || null,
+                } as any,
+                token
+              );
+            }
+          });
+        } else {
+          const store = useAuthStore.getState();
+          if (store.isAuthenticated) store.logout();
+          clearAuthCookie();
+          finishInit('guest');
+        }
+      }).catch(() => {
+        if (mountedRef.current && !cancelled) finishInit('guest');
+      });
+    }
+
+    initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || cancelled) return;
 
       if (event === 'SIGNED_IN' && session?.user) {
         setAuthCookie(session.access_token);
@@ -186,14 +200,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
         setAuthCookie(session.access_token);
       } else if (event === 'SIGNED_OUT') {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || cancelled) return;
         setTimeout(() => {
-          if (!mountedRef.current) return;
+          if (!mountedRef.current || cancelled) return;
           supabase.auth.getSession().then(({ data: { session: refreshedSession } }) => {
             if (refreshedSession?.user) {
               return;
             }
-            if (!mountedRef.current) return;
+            if (!mountedRef.current || cancelled) return;
             const { isAuthenticated } = useAuthStore.getState();
             if (isAuthenticated) {
               useAuthStore.getState().logout();
@@ -209,6 +223,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     subscriptionRef.current = subscription;
 
     return () => {
+      cancelled = true;
       subscription?.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

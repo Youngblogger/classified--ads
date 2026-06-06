@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { useAuthContext } from '@/components/providers/AuthProvider';
+import { saveRedirectPath } from '@/lib/require-auth';
 import Header from '@/components/home/Header';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -161,6 +162,7 @@ export default function DashboardLayout({
     if (!hasHydrated || authState === 'loading') return;
     const hasAuth = authState === 'authenticated' || authUser;
     if (!hasAuth) {
+      saveRedirectPath(window.location.pathname + window.location.search);
       useUIStore.getState().toggleLoginModal();
     }
   }, [hasHydrated, authState, authUser]);

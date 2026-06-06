@@ -82,7 +82,19 @@ export const useAuthStore = create<AuthStore>()(
         hasHydrated: state.hasHydrated
       }),
       onRehydrateStorage: () => (state) => {
-        if (state?.token) {
+        if (!state) return;
+
+        // CRITICAL: If AuthProvider already established a valid session during
+        // this page load, don't let stale persisted state overwrite it.
+        // This prevents the race where getSession() resolves before persist
+        // finishes rehydrating, then rehydration overwrites the auth state.
+        const currentState = useAuthStore.getState();
+        if (currentState.isAuthenticated && currentState.token) {
+          state.hasHydrated = true;
+          return;
+        }
+
+        if (state.token) {
           try {
             const payload = JSON.parse(atob(state.token.split('.')[1]));
             if (payload.exp && payload.exp * 1000 < Date.now()) {
@@ -90,7 +102,7 @@ export const useAuthStore = create<AuthStore>()(
             }
           } catch {}
         }
-        const raw = state?.user;
+        const raw = state.user;
         if (raw) {
           let user = { ...raw };
           let changed = false;
@@ -100,7 +112,7 @@ export const useAuthStore = create<AuthStore>()(
           }
           if (changed) useAuthStore.setState({ user });
         }
-        state?.setHasHydrated(true);
+        state.setHasHydrated(true);
       },
     }
   )
@@ -108,6 +120,33 @@ export const useAuthStore = create<AuthStore>()(
 
 // Export a function to get auth state directly
 export const getAuthState = () => useAuthStore.getState();
+
+// Resolves once Zustand persist finishes hydrating.
+// Used by AuthProvider to avoid racing with persist rehydration.
+let _hydrationResolve: (() => void) | null = null;
+export const hydrationComplete = new Promise<void>((resolve) => {
+  _hydrationResolve = resolve;
+});
+
+// Subscribe to the store and resolve the promise once hydrated
+function onHydrated() {
+  const resolve = _hydrationResolve;
+  if (resolve) {
+    _hydrationResolve = null;
+    resolve();
+  }
+}
+const unsubHydrate = useAuthStore.subscribe((state) => {
+  if (state.hasHydrated) {
+    unsubHydrate();
+    onHydrated();
+  }
+});
+// If already hydrated (e.g. re-render), resolve immediately
+if (useAuthStore.getState().hasHydrated) {
+  unsubHydrate();
+  onHydrated();
+}
 
 // Global store for categories and locations
 interface NotificationItem {

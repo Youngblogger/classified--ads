@@ -14,7 +14,8 @@ import AdSpecifications from '@/components/ads/AdSpecifications';
 import ReportAdModal from '@/components/ui/ReportAdModal';
 import BoostAdModal from '@/components/ui/BoostAdModal';
 import { DynamicChatModal } from '@/lib/dynamicImports';
-import { useAuthStore, useUIStore } from '@/lib/store';
+import { useAuthStore } from '@/lib/store';
+import { requireAuth } from '@/lib/require-auth';
 import { Heart, Phone, ChevronRight, MessageCircle, Home, CheckCircle, Flag, ImageIcon, Zap, Ban } from 'lucide-react';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
@@ -75,8 +76,7 @@ export default function AdDetailPage() {
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [boostButtonLoading, setBoostButtonLoading] = useState(false);
-  const { isAuthenticated, user } = useAuthStore();
-  const { toggleLoginModal } = useUIStore();
+  const { user } = useAuthStore();
   
   const getCurrentImageUrl = useCallback((adData: any, index: number): string => {
     const images = getAdImages(adData);
@@ -201,7 +201,7 @@ export default function AdDetailPage() {
   }, [ad]);
 
   const toggleFavorite = async () => {
-    if (!isAuthenticated) { toggleLoginModal(); return; }
+    if (!requireAuth(window.location.pathname)) return;
     if (favoriteLoading || !ad) return;
     
     // Trigger animation
@@ -273,10 +273,7 @@ export default function AdDetailPage() {
   };
 
   const handleChat = () => {
-    if (!isAuthenticated) {
-      toggleLoginModal();
-      return;
-    }
+    if (!requireAuth(window.location.pathname)) return;
     if (!ad?.user) {
       toast.error('Cannot start chat');
       return;
@@ -730,11 +727,7 @@ export default function AdDetailPage() {
                           ) : (
                             <button 
                               onClick={() => {
-                                if (!isAuthenticated) {
-                                  toast.error('Please login to view phone number');
-                                  toggleLoginModal();
-                                  return;
-                                }
+                                if (!requireAuth(window.location.pathname)) return;
                                 setShowPhone(true);
                               }} 
                               className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 mb-3"

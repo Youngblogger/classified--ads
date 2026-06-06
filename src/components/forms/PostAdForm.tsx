@@ -8,7 +8,8 @@ import { adsApi } from '@/lib/api';
 import { mutate } from 'swr';
 import { useQueryClient } from '@tanstack/react-query';
 import { adKeys } from '@/lib/query-keys';
-import { useAuthStore, useUIStore } from '@/lib/store';
+import { useAuthStore } from '@/lib/store';
+import { requireAuth } from '@/lib/require-auth';
 import { getPhoneValidationError } from '@/lib/utils';
 import { nigeriaLocations } from '@/lib/nigeriaLocations';
 import toast from 'react-hot-toast';
@@ -140,7 +141,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const queryClient = useQueryClient();
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
-  const { toggleLoginModal, toggleRegisterModal } = useUIStore();
   const { hasDraft, saveDraftText, saveDraftImages, clearDraft } = usePostAdDraft();
   const [step, setStep] = useState(1);
   const [submissionStep, setSubmissionStep] = useState<string | null>(null);
@@ -885,13 +885,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       return;
     }
 
-    if (!isAuthenticated) {
-      localStorage.setItem('authRedirect', '/post-ad');
-      sessionStorage.setItem('authRedirect', '/post-ad');
-      toast.error('Please login to post an ad.');
-      toggleLoginModal();
-      return;
-    }
+    if (!requireAuth('/post-ad')) return;
 
     const pendingUploads = images.filter(i => i.status !== 'completed');
     if (pendingUploads.length > 0) {
@@ -1009,7 +1003,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         errorMsg = 'Request timed out. The server took too long to respond. Please try again.';
       } else if (err.response?.status === 401) {
         errorMsg = 'Please login to post an ad.';
-        toggleLoginModal();
+        requireAuth('/post-ad');
       } else if (err.response?.status === 422) {
         errorMsg = 'Validation error: Please check your input and try again.';
       } else if (err.response?.status === 429) {

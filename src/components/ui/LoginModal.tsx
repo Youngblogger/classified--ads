@@ -6,6 +6,7 @@ import { X, Mail, Lock, Eye, EyeOff, Loader2, Search, Plus, Shield } from 'lucid
 import { useUIStore, useAuthStore } from '@/lib/store';
 import { authApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import { consumeRedirectPath } from '@/lib/require-auth';
 import toast from 'react-hot-toast';
 
 export default function LoginModal() {
@@ -60,6 +61,12 @@ export default function LoginModal() {
 
       toast.success('Signed in successfully');
       closeAllModals();
+      // Redirect to saved path if any
+      const redirectTo = consumeRedirectPath();
+      if (redirectTo && redirectTo !== '/') {
+        // Use timeout to let Zustand persist flush before navigation
+        setTimeout(() => { window.location.href = redirectTo; }, 100);
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);

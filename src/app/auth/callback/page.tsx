@@ -32,14 +32,17 @@ function CallbackContent() {
         setStatusText('Verifying authentication...');
 
         let retries = 0;
-        const MAX_RETRIES = 15;
+        const MAX_RETRIES = 10;
 
         while (retries < MAX_RETRIES) {
           if (cancelled || !mountedRef.current) return;
 
-          setStatusText(retries < 5
+          setStatusText(retries < 3
             ? 'Completing sign in...'
             : 'Finalizing your session...');
+
+          // Exponential backoff: 400ms, 500ms, 600ms, ... up to ~1300ms
+          const delay = 400 + retries * 100;
 
           const { data: { session } } = await supabase.auth.getSession();
 
@@ -71,7 +74,10 @@ function CallbackContent() {
             localStorage.removeItem('authRedirect');
             sessionStorage.removeItem('authRedirect');
 
-            await new Promise(r => setTimeout(r, 300));
+            // Give Zustand persist a tick to flush state to localStorage
+            await new Promise(r => setTimeout(r, 100));
+            // Also wait one animation frame for React to commit the render
+            await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 
             if (!cancelled && mountedRef.current) {
               window.location.replace(redirectTo);
@@ -80,7 +86,7 @@ function CallbackContent() {
           }
 
           retries++;
-          await new Promise(r => setTimeout(r, 600));
+          await new Promise(r => setTimeout(r, delay));
         }
 
         if (!cancelled && mountedRef.current) {

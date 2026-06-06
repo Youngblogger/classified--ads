@@ -27,7 +27,12 @@ const CALLBACK_ROUTES = [
 ];
 
 function redirectToLogin(request: NextRequest) {
-  return NextResponse.redirect(new URL('/', request.url));
+  const loginUrl = new URL('/', request.url);
+  // Attach the intended destination as a query param so the client
+  // can restore the redirect after login (as a backup to localStorage).
+  loginUrl.searchParams.set('login_redirect', request.nextUrl.pathname);
+  loginUrl.searchParams.set('login', 'required');
+  return NextResponse.redirect(loginUrl);
 }
 
 export async function middleware(request: NextRequest) {
