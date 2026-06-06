@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
@@ -16,7 +16,7 @@ import BoostAdModal from '@/components/ui/BoostAdModal';
 import { DynamicChatModal } from '@/lib/dynamicImports';
 import { useAuthStore } from '@/lib/store';
 import { requireAuth } from '@/lib/require-auth';
-import { Heart, Phone, ChevronRight, MessageCircle, Home, CheckCircle, Flag, ImageIcon, Zap, Ban } from 'lucide-react';
+import { Heart, Phone, ChevronRight, MessageCircle, Home, CheckCircle, Flag, ImageIcon, Zap, Ban, X, Maximize2 } from 'lucide-react';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 import toast from 'react-hot-toast';
@@ -76,6 +76,7 @@ export default function AdDetailPage() {
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [boostButtonLoading, setBoostButtonLoading] = useState(false);
+  const [showFullscreen, setShowFullscreen] = useState(false);
   const { user } = useAuthStore();
   
   const getCurrentImageUrl = useCallback((adData: any, index: number): string => {
@@ -194,11 +195,20 @@ export default function AdDetailPage() {
     if (!ad || images.length <= 1) return;
     
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % images.length);
-    }, 5000);
+      if (!userInteracted.current) {
+        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+      }
+    }, 4000);
     
     return () => clearInterval(interval);
   }, [ad]);
+
+  // Track user interaction to pause autoplay
+  const userInteracted = useRef(false);
+  const pauseAutoplay = useCallback(() => {
+    userInteracted.current = true;
+    setTimeout(() => { userInteracted.current = false; }, 8000);
+  }, []);
 
   const toggleFavorite = async () => {
     if (!requireAuth(window.location.pathname)) return;
@@ -215,10 +225,15 @@ export default function AdDetailPage() {
     try {
       if (isFavorited) {
         await favoritesApi.remove(ad.id);
+        toast.success('Removed from favorites', { id: 'fav-toast' });
       } else {
         await favoritesApi.add(ad.id);
+        toast.success('Added to favorites', { id: 'fav-toast' });
       }
-    } catch { setIsFavorited(isFavorited); }
+    } catch {
+      setIsFavorited(isFavorited);
+      toast.error('Failed to update favorite', { id: 'fav-toast' });
+    }
     setFavoriteLoading(false);
   };
 
@@ -389,14 +404,15 @@ export default function AdDetailPage() {
               {/* Image Gallery */}
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden border-t-8 border-primary-600">
                 <div 
-                  className="relative aspect-[4/3] bg-gray-100 select-none"
-                  onTouchStart={onTouchStart}
+                  className="relative aspect-[4/3] bg-gray-100 select-none cursor-pointer"
+                  onTouchStart={(e) => { pauseAutoplay(); onTouchStart(e); }}
                   onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                  onMouseDown={onMouseDown}
+                  onTouchEnd={(e) => { pauseAutoplay(); onTouchEnd(); }}
+                  onMouseDown={(e) => { pauseAutoplay(); onMouseDown(e); }}
                   onMouseMove={onMouseMove}
-                  onMouseUp={onMouseUp}
+                  onMouseUp={(e) => { pauseAutoplay(); onMouseUp(); }}
                   onMouseLeave={onMouseUp}
+                  onClick={() => setShowFullscreen(true)}
                 >
                   {imagesUrls.length > 0 ? (
                     <Image 
@@ -443,7 +459,7 @@ export default function AdDetailPage() {
                           }
                           
                           return (
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
+                            <span className={`px-2 py-0.5 rounded-[5px] text-xs font-medium ${badgeClass}`}>
                               {label}
                             </span>
                           );
@@ -463,7 +479,7 @@ export default function AdDetailPage() {
                           };
                           const cfg = statusMap[ad.status] || { label: ad.status, class: 'bg-gray-500/90 text-white' };
                           return (
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.class}`}>
+                            <span className={`px-2 py-0.5 rounded-[5px] text-xs font-medium ${cfg.class}`}>
                               {cfg.label}
                             </span>
                           );
@@ -638,7 +654,6 @@ export default function AdDetailPage() {
                       <span className="text-gray-400">Location: </span>
                       <span className="font-medium text-gray-900">
                         {typeof ad.location === 'string' ? ad.location : (ad.location?.name || ad.location || 'N/A')}
-                        {ad.lga && `, ${ad.lga}`}
                       </span>
                     </div>
                     <div>
@@ -940,6 +955,56 @@ export default function AdDetailPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Fullscreen Image Viewer */}
+      {showFullscreen && imagesUrls.length > 0 && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
+          onClick={() => setShowFullscreen(false)}
+        >
+          <button
+            onClick={() => setShowFullscreen(false)}
+            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); prevImage(); pauseAutoplay(); }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors disabled:opacity-30"
+            disabled={imagesUrls.length <= 1}
+          >
+            <ChevronRight className="w-8 h-8 rotate-180" />
+          </button>
+          <div
+            className="relative w-full h-full max-w-5xl max-h-[90vh] m-4"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => { pauseAutoplay(); onTouchStart(e); }}
+            onTouchMove={onTouchMove}
+            onTouchEnd={() => { pauseAutoplay(); onTouchEnd(); }}
+          >
+            <Image
+              key={`fs-${ad.id}-img-${currentImageIndex}`}
+              src={`${currentImageUrl}${currentImageUrl.includes('?') ? '&' : '?'}_cb=${ad?.updated_at || ad?.created_at || Date.now()}`}
+              alt={ad.title}
+              fill
+              sizes="100vw"
+              className="object-contain"
+              priority
+            />
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); nextImage(); pauseAutoplay(); }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors disabled:opacity-30"
+            disabled={imagesUrls.length <= 1}
+          >
+            <ChevronRight className="w-8 h-8" />
+          </button>
+          {/* Image counter */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium">
+            {currentImageIndex + 1} / {imagesUrls.length}
+          </div>
+        </div>
       )}
 
       {/* Report Ad Modal */}

@@ -113,26 +113,23 @@ export default function StoreProfilePage() {
   }, [fetchStore]);
 
   const handleFollowToggle = async () => {
-    if (!store || !isAuthenticated) {
-      toast.error('Please login to follow stores');
-      return;
-    }
+    if (!store || followLoading) return;
     setFollowLoading(true);
     try {
       if (isFollowing) {
         await storeApi.unfollow(store.id);
         setIsFollowing(false);
         setFollowerCount(c => Math.max(0, c - 1));
-        toast.success('Unfollowed store');
+        toast.success('Unfollowed store', { id: 'follow-toast' });
       } else {
         await storeApi.follow(store.id);
         setIsFollowing(true);
         setFollowerCount(c => c + 1);
-        toast.success('Following store');
+        toast.success('Following store', { id: 'follow-toast' });
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Action failed';
-      toast.error(msg);
+      toast.error(msg, { id: 'follow-toast' });
     } finally {
       setFollowLoading(false);
     }

@@ -49,9 +49,7 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
 
   const getLocationDisplay = () => {
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
-    const lgaName = ad.lga || '';
-    if (stateName && lgaName && stateName !== lgaName) return `${lgaName}, ${stateName}`;
-    return stateName || lgaName || '';
+    return stateName || '';
   };
 
   const description = (ad as any).short_description || (ad.description ? ad.description.substring(0, 120) : '');
@@ -59,7 +57,7 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
   return (
     <Link
       href={safeHref}
-      className={`block bg-white rounded-t-[5px] overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group break-inside-avoid ${cardBoostClasses}`}
+      className={`block bg-white rounded-[7px] overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group break-inside-avoid ${cardBoostClasses}`}
     >
       <div className="relative max-h-[200px] md:max-h-[280px] overflow-hidden bg-gray-100 flex items-center justify-center">
         <img
@@ -78,8 +76,8 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
           </div>
         )}
       </div>
-      <div className="p-3">
-        <div className="flex items-center justify-between flex-wrap mb-1">
+      <div className="p-2.5">
+        <div className="flex items-center justify-between flex-wrap gap-0.5 mb-0.5">
           <p className="text-base font-bold text-primary-600 leading-tight">
             {formatPrice(ad.price, ad.currency)}
           </p>
@@ -89,26 +87,22 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
             </span>
           )}
         </div>
-        <h3 className="font-medium text-gray-900 text-sm leading-snug line-clamp-2">
+        <h3 className="font-medium text-gray-900 text-sm leading-snug truncate">
           {safeTitle}
         </h3>
         {description && (
-          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mt-1">
+          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mt-0.5">
             {description}
           </p>
         )}
         {(getLocationDisplay()) && (
-          <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-            {getLocationDisplay() && (
-              <>
-                <MapPin className="w-3 h-3 flex-shrink-0" />
-                <span className="truncate">{getLocationDisplay()}</span>
-              </>
-            )}
+          <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-400">
+            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{getLocationDisplay()}</span>
           </div>
         )}
         {boostType && (
-          <div className="mt-2">
+          <div className="mt-1.5">
             <PromotedBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} />
           </div>
         )}
