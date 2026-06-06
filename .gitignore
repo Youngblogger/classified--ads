@@ -63,3 +63,4 @@ nul
 gh.msi
 *.tsbuildinfo
 next-env.d.ts
+.vercel
