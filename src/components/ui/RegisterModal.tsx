@@ -96,7 +96,10 @@ export default function RegisterModal() {
     setPendingPhone('');
   };
 
-  const brandedRedirect = `${window.location.origin}/auth/callback`;
+  const getRedirectUrl = () => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/auth/callback`;
+  };
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -105,7 +108,7 @@ export default function RegisterModal() {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: brandedRedirect },
+        options: { redirectTo: getRedirectUrl() },
       });
 
       if (error) {
@@ -131,7 +134,7 @@ export default function RegisterModal() {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
-        options: { redirectTo: brandedRedirect },
+        options: { redirectTo: getRedirectUrl() },
       });
 
       if (error) {

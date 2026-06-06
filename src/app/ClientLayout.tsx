@@ -75,9 +75,9 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
                 <div className="flex-1 min-w-0 text-sm text-gray-900 font-medium leading-snug">{message}</div>
                 <button
                   onClick={() => toast.dismiss(t.id)}
-                  className="flex-shrink-0 p-1 -mr-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex-shrink-0 p-1 -mr-1 hover:bg-red-50 rounded-lg transition-colors ml-auto"
                 >
-                  <X className="w-4 h-4 text-gray-400" />
+                  <X className="w-4 h-4 text-red-400 hover:text-red-600" />
                 </button>
               </div>
             )}
