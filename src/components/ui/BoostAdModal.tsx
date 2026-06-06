@@ -531,9 +531,9 @@ export default function BoostAdModal({
   const handleClose = () => {
     if (step === 'initial') {
       trackBoostEvent('boost_skipped', { ad_id: adId });
-      if (adSlug) {
-        router.push(`/ad/${adSlug}`);
-      }
+      onClose();
+      router.replace('/');
+      return;
     }
     onClose();
   };
