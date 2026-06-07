@@ -12,7 +12,7 @@ import { getUserAvatarUrl } from '@/lib/utils';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
 import MobileSearchPage from '@/components/ui/MobileSearchPage';
 
-export default function MobileHeader() {
+export default function MobileHeader({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const router = useRouter();
   const { selectedLocation } = useGlobalStore();
   const { toggleLocationModal, toggleLoginModal } = useUIStore();
@@ -80,10 +80,21 @@ export default function MobileHeader() {
       >
         {/* Top Row */}
         <div className="flex items-center justify-between h-14 px-4">
-          {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
-            <Image src="/icons/iList-white.png" alt="iList" width={28} height={28} className="h-7 w-auto" priority />
-          </Link>
+          <div className="flex items-center gap-2">
+            {onMenuToggle && (
+              <button
+                onClick={onMenuToggle}
+                className="p-1.5 rounded-lg active:bg-white/10 transition-colors"
+                aria-label="Toggle navigation menu"
+              >
+                <Menu className="w-5 h-5 text-white" />
+              </button>
+            )}
+            {/* Logo */}
+            <Link href="/" className="flex-shrink-0">
+              <Image src="/icons/iList-white.png" alt="iList" width={28} height={28} className="h-7 w-auto" priority />
+            </Link>
+          </div>
 
           {/* Right Actions */}
           <div className="flex items-center gap-0.5">

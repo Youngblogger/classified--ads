@@ -224,9 +224,9 @@ export default function DashboardLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:top-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:top-0 top-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } top-16`}
+        }`}
       >
         <div className="flex flex-col h-full">
           {/* Home Button */}

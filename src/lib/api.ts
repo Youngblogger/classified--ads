@@ -484,13 +484,22 @@ export const favoritesApi = {
       const res = await http.get('/favorites');
       const data = res?.data?.data || res?.data || [];
       if (Array.isArray(data) && data.length > 0) {
-        return sbResponse({ data: normalizeAds(data) });
+        const items = data.map((item: any) => {
+          if (item.ad) return item;
+          const ad = normalizeAd(item);
+          if (!ad) return { id: item.id, ad: item };
+          return { id: item.id || ad.id, ad };
+        });
+        return sbResponse({ data: items });
       }
     } catch {}
     const { data, error } = await supabase.from('listing_favorites').select('*, listings(*, profiles(*))').eq('user_id', userId).limit(50);
     if (error) return sbError(error);
     return sbResponse({
-      data: (data || []).map((f: any) => transformListing({ ...f.listings, user: f.listings?.profiles })),
+      data: (data || []).map((f: any) => {
+        const ad = transformListing({ ...f.listings, user: f.listings?.profiles }) || {};
+        return { id: f.id, ad };
+      }),
     });
   },
 
@@ -502,7 +511,11 @@ export const favoritesApi = {
       if (res?.data) return sbResponse({ data: { message: 'Added to favorites' } });
     } catch {}
     const { error } = await supabase.from('listing_favorites').insert({ user_id: userId, listing_id: String(adId) });
-    return error ? sbError(error) : sbResponse({ data: { message: 'Added to favorites' } });
+    if (error) {
+      console.error('Supabase favorite insert error:', error);
+      throw error;
+    }
+    return sbResponse({ data: { message: 'Added to favorites' } });
   },
 
   remove: async (adId: number) => {
@@ -513,7 +526,11 @@ export const favoritesApi = {
       if (res?.data) return sbResponse({ data: { message: 'Removed from favorites' } });
     } catch {}
     const { error } = await supabase.from('listing_favorites').delete().eq('user_id', userId).eq('listing_id', String(adId));
-    return error ? sbError(error) : sbResponse({ data: { message: 'Removed from favorites' } });
+    if (error) {
+      console.error('Supabase favorite remove error:', error);
+      throw error;
+    }
+    return sbResponse({ data: { message: 'Removed from favorites' } });
   },
 
   check: async (adId: number) => {
@@ -627,20 +644,22 @@ export const messagesApi = {
       if (res?.data?.data) return sbResponse({ data: res.data.data });
     } catch {}
     let convId: string | null = null;
+    const userIdStr = String(userId).trim();
+    const receiverIdStr = String(receiverId).trim();
     const { data: existing } = await supabase.from('conversations').select('id')
-      .or(`and(buyer_id.eq.${userId},seller_id.eq.${String(receiverId)}),and(buyer_id.eq.${String(receiverId)},seller_id.eq.${userId})`)
+      .or(`and(buyer_id.eq.${userIdStr},seller_id.eq.${receiverIdStr}),and(buyer_id.eq.${receiverIdStr},seller_id.eq.${userIdStr})`)
       .maybeSingle();
     if (existing) {
       convId = existing.id;
     } else {
       const { data: newConv } = await supabase.from('conversations').insert({
-        listing_id: adId ? String(adId) : null, buyer_id: userId, seller_id: String(receiverId),
+        listing_id: adId ? String(adId) : null, buyer_id: userIdStr, seller_id: receiverIdStr,
       }).select().single();
       convId = newConv?.id || null;
     }
     if (!convId) return sbError({ message: 'Failed to create conversation' });
     const { data, error } = await supabase.from('messages').insert({
-      conversation_id: convId, sender_id: userId, content, message_type: 'text',
+      conversation_id: convId, sender_id: userIdStr, content, message_type: 'text',
     }).select().single();
     await supabase.from('conversations').update({ last_message_at: new Date().toISOString(), last_message_preview: content }).eq('id', convId);
     return error ? sbError(error) : sbResponse({ data });
@@ -655,7 +674,7 @@ export const messagesApi = {
     } catch {}
     const { data: listing } = await supabase.from('listings').select('user_id').eq('id', String(adId)).single();
     if (!listing) return sbError({ message: 'Ad not found' });
-    return messagesApi.sendMessageNew(listing.user_id as any, adId, content);
+    return messagesApi.sendMessageNew(Number(listing.user_id), Number(adId), content);
   },
 
   markAsRead: async (conversationId: number) => {
@@ -2417,11 +2436,29 @@ export const adminApi = {
 
   getSettings: async () => {
     try {
+      const res = await fetch('/api/admin/settings');
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.data) return sbResponse(json.data);
+      }
+    } catch {}
+    try {
       const res: any = await adminGet(`/${STEALTH_PREFIX}/settings`);
       return sbResponse(res?.data || { auto_approval_enabled: false, approval_duration_minutes: 2, max_images_per_ad: 10, ad_expiration_days: 30 });
     } catch (e: any) { return sbError(e); }
   },
   updateSettings: async (data: any) => {
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return sbResponse({ data: json?.data || { message: 'Updated' } });
+      }
+    } catch {}
     try {
       const res: any = await adminPut(`/${STEALTH_PREFIX}/settings`, data);
       return sbResponse({ data: res?.data || { message: 'Updated' } });
@@ -2430,11 +2467,29 @@ export const adminApi = {
 
   getWatermarkSettings: async () => {
     try {
+      const res = await fetch('/api/admin/watermark');
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.data) return sbResponse({ data: json.data });
+      }
+    } catch {}
+    try {
       const res: any = await adminGet(`/${STEALTH_PREFIX}/watermark`);
       return sbResponse({ data: res?.data || {} });
     } catch (e: any) { return sbError(e); }
   },
   updateWatermarkSettings: async (data: any) => {
+    try {
+      const res = await fetch('/api/admin/watermark', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return sbResponse({ data: json?.data || { message: 'Updated' } });
+      }
+    } catch {}
     try {
       const res: any = await adminPut(`/${STEALTH_PREFIX}/watermark`, data);
       return sbResponse({ data: res?.data || { message: 'Updated' } });
@@ -2444,8 +2499,17 @@ export const adminApi = {
     try {
       const formData = new FormData();
       formData.append('logo', file);
+      const res = await fetch('/api/admin/watermark', { method: 'POST', body: formData });
+      if (res.ok) {
+        const json = await res.json();
+        return sbResponse({ data: json?.data || {} });
+      }
+    } catch {}
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
       const res: any = await adminFetch(`/${STEALTH_PREFIX}/watermark/logo`, { method: 'POST', body: formData });
-      return sbResponse({ url: res?.data?.url || res?.url || '' });
+      return sbResponse({ data: { url: res?.data?.url || res?.url || '' } });
     } catch (e: any) { return sbError(e); }
   },
 

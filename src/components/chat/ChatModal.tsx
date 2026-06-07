@@ -12,6 +12,24 @@ import toast from 'react-hot-toast';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const BACKEND_URL = API_URL.replace('/api', '');
 
+function safeParseDate(input: string | number | null | undefined): Date | null {
+  if (input == null) return null;
+  const ts = typeof input === 'number' ? input : Date.parse(input);
+  if (isNaN(ts)) return null;
+  return new Date(ts);
+}
+
+function formatMsgTime(input: string | number | null | undefined): string {
+  const d = safeParseDate(input);
+  if (!d) return '';
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function getDateMs(input: string | number | null | undefined): number {
+  const d = safeParseDate(input);
+  return d ? d.getTime() : 0;
+}
+
 // Get image URL - handles all URL formats from backend
 function getImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -149,6 +167,7 @@ export default function ChatModal({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const currentUserId = user?.id;
+  const currentUserIdStr = currentUserId != null ? String(currentUserId) : undefined;
   const MAX_RECORDING_DURATION = 60;
 
   const handleNewMessage = useCallback((message: Message) => {
@@ -159,7 +178,7 @@ export default function ChatModal({
     
     // Check if this is a message sent by the current user (from socket broadcast)
     // If so, don't add it as a new message - it's already been added optimistically
-    if (currentUserId && message.sender_id === currentUserId) {
+    if (currentUserIdStr && String(message.sender_id) === currentUserIdStr) {
       // This is our own message coming back from socket - ignore it
       setIsTyping(false);
       return;
@@ -178,7 +197,7 @@ export default function ChatModal({
         msg => 
           msg.sender_id === message.sender_id && 
           msg.content === message.content &&
-          Math.abs(new Date(msg.created_at).getTime() - new Date(message.created_at).getTime()) < 3000
+          Math.abs(getDateMs(msg.created_at) - getDateMs(message.created_at)) < 3000
       );
       if (existsByContent) return prev;
       
@@ -206,7 +225,7 @@ export default function ChatModal({
     if (!isOpen || !isAuthenticated || !user || !adId || !sellerId) return;
     
     // Prevent messaging yourself
-    if (sellerId === user.id) {
+    if (currentUserIdStr && String(sellerId) === currentUserIdStr) {
       console.warn('Cannot message yourself');
       return;
     }
@@ -251,7 +270,7 @@ export default function ChatModal({
           (existing.id && msg.id && existing.id === msg.id) ||
           (existing.sender_id === msg.sender_id && 
            existing.content === msg.content &&
-           Math.abs(new Date(existing.created_at).getTime() - new Date(msg.created_at).getTime()) < 5000)
+           Math.abs(getDateMs(existing.created_at) - getDateMs(msg.created_at)) < 5000)
         );
         if (!exists) {
           acc.push(msg);
@@ -292,7 +311,7 @@ export default function ChatModal({
         (m.id && msg.id && m.id === msg.id) ||
         (m.sender_id === msg.sender_id && 
          m.content === msg.content &&
-         Math.abs(new Date(m.created_at).getTime() - new Date(msg.created_at).getTime()) < 3000)
+         Math.abs(getDateMs(m.created_at) - getDateMs(msg.created_at)) < 3000)
       );
       
       if (firstIndex === index) {
@@ -561,7 +580,7 @@ export default function ChatModal({
     if (!newMessage.trim()) return;
     
     // Prevent messaging yourself
-    if (sellerId === currentUserId) {
+    if (currentUserIdStr && String(sellerId) === currentUserIdStr) {
       toast.error('Cannot message yourself');
       return;
     }
@@ -736,7 +755,7 @@ export default function ChatModal({
             </div>
           ) : (
             messages.map((msg) => {
-              const isMe = Number(msg.sender_id) === Number(currentUserId);
+              const isMe = currentUserIdStr != null && String(msg.sender_id) === currentUserIdStr;
               const senderAvatar = getImageUrl(msg.sender?.full_avatar_url || msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar);
 
               // Determine message type based on message_type field or content
@@ -804,7 +823,7 @@ export default function ChatModal({
                           const safeRemaining = isNaN(remaining) || !isFinite(remaining) ? 0 : Math.max(0, remaining);
                           return formatDuration(Math.floor(safeRemaining));
                         })()}</span>
-                        <span>{new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>{formatMsgTime(msg.created_at)}</span>
                         {isMe && <span className="text-[#53bdeb]">{msg.status === 'seen' ? '✓✓' : '✓'}</span>}
                       </div>
                     </div>
@@ -830,7 +849,7 @@ export default function ChatModal({
                       )}
                       <div className={`flex items-center gap-1 mt-0.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <span className={`text-[10px] ${isMe ? 'text-[#6ab383]' : 'text-gray-400'}`}>
-                          {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          {formatMsgTime(msg.created_at)}
                         </span>
                         {isMe && <span className="text-[10px] text-[#53bdeb]">{msg.status === 'seen' ? '✓✓' : '✓'}</span>}
                       </div>

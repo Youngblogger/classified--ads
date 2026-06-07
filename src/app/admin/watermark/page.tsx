@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
-import { Type, Save, RefreshCw, Eye, EyeOff, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Type, Save, RefreshCw, Eye, EyeOff, Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { clearWatermarkCache } from '@/lib/watermark';
 
 interface WatermarkSettings {
   enabled: boolean;
@@ -85,14 +87,14 @@ export default function WatermarkSettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [regenerateAll, setRegenerateAll] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchSettings = async () => {
     try {
       const response = await adminApi.getWatermarkSettings();
-      if (response.data) {
-        setSettings((response.data as any)?.data || response.data);
-      }
+      const raw = response?.data?.data || response?.data || {};
+      setSettings(raw as WatermarkSettings);
     } catch (error) {
       console.error('Error fetching watermark settings:', error);
     } finally {
@@ -104,6 +106,39 @@ export default function WatermarkSettingsPage() {
     fetchSettings();
   }, []);
 
+  // Realtime subscription for live sync
+  useEffect(() => {
+    const channel = supabase
+      .channel('watermark_settings_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'watermark_settings', filter: 'id=eq.default' },
+        (payload) => {
+          if (payload.new && typeof payload.new === 'object') {
+            const s = payload.new as Record<string, unknown>;
+            setSettings({ ...settings, ...s } as WatermarkSettings);
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const handleRegenerate = async () => {
+    if (!confirm('This will re-process all existing ad images with the new watermark settings. Continue?')) return;
+    setRegenerating(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/watermark/regenerate', { method: 'POST' });
+      const json = await res.json();
+      setMessage({ type: res.ok ? 'success' : 'error', text: json.message || 'Regeneration complete' });
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to regenerate images' });
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
@@ -113,6 +148,7 @@ export default function WatermarkSettingsPage() {
         data.regenerate_all = true;
       }
       await adminApi.updateWatermarkSettings(data);
+      clearWatermarkCache();
       setMessage({ type: 'success', text: 'Watermark settings saved successfully!' });
       setRegenerateAll(false);
     } catch (error) {
@@ -129,10 +165,12 @@ export default function WatermarkSettingsPage() {
     setUploadingLogo(true);
     try {
       const response = await adminApi.uploadWatermarkLogo(file);
-      if ((response.data as any)?.logo_url || (response.data as any)?.data?.url) {
-        const logoUrl = (response.data as any)?.logo_url || (response.data as any)?.data?.url || '';
-        setSettings(prev => ({ ...prev, logo_url: logoUrl }));
+      const url = response?.data?.data?.url || (response.data as any)?.logo_url || '';
+      if (url) {
+        setSettings(prev => ({ ...prev, logo_url: url }));
         setMessage({ type: 'success', text: 'Logo uploaded successfully!' });
+      } else {
+        setMessage({ type: 'error', text: 'No URL returned from upload.' });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to upload logo.' });
@@ -481,7 +519,7 @@ export default function WatermarkSettingsPage() {
 
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Batch Operations</h2>
-        <label className="flex items-center gap-3 cursor-pointer">
+        <label className="flex items-center gap-3 cursor-pointer mb-4">
           <input
             type="checkbox"
             checked={regenerateAll}
@@ -489,10 +527,27 @@ export default function WatermarkSettingsPage() {
             className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
           />
           <div>
-            <span className="font-medium text-gray-900">Regenerate all existing images</span>
+            <span className="font-medium text-gray-900">Regenerate all existing images on save</span>
             <p className="text-sm text-gray-500">Re-apply watermark settings to all existing ad images</p>
           </div>
         </label>
+        <button
+          onClick={handleRegenerate}
+          disabled={regenerating}
+          className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
+        >
+          {regenerating ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Regenerating...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-4 h-4" />
+              Regenerate All Images Now
+            </>
+          )}
+        </button>
       </div>
 
       <div className="flex justify-end gap-4">

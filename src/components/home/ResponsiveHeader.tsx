@@ -7,7 +7,7 @@ export default function ResponsiveHeader({ variant = 'homepage', onMenuToggle }:
   return (
     <div className="w-full">
       <div className="md:hidden">
-        <MobileHeader />
+        <MobileHeader onMenuToggle={onMenuToggle} />
       </div>
       <div className="hidden md:block">
         <Header variant={variant} onMenuToggle={onMenuToggle} />

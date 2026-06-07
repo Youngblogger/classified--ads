@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Search,
   CheckCircle,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { adminApi } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { getAdImageUrl } from '@/lib/utils';
 import { invalidateSwrCache, notifyCacheInvalidation } from '@/lib/cache-sync';
 import { useQueryClient } from '@tanstack/react-query';
@@ -112,16 +113,15 @@ export default function AdsApprovalPage() {
     try {
       setSettingsLoading(true);
       const res = await adminApi.getSettings();
-      if (res.data) {
-        const fetched = {
-          auto_approval_enabled: res.data.auto_approval_enabled ?? false,
-          approval_duration_minutes: res.data.approval_duration_minutes ?? 2,
-          max_images_per_ad: res.data.max_images_per_ad ?? 10,
-          ad_expiration_days: res.data.ad_expiration_days ?? 30,
-        };
-        setApprovalSettings(fetched);
-        savedSettingsRef.current = fetched;
-      }
+      const settingsData = res?.data?.data || res?.data || {};
+      const fetched = {
+        auto_approval_enabled: Boolean(settingsData.auto_approval_enabled),
+        approval_duration_minutes: Number(settingsData.approval_duration_minutes) || 2,
+        max_images_per_ad: Number(settingsData.max_images_per_ad) || 10,
+        ad_expiration_days: Number(settingsData.ad_expiration_days) || 30,
+      };
+      setApprovalSettings(fetched);
+      savedSettingsRef.current = fetched;
     } catch (error) {
       console.error('Failed to fetch settings:', error);
     } finally {
@@ -132,6 +132,32 @@ export default function AdsApprovalPage() {
   useEffect(() => {
     fetchPendingAds();
     fetchSettings();
+  }, []);
+
+  // Realtime subscription for settings sync
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin_settings_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'admin_settings', filter: 'id=eq.default' },
+        (payload) => {
+          if (payload.new && typeof payload.new === 'object') {
+            const s = payload.new as Record<string, unknown>;
+            const updated = {
+              auto_approval_enabled: Boolean(s.auto_approval_enabled),
+              approval_duration_minutes: Number(s.approval_duration_minutes) || 2,
+              max_images_per_ad: Number(s.max_images_per_ad) || 10,
+              ad_expiration_days: Number(s.ad_expiration_days) || 30,
+            };
+            setApprovalSettings(updated);
+            savedSettingsRef.current = updated;
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const validateSettings = (): boolean => {
@@ -153,11 +179,21 @@ export default function AdsApprovalPage() {
     if (!validateSettings()) return;
     try {
       setSavingSettings(true);
-      const currentSettings = await adminApi.getSettings();
-      const updatedSettings = { ...currentSettings.data, ...approvalSettings };
-      await adminApi.updateSettings(updatedSettings);
+      const res = await adminApi.updateSettings(approvalSettings);
+      if (res?.data?.data) {
+        const saved = res.data.data;
+        const synced = {
+          auto_approval_enabled: Boolean(saved.auto_approval_enabled),
+          approval_duration_minutes: Number(saved.approval_duration_minutes) || 2,
+          max_images_per_ad: Number(saved.max_images_per_ad) || 10,
+          ad_expiration_days: Number(saved.ad_expiration_days) || 30,
+        };
+        setApprovalSettings(synced);
+        savedSettingsRef.current = synced;
+      } else {
+        savedSettingsRef.current = { ...approvalSettings };
+      }
       toast.success('Approval settings saved successfully');
-      savedSettingsRef.current = { ...approvalSettings };
       setSettingsErrors({});
     } catch (error) {
       console.error('Failed to save settings:', error);

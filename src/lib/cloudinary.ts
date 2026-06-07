@@ -24,10 +24,20 @@ export async function uploadToCloudinary(
     folder?: string;
     public_id?: string;
     resource_type?: 'image' | 'auto';
+    transformation?: Record<string, unknown>[];
   }
 ): Promise<CloudinaryUploadResult> {
   const folder = options?.folder || 'classified-ads';
   const resource_type = options?.resource_type || 'auto';
+
+  const baseTransforms: Record<string, unknown>[] = [
+    { quality: 'auto' },
+    { fetch_format: 'auto' },
+  ];
+
+  const allTransforms = options?.transformation
+    ? [...baseTransforms, ...options.transformation]
+    : baseTransforms;
 
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -35,10 +45,7 @@ export async function uploadToCloudinary(
         folder,
         public_id: options?.public_id,
         resource_type,
-        transformation: [
-          { quality: 'auto' },
-          { fetch_format: 'auto' },
-        ],
+        transformation: allTransforms,
       },
       (error, result) => {
         if (error) return reject(error);
