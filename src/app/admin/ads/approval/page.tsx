@@ -180,19 +180,18 @@ export default function AdsApprovalPage() {
     try {
       setSavingSettings(true);
       const res = await adminApi.updateSettings(approvalSettings);
-      if (res?.data?.data) {
-        const saved = res.data.data;
-        const synced = {
-          auto_approval_enabled: Boolean(saved.auto_approval_enabled),
-          approval_duration_minutes: Number(saved.approval_duration_minutes) || 2,
-          max_images_per_ad: Number(saved.max_images_per_ad) || 10,
-          ad_expiration_days: Number(saved.ad_expiration_days) || 30,
-        };
-        setApprovalSettings(synced);
-        savedSettingsRef.current = synced;
-      } else {
-        savedSettingsRef.current = { ...approvalSettings };
+      if (!res?.data?.data) {
+        throw new Error('Settings API returned an unexpected response');
       }
+      const saved = res.data.data;
+      const synced = {
+        auto_approval_enabled: Boolean(saved.auto_approval_enabled),
+        approval_duration_minutes: Number(saved.approval_duration_minutes) || 2,
+        max_images_per_ad: Number(saved.max_images_per_ad) || 10,
+        ad_expiration_days: Number(saved.ad_expiration_days) || 30,
+      };
+      setApprovalSettings(synced);
+      savedSettingsRef.current = synced;
       toast.success('Approval settings saved successfully');
       setSettingsErrors({});
     } catch (error) {

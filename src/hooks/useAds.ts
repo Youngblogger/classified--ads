@@ -152,17 +152,26 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
 
   if (endpoint.startsWith('ads?')) {
     const params = Object.fromEntries(new URLSearchParams(endpoint.replace('ads?', '')));
+    const page = parseInt(params.page || '1', 10);
+    const perPage = parseInt(params.limit || params.per_page || '20', 10);
+
     const res = await http.get('/ads', { params: params as any });
     let responseData = res?.data || { data: [], meta: null };
     let mapped = normalizeAds(responseData.data || []);
 
-    if (mapped.length === 0) {
-      console.debug('[AdsFetch] Laravel returned 0 results — falling back to Supabase', params);
-      const page = parseInt(params.page || '1', 10);
-      const perPage = parseInt(params.limit || params.per_page || '20', 10);
-      const supabaseResult = await fetchSupabaseListings(params, page, perPage);
-      if (supabaseResult.data.length > 0) {
-        return { data: supabaseResult.data, meta: supabaseResult.meta };
+    const supabaseResult = await fetchSupabaseListings(params, page, perPage);
+
+    if (mapped.length === 0 && supabaseResult.data.length > 0) {
+      return { data: supabaseResult.data, meta: supabaseResult.meta };
+    }
+
+    if (supabaseResult.data.length > 0) {
+      const existingIds = new Set(mapped.map((a: any) => a.id));
+      const newAds = supabaseResult.data.filter((a: any) => !existingIds.has(a.id));
+      if (newAds.length > 0) {
+        mapped = [...mapped, ...newAds].sort(
+          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
       }
     }
 

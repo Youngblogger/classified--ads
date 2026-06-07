@@ -289,11 +289,11 @@ export const adsApi = {
   create: async (formData: FormData) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
-    try {
-      const res = await http.post('/ads', formData);
-      const result = res?.data?.data || res?.data;
-      if (result && result.id) return sbResponse({ data: normalizeAd(result, true) });
-    } catch {}
+
+    let adData: any = null;
+    let adImages: any[] = [];
+
+    // Build listing data from form
     const listing: any = { user_id: userId, status: 'active' };
     for (const [key, value] of Array.from(formData.entries())) {
       if (key !== 'images[]' && key !== 'image') {
@@ -301,11 +301,20 @@ export const adsApi = {
       }
     }
     listing.slug = listing.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
-    const { data, error } = await supabase.from('listings').insert(listing).select().single();
-    if (error) return sbError(error);
 
-    const imagesProcessed: any[] = [];
+    // Always save to Supabase first (source of truth for user dashboard)
+    try {
+      const { data, error } = await supabase.from('listings').insert(listing).select().single();
+      if (!error && data) {
+        adData = data;
+      }
+    } catch (e) {
+      console.error('Supabase insert failed:', e);
+    }
 
+    if (!adData) return sbError({ message: 'Failed to create listing' });
+
+    // Process images
     const imageUrlsStr = formData.get('image_urls');
     if (imageUrlsStr) {
       try {
@@ -313,14 +322,14 @@ export const adsApi = {
         for (let i = 0; i < imageData.length; i++) {
           const img = imageData[i];
           const { data: imgInsert, error: imgErr } = await supabase.from('listing_images').insert({
-            listing_id: data.id, url: img.url,
+            listing_id: adData.id, url: img.url,
             thumbnail_url: img.thumbnail_url || img.url,
             medium_url: img.medium_url || img.url,
             original_url: img.original_url || img.url,
             image_hash: img.image_hash || null,
             is_primary: i === 0, sort_order: i,
           }).select().single();
-          if (!imgErr && imgInsert) imagesProcessed.push(imgInsert);
+          if (!imgErr && imgInsert) adImages.push(imgInsert);
         }
       } catch (e) {
         console.error('Failed to create listing_images from pre-uploaded URLs:', e);
@@ -333,25 +342,30 @@ export const adsApi = {
         const file = imageFiles[i] as File;
         try {
           const ext = file.name.split('.').pop();
-          const path = `listings/${data.id}/${i}.${ext}`;
+          const path = `listings/${adData.id}/${i}.${ext}`;
           const { error: uploadErr } = await supabase.storage.from('listing-images').upload(path, file);
           if (uploadErr) continue;
           const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(path);
           const { data: imgInsert, error: imgErr } = await supabase.from('listing_images').insert({
-            listing_id: data.id, url: publicUrl, storage_path: path,
-            is_primary: imagesProcessed.length === 0 && i === 0, sort_order: imagesProcessed.length + i,
+            listing_id: adData.id, url: publicUrl, storage_path: path,
+            is_primary: adImages.length === 0 && i === 0, sort_order: adImages.length + i,
           }).select().single();
-          if (!imgErr && imgInsert) imagesProcessed.push(imgInsert);
+          if (!imgErr && imgInsert) adImages.push(imgInsert);
         } catch (e) {
           console.error('Failed to upload image:', e);
         }
       }
     }
 
+    // Also try Laravel backend (non-blocking)
+    try {
+      await http.post('/ads', formData);
+    } catch {}
+
     const normalized = normalizeAd({
-      ...data,
-      images: imagesProcessed,
-      listing_images: imagesProcessed,
+      ...adData,
+      images: adImages,
+      listing_images: adImages,
     }, true);
 
     return sbResponse({ data: normalized });
@@ -2435,19 +2449,25 @@ export const adminApi = {
   },
 
   getSettings: async () => {
+    let lastError: any;
     try {
       const res = await fetch('/api/admin/settings');
       if (res.ok) {
         const json = await res.json();
-        if (json?.data) return sbResponse(json.data);
+        if (json?.data) return sbResponse({ data: json.data });
       }
-    } catch {}
+      lastError = new Error(`HTTP ${res.status}`);
+    } catch (e) { lastError = e; }
     try {
       const res: any = await adminGet(`/${STEALTH_PREFIX}/settings`);
-      return sbResponse(res?.data || { auto_approval_enabled: false, approval_duration_minutes: 2, max_images_per_ad: 10, ad_expiration_days: 30 });
-    } catch (e: any) { return sbError(e); }
+      if (res?.data) return sbResponse({ data: res.data });
+      lastError = new Error('Backend returned no data');
+    } catch (e: any) { lastError = e; }
+    console.error('[Settings API] All getSettings attempts failed:', lastError);
+    return sbResponse({ data: { auto_approval_enabled: false, approval_duration_minutes: 2, max_images_per_ad: 10, ad_expiration_days: 30 } });
   },
   updateSettings: async (data: any) => {
+    let lastError: any;
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
@@ -2456,13 +2476,16 @@ export const adminApi = {
       });
       if (res.ok) {
         const json = await res.json();
-        return sbResponse({ data: json?.data || { message: 'Updated' } });
+        if (json?.data) return sbResponse({ data: json.data });
       }
-    } catch {}
+      lastError = new Error(`HTTP ${res.status}`);
+    } catch (e) { lastError = e; }
     try {
       const res: any = await adminPut(`/${STEALTH_PREFIX}/settings`, data);
-      return sbResponse({ data: res?.data || { message: 'Updated' } });
-    } catch (e: any) { return sbError(e); }
+      if (res?.data) return sbResponse({ data: res.data });
+      lastError = new Error('Backend returned no data');
+    } catch (e: any) { lastError = e; }
+    throw lastError || new Error('Failed to update settings');
   },
 
   getWatermarkSettings: async () => {

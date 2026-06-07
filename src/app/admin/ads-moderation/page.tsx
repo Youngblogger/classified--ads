@@ -1191,26 +1191,54 @@ export default function AdsModerationPage() {
           window.location.href = '/admin/login';
           return;
         }
-        if (!append) setAds([]);
+      } else {
+        const data = await res.json();
+        const newAds = data.data || [];
+        
+        setTotalCount(data.total || newAds.length);
+        setHasMore(newAds.length === perPage);
+        console.log('Loaded:', newAds.length, 'perPage:', perPage, 'hasMore:', newAds.length === perPage);
+        
+        if (append) {
+          setAds(prev => [...prev, ...newAds]);
+        } else {
+          setAds(newAds);
+          setSelectedAds(new Set());
+        }
+        
+        setPage(pageNum);
         return;
       }
-      
-      const data = await res.json();
-      const newAds = data.data || [];
-      
-      setTotalCount(data.total || newAds.length);
-      // Show load more if we got a full page worth of ads
-      setHasMore(newAds.length === perPage);
-      console.log('Loaded:', newAds.length, 'perPage:', perPage, 'hasMore:', newAds.length === perPage);
-      
-      if (append) {
-        setAds(prev => [...prev, ...newAds]);
-      } else {
-        setAds(newAds);
-        setSelectedAds(new Set());
+
+      // Fallback to API route (uses service role to bypass RLS)
+      try {
+        const fallbackParams = new URLSearchParams({
+          per_page: String(perPage),
+          page: String(pageNum)
+        });
+        if (statusFilter !== 'all') fallbackParams.append('status', statusFilter);
+        if (searchTerm) fallbackParams.append('search', searchTerm);
+        const fallbackRes = await fetch(`/api/admin/ads/all?${fallbackParams}`);
+        const fallbackData = fallbackRes.ok ? await fallbackRes.json() : null;
+        if (fallbackRes.ok && fallbackData) {
+          const mapped: Ad[] = (fallbackData.data || []).map((l: any) => ({ ...l, images: l.listing_images || [], listing_images: l.listing_images || [] }));
+          setTotalCount(fallbackData.total || mapped.length);
+          setHasMore(mapped.length === perPage);
+          if (append) {
+            setAds(prev => [...prev, ...mapped]);
+          } else {
+            setAds(mapped);
+            setSelectedAds(new Set());
+          }
+          setPage(pageNum);
+        } else {
+          throw new Error(fallbackData?.error || 'Fallback failed');
+        }
+      } catch (sbErr) {
+        console.error('Fallback also failed:', sbErr);
+        if (!append) setAds([]);
+        toast.error('Failed to load ads');
       }
-      
-      setPage(pageNum);
     } catch (error) {
       console.error('Failed to fetch ads:', error);
       toast.error('Failed to load ads');
