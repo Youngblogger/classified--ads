@@ -947,8 +947,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       
       setSubmissionStep('uploading');
       const response = await adsApi.create(formData);
-      if (!response?.data?.data?.id && !(response as any)?.data?.id) {
-        throw new Error((response as any)?.statusText || 'Failed to post ad');
+      if (response?.error) {
+        throw new Error(response.error.message || 'Failed to post ad');
       }
       
       setSubmissionStep('finalizing');

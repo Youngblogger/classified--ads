@@ -17,7 +17,7 @@ function sbResponse<T>(data: T, status = 200): SupabaseResponse<T> {
 }
 
 function sbError(error: any): SupabaseResponse<any> {
-  return { data: {} as any, status: error?.status || 500, statusText: error?.message || 'Error', error: error?.message || 'Error', headers: {}, config: {} };
+  return { data: {} as any, status: error?.status || 500, statusText: error?.message || 'Error', headers: {}, config: {} };
 }
 
 function getUserId(): string | null {
