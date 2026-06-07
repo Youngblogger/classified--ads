@@ -11,59 +11,39 @@ import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
 
 async function fetchSupabaseListings(params: Record<string, string>, page: number = 1, perPage: number = 20, forUser?: string): Promise<{ data: any[], meta: any }> {
   try {
-    let query = supabase
-      .from('listings')
-      .select('*, listing_images(*)', { count: 'estimated' });
+    const sp = new URLSearchParams();
+    sp.set('page', String(page));
+    sp.set('limit', String(perPage));
 
-    if (params.status) {
-      query = query.eq('status', params.status);
-    } else {
-      query = query.eq('status', 'active');
+    for (const [key, value] of Object.entries(params)) {
+      if (value) sp.set(key, value);
     }
+    if (forUser) sp.set('user_id', forUser);
 
-    if (params.category) {
-      const { data: cat } = await supabase.from('categories').select('id').eq('slug', params.category).maybeSingle();
-      if (cat) query = query.eq('category_id', cat.id);
-    }
-
-    if (params.category_id) query = query.eq('category_id', params.category_id);
-    if (params.subcategory_id) query = query.eq('subcategory_id', params.subcategory_id);
-    if (params.state) query = query.eq('state', params.state);
-    if (params.lga) query = query.eq('lga', params.lga);
-    if (params.location) query = query.eq('location', params.location);
-    if (params.condition) query = query.eq('condition', params.condition);
-    if (params.min_price) query = query.gte('price', params.min_price);
-    if (params.max_price) query = query.lte('price', params.max_price);
-    if (forUser) query = query.eq('user_id', forUser);
-    if (params.user_id) query = query.eq('user_id', params.user_id);
-
-    const sortBy = params.sort_by || 'created_at';
-    const sortOrder = params.sort_order || 'desc';
-    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-
-    const from = (page - 1) * perPage;
-    const to = from + perPage - 1;
-    query = query.range(from, to);
-
-    const { data, count } = await query;
-
-    if (!data || data.length === 0) {
+    const res = await fetch(`/api/listings?${sp.toString()}`, { cache: 'no-store' });
+    if (!res.ok) {
+      console.warn('[SupabaseFallback] API route returned', res.status);
       return { data: [], meta: { total: 0, current_page: page, per_page: perPage, last_page: 1 } };
     }
+    const json = await res.json();
+    const raw = json?.data || [];
 
-    const mapped = data.map((listing: any) => {
+    if (raw.length === 0) {
+      return { data: [], meta: json?.meta || { total: 0, current_page: page, per_page: perPage, last_page: 1 } };
+    }
+
+    const mapped = raw.map((listing: any) => {
       const images = listing.listing_images || [];
       return normalizeAd({ ...listing, images, listing_images: images });
     });
 
     return {
       data: mapped,
-      meta: {
-        total: count || mapped.length,
+      meta: json?.meta || {
+        total: mapped.length,
         current_page: page,
         per_page: perPage,
-        last_page: Math.ceil((count || mapped.length) / perPage),
-        engine: 'supabase-ilike',
+        last_page: Math.ceil(mapped.length / perPage),
       },
     };
   } catch (e) {

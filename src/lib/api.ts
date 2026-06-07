@@ -436,18 +436,23 @@ export const adsApi = {
       }
     } catch {}
     try {
-      let query = supabase.from('listings').select('*, listing_images(*)').eq('user_id', userId).order('created_at', { ascending: false });
-      if (params?.status && params.status !== 'all') query = query.eq('status', params.status);
-      const { data, error } = await query;
-      if (error) return sbError(error);
-      const mapped = (data || []).map((listing: any) => {
-        return normalizeAd({ ...listing, images: listing.listing_images || [], listing_images: listing.listing_images || [] });
-      });
-      return sbResponse({ data: mapped });
+      const sp = new URLSearchParams();
+      sp.set('user_id', String(userId));
+      sp.set('limit', '100');
+      if (params?.status && params.status !== 'all') sp.set('status', params.status);
+      const res = await fetch(`/api/listings?${sp.toString()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        const raw = json?.data || [];
+        const mapped = raw.map((listing: any) =>
+          normalizeAd({ ...listing, images: listing.listing_images || [], listing_images: listing.listing_images || [] })
+        );
+        return sbResponse({ data: mapped });
+      }
     } catch (e: any) {
       console.warn('[AdsApi] Supabase fallback for my-ads failed:', e);
-      return sbResponse({ data: [] });
     }
+    return sbResponse({ data: [] });
   },
 
   pause: async (id: number) => {
