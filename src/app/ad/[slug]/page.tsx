@@ -402,7 +402,7 @@ export default function AdDetailPage() {
             {/* Left Column - Images & Details */}
             <div className="lg:col-span-2 space-y-px">
               {/* Image Gallery */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden border-t-8 border-primary-600">
+              <div className="bg-white rounded-t-2xl shadow-sm overflow-hidden border-t-8 border-primary-600">
                 <div 
                   className="relative aspect-[4/3] bg-gray-100 select-none cursor-pointer"
                   onTouchStart={(e) => { pauseAutoplay(); onTouchStart(e); }}
@@ -451,7 +451,7 @@ export default function AdDetailPage() {
                             badgeClass = 'bg-amber-50 text-amber-700';
                             label = 'Used';
                           } else if (condition === 'fair') {
-                            badgeClass = 'bg-purple-50 text-purple-700';
+                            badgeClass = 'bg-yellow-50 text-yellow-800';
                             label = 'Refurbished';
                           } else {
                             badgeClass = 'bg-gray-50 text-gray-600';

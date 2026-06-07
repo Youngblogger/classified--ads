@@ -142,6 +142,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const { hasDraft, saveDraftText, saveDraftImages, clearDraft } = usePostAdDraft();
+  const formRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(1);
   const [submissionStep, setSubmissionStep] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -860,12 +861,22 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       }
     }
     setStep(prev => Math.min(prev + 1, 2));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      if (formRef.current) {
+        const top = formRef.current.getBoundingClientRect().top + window.scrollY - 16;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    });
   };
 
   const prevStep = () => {
     setStep(prev => Math.max(prev - 1, 1));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      if (formRef.current) {
+        const top = formRef.current.getBoundingClientRect().top + window.scrollY - 16;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    });
   };
 
   const canSubmit = title && description && price && categoryId && locationId && images.length > 0 && condition && images.every(i => i.status === 'completed');
@@ -1045,7 +1056,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   };
 
   return (
-    <div className="space-y-6">
+    <div ref={formRef} className="space-y-6">
       {/* Draft Restored Banner */}
       {draftRestored && (
         <div className={`bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 transition-all duration-500 ease-in-out ${
@@ -1074,10 +1085,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {step > 1 && (
         <button
           onClick={goBack}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 text-gray-800 hover:text-primary-700 font-semibold rounded-xl shadow-sm hover:shadow transition-all duration-200 group mb-6"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-6 group"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
-          <span className="text-sm">Back</span>
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200" />
+          <span>Back</span>
         </button>
       )}
 
@@ -1162,13 +1173,13 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 {([
                   { key: 'new', label: 'New', color: 'emerald' },
                   { key: 'good', label: 'Used', color: 'amber' },
-                  { key: 'fair', label: 'Refurbished', color: 'purple' }
+                  { key: 'fair', label: 'Refurbished', color: 'yellow' }
                 ] as const).map(({ key, label, color }) => {
                   const isSelected = condition === key;
                   const colorClasses = {
                     emerald: isSelected ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600',
                     amber: isSelected ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:text-amber-600',
-                    purple: isSelected ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-600',
+                    yellow: isSelected ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white text-gray-600 border-gray-200 hover:border-yellow-300 hover:text-yellow-600',
                   };
                   return (
                     <button
@@ -1527,8 +1538,9 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         {step > 1 ? (
           <button
             onClick={prevStep}
-            className="px-6 py-3 text-gray-600 hover:text-gray-900 font-medium"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
           >
+            <ArrowLeft className="w-4 h-4" />
             Back
           </button>
         ) : (
@@ -1538,16 +1550,16 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         {step < 2 ? (
           <button
             onClick={nextStep}
-            className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+            className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 active:scale-[0.98] text-white font-semibold text-sm rounded-lg transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
           >
             Continue
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         ) : (
           <button
             onClick={handleSubmit}
             disabled={!canSubmit || isSubmitting}
-            className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 bg-green-600 hover:bg-green-700 active:scale-[0.98] text-white font-semibold text-sm rounded-lg transition-all flex items-center gap-2 shadow-sm hover:shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
