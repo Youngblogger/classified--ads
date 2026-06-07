@@ -9,8 +9,14 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class AdminRateLimiter
 {
-    protected $maxAttempts = 5;
-    protected $decayMinutes = 15;
+    protected $maxAttempts;
+    protected $decayMinutes;
+
+    public function __construct()
+    {
+        $this->maxAttempts = (int) config('admin.rate_limit.max_attempts', 5);
+        $this->decayMinutes = (int) config('admin.rate_limit.decay_minutes', 15);
+    }
 
     public function handle(Request $request, Closure $next): Response
     {

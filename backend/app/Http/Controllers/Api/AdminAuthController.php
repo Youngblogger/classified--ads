@@ -15,8 +15,14 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class AdminAuthController extends Controller
 {
-    protected $maxLoginAttempts = 5;
-    protected $lockoutDuration = 15;
+    protected $maxLoginAttempts;
+    protected $lockoutDuration;
+
+    public function __construct()
+    {
+        $this->maxLoginAttempts = (int) config('admin.rate_limit.max_attempts', 5);
+        $this->lockoutDuration = (int) config('admin.rate_limit.decay_minutes', 15);
+    }
 
     /**
      * Admin Login - Enterprise Security Enhanced
@@ -632,10 +638,12 @@ class AdminAuthController extends Controller
      */
     protected function isRateLimited(string $key): bool
     {
-        return DB::table('rate_limit_hits')
+        $hit = DB::table('rate_limit_hits')
             ->where('key', $key)
             ->where('expires_at', '>', Carbon::now())
-            ->exists();
+            ->first();
+
+        return $hit && $hit->hits >= $this->maxLoginAttempts;
     }
 
     /**
