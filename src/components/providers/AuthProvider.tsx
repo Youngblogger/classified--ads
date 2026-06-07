@@ -221,9 +221,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
               return;
             }
             if (!mountedRef.current || cancelled) return;
-            const { isAuthenticated } = useAuthStore.getState();
-            if (isAuthenticated) {
-              useAuthStore.getState().logout();
+            const store = useAuthStore.getState();
+            if (store.isAuthenticated && store.token) {
+              // Check if the Zustand token is still valid before clearing
+              // auth. Supabase's session recovery may have failed for reasons
+              // unrelated to token validity (clock skew, cookie encoding,
+              // transient storage error). The JWT expiry is the ground truth.
+              try {
+                const payload = JSON.parse(atob(store.token.split('.')[1]));
+                if (payload.exp && payload.exp * 1000 > Date.now()) {
+                  // Token is still valid — trust Zustand over Supabase
+                  return;
+                }
+              } catch {}
+              // Token is expired or malformed — clear in-memory state but
+              // keep localStorage intact so the next page load can re-validate.
+              useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+              sessionStorage.setItem('just_logged_out', 'true');
             }
             clearAuthCookie();
             setAuthState('guest');
