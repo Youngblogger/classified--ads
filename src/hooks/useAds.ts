@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import { useEffect } from 'react';
 import { http } from '@/lib/http-client';
+import { supabase } from '@/lib/supabase';
 import { useGlobalStore } from '@/lib/store';
 import { useDebounce } from './useDebounce';
 import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
@@ -53,16 +54,13 @@ async function fetchSupabaseListings(params: Record<string, string>, page: numbe
 
 async function fetchSupabaseAdDetail(slug: string): Promise<any> {
   try {
-    const res = await fetch(`/api/listings?slug=${encodeURIComponent(slug)}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const data = json?.data || null;
+    const { data } = await supabase
+      .from('listings')
+      .select('*, listing_images(*)')
+      .eq('slug', slug)
+      .maybeSingle();
     if (!data) return null;
-    return normalizeAd({
-      ...data,
-      images: data.listing_images || [],
-      listing_images: data.listing_images || [],
-    }, true);
+    return normalizeAd({ ...data, images: data.listing_images || [], listing_images: data.listing_images || [] }, true);
   } catch {
     return null;
   }
