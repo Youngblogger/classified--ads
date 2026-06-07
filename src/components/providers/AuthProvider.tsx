@@ -89,7 +89,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     return () => clearTimeout(timer);
   }, [authState, finishInit]);
 
-  // Single source of truth for Supabase auth state
+  // Single source of truth: Zustand store owns auth state.
+  // Supabase onAuthStateChange events sync TO Zustand, but never destructively
+  // override it. The `onRehydrateStorage` callback validates token expiry on
+  // every page load before hydrationComplete resolves.
   useEffect(() => {
     if (authInitRef.current) return;
     authInitRef.current = true;
@@ -97,9 +100,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     let cancelled = false;
 
     async function initialize() {
-      // Wait for Zustand persist to finish hydrating before checking session.
-      // This prevents the race where persist rehydrates AFTER we set auth state,
-      // overwriting isAuthenticated back to false.
       try {
         await hydrationComplete;
       } catch {}
@@ -108,37 +108,26 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       const justLoggedOut = sessionStorage.getItem('just_logged_out');
       if (justLoggedOut === 'true') {
         sessionStorage.removeItem('just_logged_out');
-        const store = useAuthStore.getState();
-        if (store.isAuthenticated) {
-          useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
-        }
+        useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
         finishInit('guest');
         return;
       }
 
-      // If onAuthStateChange already set the store (e.g. SIGNED_IN fired during
-      // listener registration on this mount), use that state without overriding.
+      // Zustand is the single source of truth. If it has valid auth (token was
+      // already validated in onRehydrateStorage), trust it immediately without
+      // a destructive getSession() background check. Do NOT call logout() here
+      // — that would wipe localStorage and permanently lose auth on refresh.
       const storeAlreadyAuthed = useAuthStore.getState().isAuthenticated;
       if (storeAlreadyAuthed) {
         const userData = useAuthStore.getState().user;
         finishInit('authenticated', userData as any);
-        // Still verify with getSession() for token validity, but don't block UI
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (!cancelled && !session?.user) {
-            useAuthStore.getState().logout();
-            if (mountedRef.current) finishInit('guest');
-          }
-        });
         return;
       }
 
-      // On ALL routes (including callback routes), try to get the session.
-      // On callback routes, Supabase SDK will have processed the OAuth code
-      // by the time hydrationComplete resolves (the PKCE exchange is async
-      // and fires onAuthStateChange with SIGNED_IN which updates Zustand).
-      // If the store was updated by the listener, the storeAlreadyAuthed check
-      // above catches it. Otherwise, getSession() will find the session directly.
-      supabase.auth.getSession().then(({ data: { session } }) => {
+      // Fallback: try Supabase for a session (e.g. fresh login before Zustand
+      // persisted, or callback redirect arriving before Zustand write).
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         if (!mountedRef.current || cancelled) return;
 
         if (session?.user) {
@@ -146,41 +135,54 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           const user = session.user;
           setAuthCookie(token);
           finishInit('authenticated', user);
-          supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data: profile }) => {
-            if (profile) {
-              useAuthStore.getState().login(
-                { ...profile, id: user.id, email: user.email },
-                token
-              );
-            } else {
-              useAuthStore.getState().login(
-                {
-                  id: user.id,
-                  email: user.email,
-                  name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-                  avatar_url: user.user_metadata?.avatar_url || null,
-                  google_avatar: user.user_metadata?.avatar_url || null,
-                  facebook_avatar: user.user_metadata?.facebook_avatar || null,
-                } as any,
-                token
-              );
-            }
-          });
+          useAuthStore.getState().login(
+            {
+              id: user.id,
+              email: user.email,
+              name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              avatar_url: user.user_metadata?.avatar_url || null,
+              google_avatar: user.user_metadata?.avatar_url || null,
+              facebook_avatar: user.user_metadata?.facebook_avatar || null,
+            } as any,
+            token
+          );
         } else {
-          const store = useAuthStore.getState();
-          if (store.isAuthenticated) store.logout();
           clearAuthCookie();
           finishInit('guest');
         }
-      }).catch(() => {
+      } catch {
         if (mountedRef.current && !cancelled) finishInit('guest');
-      });
+      }
     }
 
     initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mountedRef.current || cancelled) return;
+
+      // INITIAL_SESSION fires after Supabase recovers a session from storage.
+      // Sync to Zustand if Zustand isn't already authenticated.
+      if (event === 'INITIAL_SESSION' && session?.user) {
+        if (!useAuthStore.getState().isAuthenticated) {
+          setAuthCookie(session.access_token);
+          if (mountedRef.current) {
+            setAuthState('authenticated');
+            setUser(session.user);
+          }
+          useAuthStore.getState().login(
+            {
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+              avatar_url: session.user.user_metadata?.avatar_url || null,
+              google_avatar: session.user.user_metadata?.avatar_url || null,
+              facebook_avatar: session.user.user_metadata?.facebook_avatar || null,
+            } as any,
+            session.access_token
+          );
+        }
+        return;
+      }
 
       if (event === 'SIGNED_IN' && session?.user) {
         setAuthCookie(session.access_token);
