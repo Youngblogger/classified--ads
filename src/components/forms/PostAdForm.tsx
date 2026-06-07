@@ -509,10 +509,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         const mediumUrl = data?.medium_url;
         const originalUrl = data?.original_url;
         const imageHash = data?.image_hash;
+        const storagePath = data?.path || data?.storage_path;
         setImages(prev =>
           prev.map(i =>
             i.id === img.id
-              ? { ...i, uploadedUrl: url, thumbnailUrl: thumbUrl, mediumUrl, originalUrl, imageHash, status: 'completed' as const, progress: 100 }
+              ? { ...i, uploadedUrl: url, thumbnailUrl: thumbUrl, mediumUrl, originalUrl, imageHash, storagePath, status: 'completed' as const, progress: 100 }
               : i
           )
         );
@@ -935,6 +936,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           medium_url: i.mediumUrl || i.uploadedUrl!,
           original_url: i.originalUrl || i.uploadedUrl!,
           image_hash: i.imageHash || null,
+          storage_path: i.storagePath || '',
         }));
         formData.append('image_urls', JSON.stringify(imageData));
       } else {
@@ -999,6 +1001,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       window.dispatchEvent(new CustomEvent('ilist:ad-created', { detail: { adId, slug: adSlug } }));
       // Invalidate caches for background revalidation
       mutate(key => typeof key === 'string' && key.startsWith('ads?'));
+      invalidateSwrCache('homepage_data');
       queryClient.invalidateQueries({ queryKey: adKeys.all });
       
       setSubmissionStep(null);

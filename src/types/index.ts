@@ -549,5 +549,6 @@ export interface UploadingImage {
   thumbnailUrl?: string;
   mediumUrl?: string;
   originalUrl?: string;
+  storagePath?: string;
   errorMessage?: string;
 }

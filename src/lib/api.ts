@@ -337,8 +337,7 @@ export const adsApi = {
             listing_id: adData.id, url: img.url,
             thumbnail_url: img.thumbnail_url || img.url,
             medium_url: img.medium_url || img.url,
-            original_url: img.original_url || img.url,
-            image_hash: img.image_hash || null,
+            storage_path: img.storage_path || img.url,
             is_primary: i === 0, sort_order: i,
           }).select().single();
           if (!imgErr && imgInsert) adImages.push(imgInsert);
