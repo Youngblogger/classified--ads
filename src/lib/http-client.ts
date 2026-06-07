@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -105,17 +104,11 @@ async function request<T = any>(
     response.headers.forEach((value, key) => { headersObj[key] = value; });
 
     if (response.status === 401 && !url.includes('notifications')) {
-      document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-      localStorage.removeItem('user-auth-storage');
-      localStorage.removeItem('authToken');
-      if (typeof window !== 'undefined') {
-        supabase.auth.signOut();
-        import('./store').then(({ useAuthStore }) => {
-          useAuthStore.getState().logout();
-        }).catch(() => {
-          window.location.href = '/';
-        });
-      }
+      // Don't clear auth here — the AuthProvider and Zustand persist handle
+      // token validity via JWT expiry validation. Destructive logout on every
+      // 401 creates an auth bounce cycle (dashboard loads -> API 401 -> clear
+      // auth -> guest page -> reload -> same cycle). Just let the error
+      // propagate to the caller and let the auth system decide what to do.
     }
 
     return {
