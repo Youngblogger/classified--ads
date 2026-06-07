@@ -153,7 +153,8 @@ function formatNotificationTime(dateString: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function Header({ variant = 'home', onMenuToggle }: { variant?: 'home' | 'dashboard'; onMenuToggle?: () => void }) {
+export default function Header({ variant = 'homepage', onMenuToggle }: { variant?: 'homepage' | 'default' | 'home' | 'dashboard'; onMenuToggle?: () => void }) {
+  const resolvedVariant = variant === 'home' || variant === 'homepage' ? 'homepage' : 'default';
   const router = useRouter();
   const { user, logout, hasHydrated, isAuthenticated } = useAuthStore();
   const { toggleLoginModal, toggleRegisterModal, toggleLocationModal } = useUIStore();
@@ -649,7 +650,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
   return (
     <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-primary-600">
       {/* TOP BAR */}
-      {variant === 'home' && (
+      {resolvedVariant === 'homepage' && (
         <div className="bg-primary-600">
           <div className="container-app">
             <div className="flex items-center justify-between h-10 text-sm">
@@ -673,9 +674,9 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
       )}
 
       {/* MAIN HEADER */}
-      <div className={cn('bg-primary-600 shadow-header', variant === 'home' ? 'h-14' : 'h-12')}>
+      <div className={cn('bg-primary-600 shadow-header', resolvedVariant === 'homepage' ? 'h-14' : 'h-12')}>
         <div className="container-app">
-          <div className={cn('flex items-center justify-between gap-4', variant === 'home' ? 'h-14' : 'h-12')}>
+          <div className={cn('flex items-center justify-between gap-4', resolvedVariant === 'homepage' ? 'h-14' : 'h-12')}>
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
               <Image 
@@ -689,7 +690,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
             </Link>
 
             {/* Desktop Search Bar */}
-            {variant === 'home' && (
+            {resolvedVariant === 'homepage' && (
             <div className="hidden md:flex flex-1 max-w-2xl">
               <div className="relative flex w-full items-center" ref={searchRef}>
                 <div className="relative group w-full">
@@ -900,7 +901,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
             {/* Right Side Actions */}
             <div className="flex items-center gap-2">
               {/* Mobile hamburger for dashboard */}
-              {variant === 'dashboard' && (
+              {resolvedVariant === 'default' && (
                 <button
                   onClick={() => onMenuToggle?.()}
                   className="lg:hidden p-2 rounded-xl text-white"
@@ -913,7 +914,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                 {(authState === 'authenticated' || isAuthenticated) ? (
                   <>
                     {/* Notifications Bell with Tabs */}
-                    {variant === 'home' && (
                     <div className="relative" ref={notificationRef}>
                       <button 
                         onClick={() => setNotificationOpen(!notificationOpen)}
@@ -996,9 +996,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                         </div>
                       )}
                     </div>
-                    )}
                     
-                    {variant === 'home' && (
                     <div className="relative" ref={chatRef}>
                       <button
                         onClick={() => setChatOpen(!chatOpen)}
@@ -1088,7 +1086,6 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
                         </div>
                       )}
                     </div>
-                    )}
                     
                     {/* User Menu */}
                     <div className="relative ml-1" ref={profileRef}>
@@ -1191,7 +1188,7 @@ export default function Header({ variant = 'home', onMenuToggle }: { variant?: '
               </div>
 
               {/* Post Ad Button */}
-              {variant === 'home' && (
+              {resolvedVariant === 'homepage' && (
               <Link
                 href="/post-ad"
                 className="hidden md:flex items-center px-4 py-2 ml-1 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-700 hover:to-accent-600 text-white rounded-lg font-semibold text-sm transition-all duration-200 border-2 border-accent-400/50"

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import ReviewCard from '@/components/reviews/ReviewCard';
 import WriteReviewModal from '@/components/reviews/WriteReviewModal';
@@ -122,7 +122,7 @@ export default function AdReviewsPage() {
   if (!adId) {
     return (
       <>
-        <Header />
+        <ResponsiveHeader variant="default" />
         <div className="container-app py-12 text-center">
           <p>Loading...</p>
         </div>
@@ -133,7 +133,7 @@ export default function AdReviewsPage() {
 
   return (
     <>
-      <Header />
+      <ResponsiveHeader variant="default" />
       <main className="container-app pt-[48px] md:pt-[112px] pb-8">
         <div className="mb-6">
           <nav className="flex items-center gap-2 text-sm text-gray-500">

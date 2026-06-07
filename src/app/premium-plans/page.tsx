@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowRight, Check, Star, Zap, Crown, Shield, TrendingUp, Users, Gift, Loader2 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { promotionsApi } from '@/lib/api';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 
 interface Plan {
@@ -123,7 +123,7 @@ export default function PremiumPlansPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
+      <ResponsiveHeader variant="default" />
 
       <main className="flex-1 pt-[48px] md:pt-[112px]">
         {/* Hero Section */}

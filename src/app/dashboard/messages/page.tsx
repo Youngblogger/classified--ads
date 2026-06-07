@@ -700,14 +700,40 @@ export default function MessagesPage() {
     conv.ad?.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  function formatRelativeTime(dateString?: string): string {
+    if (!dateString) return '';
+    const ts = Date.parse(dateString);
+    if (isNaN(ts)) return 'Just now';
+    const date = new Date(ts);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    if (diffMs < 0) return 'Just now';
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 10) return 'Just now';
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay < 2) return 'Yesterday';
+    if (diffDay < 7) return `${diffDay}d ago`;
+    const isThisYear = date.getFullYear() === now.getFullYear();
+    if (isThisYear) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
   const formatMessageTime = (dateString?: string) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
+    const ts = Date.parse(dateString);
+    if (isNaN(ts)) return '';
+    const date = new Date(ts);
     const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    if (diffMs < 0) return '';
     const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / 86400000);
-    const isToday = days < 1 && date.getDate() === now.getDate();
+    const diffDays = Math.floor(diffMs / 86400000);
+    const isToday = diffDays < 1 && date.getDate() === now.getDate();
     if (isToday) return timeStr;
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -959,15 +985,19 @@ export default function MessagesPage() {
                 <p className="text-sm">Start the conversation!</p>
               </div>
             ) : (
-              messages.map((msg) => {
+              messages.map((msg, msgIdx) => {
                 const isMe = Number(msg.sender_id) === Number(currentUserId);
                 const senderAvatar = msg.sender?.avatar_url || msg.sender?.avatar || msg.sender?.google_avatar;
                 const isRead = msg.is_read || msg.read_at;
+                const prevMsg = msgIdx > 0 ? messages[msgIdx - 1] : null;
+                const sameSenderAsPrev = prevMsg && Number(prevMsg.sender_id) === Number(msg.sender_id);
+                const nextMsg = msgIdx < messages.length - 1 ? messages[msgIdx + 1] : null;
+                const sameSenderAsNext = nextMsg && Number(nextMsg.sender_id) === Number(msg.sender_id);
                 
                 return (
                   <div
                     key={msg.id}
-                    className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-1 sm:gap-2 group`}
+                    className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-1 sm:gap-2 group ${sameSenderAsPrev ? 'mt-0.5' : 'mt-2 sm:mt-3'}`}
                     onMouseDown={() => startLongPress(msg.id, isMe)}
                     onMouseUp={cancelLongPress}
                     onMouseLeave={cancelLongPress}
@@ -975,7 +1005,7 @@ export default function MessagesPage() {
                     onTouchEnd={cancelLongPress}
                   >
                     {!isMe && (
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                      <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden ${sameSenderAsNext ? 'invisible' : ''}`}>
                         {senderAvatar ? (
                           <Image src={getAvatarUrl(senderAvatar)} alt="" width={32} height={32} className="object-cover w-full h-full" unoptimized />
                         ) : (
@@ -989,10 +1019,10 @@ export default function MessagesPage() {
                     {/* Voice message - show if message_type is voice OR URL looks like audio */}
                     {(msg.message_type === 'voice' || (msg.attachment_url && msg.attachment_url.match(/\.(mp3|webm|wav|m4a)$/i))) && msg.attachment_url ? (
                       <div
-                        className={`max-w-[80%] px-3 py-2 rounded-2xl ${
+                        className={`max-w-[80%] px-3 py-2 ${
                           isMe
-                            ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm'
-                            : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200 shadow-sm'
+                            ? `${!sameSenderAsPrev ? 'rounded-2xl' : 'rounded-tl-2xl rounded-tr-sm'} ${!sameSenderAsNext ? 'rounded-br-sm' : 'rounded-br'} bg-[#d9fdd0] text-gray-800`
+                            : `${!sameSenderAsPrev ? 'rounded-2xl' : 'rounded-tl-sm rounded-tr-2xl'} ${!sameSenderAsNext ? 'rounded-bl-sm' : 'rounded-bl'} bg-white text-gray-800 border border-gray-200 shadow-sm`
                         }`}
                         style={{ boxShadow: isMe ? 'none' : '0 1px 0.5px rgba(0,0,0,0.1)' }}
                       >
@@ -1088,12 +1118,18 @@ export default function MessagesPage() {
                           )}
                         </div>
                       </div>
-                    ) : (
+                    ) : (() => {
+                      const isFirstInGroup = !sameSenderAsPrev;
+                      const isLastInGroupMsg = !sameSenderAsNext;
+                      const bubbleRound = isMe
+                        ? `${isFirstInGroup ? 'rounded-2xl' : 'rounded-tl-2xl rounded-tr-sm'} ${isLastInGroupMsg ? 'rounded-br-sm' : 'rounded-br'}`
+                        : `${isFirstInGroup ? 'rounded-2xl' : 'rounded-tl-sm rounded-tr-2xl'} ${isLastInGroupMsg ? 'rounded-bl-sm' : 'rounded-bl'}`;
+                      return (
                       <div
-                        className={`max-w-[75%] sm:max-w-[70%] px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl ${
+                        className={`max-w-[75%] sm:max-w-[70%] px-2 sm:px-3 py-1 sm:py-1.5 ${bubbleRound} ${
                           isMe
-                            ? 'bg-[#d9fdd0] text-gray-800 rounded-br-sm'
-                            : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200 shadow-sm'
+                            ? 'bg-[#d9fdd0] text-gray-800'
+                            : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
                         }`}
                         style={{ boxShadow: isMe ? 'none' : '0 1px 0.5px rgba(0,0,0,0.1)' }}
                       >
@@ -1138,9 +1174,9 @@ export default function MessagesPage() {
                           </span>
                         </div>
                       </div>
-                    )}
+                    )})()}
                     
-                    {isMe && (
+                    {isMe && !sameSenderAsNext && (
                       <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary-100 flex-shrink-0 overflow-hidden">
                         {user?.avatar_url || user?.google_avatar ? (
                           <Image src={getStorageUrl(user.avatar_url || user.google_avatar) || ''} alt="" width={32} height={32} className="object-cover w-full h-full" unoptimized />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Search,
   CheckCircle,
@@ -73,6 +73,27 @@ export default function AdsApprovalPage() {
     max_images_per_ad: 10,
     ad_expiration_days: 30,
   });
+  const [settingsErrors, setSettingsErrors] = useState<Record<string, string>>({});
+  const savedSettingsRef = useRef(approvalSettings);
+
+  const hasChanges = useMemo(() => (
+    approvalSettings.auto_approval_enabled !== savedSettingsRef.current.auto_approval_enabled ||
+    approvalSettings.approval_duration_minutes !== savedSettingsRef.current.approval_duration_minutes ||
+    approvalSettings.max_images_per_ad !== savedSettingsRef.current.max_images_per_ad ||
+    approvalSettings.ad_expiration_days !== savedSettingsRef.current.ad_expiration_days
+  ), [approvalSettings]);
+
+  const DEFAULT_SETTINGS = {
+    auto_approval_enabled: false,
+    approval_duration_minutes: 2,
+    max_images_per_ad: 10,
+    ad_expiration_days: 30,
+  } as const;
+
+  const resetToDefaults = () => {
+    setApprovalSettings({ ...DEFAULT_SETTINGS });
+    setSettingsErrors({});
+  };
 
   const fetchPendingAds = async () => {
     try {
@@ -92,12 +113,14 @@ export default function AdsApprovalPage() {
       setSettingsLoading(true);
       const res = await adminApi.getSettings();
       if (res.data) {
-        setApprovalSettings({
+        const fetched = {
           auto_approval_enabled: res.data.auto_approval_enabled ?? false,
           approval_duration_minutes: res.data.approval_duration_minutes ?? 2,
           max_images_per_ad: res.data.max_images_per_ad ?? 10,
           ad_expiration_days: res.data.ad_expiration_days ?? 30,
-        });
+        };
+        setApprovalSettings(fetched);
+        savedSettingsRef.current = fetched;
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -111,13 +134,31 @@ export default function AdsApprovalPage() {
     fetchSettings();
   }, []);
 
+  const validateSettings = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (approvalSettings.approval_duration_minutes < 0 || approvalSettings.approval_duration_minutes > 1440) {
+      errs.approval_duration_minutes = 'Must be 0–1440 minutes';
+    }
+    if (approvalSettings.max_images_per_ad < 1 || approvalSettings.max_images_per_ad > 50) {
+      errs.max_images_per_ad = 'Must be 1–50 images';
+    }
+    if (approvalSettings.ad_expiration_days < 1 || approvalSettings.ad_expiration_days > 365) {
+      errs.ad_expiration_days = 'Must be 1–365 days';
+    }
+    setSettingsErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const saveApprovalSettings = async () => {
+    if (!validateSettings()) return;
     try {
       setSavingSettings(true);
       const currentSettings = await adminApi.getSettings();
       const updatedSettings = { ...currentSettings.data, ...approvalSettings };
       await adminApi.updateSettings(updatedSettings);
       toast.success('Approval settings saved successfully');
+      savedSettingsRef.current = { ...approvalSettings };
+      setSettingsErrors({});
     } catch (error) {
       console.error('Failed to save settings:', error);
       toast.error('Failed to save settings');
@@ -219,7 +260,10 @@ export default function AdsApprovalPage() {
   );
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return 'N/A';
+    const ts = Date.parse(dateString);
+    if (isNaN(ts)) return 'N/A';
+    return new Date(ts).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -231,95 +275,143 @@ export default function AdsApprovalPage() {
   return (
     <div className="space-y-6">
       {/* Approval Settings Section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-100">
           <Clock className="w-5 h-5 text-sky-600" />
           <h2 className="text-lg font-semibold text-gray-900">Approval Configuration</h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex-1">
-              <h3 className="font-medium text-gray-900">Auto Approval</h3>
-              <p className="text-sm text-gray-500">Auto-approve ads after duration</p>
+        <div className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Auto Approval Toggle */}
+            <div className="flex flex-col justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
+              <div className="mb-3">
+                <h3 className="font-medium text-gray-900">Auto Approval</h3>
+                <p className="text-xs text-gray-500 mt-1">Auto-approve ads after the delay below</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setApprovalSettings({ ...approvalSettings, auto_approval_enabled: !approvalSettings.auto_approval_enabled });
+                  setSettingsErrors({});
+                }}
+                className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 ${
+                  approvalSettings.auto_approval_enabled ? 'bg-sky-600' : 'bg-gray-300'
+                }`}
+                role="switch"
+                aria-checked={approvalSettings.auto_approval_enabled}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    approvalSettings.auto_approval_enabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Approval Duration */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Approval Delay
+              </label>
+              <select
+                value={approvalSettings.approval_duration_minutes}
+                onChange={(e) => setApprovalSettings({ ...approvalSettings, approval_duration_minutes: Number(e.target.value) })}
+                className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white text-sm ${
+                  settingsErrors.approval_duration_minutes ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
+                disabled={!approvalSettings.auto_approval_enabled}
+              >
+                <option value={0}>Immediately</option>
+                <option value={1}>1 minute</option>
+                <option value={2}>2 minutes</option>
+                <option value={3}>3 minutes</option>
+                <option value={5}>5 minutes</option>
+                <option value={10}>10 minutes</option>
+                <option value={15}>15 minutes</option>
+                <option value={30}>30 minutes</option>
+                <option value={60}>1 hour</option>
+                <option value={180}>3 hours</option>
+                <option value={360}>6 hours</option>
+                <option value={720}>12 hours</option>
+                <option value={1440}>24 hours</option>
+              </select>
+              {settingsErrors.approval_duration_minutes && (
+                <p className="text-xs text-red-500 mt-1">{settingsErrors.approval_duration_minutes}</p>
+              )}
+            </div>
+
+            {/* Max Images */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Max Images Per Ad
+              </label>
+              <input
+                type="number"
+                value={approvalSettings.max_images_per_ad}
+                onChange={(e) => {
+                  setApprovalSettings({ ...approvalSettings, max_images_per_ad: Number(e.target.value) });
+                  setSettingsErrors({});
+                }}
+                className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm ${
+                  settingsErrors.max_images_per_ad ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
+                min={1}
+                max={50}
+              />
+              <p className="text-xs text-gray-400 mt-1">Min 1, max 50</p>
+              {settingsErrors.max_images_per_ad && (
+                <p className="text-xs text-red-500 mt-1">{settingsErrors.max_images_per_ad}</p>
+              )}
+            </div>
+
+            {/* Expiration Days */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Ad Expiration (days)
+              </label>
+              <input
+                type="number"
+                value={approvalSettings.ad_expiration_days}
+                onChange={(e) => {
+                  setApprovalSettings({ ...approvalSettings, ad_expiration_days: Number(e.target.value) });
+                  setSettingsErrors({});
+                }}
+                className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm ${
+                  settingsErrors.ad_expiration_days ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
+                min={1}
+                max={365}
+              />
+              <p className="text-xs text-gray-400 mt-1">Min 1, max 365</p>
+              {settingsErrors.ad_expiration_days && (
+                <p className="text-xs text-red-500 mt-1">{settingsErrors.ad_expiration_days}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={resetToDefaults}
+                className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Reset to Defaults
+              </button>
+              {hasChanges && (
+                <span className="text-xs text-amber-600 font-medium">Unsaved changes</span>
+              )}
             </div>
             <button
-              type="button"
-              onClick={() => setApprovalSettings({ ...approvalSettings, auto_approval_enabled: !approvalSettings.auto_approval_enabled })}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 ${
-                approvalSettings.auto_approval_enabled ? 'bg-sky-600' : 'bg-gray-300'
-              }`}
-              role="switch"
-              aria-checked={approvalSettings.auto_approval_enabled}
+              onClick={saveApprovalSettings}
+              disabled={savingSettings || !hasChanges}
+              className="flex items-center gap-2 px-6 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
             >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  approvalSettings.auto_approval_enabled ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
+              {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {savingSettings ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Approval Duration
-            </label>
-            <select
-              value={approvalSettings.approval_duration_minutes}
-              onChange={(e) => setApprovalSettings({ ...approvalSettings, approval_duration_minutes: Number(e.target.value) })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-              disabled={!approvalSettings.auto_approval_enabled}
-            >
-              <option value={0}>Immediately</option>
-              <option value={1}>1 minute</option>
-              <option value={2}>2 minutes</option>
-              <option value={3}>3 minutes</option>
-              <option value={5}>5 minutes</option>
-              <option value={10}>10 minutes</option>
-              <option value={15}>15 minutes</option>
-              <option value={30}>30 minutes</option>
-              <option value={60}>1 hour</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Max Images Per Ad
-            </label>
-            <input
-              type="number"
-              value={approvalSettings.max_images_per_ad}
-              onChange={(e) => setApprovalSettings({ ...approvalSettings, max_images_per_ad: Number(e.target.value) })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-              min={1}
-              max={20}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ad Expiration (days)
-            </label>
-            <input
-              type="number"
-              value={approvalSettings.ad_expiration_days}
-              onChange={(e) => setApprovalSettings({ ...approvalSettings, ad_expiration_days: Number(e.target.value) })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-              min={1}
-              max={365}
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={saveApprovalSettings}
-            disabled={savingSettings}
-            className="flex items-center gap-2 px-6 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50"
-          >
-            {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            {savingSettings ? 'Saving...' : 'Save Settings'}
-          </button>
         </div>
       </div>
 

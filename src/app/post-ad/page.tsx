@@ -9,7 +9,7 @@ export default function PostAdPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <div className="hidden md:block">
-        <ResponsiveHeader />
+        <ResponsiveHeader variant="default" />
       </div>
       
       <main className="flex-1 pt-16 md:pt-24 pb-8">

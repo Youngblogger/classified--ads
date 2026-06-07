@@ -8,6 +8,7 @@ import { adsApi } from '@/lib/api';
 import { mutate } from 'swr';
 import { useQueryClient } from '@tanstack/react-query';
 import { adKeys } from '@/lib/query-keys';
+import { broadcastCacheInvalidation, invalidateSwrCache } from '@/lib/cache-sync';
 import { useAuthStore } from '@/lib/store';
 import { requireAuth } from '@/lib/require-auth';
 import { getPhoneValidationError } from '@/lib/utils';
@@ -971,7 +972,30 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       // Clear saved draft
       clearPostAdDraft();
       
-      // Invalidate SWR and TanStack Query caches so homepage shows new ad instantly
+      // Optimistic insert: prepend new ad into SWR cache for instant UI update
+      const newAd = (response.data as any)?.data || response.data;
+      if (newAd?.id) {
+        mutate(
+          key => typeof key === 'string' && key.startsWith('ads?'),
+          (data: any) => {
+            if (!data) return data;
+            if (Array.isArray(data)) {
+              if (data.some((a: any) => a?.id === newAd.id)) return data;
+              return [newAd, ...data];
+            }
+            if (data?.data && Array.isArray(data.data)) {
+              if (data.data.some((a: any) => a?.id === newAd.id)) return data;
+              return { ...data, data: [newAd, ...data.data] };
+            }
+            return data;
+          },
+          false
+        );
+      }
+      // Broadcast cross-tab sync
+      broadcastCacheInvalidation();
+      window.dispatchEvent(new CustomEvent('ilist:ad-created', { detail: { adId, slug: adSlug } }));
+      // Invalidate caches for background revalidation
       mutate(key => typeof key === 'string' && key.startsWith('ads?'));
       queryClient.invalidateQueries({ queryKey: adKeys.all });
       

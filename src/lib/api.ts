@@ -291,7 +291,8 @@ export const adsApi = {
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
       const res = await http.post('/ads', formData);
-      if (res?.data?.data) return sbResponse({ data: res.data.data });
+      const result = res?.data?.data || res?.data;
+      if (result && result.id) return sbResponse({ data: normalizeAd(result, true) });
     } catch {}
     const listing: any = { user_id: userId, status: 'active' };
     for (const [key, value] of Array.from(formData.entries())) {
@@ -299,24 +300,11 @@ export const adsApi = {
         listing[key] = value;
       }
     }
-    if (!listing.slug) listing.slug = listing.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+    listing.slug = listing.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
     const { data, error } = await supabase.from('listings').insert(listing).select().single();
     if (error) return sbError(error);
 
-    const images = formData.getAll('images[]').concat(formData.getAll('image')).filter(Boolean);
-    if (images.length > 0) {
-      for (let i = 0; i < images.length; i++) {
-        const file = images[i] as File;
-        const ext = file.name.split('.').pop();
-        const path = `listings/${data.id}/${i}.${ext}`;
-        await supabase.storage.from('listing-images').upload(path, file);
-        const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(path);
-        await supabase.from('listing_images').insert({
-          listing_id: data.id, url: publicUrl, storage_path: path,
-          is_primary: i === 0, sort_order: i,
-        });
-      }
-    }
+    const imagesProcessed: any[] = [];
 
     const imageUrlsStr = formData.get('image_urls');
     if (imageUrlsStr) {
@@ -324,21 +312,49 @@ export const adsApi = {
         const imageData = JSON.parse(imageUrlsStr as string);
         for (let i = 0; i < imageData.length; i++) {
           const img = imageData[i];
-          await supabase.from('listing_images').insert({
+          const { data: imgInsert, error: imgErr } = await supabase.from('listing_images').insert({
             listing_id: data.id, url: img.url,
             thumbnail_url: img.thumbnail_url || img.url,
             medium_url: img.medium_url || img.url,
             original_url: img.original_url || img.url,
             image_hash: img.image_hash || null,
             is_primary: i === 0, sort_order: i,
-          });
+          }).select().single();
+          if (!imgErr && imgInsert) imagesProcessed.push(imgInsert);
         }
       } catch (e) {
         console.error('Failed to create listing_images from pre-uploaded URLs:', e);
       }
     }
 
-    return sbResponse({ data });
+    const imageFiles = formData.getAll('images[]').concat(formData.getAll('image')).filter(Boolean);
+    if (imageFiles.length > 0) {
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i] as File;
+        try {
+          const ext = file.name.split('.').pop();
+          const path = `listings/${data.id}/${i}.${ext}`;
+          const { error: uploadErr } = await supabase.storage.from('listing-images').upload(path, file);
+          if (uploadErr) continue;
+          const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(path);
+          const { data: imgInsert, error: imgErr } = await supabase.from('listing_images').insert({
+            listing_id: data.id, url: publicUrl, storage_path: path,
+            is_primary: imagesProcessed.length === 0 && i === 0, sort_order: imagesProcessed.length + i,
+          }).select().single();
+          if (!imgErr && imgInsert) imagesProcessed.push(imgInsert);
+        } catch (e) {
+          console.error('Failed to upload image:', e);
+        }
+      }
+    }
+
+    const normalized = normalizeAd({
+      ...data,
+      images: imagesProcessed,
+      listing_images: imagesProcessed,
+    }, true);
+
+    return sbResponse({ data: normalized });
   },
 
   update: async (id: number, formData: FormData) => {

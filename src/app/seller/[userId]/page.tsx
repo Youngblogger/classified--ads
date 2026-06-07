@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Star, MapPin, Calendar, CheckCircle, MessageCircle, Phone, ChevronLeft, Loader2, UserPlus, UserMinus, BadgeCheck, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import SellerRatingSummary from '@/components/reviews/SellerRatingSummary';
 import SellerReviewCard from '@/components/reviews/SellerReviewCard';
@@ -144,7 +144,7 @@ export default function SellerProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
+        <ResponsiveHeader variant="default" />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-[#4B5320] animate-spin" />
         </div>
@@ -156,7 +156,7 @@ export default function SellerProfilePage() {
   if (!seller) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
+        <ResponsiveHeader variant="default" />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-xl font-bold text-dark mb-2">Seller Not Found</h2>
@@ -175,7 +175,7 @@ export default function SellerProfilePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
+      <ResponsiveHeader variant="default" />
 
       <main className="flex-1 w-full px-4 pt-[48px] md:pt-[112px] pb-6 md:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">

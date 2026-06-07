@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Check, Building2, Users, Briefcase, Shield, Zap, BarChart3, Headphones, Globe, Star, Crown, CreditCard, Package, TrendingUp } from 'lucide-react';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 
 const BUSINESS_FEATURES = [
@@ -134,7 +134,7 @@ export default function BusinessAccountsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
+      <ResponsiveHeader variant="default" />
 
       <main className="flex-1 pt-[48px] md:pt-[112px]">
         {/* Hero Section */}

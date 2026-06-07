@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Star, Loader2, Home } from 'lucide-react';
 import { sellerReviewsApi } from '@/lib/api';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import SellerReviewCard from '@/components/reviews/SellerReviewCard';
 import type { SellerReview } from '@/types';
@@ -259,7 +259,7 @@ export default function SellerReviewsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
+      <ResponsiveHeader variant="default" />
       
       <main className="flex-1 pt-[48px] md:pt-[112px] pb-8">
         <div className="container mx-auto px-4 max-w-4xl">

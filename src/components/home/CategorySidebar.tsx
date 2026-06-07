@@ -41,12 +41,7 @@ function getCategoryBg(name?: string): string {
   return 'bg-gray-50';
 }
 
-function formatCount(count?: number): string {
-  if (count == null) return '';
-  if (count >= 1000000) return `${(count / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (count >= 1000) return `${(count / 1000).toFixed(1).replace(/\.0$/, '')}k`;
-  return count.toLocaleString();
-}
+/* count formatting removed */
 
 function SidebarSkeleton() {
   return (
@@ -344,9 +339,6 @@ export default function CategorySidebar() {
       )}
     >
       <span className="flex-1 text-sm truncate">{item.name}</span>
-      {item.ad_count != null && (
-        <span className="text-[11px] text-gray-400 tabular-nums">{formatCount(item.ad_count)}</span>
-      )}
       {getChildren(item).length > 0 && (
         <ChevronRight className="w-3 h-3 text-gray-300 flex-shrink-0" />
       )}
@@ -385,7 +377,6 @@ export default function CategorySidebar() {
                   >
                     {renderIcon(cat)}
                     <span className="flex-1 text-sm font-medium text-gray-800 truncate">{cat.name}</span>
-                    {cat.ad_count != null && <span className="text-xs text-gray-400">{formatCount(cat.ad_count)}</span>}
                     {hasChildren && <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />}
                   </div>
                 );
@@ -472,7 +463,7 @@ export default function CategorySidebar() {
                     >
                       {renderIcon(cat)}
                       <span className="flex-1 text-sm font-medium truncate leading-tight">{cat.name}</span>
-                      <span className="text-[11px] font-medium text-gray-400 tabular-nums">{formatCount(cat.ad_count)}</span>
+                      <span className="hidden">{/* count removed */}</span>
                       {hasSubs && (
                         <ChevronRight className={cn('w-3.5 h-3.5 flex-shrink-0 transition-all duration-200', active ? 'text-primary-400 translate-x-px' : 'text-gray-300')} />
                       )}
@@ -542,7 +533,6 @@ export default function CategorySidebar() {
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" />
                   <span className="flex-1 truncate">{child.name}</span>
-                  {child.ad_count != null && <span className="text-[11px] text-gray-400 tabular-nums">{formatCount(child.ad_count)}</span>}
                 </Link>
               ))}
             </div>

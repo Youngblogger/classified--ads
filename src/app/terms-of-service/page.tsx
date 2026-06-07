@@ -1,13 +1,13 @@
 'use client';
 
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import { FileText, CheckCircle, AlertTriangle, Scale, Users, Ban, Mail } from 'lucide-react';
 
 export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
+      <ResponsiveHeader variant="default" />
       
       <main className="flex-1 pt-[48px] md:pt-[112px] pb-12">
         <div className="container-app">

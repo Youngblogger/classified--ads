@@ -195,6 +195,19 @@ export function useCreateAd() {
     onSuccess: (res) => {
       toast.success('Ad created successfully');
       syncAllCaches(queryClient);
+      queryClient.invalidateQueries({ queryKey: adKeys.user(0) });
+      queryClient.invalidateQueries({ queryKey: adKeys.dashboard() });
+      queryClient.invalidateQueries({ queryKey: adKeys.admin() });
+      invalidateSwrCache('my-ads');
+      invalidateSwrCache('dashboard');
+      invalidateSwrCache(/^secure-control-9ja/);
+      invalidateSwrCache('homepage_data');
+      invalidateSwrCache('boosted_ads_listing');
+      broadcastCacheInvalidation();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ilist:cache-invalidate'));
+        window.dispatchEvent(new CustomEvent('ilist:ad-created', { detail: { ad: res?.data } }));
+      }
       return res;
     },
     onError: (error) => {

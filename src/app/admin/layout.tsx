@@ -3,6 +3,7 @@
 import '../globals.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import NextImage from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Users,
@@ -462,10 +463,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <Link href="/admin" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">iList Admin</span>
+              <NextImage src="/icons/iList-white.png" alt="iList" width={100} height={32} className="h-8 w-auto" priority />
             </Link>
             <button
               className="lg:hidden p-1 rounded-md text-gray-500 hover:text-gray-700"
@@ -533,11 +531,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </button>
 
             {/* Logo - visible on mobile */}
-            <Link href="/admin" className="lg:hidden flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-primary-600" />
-              </div>
-              <span className="text-white font-bold text-lg">iList</span>
+            <Link href="/admin" className="lg:hidden flex items-center">
+              <NextImage src="/icons/iList-white.png" alt="iList" width={100} height={32} className="h-8 w-auto" priority />
             </Link>
 
             {/* Page Title */}

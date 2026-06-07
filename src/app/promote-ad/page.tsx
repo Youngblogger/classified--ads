@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowRight, Loader2, Star, Zap, Shield, TrendingUp, Users, Clock, Check, Crown } from 'lucide-react';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { promotionsApi } from '@/lib/api';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 
 interface Plan {
@@ -121,7 +121,7 @@ export default function PromoteAdPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Header />
+      <ResponsiveHeader variant="default" />
 
       <main className="flex-1 pt-[48px] md:pt-[112px]">
         {/* Hero Section */}

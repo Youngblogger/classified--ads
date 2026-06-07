@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { useAuthContext } from '@/components/providers/AuthProvider';
 import { saveRedirectPath } from '@/lib/require-auth';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -230,11 +231,8 @@ export default function DashboardLayout({
         <div className="flex flex-col h-full">
           {/* Home Button */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-lg">H</span>
-              </div>
-              <span className="text-lg font-bold text-primary-600">Home</span>
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/icons/iList-white.png" alt="iList" width={100} height={32} className="h-8 w-auto" priority />
             </Link>
             <button
               className="lg:hidden p-1 rounded-md text-gray-500 hover:text-gray-700"
@@ -279,7 +277,7 @@ export default function DashboardLayout({
 
       {/* Main content */}
       <div className="lg:pl-64">
-        <Header variant="dashboard" onMenuToggle={() => setSidebarOpen(true)} />
+        <ResponsiveHeader variant="default" onMenuToggle={() => setSidebarOpen(true)} />
         {/* Spacer for fixed header */}
         <div className="h-16" />
 

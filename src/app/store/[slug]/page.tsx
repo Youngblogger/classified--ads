@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { storeApi, followApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { getAdImageUrl, formatPrice } from '@/lib/utils';
-import Header from '@/components/home/Header';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import toast from 'react-hot-toast';
 import { Instagram, Twitter, Facebook } from '@/lib/social-icons';
 import {
@@ -157,7 +157,7 @@ export default function StoreProfilePage() {
   if (loading) {
     return (
       <>
-        <Header />
+        <ResponsiveHeader variant="default" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="animate-pulse space-y-6">
             <div className="h-48 sm:h-64 bg-gray-200 rounded-2xl" />
@@ -183,7 +183,7 @@ export default function StoreProfilePage() {
   if (error || !store) {
     return (
       <>
-        <Header />
+        <ResponsiveHeader variant="default" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="bg-white rounded-2xl p-12 text-center shadow-card">
             <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -200,7 +200,7 @@ export default function StoreProfilePage() {
 
   return (
     <>
-      <Header />
+      <ResponsiveHeader variant="default" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Banner */}
         <div className="relative h-48 sm:h-64 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl overflow-hidden">
