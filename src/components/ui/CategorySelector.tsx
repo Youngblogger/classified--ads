@@ -223,7 +223,7 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-0 sm:p-4"
       onClick={handleOutsideClick}
       role="dialog"
       aria-modal="true"
@@ -231,7 +231,7 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
     >
       <div 
         ref={modalRef}
-        className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col animate-in"
+        className="bg-white rounded-none sm:rounded-2xl w-full h-full sm:max-w-lg sm:max-h-[90vh] sm:h-auto overflow-hidden flex flex-col animate-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

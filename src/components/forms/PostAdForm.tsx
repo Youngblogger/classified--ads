@@ -252,14 +252,13 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       } catch {}
   }, [draftRestored, title, description, price, images]);
 
-  // Auto-hide draft banner after 3s with animation
+  // Auto-hide draft toast after 1.5s
   useEffect(() => {
     if (!draftRestored) return;
     const showTimer = setTimeout(() => setBannerVisible(true), 50);
     bannerTimerRef.current = setTimeout(() => {
       setBannerVisible(false);
-      sessionStorage.setItem('draft-banner-dismissed', '1');
-    }, 3000);
+    }, 1500);
     return () => {
       clearTimeout(showTimer);
       if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
@@ -1056,36 +1055,28 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   };
 
   return (
-    <div ref={formRef} className="space-y-6">
-      {/* Draft Restored Banner */}
-      {draftRestored && (
-        <div className={`bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 transition-all duration-500 ease-in-out ${
-          bannerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+    <div ref={formRef} className="space-y-4 relative">
+      {/* Draft Restored Toast */}
+      {draftRestored && isAuthenticated && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 ease-in-out ${
+          bannerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
         }`}>
-          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-5 h-5 text-amber-600" />
+          <div className="bg-white border border-amber-200 rounded-xl shadow-lg px-5 py-3 flex items-center gap-3 min-w-[280px] max-w-md">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-amber-900">Draft restored</p>
+              <p className="text-xs text-amber-600 truncate">Continue where you left off</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h4 className="font-semibold text-amber-900">Continue where you left off</h4>
-            <p className="text-sm text-amber-700 mt-1">Your previous draft has been restored. Review your details and click &quot;Post Ad&quot; when ready.</p>
-          </div>
-          <button
-            onClick={() => {
-              setDraftRestored(false);
-              setBannerVisible(false);
-              sessionStorage.setItem('draft-banner-dismissed', '1');
-            }}
-            className="p-1.5 hover:bg-amber-100 rounded-lg transition-colors flex-shrink-0"
-          >
-            <X className="w-4 h-4 text-amber-500" />
-          </button>
         </div>
       )}
       {/* Back Button */}
       {step > 1 && (
         <button
           onClick={goBack}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-6 group"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200" />
           <span>Back</span>
@@ -1093,27 +1084,27 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       )}
 
       {/* Progress Steps */}
-      <div className="flex items-center justify-center gap-2 mb-8">
+      <div className="flex items-center justify-center gap-2 mb-4">
         {['Basic Info', 'Media & Details'].map((s, i) => (
           <div key={s} className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
               step > i + 1 ? 'bg-green-500 text-white' :
               step === i + 1 ? 'bg-primary-600 text-white' :
               'bg-gray-200 text-gray-500'
             }`}>
-              {step > i + 1 ? <Check className="w-4 h-4" /> : i + 1}
+              {step > i + 1 ? <Check className="w-3.5 h-3.5" /> : i + 1}
             </div>
-            <span className={`ml-2 text-sm hidden sm:inline ${step >= i + 1 ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+            <span className={`ml-1.5 text-xs hidden sm:inline ${step >= i + 1 ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>
               {s}
             </span>
-            {i < 1 && <div className={`w-8 sm:w-16 h-0.5 mx-2 ${step > i + 1 ? 'bg-green-500' : 'bg-gray-200'}`} />}
+            {i < 1 && <div className={`w-6 sm:w-12 h-0.5 mx-1.5 ${step > i + 1 ? 'bg-green-500' : 'bg-gray-200'}`} />}
           </div>
         ))}
       </div>
 
       {/* Step 1: Basic Info */}
       {step === 1 && (
-        <div className="space-y-6">
+        <div className="space-y-5 pt-1">
           {/* Category & Location Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -1226,7 +1217,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
       {/* Step 2: Media & Details */}
       {step === 2 && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Images */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1534,7 +1525,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       )}
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-6 border-t">
+      <div className="flex items-center justify-between pt-4 border-t">
         {step > 1 ? (
           <button
             onClick={prevStep}
