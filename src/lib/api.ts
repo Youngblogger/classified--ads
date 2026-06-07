@@ -302,6 +302,18 @@ export const adsApi = {
     }
     listing.slug = listing.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
 
+    // Strip fields incompatible with Supabase listings table
+    delete listing._idempotency_key;
+    delete listing.image_urls;
+    // Remove Laravel integer IDs — Supabase uses UUIDs for FK relations
+    delete listing.category_id;
+    delete listing.subcategory_id;
+    delete listing.location_id;
+    // Map field names: Laravel form → Supabase columns
+    if (listing.phone) { listing.phone_number = listing.phone; delete listing.phone; }
+    if (listing.whatsapp) { listing.whatsapp_number = listing.whatsapp; delete listing.whatsapp; }
+    if (listing.attributes) { listing.specifications = listing.attributes; delete listing.attributes; }
+
     // Always save to Supabase first (source of truth for user dashboard)
     try {
       const { data, error } = await supabase.from('listings').insert(listing).select().single();
