@@ -290,14 +290,6 @@ export const adsApi = {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
 
-    // Check Supabase session is valid before attempting insert
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn('[AdsApi] No Supabase session — user may need to re-login');
-      }
-    } catch {}
-
     let adData: any = null;
     let adImages: any[] = [];
 
@@ -322,29 +314,17 @@ export const adsApi = {
     delete listing._idempotency_key;
     listing.slug = listing.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
 
-    // Try Laravel backend first (has its own auth system)
+    // Always save to Supabase first (source of truth for user dashboard)
     try {
-      const laravelRes = await http.post('/ads', formData);
-      if (laravelRes?.data?.data?.id || laravelRes?.data?.id) {
-        adData = laravelRes?.data?.data || laravelRes?.data;
+      const { data, error } = await supabase.from('listings').insert(listing).select().single();
+      if (!error && data) {
+        adData = data;
       }
     } catch (e) {
-      console.warn('[AdsApi] Laravel create failed, trying Supabase:', e);
+      console.error('Supabase insert failed:', e);
     }
 
-    // Fall back to Supabase (source of truth for user dashboard)
-    if (!adData) {
-      try {
-        const { data, error } = await supabase.from('listings').insert(listing).select().single();
-        if (!error && data) {
-          adData = data;
-        }
-      } catch (e) {
-        console.error('Supabase insert failed:', e);
-      }
-    }
-
-    if (!adData) return sbError({ message: 'Failed to create listing. Please log out and log in again.' });
+    if (!adData) return sbError({ message: 'Failed to create listing' });
 
     // Process images
     const imageUrlsStr = formData.get('image_urls');
@@ -388,6 +368,11 @@ export const adsApi = {
         }
       }
     }
+
+    // Also try Laravel backend (non-blocking)
+    try {
+      await http.post('/ads', formData);
+    } catch {}
 
     const normalized = normalizeAd({
       ...adData,
