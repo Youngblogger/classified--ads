@@ -166,7 +166,7 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
     if (slug && slug.length > 0 && !slug.includes('?')) {
       const res = await http.get(`/ads/${slug}`);
       const ad = res?.data?.data || res?.data || null;
-      if (ad) return { data: normalizeAd(ad, true) };
+      if (ad?.id) return { data: normalizeAd(ad, true) };
       console.debug('[AdsFetch] Laravel ad detail returned null — falling back to Supabase', slug);
       const supabaseAd = await fetchSupabaseAdDetail(slug);
       if (supabaseAd) return { data: supabaseAd };

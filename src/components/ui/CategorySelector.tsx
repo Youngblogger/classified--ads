@@ -15,8 +15,8 @@ interface Category {
 interface CategorySelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (categoryId: number, categoryName: string, breadcrumb: string) => void;
-  selectedCategoryId?: number | null;
+  onSelect: (categoryId: string | number, categoryName: string, breadcrumb: string, slug?: string, parentSlug?: string) => void;
+  selectedCategoryId?: string | number | null;
   selectedBreadcrumb?: string;
 }
 
@@ -159,13 +159,16 @@ export default function CategorySelector({ isOpen, onClose, onSelect, selectedCa
 
   const handleSelect = (category: Category, parent: Category | null, grandparent: Category | null) => {
     let breadcrumb = category.name;
+    let parentSlug: string | undefined;
     if (parent) {
       breadcrumb = `${parent.name} > ${category.name}`;
+      parentSlug = parent.slug;
     }
     if (grandparent) {
       breadcrumb = `${grandparent.name} > ${parent!.name} > ${category.name}`;
+      parentSlug = grandparent.slug;
     }
-    onSelect(category.id, category.name, breadcrumb);
+    onSelect(category.id, category.name, breadcrumb, category.slug, parentSlug);
     onClose();
   };
 

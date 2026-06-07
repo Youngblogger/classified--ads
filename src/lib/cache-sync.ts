@@ -35,7 +35,6 @@ export function syncAdListCaches(queryClient: QueryClient): void {
   queryClient.invalidateQueries({ queryKey: adKeys.trending() });
   queryClient.invalidateQueries({ queryKey: adKeys.boosted() });
   queryClient.invalidateQueries({ queryKey: adKeys.search() });
-  queryClient.invalidateQueries({ queryKey: adKeys.similar(0) });
   invalidateSwrCache(/^ads\?/);
   invalidateSwrCache(/^ads\//);
   invalidateSwrCache(/^ads\/similar/);
@@ -57,8 +56,9 @@ export function syncAdminCaches(queryClient: QueryClient): void {
   invalidateSwrCache(/^secure-control-9ja/);
 }
 
-export function updateAdInListCaches(queryClient: QueryClient, adId: number, updates: Partial<any>): void {
+export function updateAdInListCaches(queryClient: QueryClient, adId: string | number, updates: Partial<any>): void {
   if (isCosmeticOnly(updates)) return;
+  const idStr = String(adId);
 
   for (const key of listMutationKeys) {
     const queries = queryClient.getQueriesData<any>({ queryKey: key });
@@ -67,7 +67,7 @@ export function updateAdInListCaches(queryClient: QueryClient, adId: number, upd
       if (Array.isArray(data)) {
         queryClient.setQueryData(queryKey, (old: any[]) =>
           old?.map((item: any) =>
-            (item.id === adId || item?.ad?.id === adId)
+            (String(item.id) === idStr || String(item?.ad?.id) === idStr)
               ? (isStaleUpdate(item, updates) ? item : { ...item, ...updates, ad: item.ad ? { ...item.ad, ...updates } : undefined })
               : item
           )
@@ -80,7 +80,7 @@ export function updateAdInListCaches(queryClient: QueryClient, adId: number, upd
             pages: old.pages.map((page: any) => ({
               ...page,
               data: page.data?.map((item: any) =>
-                item.id === adId ? (isStaleUpdate(item, updates) ? item : { ...item, ...updates }) : item
+                String(item.id) === idStr ? (isStaleUpdate(item, updates) ? item : { ...item, ...updates }) : item
               ),
             })),
           };
@@ -96,18 +96,18 @@ const listMutationKeys = [
   adKeys.homepage(),
   adKeys.trending(),
   adKeys.boosted(),
-  adKeys.user(0),
   adKeys.admin(),
 ];
 
-export function removeAdFromListCaches(queryClient: QueryClient, adId: number): void {
+export function removeAdFromListCaches(queryClient: QueryClient, adId: string | number): void {
+  const idStr = String(adId);
   for (const key of listMutationKeys) {
     const queries = queryClient.getQueriesData<any>({ queryKey: key });
     for (const [queryKey, data] of queries) {
       if (!data) continue;
       if (Array.isArray(data)) {
         queryClient.setQueryData(queryKey, (old: any[]) =>
-          old?.filter((item: any) => item.id !== adId && item?.ad?.id !== adId)
+          old?.filter((item: any) => String(item.id) !== idStr && String(item?.ad?.id) !== idStr)
         );
       } else if (data?.pages) {
         queryClient.setQueryData(queryKey, (old: any) => {
@@ -116,7 +116,7 @@ export function removeAdFromListCaches(queryClient: QueryClient, adId: number): 
             ...old,
             pages: old.pages.map((page: any) => ({
               ...page,
-              data: page.data?.filter((item: any) => item.id !== adId),
+              data: page.data?.filter((item: any) => String(item.id) !== idStr),
             })),
           };
         });
@@ -161,7 +161,7 @@ export function extractAdUpdates(row: any): Record<string, any> {
 export function fromSupabaseRow(row: any): any {
   if (!row) return row;
   return {
-    id: row.id ? Number(row.id) : row.id,
+    id: row.id,
     title: row.title || '',
     slug: row.slug || '',
     description: row.short_description || row.description || '',
@@ -192,8 +192,8 @@ export function fromSupabaseRow(row: any): any {
     created_at: row.created_at,
     updated_at: row.updated_at || row.created_at,
     expires_at: row.expires_at || null,
-    category_id: row.category_id ? Number(row.category_id) : null,
-    subcategory_id: row.subcategory_id ? Number(row.subcategory_id) : null,
+    category_id: row.category_id,
+    subcategory_id: row.subcategory_id,
     user_id: row.user_id,
     category: null,
     subcategory: null,
@@ -238,10 +238,10 @@ export function isCosmeticOnly(row: Record<string, any>): boolean {
 
 // ── UPDATE (zero backend calls) ──
 // Mutate SWR cache entries for an ad update by ID.
-export function updateAdInSwrCaches(adId: number, updates: Record<string, any>): void {
+export function updateAdInSwrCaches(adId: string | number, updates: Record<string, any>): void {
   if (isCosmeticOnly(updates)) return;
 
-  const id = Number(adId);
+  const idStr = String(adId);
   swrMutate(
     swrAdMatcher,
     (currentData: any) => {
@@ -252,7 +252,7 @@ export function updateAdInSwrCaches(adId: number, updates: Record<string, any>):
         return {
           ...currentData,
           data: currentData.data.map((ad: any) =>
-            Number(ad.id) === id ? (isStaleUpdate(ad, updates) ? ad : { ...ad, ...updates }) : ad
+            String(ad.id) === idStr ? (isStaleUpdate(ad, updates) ? ad : { ...ad, ...updates }) : ad
           ),
         };
       }
@@ -263,7 +263,7 @@ export function updateAdInSwrCaches(adId: number, updates: Record<string, any>):
         for (const section of ['featured', 'recent', 'boosted', 'trending'] as const) {
           if (Array.isArray(next[section])) {
             next[section] = next[section].map((ad: any) =>
-              Number(ad.id) === id ? (isStaleUpdate(ad, updates) ? ad : { ...ad, ...updates }) : ad
+              String(ad.id) === idStr ? (isStaleUpdate(ad, updates) ? ad : { ...ad, ...updates }) : ad
             );
           }
         }
@@ -273,7 +273,7 @@ export function updateAdInSwrCaches(adId: number, updates: Record<string, any>):
       // Flat Ad[]
       if (Array.isArray(currentData)) {
         return currentData.map((ad: any) =>
-          Number(ad.id) === id ? (isStaleUpdate(ad, updates) ? ad : { ...ad, ...updates }) : ad
+          String(ad.id) === idStr ? (isStaleUpdate(ad, updates) ? ad : { ...ad, ...updates }) : ad
         );
       }
 
@@ -285,8 +285,8 @@ export function updateAdInSwrCaches(adId: number, updates: Record<string, any>):
 
 // ── DELETE (zero backend calls) ──
 // Remove an ad from all SWR cache entries by ID.
-export function removeAdFromSwrCaches(adId: number): void {
-  const id = Number(adId);
+export function removeAdFromSwrCaches(adId: string | number): void {
+  const idStr = String(adId);
   swrMutate(
     swrAdMatcher,
     (currentData: any) => {
@@ -295,7 +295,7 @@ export function removeAdFromSwrCaches(adId: number): void {
       if (currentData.data && Array.isArray(currentData.data)) {
         return {
           ...currentData,
-          data: currentData.data.filter((ad: any) => Number(ad.id) !== id),
+          data: currentData.data.filter((ad: any) => String(ad.id) !== idStr),
         };
       }
 
@@ -303,14 +303,14 @@ export function removeAdFromSwrCaches(adId: number): void {
         const next = { ...currentData };
         for (const section of ['featured', 'recent', 'boosted', 'trending'] as const) {
           if (Array.isArray(next[section])) {
-            next[section] = next[section].filter((ad: any) => Number(ad.id) !== id);
+            next[section] = next[section].filter((ad: any) => String(ad.id) !== idStr);
           }
         }
         return next;
       }
 
       if (Array.isArray(currentData)) {
-        return currentData.filter((ad: any) => Number(ad.id) !== id);
+        return currentData.filter((ad: any) => String(ad.id) !== idStr);
       }
 
       return currentData;
@@ -376,5 +376,31 @@ export function notifyCacheInvalidation(): void {
   broadcastCacheInvalidation();
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('ilist:cache-invalidate'));
+  }
+}
+
+// ── CENTRALIZED INVALIDATION HELPERS ──
+
+export function invalidateListing(queryClient: QueryClient, slug: string): void {
+  syncAdDetailCache(queryClient, slug);
+  syncAdListCaches(queryClient);
+}
+
+export function invalidateUserListings(queryClient: QueryClient, userId: string | number): void {
+  queryClient.invalidateQueries({ queryKey: adKeys.user(userId) });
+  queryClient.invalidateQueries({ queryKey: adKeys.dashboard() });
+  invalidateSwrCache(/^ads\?/);
+  invalidateSwrCache('my-ads');
+  invalidateSwrCache('dashboard');
+}
+
+export function invalidateCategoryListings(queryClient: QueryClient, categorySlug?: string): void {
+  queryClient.invalidateQueries({ queryKey: adKeys.homepage() });
+  queryClient.invalidateQueries({ queryKey: adKeys.trending() });
+  queryClient.invalidateQueries({ queryKey: adKeys.boosted() });
+  invalidateSwrCache('homepage_data');
+  invalidateSwrCache('boosted_ads_listing');
+  if (categorySlug) {
+    invalidateSwrCache(`ads?category=${categorySlug}`);
   }
 }

@@ -33,9 +33,10 @@ import toast from 'react-hot-toast';
 import DynamicField, { CategoryField } from '@/components/forms/DynamicField';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { invalidateSwrCache, notifyCacheInvalidation } from '@/lib/cache-sync';
+import { normalizeAd } from '@/lib/normalize-ad';
 
 interface AdImage {
-  id: number;
+  id: string | number;
   url?: string;
   display_url?: string;
   thumbnail_url?: string;
@@ -45,20 +46,20 @@ interface AdImage {
 }
 
 interface Ad {
-  id: number;
+  id: string | number;
   title: string;
   slug: string;
   description?: string;
   price: string | number;
   currency?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'active';
-  category: { id: number; name: string; slug: string };
-  subcategory?: { id: number; name: string; slug: string };
-  location: { id?: number; name: string } | null;
+  status: string;
+  category: { id: number; name: string; slug: string } | { id: string; name: string; slug: string } | null;
+  subcategory?: { id: number; name: string; slug: string } | null;
+  location: { id?: number; name: string } | { id?: string; name: string } | null;
   state?: string;
   lga?: string;
   attributes?: Record<string, any> | string;
-  user: { id: number; name: string; email: string; phone?: string; verified: boolean };
+  user: { id: number | string; name: string; email: string; phone?: string; verified: boolean };
   images: AdImage[];
   views: number;
   created_at: string;
@@ -795,7 +796,7 @@ function ReplaceImagesModal({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const originalImageIds = useRef<number[]>(ad.images?.map((img: AdImage) => img.id) || []);
+  const originalImageIds = useRef<(string | number)[]>(ad.images?.map((img: AdImage) => img.id) || []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -901,7 +902,7 @@ function ReplaceImagesModal({
     }
   };
 
-  const removeExistingImage = async (imageId: number) => {
+  const removeExistingImage = async (imageId: string | number) => {
     if (!confirm('Delete this image?')) return;
     try {
       const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ad/${ad.id}/image/${imageId}`, {
@@ -1150,7 +1151,7 @@ export default function AdsModerationPage() {
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const perPage = 20;
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
@@ -1160,7 +1161,7 @@ export default function AdsModerationPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
-  const [selectedAds, setSelectedAds] = useState<Set<number>>(new Set());
+  const [selectedAds, setSelectedAds] = useState<Set<string | number>>(new Set());
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   const fetchAds = useCallback(async (pageNum: number = 1, append: boolean = false) => {
@@ -1221,7 +1222,8 @@ export default function AdsModerationPage() {
         const fallbackRes = await fetch(`/api/admin/ads/all?${fallbackParams}`);
         const fallbackData = fallbackRes.ok ? await fallbackRes.json() : null;
         if (fallbackRes.ok && fallbackData) {
-          const mapped: Ad[] = (fallbackData.data || []).map((l: any) => ({ ...l, images: l.listing_images || [], listing_images: l.listing_images || [] }));
+          const rawListings = fallbackData.data || [];
+          const mapped: Ad[] = rawListings.map((l: any) => normalizeAd({ ...l, images: l.listing_images || [], listing_images: l.listing_images || [] }));
           setTotalCount(fallbackData.total || mapped.length);
           setHasMore(mapped.length === perPage);
           if (append) {
@@ -1404,7 +1406,7 @@ export default function AdsModerationPage() {
     }
   };
 
-  const toggleSelectAd = (adId: number) => {
+  const toggleSelectAd = (adId: string | number) => {
     const newSelected = new Set(selectedAds);
     if (newSelected.has(adId)) {
       newSelected.delete(adId);
@@ -1439,7 +1441,7 @@ export default function AdsModerationPage() {
       
       if (successfulDeletes.length > 0) {
         toast.success(`${successfulDeletes.length} ads deleted`);
-        setAds(prev => prev.filter(ad => !successfulDeletes.includes(ad.id)));
+        setAds(prev => prev.filter(ad => !successfulDeletes.some(id => String(id) === String(ad.id))));
         setSelectedAds(new Set());
         setTotalCount(prev => prev - successfulDeletes.length);
         triggerCacheSync();

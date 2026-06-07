@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, ImageIcon } from 'lucide-react';
+import { MapPin, ImageIcon, Heart } from 'lucide-react';
 import { favoritesApi } from '@/lib/api';
 import { formatPrice, getAdImageUrl } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/EmptyState';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
 import toast from 'react-hot-toast';
@@ -139,21 +140,13 @@ export default function FavoritesPage() {
 
       {/* Empty State */}
       {!loading && filteredFavorites.length === 0 && (
-        <div className="bg-white rounded-2xl p-12 text-center shadow-card">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <HeartIcon className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No favorites yet</h3>
-          <p className="text-gray-500 mb-6">
-            Start browsing and save items you like
-          </p>
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors"
-          >
-            Browse Ads
-          </Link>
-        </div>
+        <EmptyState
+          customIcon={Heart}
+          title="No favorites yet"
+          description="Start browsing and save items you like"
+          actionLabel="Browse Ads"
+          onAction={() => window.location.href = '/'}
+        />
       )}
 
       {/* Favorites Grid */}

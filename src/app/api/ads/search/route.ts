@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -32,44 +33,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ data: [], meta: { total: 0, current_page: page, per_page: perPage, last_page: 0 }, error: error.message }, { status: 200 });
     }
 
-    const items = (data || []).map((item: any) => {
-      const images = (item.listing_images || []).map((img: any) => ({
-        id: img.id,
-        url: img.url,
-        thumbnail_url: img.thumbnail_url || img.url,
-        medium_url: img.medium_url || img.url,
-        is_primary: img.is_primary,
-      }));
-      const primaryImage = images.find((img: any) => img.is_primary) || images[0];
-      const profile = item.profiles || {};
-
-      return {
-        id: item.id,
-        title: item.title,
-        slug: item.slug,
-        description: item.description || '',
-        short_description: item.short_description || (item.description || '').substring(0, 120),
-        price: item.price,
-        currency: item.currency || 'NGN',
-        condition: item.condition || '',
-        status: item.status,
-        negotiable: item.negotiable || false,
-        views: item.views_count || 0,
-        views_count: item.views_count || 0,
-        favorites_count: item.favorites_count || 0,
-        is_featured: item.is_featured || false,
-        is_boosted: item.is_boosted || false,
-        boost_type: item.boost_type || null,
-        boost_status: item.boost_status || null,
-        boost_expires_at: item.boost_expires_at || null,
-        created_at: item.created_at,
-        updated_at: item.updated_at || item.created_at,
-        image: primaryImage ? { url: primaryImage.url, thumbnail_url: primaryImage.thumbnail_url, medium_url: primaryImage.medium_url } : null,
-        images,
-        image_url: primaryImage?.url || null,
-        images_count: images.length,
-        category: null,
-        user: {
+    const items = normalizeAds(data || []).map((item: any) => ({
+      ...item,
+      user: item.user || (() => {
+        const profile = (data || []).find((d: any) => d.id === item.id)?.profiles || {};
+        return {
           id: profile.id || item.user_id,
           name: profile.full_name || '',
           full_name: profile.full_name || '',
@@ -81,12 +49,9 @@ export async function GET(request: NextRequest) {
           rating_avg: profile.rating_avg || null,
           response_time: profile.response_time_avg || null,
           completed_transactions: profile.completed_transactions || null,
-        },
-        location: item.state || '',
-        state: item.state || '',
-        lga: item.lga || '',
-      };
-    });
+        };
+      })(),
+    }));
 
     const total = count || 0;
     const lastPage = Math.ceil(total / perPage) || 1;

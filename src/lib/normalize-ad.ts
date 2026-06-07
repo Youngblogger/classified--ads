@@ -1,3 +1,6 @@
+import { assertValidListing, assertValidListings } from './dev-assert';
+import { listingLogger } from './logger';
+
 export interface NormalizedAd {
   id: number | string;
   title: string;
@@ -245,7 +248,10 @@ function extractSpecifications(src: any): any[] {
 function extractCategory(ad: any): any {
   if (!ad) return null;
   if (ad.category && typeof ad.category === 'object') return ad.category;
-  if (ad.category_id) return { id: ad.category_id, name: '', slug: String(ad.category_id) };
+  if (ad.category_id && typeof ad.category_id === 'string' && ad.category_id.includes('-')) {
+    return null;
+  }
+  if (ad.category_id) return { id: ad.category_id, name: String(ad.category_id), slug: String(ad.category_id) };
   if (ad.category && typeof ad.category === 'string') return { id: undefined, name: ad.category, slug: ad.category.toLowerCase().replace(/\s+/g, '-') };
   if (ad.subcategory && typeof ad.subcategory === 'object') return ad.subcategory;
   return null;
@@ -332,6 +338,7 @@ function extractLocation(ad: any): string {
 }
 
 export function normalizeAd(ad: any, isDetail = false): NormalizedAd | null {
+  assertValidListing(ad, 'normalizeAd');
   if (!ad) return null;
 
   const images = extractImages(ad.images || ad.image_urls || ad.photos || ad.gallery || ad.listing_images || []);
@@ -427,16 +434,19 @@ export function normalizeAd(ad: any, isDetail = false): NormalizedAd | null {
   };
 
   if (isDetail && normalized.specifications.length === 0) {
-    console.warn('[normalizeAd] Detail ad has NO specifications. Raw attributes:', ad?.attributes, 'specifications field:', ad?.specifications);
+    listingLogger.warn('Detail ad has NO specifications', { rawAttributes: ad?.attributes, specificationsField: ad?.specifications, adId: ad?.id });
   }
 
   if (normalized.images.length === 0) {
-    console.warn('[normalizeAd] Ad has NO images. Raw image fields:', { images: ad?.images, image_urls: ad?.image_urls, image: ad?.image, image_url: ad?.image_url, main_image: ad?.main_image, listing_images: ad?.listing_images });
+    listingLogger.warn('Ad has NO images', { rawImages: ad?.images, rawImageUrls: ad?.image_urls, rawImage: ad?.image, rawImageUrl: ad?.image_url, rawMainImage: ad?.main_image, rawListingImages: ad?.listing_images, adId: ad?.id });
   }
 
   return normalized;
 }
 
 export function normalizeAds(ads: any[], isDetail = false): NormalizedAd[] {
+  assertValidListings(ads, 'normalizeAds');
   return (ads || []).filter(Boolean).map((ad: any) => normalizeAd(ad, isDetail)).filter(Boolean) as NormalizedAd[];
 }
+
+export { extractImages as extractAdImages, extractSpecifications as normalizeSpecifications };

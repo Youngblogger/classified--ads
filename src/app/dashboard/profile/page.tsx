@@ -109,26 +109,7 @@ function ProfileSkeleton() {
   );
 }
 
-function EmptyState({ icon: Icon, title, message, action, actionLabel }: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  message: string;
-  action?: () => void;
-  actionLabel?: string;
-}) {
-  return (
-    <div className="text-center py-12" role="region" aria-label={title}>
-      <Icon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-gray-900 mb-1">{title}</h3>
-      <p className="text-sm text-gray-500 mb-4">{message}</p>
-      {action && actionLabel && (
-        <button onClick={action} className="px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors">
-          {actionLabel}
-        </button>
-      )}
-    </div>
-  );
-}
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -845,7 +826,7 @@ function ActivityTab() {
         {loading ? (
           <div className="h-20 bg-gray-100 rounded-xl animate-pulse" />
         ) : savedAds.length === 0 ? (
-          <EmptyState icon={Heart} title="No saved ads yet" message="Ads you save will appear here" />
+          <EmptyState customIcon={Heart} title="No saved ads yet" description="Ads you save will appear here" />
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {savedAds.slice(0, 4).map((ad: any) => (
@@ -871,7 +852,7 @@ function ActivityTab() {
         {loading ? (
           <div className="h-20 bg-gray-100 rounded-xl animate-pulse" />
         ) : recentAds.length === 0 ? (
-          <EmptyState icon={Eye} title="No recently viewed ads" message="Ads you view will appear here" />
+          <EmptyState customIcon={Eye} title="No recently viewed ads" description="Ads you view will appear here" />
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {recentAds.slice(0, 4).map((ad: any) => (

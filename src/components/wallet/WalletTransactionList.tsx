@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Receipt } from 'lucide-react';
 import WalletTransactionCard from './WalletTransactionCard';
 import FilterTabs from './FilterTabs';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface WalletTransaction {
   id: number;
@@ -56,20 +57,13 @@ function TransactionSkeleton() {
   );
 }
 
-function EmptyState() {
+function EmptyTransactions() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center py-16 text-center"
     >
-      <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center mb-4">
-        <Receipt className="w-7 h-7 text-gray-300 dark:text-gray-600" />
-      </div>
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">No transactions yet</h3>
-      <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[200px]">
-        Your transaction history will appear here once you make your first transaction
-      </p>
+      <EmptyState customIcon={Receipt} title="No transactions yet" description="Your transaction history will appear here once you make your first transaction" className="py-16" />
     </motion.div>
   );
 }
@@ -177,7 +171,7 @@ export default function WalletTransactionList({
           transition={{ duration: 0.15 }}
         >
           {filteredTransactions.length === 0 ? (
-            <EmptyState />
+            <EmptyTransactions />
           ) : (
             <div className="space-y-1.5">
               {filteredTransactions.map((tx, i) => (

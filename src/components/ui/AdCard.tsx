@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
 import { formatPrice, formatRelativeTime, getAdMainImage } from '@/lib/utils';
-import { useState, memo, useCallback, useRef, useEffect } from 'react';
+import { useState, memo, useCallback, useRef } from 'react';
+import { SafeImage } from './SafeImage';
 import PremiumBadge from './PremiumBadge';
 import PromotedBadge from './PromotedBadge';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
@@ -14,14 +15,9 @@ interface AdCardProps {
 }
 
 function AdCardComponent({ ad, priority = false }: AdCardProps) {
-  const [imgError, setImgError] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const fallbackImage = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image';
-
-  const handleImageError = useCallback(() => {
-    setImgError(true);
-  }, []);
 
   const handleImageLoad = useCallback(() => {
     if (imgRef.current) {
@@ -53,8 +49,6 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
 
   const boostType = (ad as any)?.boost_type;
   const cardBoostClasses = getBoostCardClasses(boostType);
-  const showFallback = !imageUrl || imgError;
-  const imageSrc = showFallback ? fallbackImage : imageUrl;
 
   const getLocationDisplay = () => {
     const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
@@ -69,15 +63,12 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
       className={`block bg-white rounded-[7px] overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group break-inside-avoid ${cardBoostClasses}`}
     >
       <div className="relative w-full overflow-hidden bg-gray-100 rounded-t-[7px]" style={{ maxHeight: '200px' }}>
-        <img
-          ref={imgRef}
-          src={imageSrc}
+        <SafeImage
+          src={imageUrl || fallbackImage}
           alt={safeTitle}
-          className={`w-full transition-all duration-300 ${
-            isPortrait ? 'object-contain max-h-[200px]' : 'object-cover h-full'
-          } group-hover:scale-[1.02]`}
+          className={`w-full transition-all duration-300 group-hover:scale-[1.02] ${isPortrait ? '!object-contain' : ''}`}
+          containerClassName="w-full h-full"
           loading={priority ? 'eager' : 'lazy'}
-          onError={handleImageError}
           onLoad={handleImageLoad}
         />
         <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">

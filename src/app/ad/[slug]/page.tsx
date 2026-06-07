@@ -13,14 +13,17 @@ import AdAttributes from '@/components/ads/AdAttributes';
 import AdSpecifications from '@/components/ads/AdSpecifications';
 import ReportAdModal from '@/components/ui/ReportAdModal';
 import BoostAdModal from '@/components/ui/BoostAdModal';
+import { SafeImage } from '@/components/ui/SafeImage';
 import { DynamicChatModal } from '@/lib/dynamicImports';
+import { copyToClipboard } from '@/lib/share';
 import { useAuthStore } from '@/lib/store';
 import { requireAuth } from '@/lib/require-auth';
 import { Heart, Phone, ChevronRight, MessageCircle, Home, CheckCircle, Flag, ImageIcon, Zap, Ban, X, Maximize2 } from 'lucide-react';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 import toast from 'react-hot-toast';
-import { formatPrice, FALLBACK_IMAGE, getAdImages } from '@/lib/utils';
+import { formatPrice, FALLBACK_IMAGE, getAdImages, getAdImageUrl } from '@/lib/utils';
+import { normalizeAd, extractAdImages, normalizeSpecifications } from '@/lib/normalize-ad';
 import { favoritesApi } from '@/lib/api';
 import { useAdDetail } from '@/hooks/useAds';
 
@@ -153,21 +156,31 @@ export default function AdDetailPage() {
     } else if (adError) {
       setLoading(false);
       setError(adFetchError?.message || 'Ad not found');
+    } else if (!fetchedAd) {
+      setLoading(false);
+      setError('Ad not found');
     } else if (fetchedAd) {
-      console.log('[DETAIL PAGE] fetchedAd:', {
-        id: fetchedAd.id,
-        title: fetchedAd.title,
-        imagesCount: fetchedAd.images?.length,
-        images: fetchedAd.images?.slice(0, 2),
-        specsCount: fetchedAd.specifications?.length,
-        specs: fetchedAd.specifications?.slice(0, 2),
-        attributes: fetchedAd.attributes,
-        user: fetchedAd.user?.name,
-        location: fetchedAd.location,
-        image_url: fetchedAd.image_url,
-        slider_images: fetchedAd.slider_images?.slice(0, 2),
-      });
-      setAd(fetchedAd);
+      const rawId = fetchedAd.id;
+      const rawTitle = fetchedAd.title;
+
+      const normalized = normalizeAd(fetchedAd, true);
+      const adWithImages = normalized ? {
+        ...normalized,
+        images: extractAdImages(normalized.images || fetchedAd.images || fetchedAd.listing_images || []),
+        specifications: normalizeSpecifications(
+          normalized.specifications?.length ? normalized.specifications :
+          fetchedAd.specifications || fetchedAd.specs || fetchedAd.attributes || fetchedAd.attrs || {}
+        ),
+      } : fetchedAd;
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[DETAIL] Raw fetchedAd:', { id: rawId, title: rawTitle, images: fetchedAd.images?.length, specsKeys: fetchedAd.specifications?.length || Object.keys(fetchedAd.attributes || {}).length });
+        console.log('[DETAIL] Normalized:', { id: adWithImages.id, imagesCount: adWithImages.images?.length, specsCount: adWithImages.specifications?.length, images: adWithImages.images?.slice(0, 2), specs: adWithImages.specifications?.slice(0, 2) });
+        if (adWithImages.images?.length === 0) console.warn('[DETAIL] ZERO images after normalization', { rawImagesField: fetchedAd.images, rawListingImages: fetchedAd.listing_images, rawImageUrl: fetchedAd.image_url });
+        if (!adWithImages.specifications?.length) console.warn('[DETAIL] ZERO specs after normalization', { rawSpecs: fetchedAd.specifications, rawAttributes: fetchedAd.attributes, rawSpecsField: fetchedAd.specs });
+      }
+
+      setAd(adWithImages);
       setLoading(false);
       setError(null);
     }
@@ -363,20 +376,18 @@ export default function AdDetailPage() {
   );
 }
 
-  // Build slider images - use unique images only, no duplication
-  const getSliderImages = () => {
-    // Use the unified getAdImages function from utils
-    const images = getAdImages(ad);
-    
-    // If still empty, use fallback
-    if (images.length === 0) {
-      return [FALLBACK_IMAGE];
+  // Build slider images from normalized ad.images (objects → URL strings)
+  const getSliderImageUrls = () => {
+    if (!ad?.images || !Array.isArray(ad.images) || ad.images.length === 0) {
+      const fallback = getAdImages(ad);
+      return fallback.length > 0 ? fallback : [FALLBACK_IMAGE];
     }
-    
-    return images;
+    return ad.images
+      .map((img: any) => getAdImageUrl(img))
+      .filter(Boolean);
   };
   
-  const sliderImages = getSliderImages();
+  const sliderImages = getSliderImageUrls();
   const imagesArray = sliderImages;
   const imagesUrls = sliderImages;
   const currentImageUrl = currentImageError ? FALLBACK_IMAGE : (sliderImages[currentImageIndex] || sliderImages[0] || FALLBACK_IMAGE);
@@ -393,7 +404,13 @@ export default function AdDetailPage() {
           <div className="pt-2 mb-1 sm:mb-4 md:pt-4 flex items-center gap-1 text-xs text-gray-500">
             <Link href="/" className="hover:text-primary-600 flex items-center gap-0.5"><Home className="w-3 h-3" />Home</Link>
             <ChevronRight className="w-3 h-3" />
-            <Link href={`/ads?category=${ad.category?.slug || ad.category}`} className="hover:text-primary-600">{ad.category?.name || ad.category || 'Category'}</Link>
+            {ad.category?.name ? (
+              <Link href={`/ads?category=${ad.category?.slug || ad.category_id || ''}`} className="hover:text-primary-600">
+                {ad.category.name}
+              </Link>
+            ) : (
+              <span className="text-gray-900">Category</span>
+            )}
             <ChevronRight className="w-3 h-3" />
             <span className="text-gray-900 truncate max-w-[150px]">{ad.title}</span>
           </div>
@@ -502,13 +519,11 @@ export default function AdDetailPage() {
                         }}
                         className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${currentImageIndex === idx ? 'border-primary-500' : 'border-transparent'}`}
                       >
-                        <Image 
-                          src={thumbnailErrors[idx] ? FALLBACK_IMAGE : imgUrl} 
-                          alt="" 
-                          fill
-                          sizes="80px"
-                          className="object-cover"
-                          onError={() => setThumbnailErrors(prev => ({ ...prev, [idx]: true }))}
+                        <SafeImage
+                          src={imgUrl}
+                          alt=""
+                          className="object-cover w-full h-full"
+                          containerClassName="w-full h-full"
                         />
                       </button>
                     ))}
@@ -923,25 +938,7 @@ export default function AdDetailPage() {
               <div className="px-6 pb-6">
                 <button
                   onClick={async () => {
-                    try {
-                      if (navigator.clipboard && window.isSecureContext) {
-                        await navigator.clipboard.writeText(currentUrl);
-                        toast.success('Link copied!');
-                      } else {
-                        const textarea = document.createElement('textarea');
-                        textarea.value = currentUrl;
-                        textarea.style.position = 'fixed';
-                        textarea.style.left = '-9999px';
-                        document.body.appendChild(textarea);
-                        textarea.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(textarea);
-                        toast.success('Link copied!');
-                      }
-                    } catch (err) {
-                      console.error('Copy failed:', err);
-                      toast.error('Failed to copy');
-                    }
+                    await copyToClipboard(currentUrl, 'Link copied!');
                     setShowSharePopup(false);
                   }}
                   className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-2xl transition-all group shadow-lg"

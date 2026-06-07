@@ -9,8 +9,8 @@ export const adKeys = {
   trending: () => ['ads', 'trending'] as const,
   boosted: () => ['ads', 'boosted'] as const,
   search: (query?: string) => ['ads', 'search', query] as const,
-  similar: (adId: number) => ['ads', 'similar', adId] as const,
-  user: (userId: number) => ['ads', 'user', userId] as const,
+  similar: (adId: string | number) => ['ads', 'similar', adId] as const,
+  user: (userId: string | number) => ['ads', 'user', userId] as const,
   admin: (filters?: Record<string, any>) => ['ads', 'admin', filters] as const,
   dashboard: () => ['ads', 'dashboard'] as const,
 };
@@ -50,9 +50,9 @@ export const adminKeys = {
 
 export const userKeys = {
   all: ['users'] as const,
-  profile: (id: number) => [...userKeys.all, 'profile', id] as const,
-  store: (id: number) => [...userKeys.all, 'store', id] as const,
-  favorites: (userId: number) => [...userKeys.all, 'favorites', userId] as const,
+  profile: (id: string | number) => [...userKeys.all, 'profile', id] as const,
+  store: (id: string | number) => [...userKeys.all, 'store', id] as const,
+  favorites: (userId: string | number) => [...userKeys.all, 'favorites', userId] as const,
 };
 
 export const dashboardKeys = {

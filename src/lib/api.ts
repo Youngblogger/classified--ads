@@ -3,6 +3,7 @@ import { useAuthStore } from '@/lib/store';
 import { http, type RequestConfig } from '@/lib/http-client';
 import type { Database, Tables } from '@/types/supabase';
 import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
+import { resolveCategoryUuid, resolveSubcategoryUuid, isChildId, getParentId } from '@/lib/uuid-resolver';
 
 type SupabaseResponse<T = any> = {
   data: T;
@@ -222,7 +223,7 @@ export const locationsApi = {
 //  ADS API
 // ==============================
 export const adsApi = {
-  get: async (id: number) => {
+  get: async (id: string | number) => {
     try {
       const res = await http.get(`/ads/${id}`);
       const ad = res?.data?.data || res?.data || null;
@@ -246,7 +247,7 @@ export const adsApi = {
     }
   },
 
-  getById: async (id: number) => adsApi.get(id),
+  getById: async (id: string | number) => adsApi.get(id),
 
   getBySlug: async (slug: string) => {
     try {
@@ -296,7 +297,7 @@ export const adsApi = {
     // Build listing data from form
     const listing: any = { user_id: userId, status: 'active' };
     for (const [key, value] of Array.from(formData.entries())) {
-      if (key !== 'images[]' && key !== 'image') {
+      if (key !== 'images[]' && key !== 'image' && key !== 'status') {
         listing[key] = value;
       }
     }
@@ -305,26 +306,71 @@ export const adsApi = {
     // Strip fields incompatible with Supabase listings table
     delete listing._idempotency_key;
     delete listing.image_urls;
-    // Remove Laravel integer IDs — Supabase uses UUIDs for FK relations
-    delete listing.category_id;
-    delete listing.subcategory_id;
+    // location_id is a Laravel FK concept — not a column in Supabase listings table
     delete listing.location_id;
     // Map field names: Laravel form → Supabase columns
-    if (listing.phone) { listing.phone_number = listing.phone; delete listing.phone; }
-    if (listing.whatsapp) { listing.whatsapp_number = listing.whatsapp; delete listing.whatsapp; }
-    if (listing.attributes) { listing.specifications = listing.attributes; delete listing.attributes; }
+    if (listing.phone) { listing.phone_number = listing.phone; }
+    delete listing.phone;
+    if (listing.whatsapp) { listing.whatsapp_number = listing.whatsapp; }
+    delete listing.whatsapp;
+    if (listing.attributes) {
+      try {
+        listing.specifications = typeof listing.attributes === 'string' ? JSON.parse(listing.attributes) : listing.attributes;
+      } catch {
+        listing.specifications = listing.attributes;
+      }
+      delete listing.attributes;
+    }
+
+    // Resolve integer category/subcategory IDs to Supabase UUIDs
+    if (listing.category_id) {
+      try {
+        const rawId = listing.category_id;
+        const rawSlug: string | undefined = listing.category_slug;
+        const parentSlug: string | undefined = listing.category_parent_slug;
+        delete listing.category_slug;
+        delete listing.category_parent_slug;
+
+        if (isChildId(rawId)) {
+          // Hardcoded child ID — resolve parent category + child subcategory
+          const parentId = getParentId(rawId);
+          if (parentId) {
+            listing.category_id = await resolveCategoryUuid(parentId);
+          }
+          listing.subcategory_id = await resolveSubcategoryUuid(rawId);
+        } else if (parentSlug) {
+          // API subcategory — parent slug tells us the category, self slug is the subcategory
+          listing.category_id = await resolveCategoryUuid(0, parentSlug);
+          listing.subcategory_id = await resolveSubcategoryUuid(0, rawSlug);
+        } else if (rawSlug) {
+          // API parent category — resolve by slug
+          listing.category_id = await resolveCategoryUuid(rawId, rawSlug);
+          delete listing.subcategory_id;
+        } else {
+          listing.category_id = await resolveCategoryUuid(rawId);
+          delete listing.subcategory_id;
+        }
+      } catch (e: any) {
+        console.error('[adsApi.create] UUID resolution failed:', e.message);
+        return sbError({ message: `Category mapping failed: ${e.message}` });
+      }
+    }
 
     // Always save to Supabase first (source of truth for user dashboard)
     try {
       const { data, error } = await supabase.from('listings').insert(listing).select().single();
       if (!error && data) {
         adData = data;
+      } else if (error) {
+        console.error('[adsApi.create] Supabase insert error:', error);
+        return sbError({ message: `Supabase error: ${error.message}` });
       }
-    } catch (e) {
-      console.error('Supabase insert failed:', e);
+    } catch (e: any) {
+      console.error('[adsApi.create] Supabase insert failed:', e);
+      return sbError({ message: `Failed to create listing: ${e?.message || 'Unknown error'}` });
     }
 
-    if (!adData) return sbError({ message: 'Failed to create listing' });
+    if (!adData) return sbError({ message: 'Failed to create listing in Supabase' });
 
     // Process images
     const imageUrlsStr = formData.get('image_urls');
@@ -371,7 +417,9 @@ export const adsApi = {
     // Also try Laravel backend (non-blocking)
     try {
       await http.post('/ads', formData);
-    } catch {}
+    } catch (e: any) {
+      console.warn('[adsApi.create] Laravel sync failed (non-blocking):', e?.message || e);
+    }
 
     const normalized = normalizeAd({
       ...adData,
@@ -382,7 +430,7 @@ export const adsApi = {
     return sbResponse({ data: normalized });
   },
 
-  update: async (id: number, formData: FormData) => {
+  update: async (id: string | number, formData: FormData) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
@@ -392,8 +440,33 @@ export const adsApi = {
     } catch {}
     const updates: any = {};
     for (const [key, value] of Array.from(formData.entries())) {
-      if (key !== 'images[]' && key !== 'image' && key !== '_method') {
+      if (key !== 'images[]' && key !== 'image' && key !== '_method' && key !== 'status') {
         updates[key] = value;
+      }
+    }
+    delete updates._idempotency_key;
+    delete updates.image_urls;
+    delete updates.location_id;
+    if (updates.phone) { updates.phone_number = updates.phone; }
+    delete updates.phone;
+    if (updates.whatsapp) { updates.whatsapp_number = updates.whatsapp; }
+    delete updates.whatsapp;
+    if (updates.attributes) { updates.specifications = updates.attributes; delete updates.attributes; }
+    if (updates.category_id) {
+      try {
+        const rawId = updates.category_id;
+        if (isChildId(rawId)) {
+          const parentId = getParentId(rawId);
+          if (parentId) {
+            updates.category_id = await resolveCategoryUuid(parentId);
+          }
+          updates.subcategory_id = await resolveSubcategoryUuid(rawId);
+        } else {
+          updates.category_id = await resolveCategoryUuid(rawId);
+          delete updates.subcategory_id;
+        }
+      } catch (e: any) {
+        console.error('[adsApi.update] UUID resolution failed:', e.message);
       }
     }
     const { data, error } = await supabase.from('listings').update(updates).eq('id', String(id)).eq('user_id', userId).select().single();
@@ -413,7 +486,7 @@ export const adsApi = {
     return error ? sbError(error) : sbResponse({ data: { message: 'Deleted' } });
   },
 
-  deleteById: async (id: number) => {
+  deleteById: async (id: string | number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
@@ -424,7 +497,7 @@ export const adsApi = {
     return error ? sbError(error) : sbResponse({ data: { message: 'Deleted' } });
   },
 
-  incrementViews: async (id: number) => {
+  incrementViews: async (id: string | number) => {
     try {
       await http.post(`/analytics/record-view/${id}`);
       return sbResponse({ data: { message: 'View counted' } });
@@ -498,7 +571,7 @@ export const adsApi = {
       const res = await http.post(`/ads/${id}/renew`);
       if (res?.data) return sbResponse({ data: res.data });
     } catch {}
-    const { error } = await supabase.from('listings').update({ status: 'active', created_at: new Date().toISOString() }).eq('id', String(id));
+    const { error } = await supabase.from('listings').update({ status: 'pending', created_at: new Date().toISOString() }).eq('id', String(id));
     return error ? sbError(error) : sbResponse({ data: { message: 'Ad renewed' } });
   },
 };
@@ -1079,37 +1152,10 @@ export const dashboardApi = {
 
 function fromSupabaseListing(listing: any, images: any[] = []): any {
   if (!listing) return listing;
-  const sorted = [...images].sort((a, b) => (a.is_primary ? -1 : b.is_primary ? 1 : (a.sort_order || 0) - (b.sort_order || 0)));
-  const firstImage = sorted[0];
-  return {
-    id: listing.id, title: listing.title, slug: listing.slug,
-    description: listing.description || '', short_description: listing.short_description || (listing.description || '').slice(0, 200),
-    price: listing.price, currency: listing.currency || 'NGN', condition: listing.condition,
-    status: listing.status || 'active', negotiable: listing.negotiable,
-    views: listing.views_count || 0, views_count: listing.views_count || 0,
-    favorites_count: listing.favorites_count || 0,
-    is_featured: listing.is_featured || false, is_boosted: listing.is_boosted || false,
-    boost_type: listing.boost_type || null, boost_status: listing.boost_status || null,
-    boost_expires_at: listing.boost_expires_at || null,
-    boost_end_time: listing.boost_end_time || listing.boost_expires_at || null,
-    boost_plan: listing.boost_plan || null, badge_label: listing.badge_label || null,
-    badge_icon: listing.badge_icon || null, boost_priority_score: listing.boost_priority_score || 0,
-    whatsapp: listing.whatsapp_number || listing.phone_number || '',
-    phone: listing.phone_number || '', sellerPhone: listing.phone_number || '',
-    phone_number: listing.phone_number || '',
-    state: listing.state || '', lga: listing.lga || '', city: listing.city || '',
-    location: listing.location || listing.state || '',
-    specifications: [], attributes: [], metadata: listing.metadata || null,
-    created_at: listing.created_at, updated_at: listing.updated_at || listing.created_at,
-    expires_at: listing.expires_at || null,
-    category_id: listing.category_id, subcategory_id: listing.subcategory_id,
-    user_id: listing.user_id, category: null, subcategory: null, user: undefined,
-    image_url: firstImage?.url || null, images_count: images.length,
-    images: sorted.map((img: any) => ({
-      id: img.id, url: img.url, thumbnail_url: img.thumbnail_url || img.url,
-      medium_url: img.medium_url || img.url, is_primary: img.is_primary,
-    })),
-  };
+  return normalizeAd({
+    ...listing,
+    listing_images: images,
+  });
 }
 
 // ==============================

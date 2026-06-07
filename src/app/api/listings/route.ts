@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient, supabase as anonSupabase } from '@/lib/supabase';
+import { listingLogger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,15 +35,21 @@ export async function GET(request: NextRequest) {
       .select('*, listing_images(*)', { count: 'estimated' });
 
     if (status && status !== 'all') {
-      query = query.eq('status', status);
+      if (['active', 'sold'].includes(status)) {
+        query = query.eq('status', status);
+      } else if (user_id) {
+        query = query.eq('status', status);
+      } else {
+        query = query.eq('status', 'active');
+      }
     }
 
     if (category) {
       const { data: cat } = await sb.from('categories').select('id').eq('slug', category).maybeSingle();
-      if (cat) query = query.eq('category_id', cat.id);
+      if (cat) query = query.eq('category_id', (cat as any).id);
     }
-    if (category_id) query = query.eq('category_id', Number(category_id));
-    if (subcategory_id) query = query.eq('subcategory_id', Number(subcategory_id));
+    if (category_id) query = query.eq('category_id', String(category_id));
+    if (subcategory_id) query = query.eq('subcategory_id', String(subcategory_id));
     if (state) query = query.eq('state', state);
     if (lga) query = query.eq('lga', lga);
     if (condition) query = query.eq('condition', condition);
@@ -76,7 +83,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (e) {
-    console.error('[Listings API] Error:', e);
+    listingLogger.error('Listings API error', { error: (e as Error)?.message });
     return NextResponse.json({ data: [], meta: null }, { status: 200 });
   }
 }

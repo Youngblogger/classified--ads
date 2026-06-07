@@ -24,7 +24,7 @@ const MAX_IMAGES = 6;
 export default function EditAdPage() {
   const router = useRouter();
   const params = useParams();
-  const adId = Number(params.id);
+  const adId = params.id as string;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,7 +35,7 @@ export default function EditAdPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [negotiable, setNegotiable] = useState(false);
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<string | number | null>(null);
   const [categoryBreadcrumb, setCategoryBreadcrumb] = useState('');
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
@@ -56,7 +56,7 @@ export default function EditAdPage() {
   const [attributeValues, setAttributeValues] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    if (!adId || isNaN(adId)) {
+    if (!adId) {
       setAdNotFound(true);
       setIsLoading(false);
       return;
@@ -180,7 +180,7 @@ export default function EditAdPage() {
     setDraggedIndex(targetIndex);
   };
 
-  const handleCategorySelect = (id: number, name: string, breadcrumb: string) => {
+  const handleCategorySelect = (id: string | number, name: string, breadcrumb: string) => {
     setCategoryId(id);
     setCategoryBreadcrumb(breadcrumb);
   };

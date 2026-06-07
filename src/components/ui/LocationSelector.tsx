@@ -13,7 +13,7 @@ interface LocationSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (stateId: number, stateName: string, lga: string, fullLocation: string) => void;
-  selectedStateId?: number | null;
+  selectedStateId?: string | number | null;
   selectedLga?: string | null;
   selectedFullLocation?: string | null;
 }
