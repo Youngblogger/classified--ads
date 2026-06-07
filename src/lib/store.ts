@@ -81,43 +81,33 @@ export const useAuthStore = create<AuthStore>()(
         isAuthenticated: state.isAuthenticated,
         hasHydrated: state.hasHydrated
       }),
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
-
-        // CRITICAL: If AuthProvider already established a valid session during
-        // this page load, don't let stale persisted state overwrite it.
-        // This prevents the race where getSession() resolves before persist
-        // finishes rehydrating, then rehydration overwrites the auth state.
-        const currentState = useAuthStore.getState();
-
-        // Always validate token expiry first — even if the persisted state
-        // claims isAuthenticated=true, the token may have expired since the
-        // last session. If expired, clear auth to prevent a flash of
-        // 'authenticated' followed by background logout.
-        const persistedToken = state.token || currentState.token;
-        if (persistedToken) {
-          try {
-            const payload = JSON.parse(atob(persistedToken.split('.')[1]));
-            if (payload.exp && payload.exp * 1000 < Date.now()) {
-              useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
-            }
-          } catch {
-            // Malformed token — treat as invalid
-            useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
-          }
-        }
-
-        // Re-check after potential expiry-clear above
-        const updatedState = useAuthStore.getState();
-        if (updatedState.isAuthenticated && updatedState.token) {
-          // Signal hydration complete so AuthProvider can proceed
-          updatedState.setHasHydrated(true);
+      onRehydrateStorage: () => (persistedState) => {
+        // Handle fresh user (no persisted data) — signal hydration complete immediately.
+        if (!persistedState) {
+          useAuthStore.getState().setHasHydrated(true);
           return;
         }
 
-        const raw = state.user;
-        if (raw) {
-          let user = { ...raw };
+        // Validate token expiry. If expired, clear auth before hydration resolves
+        // so AuthProvider never sees stale authenticated state.
+        if (persistedState.token) {
+          try {
+            const payload = JSON.parse(atob(persistedState.token.split('.')[1]));
+            if (payload.exp && payload.exp * 1000 < Date.now()) {
+              useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
+              useAuthStore.getState().setHasHydrated(true);
+              return;
+            }
+          } catch {
+            useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
+            useAuthStore.getState().setHasHydrated(true);
+            return;
+          }
+        }
+
+        // Normalize user name if needed
+        if (persistedState.user) {
+          let user = { ...persistedState.user };
           let changed = false;
           if (normalizeReviewerName(user.name) !== user.name) {
             user.name = normalizeReviewerName(user.name);
@@ -125,7 +115,21 @@ export const useAuthStore = create<AuthStore>()(
           }
           if (changed) useAuthStore.setState({ user });
         }
-        state.setHasHydrated(true);
+
+        // For authenticated users with a valid token: the persist middleware
+        // already applied the rehydrated state (which includes hasHydrated: true)
+        // to the store BEFORE this callback runs. The store update at that point
+        // resolves hydrationComplete via the subscription at line 154, with auth
+        // data already in place — so AuthProvider's storeAlreadyAuthed check
+        // succeeds without needing getSession().
+        //
+        // For fresh / non-authenticated users: the persisted state has no auth
+        // data and hasHydrated is false, so the subscription never fires. We
+        // must signal hydration complete directly here.
+        if (persistedState.isAuthenticated && persistedState.token) {
+          return;
+        }
+        useAuthStore.getState().setHasHydrated(true);
       },
     }
   )

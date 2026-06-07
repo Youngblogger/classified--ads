@@ -100,6 +100,9 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
                   <h4 className="font-medium text-gray-900 text-sm leading-snug truncate">
                     {ad.title}
                   </h4>
+                  {ad.short_description && (
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{ad.short_description}</p>
+                  )}
                   <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-400">
                     <MapPin className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">{ad.state || ''}</span>
