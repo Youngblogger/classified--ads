@@ -18,7 +18,6 @@ interface Category {
   icon?: string;
   image?: string;
   parent_id?: string | null;
-  ad_count?: number;
   level?: number;
   is_featured?: boolean;
   is_trending?: boolean;
@@ -71,13 +70,6 @@ function getBg(name?: string): string {
   return 'bg-gray-50';
 }
 
-function formatCount(count?: number): string {
-  if (count == null) return '';
-  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-  if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
-  return count.toLocaleString();
-}
-
 function getChildren(cat: Category): Category[] {
   return cat.active_children || cat.children || [];
 }
@@ -104,14 +96,18 @@ function searchTree(cats: Category[], query: string): Category[] {
 }
 
 const BADGE_STYLES: Record<string, string> = {
-  new: 'bg-emerald-100 text-emerald-700',
-  trending: 'bg-orange-100 text-orange-700',
-  popular: 'bg-blue-100 text-blue-700',
-  verified: 'bg-purple-100 text-purple-700',
+  Trending: 'bg-orange-100 text-orange-700',
+  Popular: 'bg-blue-100 text-blue-700',
+  Hot: 'bg-red-100 text-red-700',
+  New: 'bg-emerald-100 text-emerald-700',
+  Featured: 'bg-amber-100 text-amber-700',
+  Verified: 'bg-purple-100 text-purple-700',
+  'Best Seller': 'bg-yellow-100 text-yellow-700',
 };
 
 const BADGE_ICONS: Record<string, React.FC<{ className?: string }>> = {
-  new: Sparkles, trending: TrendingUp, popular: Award, verified: Star,
+  Trending: TrendingUp, Popular: Award, Hot: Flame, New: Sparkles,
+  Featured: Star, Verified: Star, 'Best Seller': Zap,
 };
 
 function Badge({ type }: { type: string }) {
@@ -176,9 +172,6 @@ function RecursiveCategoryList({
               <span className="flex-1 truncate">
                 <Highlight text={cat.name} query={searchQuery} />
               </span>
-              {cat.ad_count != null && (
-                <span className="text-[10px] text-gray-400 tabular-nums">{formatCount(cat.ad_count)}</span>
-              )}
               {hasChildren && <ChevronRight className="w-3 h-3 text-gray-300 flex-shrink-0" />}
             </Link>
             {hasChildren && (
@@ -226,9 +219,9 @@ export default function EnterpriseSidebar() {
         const cats = ((data.tree || []) as any[]);
         const tree: Category[] = cats.map((cat: any) => ({
           id: cat.id, name: cat.name, slug: cat.slug, icon: cat.icon || undefined,
-          image: cat.image || undefined, ad_count: cat.ad_count || 0,
+          image: cat.image || undefined,
           children: (cat.activeChildren || []).map((s: any) => ({
-            id: s.id, name: s.name, slug: s.slug, parent_id: cat.id, ad_count: s.ad_count || 0,
+            id: s.id, name: s.name, slug: s.slug, parent_id: cat.id,
             icon: s.icon || undefined, image: s.image || undefined,
           })),
         }));
@@ -482,7 +475,6 @@ export default function EnterpriseSidebar() {
                   >
                     {renderIcon(cat)}
                     <span className="flex-1 text-sm font-medium text-gray-800 truncate">{cat.name}</span>
-                    {cat.ad_count != null && <span className="text-xs text-gray-400">{formatCount(cat.ad_count)}</span>}
                     {hasChildren && <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />}
                   </div>
                 );
@@ -637,7 +629,6 @@ export default function EnterpriseSidebar() {
                             {label && <Badge type={label} />}
                           </div>
                         </div>
-                        <span className="text-[11px] font-medium text-gray-400 tabular-nums">{formatCount(cat.ad_count)}</span>
                       </Link>
                       {hasSubs && (
                         <ChevronRight className={cn('w-3.5 h-3.5 flex-shrink-0 transition-all duration-200', active ? 'text-primary-400 translate-x-px' : 'text-gray-300')} />
@@ -675,8 +666,8 @@ export default function EnterpriseSidebar() {
               <span className="text-sm font-semibold text-gray-800">{displayCat.name}</span>
             </div>
             <div className="flex items-center gap-2">
-              {getCategoryLabel(displayCat.slug).isTrending && (
-                <span className="text-[10px] text-orange-600 font-medium">Trending</span>
+              {getCategoryLabel(displayCat.slug).label && (
+                <Badge type={getCategoryLabel(displayCat.slug).label!} />
               )}
               <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
             </div>

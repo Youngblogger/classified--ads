@@ -14,7 +14,6 @@ interface Category {
   icon?: string;
   image?: string;
   parent_id?: string;
-  ad_count?: number;
   children?: Category[];
 }
 
@@ -87,9 +86,8 @@ export default function CategorySidebar() {
           slug: parent.slug,
           icon: parent.icon || undefined,
           image: parent.image || undefined,
-          ad_count: parent.ad_count || 0,
           children: (parent.activeChildren || []).map((s: any) => ({
-            id: s.id, name: s.name, slug: s.slug, parent_id: parent.id, ad_count: s.ad_count || 0,
+            id: s.id, name: s.name, slug: s.slug, parent_id: parent.id,
           })),
         }));
         if (mounted) {
@@ -463,7 +461,6 @@ export default function CategorySidebar() {
                     >
                       {renderIcon(cat)}
                       <span className="flex-1 text-sm font-medium truncate leading-tight">{cat.name}</span>
-                      <span className="hidden">{/* count removed */}</span>
                       {hasSubs && (
                         <ChevronRight className={cn('w-3.5 h-3.5 flex-shrink-0 transition-all duration-200', active ? 'text-primary-400 translate-x-px' : 'text-gray-300')} />
                       )}

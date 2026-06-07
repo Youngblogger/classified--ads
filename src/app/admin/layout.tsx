@@ -336,9 +336,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return () => clearInterval(interval);
   }, [isVerified, verifiedUser]);
 
-  // Skip auth check for login page - render without auth verification
-  // Show loading while verifying auth (except for login page)
-  if (!isLoginPage && (!initialTokenChecked || !authChecked)) {
+  // Skip auth check for login page - render page's own login component
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  // Show loading while verifying auth
+  if (!initialTokenChecked || !authChecked) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-full max-w-md space-y-4 p-8">
@@ -350,7 +354,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     );
   }
 
-  // Show login form if not authenticated (on login page or when no token)
+  // Show login form if not authenticated
   if (!isVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-purple-50">
