@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { X, Mail, Lock, Eye, EyeOff, Loader2, Search, Plus, Shield } from 'lucide-react';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import { authApi } from '@/lib/api';
@@ -157,12 +158,7 @@ export default function LoginModal() {
         {/* Branding Panel - Desktop (lg+) */}
         <div className="hidden lg:flex lg:w-2/5 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 p-8 flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">i</span>
-              </div>
-              <span className="text-white font-bold text-lg">iList</span>
-            </div>
+            <Image src="/icons/iList-white.png" alt="iList" width={100} height={32} className="h-8 w-auto" priority />
             <h3 className="text-white font-bold text-2xl mt-8">Welcome Back!</h3>
             <p className="text-primary-100 text-sm mt-2 leading-relaxed">
               Sign in to continue browsing, buying, and selling on Nigeria&apos;s trusted marketplace.
