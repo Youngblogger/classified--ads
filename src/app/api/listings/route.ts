@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const sort_by = searchParams.get('sort_by') || 'created_at';
     const sort_order = searchParams.get('sort_order') || 'desc';
     const search = searchParams.get('search');
+    const slug = searchParams.get('slug');
 
     let sb;
     try {
@@ -50,12 +51,21 @@ export async function GET(request: NextRequest) {
     if (max_price) query = query.lte('price', Number(max_price));
     if (user_id) query = query.eq('user_id', user_id);
     if (search) query = query.ilike('title', `%${search}%`);
+    if (slug) query = query.eq('slug', slug);
 
-    query = query.order(sort_by, { ascending: sort_order === 'asc' });
+    const isSingle = !!slug;
 
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-    query = query.range(from, to);
+    if (!isSingle) {
+      query = query.order(sort_by, { ascending: sort_order === 'asc' });
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+    }
+
+    if (isSingle) {
+      const { data: single } = await query.maybeSingle();
+      return NextResponse.json({ data: single || null });
+    }
 
     const { data, count } = await query;
 
