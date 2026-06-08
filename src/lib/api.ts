@@ -8,6 +8,7 @@ type SupabaseResponse<T = any> = {
   data: T;
   status: number;
   statusText: string;
+  error?: string;
   headers: Record<string, string>;
   config: Record<string, any>;
 };
@@ -301,25 +302,13 @@ export const adsApi = {
     let adData: any = null;
     let adImages: any[] = [];
 
-    // Build listing data from form
+    // Build listing data from form (send all form fields as-is for Supabase compatibility)
     const listing: any = { user_id: userId, status: 'active' };
     for (const [key, value] of Array.from(formData.entries())) {
       if (key !== 'images[]' && key !== 'image') {
         listing[key] = value;
       }
     }
-    // Map Laravel field names to Supabase column names
-    if (listing.phone) { listing.phone_number = listing.phone; delete listing.phone; }
-    if (listing.whatsapp) { listing.whatsapp_number = listing.whatsapp; delete listing.whatsapp; }
-    if (listing.attributes) {
-      try { listing.specifications = JSON.parse(listing.attributes); } catch {}
-      delete listing.attributes;
-    }
-    // Strip Laravel-specific integer IDs — Supabase expects UUIDs for these columns
-    delete listing.category_id;
-    delete listing.subcategory_id;
-    delete listing.location_id;
-    delete listing._idempotency_key;
     listing.slug = listing.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
 
     // Try Laravel backend first (has its own auth system)
@@ -334,13 +323,45 @@ export const adsApi = {
 
     // Fall back to Supabase (source of truth for user dashboard)
     if (!adData) {
-      try {
-        const { data, error } = await supabase.from('listings').insert(listing).select().single();
-        if (!error && data) {
-          adData = data;
+      // Get Supabase auth UUID for the insert (store ID is a Laravel integer, not a UUID)
+      const storeUser = useAuthStore.getState().user;
+      const supabaseUuid = storeUser?.supabase_user_id || (await supabase.auth.getUser().then(r => r.data?.user?.id).catch(() => null));
+      if (supabaseUuid) {
+        listing.user_id = supabaseUuid;
+      }
+
+      if (supabaseUuid) {
+        // Build a clean listing object with only valid Supabase columns
+        const sbListing: any = {};
+        sbListing.user_id = supabaseUuid;
+        sbListing.status = 'active';
+        sbListing.currency = listing.currency || 'NGN';
+        if (listing.title) sbListing.title = listing.title;
+        if (listing.description) sbListing.description = listing.description;
+        if (listing.price) sbListing.price = Number(listing.price);
+        if (listing.negotiable !== undefined) sbListing.negotiable = listing.negotiable === '1' || listing.negotiable === true;
+        if (listing.state) sbListing.state = listing.state;
+        if (listing.lga) sbListing.lga = listing.lga;
+        if (listing.condition) sbListing.condition = listing.condition;
+        if (listing.phone) sbListing.phone_number = listing.phone;
+        if (listing.whatsapp) sbListing.whatsapp_number = listing.whatsapp;
+        if (listing.attributes) {
+          try { sbListing.specifications = JSON.parse(listing.attributes); } catch { sbListing.specifications = listing.attributes; }
         }
-      } catch (e) {
-        console.error('Supabase insert failed:', e);
+        sbListing.slug = listing.slug;
+
+        try {
+          const { data, error } = await supabase.from('listings').insert(sbListing).select().single();
+          if (!error && data) {
+            adData = data;
+          } else {
+            console.error('[AdsApi] Supabase insert error:', error, 'cleaned listing:', sbListing);
+          }
+        } catch (e) {
+          console.error('[AdsApi] Supabase insert threw:', e);
+        }
+      } else {
+        console.warn('[AdsApi] No Supabase auth session — skipping Supabase fallback');
       }
     }
 
