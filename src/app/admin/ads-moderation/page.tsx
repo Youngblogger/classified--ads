@@ -1196,22 +1196,24 @@ export default function AdsModerationPage() {
         const data = await res.json();
         const newAds = data.data || [];
         
-        setTotalCount(data.total || newAds.length);
-        setHasMore(newAds.length === perPage);
-        console.log('Loaded:', newAds.length, 'perPage:', perPage, 'hasMore:', newAds.length === perPage);
-        
-        if (append) {
-          setAds(prev => [...prev, ...newAds]);
-        } else {
-          setAds(newAds);
-          setSelectedAds(new Set());
+        if (newAds.length > 0) {
+          setTotalCount(data.total || newAds.length);
+          setHasMore(newAds.length === perPage);
+          
+          if (append) {
+            setAds(prev => [...prev, ...newAds]);
+          } else {
+            setAds(newAds);
+            setSelectedAds(new Set());
+          }
+          
+          setPage(pageNum);
+          return;
         }
-        
-        setPage(pageNum);
-        return;
+        // Laravel returned empty — fall through to Supabase fallback
       }
 
-      // Fallback to API route (uses service role to bypass RLS)
+      // Fallback to Supabase API route
       try {
         const fallbackParams = new URLSearchParams({
           per_page: String(perPage),
