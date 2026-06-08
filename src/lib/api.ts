@@ -331,31 +331,28 @@ export const adsApi = {
       }
 
       if (supabaseUuid) {
-        // Build a clean listing object with only valid Supabase columns
-        const sbListing: any = {};
+        // Use all form fields but fix user_id and remove non-Supabase columns
+        const sbListing = { ...listing };
         sbListing.user_id = supabaseUuid;
         sbListing.status = 'active';
-        sbListing.currency = listing.currency || 'NGN';
-        if (listing.title) sbListing.title = listing.title;
-        if (listing.description) sbListing.description = listing.description;
-        if (listing.price) sbListing.price = Number(listing.price);
-        if (listing.negotiable !== undefined) sbListing.negotiable = listing.negotiable === '1' || listing.negotiable === true;
-        if (listing.state) sbListing.state = listing.state;
-        if (listing.lga) sbListing.lga = listing.lga;
-        if (listing.condition) sbListing.condition = listing.condition;
-        if (listing.phone) sbListing.phone_number = listing.phone;
-        if (listing.whatsapp) sbListing.whatsapp_number = listing.whatsapp;
-        if (listing.attributes) {
-          try { sbListing.specifications = JSON.parse(listing.attributes); } catch { sbListing.specifications = listing.attributes; }
+        if (sbListing.price) sbListing.price = Number(sbListing.price);
+        if (sbListing.negotiable !== undefined) sbListing.negotiable = sbListing.negotiable === '1' || sbListing.negotiable === true;
+        if (sbListing.phone) { sbListing.phone_number = sbListing.phone; delete sbListing.phone; }
+        if (sbListing.whatsapp) { sbListing.whatsapp_number = sbListing.whatsapp; delete sbListing.whatsapp; }
+        if (sbListing.attributes) {
+          try { sbListing.specifications = JSON.parse(sbListing.attributes); } catch { sbListing.specifications = sbListing.attributes; }
+          delete sbListing.attributes;
         }
-        sbListing.slug = listing.slug;
+        delete sbListing.image_urls;
+        delete sbListing._idempotency_key;
+        delete sbListing.location_id;
 
         try {
           const { data, error } = await supabase.from('listings').insert(sbListing).select().single();
           if (!error && data) {
             adData = data;
           } else {
-            console.error('[AdsApi] Supabase insert error:', error, 'cleaned listing:', sbListing);
+            console.error('[AdsApi] Supabase insert error:', error, 'listing keys:', Object.keys(sbListing));
           }
         } catch (e) {
           console.error('[AdsApi] Supabase insert threw:', e);
