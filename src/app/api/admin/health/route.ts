@@ -5,12 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    let sb: any;
-    try {
-      sb = getServiceRoleClient();
-    } catch {
-      sb = anonSupabase;
-    }
+    let sb: any = anonSupabase;
 
     const [
       totalListings,

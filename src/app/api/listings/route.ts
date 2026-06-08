@@ -24,12 +24,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const slug = searchParams.get('slug');
 
-    let sb;
-    try {
-      sb = getServiceRoleClient();
-    } catch {
-      sb = anonSupabase;
-    }
+    let sb = anonSupabase;
 
     let query = sb
       .from('listings')
