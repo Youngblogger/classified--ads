@@ -7,6 +7,8 @@ import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses } from '@/lib/boost-config';
 import { useSimilarAds } from '@/hooks/useAds';
 import MasonryGrid from '@/components/ui/MasonryGrid';
+import { SafeImage } from '@/components/ui/SafeImage';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface RelatedAdsProps {
   currentAdId: number;
@@ -60,9 +62,7 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
       )}
 
       {ads.length === 0 && !isLoading ? (
-        <div className="text-center py-6 sm:py-8 text-gray-500">
-          <p className="text-sm">No similar ads found</p>
-        </div>
+        <EmptyState icon="search" title="No similar ads found" description="Check back later for related listings" className="py-8" />
       ) : (
         <MasonryGrid>
           {ads.map((ad: any) => {
@@ -77,12 +77,11 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
                 className={`block bg-white rounded-[7px] overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 break-inside-avoid group ${boostCardCls}`}
               >
                 <div className="relative max-h-[200px] md:max-h-[280px] overflow-hidden bg-gray-100 flex items-center justify-center">
-                  <img
+                  <SafeImage
                     src={imgUrl || fallbackImage}
                     alt={ad.title}
                     className="w-full h-auto block flex-shrink-0 group-hover:scale-[1.02] transition-transform duration-300"
-                    loading="lazy"
-                    onError={(e) => { if (imgUrl) (e.target as HTMLImageElement).src = fallbackImage; }}
+                    containerClassName="w-full"
                   />
                   <div className="absolute top-2 left-2 z-10">
                     <PremiumBadge boostType={ad.boost_type} badgeIcon={(ad as any).badge_icon} size="sm" />
@@ -105,7 +104,7 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
                   )}
                   <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-400">
                     <MapPin className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate">{ad.state || ''}</span>
+                    <span className="truncate">{ad.state && ad.lga ? `${ad.state}, ${ad.lga}` : ''}</span>
                   </div>
                 </div>
               </Link>

@@ -10,6 +10,7 @@ import {
   Share2, Store, RefreshCw, ChevronRight
 } from 'lucide-react';
 import AnalyticsChart from '@/components/analytics/AnalyticsChart';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const periods = [
   { label: '7d', value: '7d' },
@@ -70,24 +71,15 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function EmptyState() {
+function AnalyticsEmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-        <Eye className="w-8 h-8 text-gray-400" />
-      </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">No data yet</h3>
-      <p className="text-sm text-gray-500 max-w-sm">
-        Start posting ads to see analytics. Your performance metrics will appear here once you get your first views.
-      </p>
-      <Link
-        href="/dashboard/post-ad"
-        className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors text-sm font-medium"
-      >
-        Post Your First Ad
-        <ChevronRight className="w-4 h-4" />
-      </Link>
-    </div>
+    <EmptyState
+      customIcon={Eye}
+      title="No data yet"
+      description="Start posting ads to see analytics. Your performance metrics will appear here once you get your first views."
+      actionLabel="Post Your First Ad"
+      onAction={() => window.location.href = '/dashboard/post-ad'}
+    />
   );
 }
 
@@ -190,7 +182,7 @@ export default function AnalyticsPage() {
   const dailyData = overview?.daily_views ?? [];
   const isEmpty = !overview?.total_views && !overview?.total_clicks && topAds.length === 0;
 
-  if (isEmpty) return <EmptyState />;
+  if (isEmpty) return <AnalyticsEmptyState />;
 
   return (
     <div className="space-y-6">

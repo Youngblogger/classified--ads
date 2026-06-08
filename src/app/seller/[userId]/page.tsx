@@ -14,6 +14,7 @@ import AdCard from '@/components/ui/AdCard';
 import SellerTrustCard from '@/components/verification/SellerTrustCard';
 import FraudRiskIndicator from '@/components/verification/FraudRiskIndicator';
 import { sellerReviewsApi, followApi } from '@/lib/api';
+import { normalizeAds } from '@/lib/normalize-ad';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/lib/store';
 import type { SellerProfile, SellerReview } from '@/types';
@@ -47,7 +48,7 @@ export default function SellerProfilePage() {
       const adsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/ads?user_id=${sellerId}&status=active`);
       if (adsRes.ok) {
         const adsData = await adsRes.json();
-        setAds(adsData.data || []);
+        setAds(normalizeAds(adsData.data || []));
       }
     } catch (error: any) {
       console.error('Error fetching seller profile:', error);

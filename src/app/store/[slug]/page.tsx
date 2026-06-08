@@ -5,9 +5,11 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { storeApi, followApi } from '@/lib/api';
+import { normalizeAds } from '@/lib/normalize-ad';
 import { useAuthStore } from '@/lib/store';
 import { getAdImageUrl, formatPrice } from '@/lib/utils';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 import toast from 'react-hot-toast';
 import { Instagram, Twitter, Facebook } from '@/lib/social-icons';
 import {
@@ -85,6 +87,9 @@ export default function StoreProfilePage() {
       setError('');
       const res = await storeApi.getBySlug(slug);
       const data = (res.data as any)?.data ?? null;
+      if (data && data.ads) {
+        data.ads = normalizeAds(data.ads);
+      }
       setStore(data);
       setFollowerCount(data.followers_count || 0);
 
@@ -372,10 +377,7 @@ export default function StoreProfilePage() {
                   })}
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl p-8 text-center shadow-card">
-                  <Store className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No listings yet.</p>
-                </div>
+                <EmptyState icon="inbox" title="No listings yet" description="This store hasn't posted any listings yet" className="py-8" />
               )}
             </div>
           </div>

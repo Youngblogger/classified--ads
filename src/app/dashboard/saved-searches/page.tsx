@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Bookmark, Search, Bell, Mail, Clock, Edit3, Trash2, Plus, X } from 'lucide-react';
+import { SafeImage } from '@/components/ui/SafeImage';
 
 interface SavedSearch {
   id: number;
@@ -590,10 +591,11 @@ export default function SavedSearchesPage() {
                     >
                       <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
                         {result.images?.[0]?.url || result.images?.[0]?.full_url ? (
-                          <img
-                            src={result.images[0].url || result.images[0].full_url}
+                          <SafeImage
+                            src={result.images[0].url || result.images[0].full_url || ''}
                             alt={result.title}
-                            className="w-full h-full object-cover"
+                            className="object-cover w-full h-full"
+                            containerClassName="w-full h-full"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400">

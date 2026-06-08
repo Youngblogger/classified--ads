@@ -44,7 +44,8 @@ function getImageUrl(ad: BoostedAd): string {
 
 function getLocationDisplay(ad: BoostedAd): string {
   const stateName = ad.state || (typeof ad.location === 'object' ? ad.location?.name : ad.location) || '';
-  return stateName || 'No location';
+  if (stateName && ad.lga) return `${stateName}, ${ad.lga}`;
+  return '';
 }
 
 function AdCard({ ad }: { ad: BoostedAd }) {

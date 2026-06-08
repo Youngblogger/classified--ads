@@ -3,6 +3,7 @@ import { useAuthStore } from '@/lib/store';
 import { http, type RequestConfig } from '@/lib/http-client';
 import type { Database, Tables } from '@/types/supabase';
 import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
+import { resolveCategoryUuid, resolveSubcategoryUuid, isChildId, getParentId } from '@/lib/uuid-resolver';
 
 type SupabaseResponse<T = any> = {
   data: T;
@@ -28,6 +29,13 @@ function getUserId(): string | null {
 async function ensureUserId(): Promise<string | null> {
   const storeId = useAuthStore.getState().user?.id;
   if (storeId) return String(storeId);
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id || null;
+}
+
+async function getSupabaseUserId(): Promise<string | null> {
+  const storeUser = useAuthStore.getState().user;
+  if (storeUser?.supabase_user_id) return storeUser.supabase_user_id;
   const { data: { user } } = await supabase.auth.getUser();
   return user?.id || null;
 }
@@ -223,7 +231,7 @@ export const locationsApi = {
 //  ADS API
 // ==============================
 export const adsApi = {
-  get: async (id: number) => {
+  get: async (id: string | number) => {
     try {
       const res = await http.get(`/ads/${id}`);
       const ad = res?.data?.data || res?.data || null;
@@ -247,7 +255,7 @@ export const adsApi = {
     }
   },
 
-  getById: async (id: number) => adsApi.get(id),
+  getById: async (id: string | number) => adsApi.get(id),
 
   getBySlug: async (slug: string) => {
     try {
@@ -305,64 +313,84 @@ export const adsApi = {
     // Build listing data from form (send all form fields as-is for Supabase compatibility)
     const listing: any = { user_id: userId, status: 'active' };
     for (const [key, value] of Array.from(formData.entries())) {
-      if (key !== 'images[]' && key !== 'image') {
+      if (key !== 'images[]' && key !== 'image' && key !== 'status') {
         listing[key] = value;
       }
     }
     listing.slug = listing.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
 
-    // Try Laravel backend first (has its own auth system)
-    try {
-      const laravelRes = await http.post('/ads', formData);
-      if (laravelRes?.data?.data?.id || laravelRes?.data?.id) {
-        adData = laravelRes?.data?.data || laravelRes?.data;
+    // Strip fields incompatible with Supabase listings table
+    delete listing._idempotency_key;
+    delete listing.image_urls;
+    delete listing.location_id;
+
+    // Map field names: Laravel form → Supabase columns
+    if (listing.phone) { listing.phone_number = listing.phone; }
+    delete listing.phone;
+    if (listing.whatsapp) { listing.whatsapp_number = listing.whatsapp; }
+    delete listing.whatsapp;
+    if (listing.attributes) {
+      try {
+        listing.specifications = typeof listing.attributes === 'string' ? JSON.parse(listing.attributes) : listing.attributes;
+      } catch {
+        listing.specifications = listing.attributes;
       }
-    } catch (e) {
-      console.warn('[AdsApi] Laravel create failed, trying Supabase:', e);
+      delete listing.attributes;
     }
 
-    // Fall back to Supabase (source of truth for user dashboard)
-    if (!adData) {
-      // Get Supabase auth UUID for the insert (store ID is a Laravel integer, not a UUID)
-      const storeUser = useAuthStore.getState().user;
-      const supabaseUuid = storeUser?.supabase_user_id || (await supabase.auth.getUser().then(r => r.data?.user?.id).catch(() => null));
-      if (supabaseUuid) {
-        listing.user_id = supabaseUuid;
-      }
+    // Use Supabase auth UUID for user_id (store ID is a Laravel integer)
+    const storeUser = useAuthStore.getState().user;
+    const supabaseUuid = storeUser?.supabase_user_id || (await supabase.auth.getUser().then(r => r.data?.user?.id).catch(() => null));
+    if (supabaseUuid) {
+      listing.user_id = supabaseUuid;
+    }
 
-      if (supabaseUuid) {
-        // Use all form fields but fix user_id and remove non-Supabase columns
-        const sbListing = { ...listing };
-        sbListing.user_id = supabaseUuid;
-        sbListing.status = 'active';
-        if (sbListing.price) sbListing.price = Number(sbListing.price);
-        if (sbListing.negotiable !== undefined) sbListing.negotiable = sbListing.negotiable === '1' || sbListing.negotiable === true;
-        if (sbListing.phone) { sbListing.phone_number = sbListing.phone; delete sbListing.phone; }
-        if (sbListing.whatsapp) { sbListing.whatsapp_number = sbListing.whatsapp; delete sbListing.whatsapp; }
-        if (sbListing.attributes) {
-          try { sbListing.specifications = JSON.parse(sbListing.attributes); } catch { sbListing.specifications = sbListing.attributes; }
-          delete sbListing.attributes;
-        }
-        delete sbListing.image_urls;
-        delete sbListing._idempotency_key;
-        delete sbListing.location_id;
+    // Resolve integer category/subcategory IDs to Supabase UUIDs
+    if (listing.category_id) {
+      try {
+        const rawId = listing.category_id;
+        const rawSlug: string | undefined = listing.category_slug;
+        const parentSlug: string | undefined = listing.category_parent_slug;
+        delete listing.category_slug;
+        delete listing.category_parent_slug;
 
-        try {
-          const { data, error } = await supabase.from('listings').insert(sbListing).select().single();
-          if (!error && data) {
-            adData = data;
-          } else {
-            console.error('[AdsApi] Supabase insert error:', error, 'listing keys:', Object.keys(sbListing));
+        if (isChildId(rawId)) {
+          const parentId = getParentId(rawId);
+          if (parentId) {
+            listing.category_id = await resolveCategoryUuid(parentId);
           }
-        } catch (e) {
-          console.error('[AdsApi] Supabase insert threw:', e);
+          listing.subcategory_id = await resolveSubcategoryUuid(rawId);
+        } else if (parentSlug) {
+          listing.category_id = await resolveCategoryUuid(0, parentSlug);
+          listing.subcategory_id = await resolveSubcategoryUuid(0, rawSlug);
+        } else if (rawSlug) {
+          listing.category_id = await resolveCategoryUuid(rawId, rawSlug);
+          delete listing.subcategory_id;
+        } else {
+          listing.category_id = await resolveCategoryUuid(rawId);
+          delete listing.subcategory_id;
         }
-      } else {
-        console.warn('[AdsApi] No Supabase auth session — skipping Supabase fallback');
+      } catch (e: any) {
+        console.error('[adsApi.create] UUID resolution failed:', e.message);
+        return sbError({ message: `Category mapping failed: ${e.message}` });
       }
     }
 
-    if (!adData) return sbError({ message: 'Failed to create listing. Please log out and log in again.' });
+    // Always save to Supabase first (source of truth for user dashboard)
+    try {
+      const { data, error } = await supabase.from('listings').insert(listing).select().single();
+      if (!error && data) {
+        adData = data;
+      } else if (error) {
+        console.error('[adsApi.create] Supabase insert error:', error);
+        return sbError({ message: `Supabase error: ${error.message}` });
+      }
+    } catch (e: any) {
+      console.error('[adsApi.create] Supabase insert failed:', e);
+      return sbError({ message: `Failed to create listing: ${e?.message || 'Unknown error'}` });
+    }
+
+    if (!adData) return sbError({ message: 'Failed to create listing in Supabase' });
 
     // Process images
     const imageUrlsStr = formData.get('image_urls');
@@ -375,8 +403,7 @@ export const adsApi = {
             listing_id: adData.id, url: img.url,
             thumbnail_url: img.thumbnail_url || img.url,
             medium_url: img.medium_url || img.url,
-            original_url: img.original_url || img.url,
-            image_hash: img.image_hash || null,
+            storage_path: img.storage_path || img.url,
             is_primary: i === 0, sort_order: i,
           }).select().single();
           if (!imgErr && imgInsert) adImages.push(imgInsert);
@@ -407,6 +434,12 @@ export const adsApi = {
       }
     }
 
+    // Also try Laravel backend (non-blocking)
+    try {
+      await http.post('/ads', formData);
+    } catch (e: any) {
+      console.warn('[adsApi.create] Laravel sync failed (non-blocking):', e?.message || e);
+    }
     const normalized = normalizeAd({
       ...adData,
       images: adImages,
@@ -416,7 +449,7 @@ export const adsApi = {
     return sbResponse({ data: normalized });
   },
 
-  update: async (id: number, formData: FormData) => {
+  update: async (id: string | number, formData: FormData) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
@@ -426,8 +459,33 @@ export const adsApi = {
     } catch {}
     const updates: any = {};
     for (const [key, value] of Array.from(formData.entries())) {
-      if (key !== 'images[]' && key !== 'image' && key !== '_method') {
+      if (key !== 'images[]' && key !== 'image' && key !== '_method' && key !== 'status') {
         updates[key] = value;
+      }
+    }
+    delete updates._idempotency_key;
+    delete updates.image_urls;
+    delete updates.location_id;
+    if (updates.phone) { updates.phone_number = updates.phone; }
+    delete updates.phone;
+    if (updates.whatsapp) { updates.whatsapp_number = updates.whatsapp; }
+    delete updates.whatsapp;
+    if (updates.attributes) { updates.specifications = updates.attributes; delete updates.attributes; }
+    if (updates.category_id) {
+      try {
+        const rawId = updates.category_id;
+        if (isChildId(rawId)) {
+          const parentId = getParentId(rawId);
+          if (parentId) {
+            updates.category_id = await resolveCategoryUuid(parentId);
+          }
+          updates.subcategory_id = await resolveSubcategoryUuid(rawId);
+        } else {
+          updates.category_id = await resolveCategoryUuid(rawId);
+          delete updates.subcategory_id;
+        }
+      } catch (e: any) {
+        console.error('[adsApi.update] UUID resolution failed:', e.message);
       }
     }
     const { data, error } = await supabase.from('listings').update(updates).eq('id', String(id)).eq('user_id', userId).select().single();
@@ -447,7 +505,7 @@ export const adsApi = {
     return error ? sbError(error) : sbResponse({ data: { message: 'Deleted' } });
   },
 
-  deleteById: async (id: number) => {
+  deleteById: async (id: string | number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
@@ -458,7 +516,7 @@ export const adsApi = {
     return error ? sbError(error) : sbResponse({ data: { message: 'Deleted' } });
   },
 
-  incrementViews: async (id: number) => {
+  incrementViews: async (id: string | number) => {
     try {
       await http.post(`/analytics/record-view/${id}`);
       return sbResponse({ data: { message: 'View counted' } });
@@ -532,7 +590,7 @@ export const adsApi = {
       const res = await http.post(`/ads/${id}/renew`);
       if (res?.data) return sbResponse({ data: res.data });
     } catch {}
-    const { error } = await supabase.from('listings').update({ status: 'active', created_at: new Date().toISOString() }).eq('id', String(id));
+    const { error } = await supabase.from('listings').update({ status: 'pending', created_at: new Date().toISOString() }).eq('id', String(id));
     return error ? sbError(error) : sbResponse({ data: { message: 'Ad renewed' } });
   },
 };
@@ -557,7 +615,9 @@ export const favoritesApi = {
         return sbResponse({ data: items });
       }
     } catch {}
-    const { data, error } = await supabase.from('listing_favorites').select('*, listings(*, profiles(*))').eq('user_id', userId).limit(50);
+    const supabaseUserId = await getSupabaseUserId();
+    if (!supabaseUserId) return sbResponse({ data: [] });
+    const { data, error } = await supabase.from('listing_favorites').select('*, listings(*, profiles(*))').eq('user_id', supabaseUserId).limit(50);
     if (error) return sbError(error);
     return sbResponse({
       data: (data || []).map((f: any) => {
@@ -567,14 +627,16 @@ export const favoritesApi = {
     });
   },
 
-  add: async (adId: number) => {
+  add: async (adId: number | string) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
       const res = await http.post('/favorites', { ad_id: adId });
       if (res?.data) return sbResponse({ data: { message: 'Added to favorites' } });
     } catch {}
-    const { error } = await supabase.from('listing_favorites').insert({ user_id: userId, listing_id: String(adId) });
+    const supabaseUserId = await getSupabaseUserId();
+    if (!supabaseUserId) return sbError({ message: 'Not authenticated with Supabase' });
+    const { error } = await supabase.from('listing_favorites').insert({ user_id: supabaseUserId, listing_id: String(adId) });
     if (error) {
       console.error('Supabase favorite insert error:', error);
       throw error;
@@ -582,14 +644,16 @@ export const favoritesApi = {
     return sbResponse({ data: { message: 'Added to favorites' } });
   },
 
-  remove: async (adId: number) => {
+  remove: async (adId: number | string) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
       const res = await http.delete(`/favorites/${adId}`);
       if (res?.data) return sbResponse({ data: { message: 'Removed from favorites' } });
     } catch {}
-    const { error } = await supabase.from('listing_favorites').delete().eq('user_id', userId).eq('listing_id', String(adId));
+    const supabaseUserId = await getSupabaseUserId();
+    if (!supabaseUserId) return sbError({ message: 'Not authenticated with Supabase' });
+    const { error } = await supabase.from('listing_favorites').delete().eq('user_id', supabaseUserId).eq('listing_id', String(adId));
     if (error) {
       console.error('Supabase favorite remove error:', error);
       throw error;
@@ -597,7 +661,7 @@ export const favoritesApi = {
     return sbResponse({ data: { message: 'Removed from favorites' } });
   },
 
-  check: async (adId: number) => {
+  check: async (adId: number | string) => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: { is_favorited: false } });
     try {
@@ -605,7 +669,9 @@ export const favoritesApi = {
       const is_favorited = res?.data?.data?.is_favorited ?? res?.data?.is_favorited;
       if (is_favorited !== undefined) return sbResponse({ data: { is_favorited } });
     } catch {}
-    const { data } = await supabase.from('listing_favorites').select('id').eq('user_id', userId).eq('listing_id', String(adId)).maybeSingle();
+    const supabaseUserId = await getSupabaseUserId();
+    if (!supabaseUserId) return sbResponse({ data: { is_favorited: false } });
+    const { data } = await supabase.from('listing_favorites').select('id').eq('user_id', supabaseUserId).eq('listing_id', String(adId)).maybeSingle();
     return sbResponse({ data: { is_favorited: !!data } });
   },
 };
@@ -1113,37 +1179,10 @@ export const dashboardApi = {
 
 function fromSupabaseListing(listing: any, images: any[] = []): any {
   if (!listing) return listing;
-  const sorted = [...images].sort((a, b) => (a.is_primary ? -1 : b.is_primary ? 1 : (a.sort_order || 0) - (b.sort_order || 0)));
-  const firstImage = sorted[0];
-  return {
-    id: listing.id, title: listing.title, slug: listing.slug,
-    description: listing.description || '', short_description: listing.short_description || (listing.description || '').slice(0, 200),
-    price: listing.price, currency: listing.currency || 'NGN', condition: listing.condition,
-    status: listing.status || 'active', negotiable: listing.negotiable,
-    views: listing.views_count || 0, views_count: listing.views_count || 0,
-    favorites_count: listing.favorites_count || 0,
-    is_featured: listing.is_featured || false, is_boosted: listing.is_boosted || false,
-    boost_type: listing.boost_type || null, boost_status: listing.boost_status || null,
-    boost_expires_at: listing.boost_expires_at || null,
-    boost_end_time: listing.boost_end_time || listing.boost_expires_at || null,
-    boost_plan: listing.boost_plan || null, badge_label: listing.badge_label || null,
-    badge_icon: listing.badge_icon || null, boost_priority_score: listing.boost_priority_score || 0,
-    whatsapp: listing.whatsapp_number || listing.phone_number || '',
-    phone: listing.phone_number || '', sellerPhone: listing.phone_number || '',
-    phone_number: listing.phone_number || '',
-    state: listing.state || '', lga: listing.lga || '', city: listing.city || '',
-    location: listing.location || listing.state || '',
-    specifications: [], attributes: [], metadata: listing.metadata || null,
-    created_at: listing.created_at, updated_at: listing.updated_at || listing.created_at,
-    expires_at: listing.expires_at || null,
-    category_id: listing.category_id, subcategory_id: listing.subcategory_id,
-    user_id: listing.user_id, category: null, subcategory: null, user: undefined,
-    image_url: firstImage?.url || null, images_count: images.length,
-    images: sorted.map((img: any) => ({
-      id: img.id, url: img.url, thumbnail_url: img.thumbnail_url || img.url,
-      medium_url: img.medium_url || img.url, is_primary: img.is_primary,
-    })),
-  };
+  return normalizeAd({
+    ...listing,
+    listing_images: images,
+  });
 }
 
 // ==============================

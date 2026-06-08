@@ -11,6 +11,7 @@ import { useGlobalStore, useUIStore } from '@/lib/store';
 import { Search, X, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { AdMasonrySkeleton } from '@/components/ui/Skeleton';
 import MasonryGrid from '@/components/ui/MasonryGrid';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useSearchInfinite } from '@/hooks/useAds';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useRealtimeAds } from '@/hooks/useRealtime';
@@ -459,25 +460,14 @@ function AdsPageContent() {
                 ))}
               </MasonryGrid>
             ) : (
-              <div className="bg-white rounded-xl p-8 md:p-12 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No ads found</h3>
-                <p className="text-gray-500 mb-2">Try adjusting your filters or search terms</p>
-                {searchQuery && (
-                  <p className="text-gray-400 text-sm mb-6">
-                    We couldn&apos;t find any results for &ldquo;{searchQuery}&rdquo;
-                  </p>
-                )}
-                <div className="flex flex-wrap justify-center gap-2 mb-6">
-                  <button
-                    onClick={clearFilters}
-                    className="px-6 py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
+              <div className="bg-white rounded-xl p-8 md:p-12">
+                <EmptyState
+                  icon="search"
+                  title="No ads found"
+                  description={searchQuery ? `We couldn't find any results for "${searchQuery}"` : 'Try adjusting your filters or search terms'}
+                  actionLabel="Clear All Filters"
+                  onAction={clearFilters}
+                />
                 {mainCategories.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-gray-100">
                     <p className="text-sm text-gray-500 mb-3">Browse popular categories:</p>

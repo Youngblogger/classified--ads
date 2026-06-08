@@ -13,6 +13,7 @@ import BoostAdModal from '@/components/ui/BoostAdModal';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { getBoostCardClasses, getBoostConfig } from '@/lib/boost-config';
 import { Clock, ShieldCheck } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useCloseAd, useDeleteAd, usePauseAd, useReactivateAd, useRenewAd, useBoostAd } from '@/hooks/mutations/useAdMutations';
 
 type StatusFilter = 'all' | 'active' | 'paused' | 'pending' | 'sold' | 'expired';
@@ -619,23 +620,14 @@ export default function MyAdsPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl p-12 text-center shadow-card">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Search className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No ads found</h3>
-          <p className="text-gray-500 mb-6">
-            {searchQuery
-              ? `No results for "${searchQuery}"`
-              : "You don't have any ads yet"}
-          </p>
-          <Link
-            href="/dashboard/post-ad"
-            className="inline-flex items-center justify-center px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors"
-          >
-            Post Your First Ad
-          </Link>
-        </div>
+        <EmptyState
+          icon="search"
+          title="No ads found"
+          description={searchQuery ? `No results for "${searchQuery}"` : "You don't have any ads yet"}
+          actionLabel="Post Your First Ad"
+          onAction={() => window.location.href = '/dashboard/post-ad'}
+          className="bg-white rounded-2xl shadow-card"
+        />
       )}
 
       {/* Delete Confirmation Modal */}

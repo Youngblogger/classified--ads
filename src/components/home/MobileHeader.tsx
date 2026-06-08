@@ -115,8 +115,8 @@ export default function MobileHeader({ onMenuToggle }: { onMenuToggle?: () => vo
               </button>
             )}
 
-            {hasHydrated && (authState !== 'loading' || isAuthenticated) && (
-              <div className="relative animate-fade-in" ref={profileRef}>
+            {hasHydrated && (
+              <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => {
                     if (authState !== 'authenticated' && !isAuthenticated) {
@@ -125,22 +125,23 @@ export default function MobileHeader({ onMenuToggle }: { onMenuToggle?: () => vo
                       setShowProfileMenu(!showProfileMenu);
                     }
                   }}
-                  className="p-1 rounded-lg active:bg-white/10 transition-colors"
+                  className="p-1.5 rounded-lg active:bg-white/10 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label={authState === 'authenticated' || isAuthenticated ? 'Profile menu' : 'Log in'}
                 >
-                  <div className="w-7 h-7 rounded-full overflow-hidden bg-white/20 flex items-center justify-center ring-2 ring-white/30">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-white/20 flex items-center justify-center ring-2 ring-white/30">
                     {(authState === 'authenticated' || isAuthenticated) ? (
                       <>
                         {(() => {
                           const avatarUrl = getUserAvatarUrl(user);
                           return avatarUrl ? (
-                            <Image src={avatarUrl} alt="" fill className="rounded-full object-cover" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} sizes="32px" />
+                            <Image src={avatarUrl} alt="" fill className="rounded-full object-cover" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} sizes="36px" />
                           ) : (
-                            <span className="text-white font-semibold text-xs">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                            <span className="text-white font-semibold text-sm">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                           );
                         })()}
                       </>
                     ) : (
-                      <User className="w-4 h-4 text-white" />
+                      <User className="w-5 h-5 text-white" />
                     )}
                   </div>
                 </button>

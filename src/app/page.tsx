@@ -17,6 +17,7 @@ import AdCard from '@/components/ui/AdCard';
 import { getBoostPlan, isBoostExpired, calculateBoostScore } from '@/lib/boost-config';
 import { safeArray } from '@/lib/safe-data';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 function buildUnifiedFeed(ads: any[]): any[] {
   const safeAds = safeArray<any>(ads);
@@ -352,17 +353,7 @@ export default function HomePage() {
                   )}
                 </>
               ) : (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-5">
-                    <span className="text-4xl text-gray-400">📭</span>
-                  </div>
-                  <h3 className="text-xl font-semibold text-dark mb-2">No ads yet</h3>
-                  <p className="text-gray-500 mb-5">Be the first to post an ad in your area!</p>
-                  <Link href="/post-ad" className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors">
-                    <Plus className="w-5 h-5" />
-                    <span>Post Your First Ad</span>
-                  </Link>
-                </div>
+                <EmptyState icon="inbox" title="No ads yet" description="Be the first to post an ad in your area!" actionLabel="Post Your First Ad" onAction={() => window.location.href = '/post-ad'} />
               )}
             </div>
           </section>

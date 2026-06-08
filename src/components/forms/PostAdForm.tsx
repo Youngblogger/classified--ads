@@ -163,12 +163,14 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [negotiable, setNegotiable] = useState(false);
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<string | number | null>(null);
+  const [categorySlug, setCategorySlug] = useState<string>('');
+  const [categoryParentSlug, setCategoryParentSlug] = useState<string>('');
   const [categoryBreadcrumb, setCategoryBreadcrumb] = useState<string>('');
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [locationBreadcrumb, setLocationBreadcrumb] = useState<string>('');
-  const [locationId, setLocationId] = useState<number | null>(null);
+  const [locationId, setLocationId] = useState<string | number | null>(null);
   const [selectedStateName, setSelectedStateName] = useState<string>('');
   const [lgaId, setLgaId] = useState<string>('');
   const [condition, setCondition] = useState<'new' | 'good' | 'fair' | ''>('');
@@ -223,6 +225,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         if (draft.price) setPrice(draft.price);
         if (draft.negotiable !== undefined) setNegotiable(draft.negotiable);
         if (draft.categoryId) setCategoryId(draft.categoryId);
+        if (draft.categorySlug) setCategorySlug(draft.categorySlug);
+        if (draft.categoryParentSlug) setCategoryParentSlug(draft.categoryParentSlug);
         if (draft.categoryBreadcrumb) setCategoryBreadcrumb(draft.categoryBreadcrumb);
         if (draft.locationId) setLocationId(draft.locationId);
         if (draft.locationBreadcrumb) setLocationBreadcrumb(draft.locationBreadcrumb);
@@ -300,6 +304,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         price,
         negotiable,
         categoryId,
+        categorySlug,
+        categoryParentSlug,
         categoryBreadcrumb,
         locationId,
         locationBreadcrumb,
@@ -351,7 +357,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   }, [images]);
   
   // Get category name from categoryId
-  const getCategoryName = useCallback((id: number | null): string => {
+  const getCategoryName = useCallback((id: string | number | null): string => {
     if (!id) return '';
     const cat = categories.find(c => c.id === id || c.children?.some((child: any) => child.id === id));
     if (cat?.children?.some((child: any) => child.id === id)) {
@@ -509,10 +515,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         const mediumUrl = data?.medium_url;
         const originalUrl = data?.original_url;
         const imageHash = data?.image_hash;
+        const storagePath = data?.path || data?.storage_path;
         setImages(prev =>
           prev.map(i =>
             i.id === img.id
-              ? { ...i, uploadedUrl: url, thumbnailUrl: thumbUrl, mediumUrl, originalUrl, imageHash, status: 'completed' as const, progress: 100 }
+              ? { ...i, uploadedUrl: url, thumbnailUrl: thumbUrl, mediumUrl, originalUrl, imageHash, storagePath, status: 'completed' as const, progress: 100 }
               : i
           )
         );
@@ -915,6 +922,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       formData.append('price', price);
       formData.append('negotiable', negotiable ? '1' : '0');
       formData.append('category_id', String(categoryId));
+      if (categorySlug) formData.append('category_slug', categorySlug);
+      if (categoryParentSlug) formData.append('category_parent_slug', categoryParentSlug);
       formData.append('location_id', String(locationId));
       if (selectedStateName) formData.append('state', selectedStateName);
       if (lgaId) formData.append('lga', lgaId);
@@ -935,6 +944,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           medium_url: i.mediumUrl || i.uploadedUrl!,
           original_url: i.originalUrl || i.uploadedUrl!,
           image_hash: i.imageHash || null,
+          storage_path: i.storagePath || '',
         }));
         formData.append('image_urls', JSON.stringify(imageData));
       } else {
@@ -951,9 +961,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         throw new Error((response as any)?.statusText || 'Failed to post ad');
       }
       
+      const adId = (response.data as any)?.data?.id || (response.data as any)?.id;
+      if (!adId) throw new Error(response.statusText || 'Failed to post ad');
+      
       setSubmissionStep('finalizing');
       const adSlug = (response.data as any)?.data?.slug || (response.data as any)?.slug;
-      const adId = (response.data as any)?.data?.id || (response.data as any)?.id;
       
       // Reset form
       setStep(1);
@@ -1000,6 +1012,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       window.dispatchEvent(new CustomEvent('ilist:ad-created', { detail: { adId, slug: adSlug } }));
       // Invalidate caches for background revalidation
       mutate(key => typeof key === 'string' && key.startsWith('ads?'));
+      invalidateSwrCache('homepage_data');
       queryClient.invalidateQueries({ queryKey: adKeys.all });
       
       setSubmissionStep(null);
@@ -1047,6 +1060,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         errorMsg = 'You are posting too frequently. Please wait a moment and try again.';
       } else if (err.response?.status === 500) {
         errorMsg = 'Server error. Please try again later.';
+      } else if (err.message) {
+        errorMsg = err.message + durationHint;
       }
       
       toast.error(errorMsg);
@@ -1055,12 +1070,14 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
   const selectedCategory = categories.find(c => c.id === categoryId || c.children?.some((child: any) => child.id === categoryId));
 
-  const handleCategorySelect = (id: number, name: string, breadcrumb: string) => {
+  const handleCategorySelect = (id: string | number, name: string, breadcrumb: string, slug?: string, parentSlug?: string) => {
     setCategoryId(id);
+    setCategorySlug(slug || '');
+    setCategoryParentSlug(parentSlug || '');
     setCategoryBreadcrumb(breadcrumb);
   };
 
-  const handleLocationSelect = (stateId: number, stateName: string, lga: string, fullLocation: string) => {
+  const handleLocationSelect = (stateId: string | number, stateName: string, lga: string, fullLocation: string) => {
     setLocationId(stateId);
     setSelectedStateName(stateName);
     setLgaId(lga);
