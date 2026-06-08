@@ -300,6 +300,18 @@ export const adsApi = {
         listing[key] = value;
       }
     }
+    // Map Laravel field names to Supabase column names
+    if (listing.phone) { listing.phone_number = listing.phone; delete listing.phone; }
+    if (listing.whatsapp) { listing.whatsapp_number = listing.whatsapp; delete listing.whatsapp; }
+    if (listing.attributes) {
+      try { listing.specifications = JSON.parse(listing.attributes); } catch {}
+      delete listing.attributes;
+    }
+    // Strip Laravel-specific integer IDs — Supabase expects UUIDs for these columns
+    delete listing.category_id;
+    delete listing.subcategory_id;
+    delete listing.location_id;
+    delete listing._idempotency_key;
     listing.slug = listing.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
 
     // Always save to Supabase first (source of truth for user dashboard)
