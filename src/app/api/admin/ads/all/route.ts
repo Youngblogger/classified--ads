@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase as anonSupabase, getServiceRoleClient } from '@/lib/supabase';
+import { supabase as anonSupabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,12 +11,7 @@ export async function GET(request: NextRequest) {
     const perPage = parseInt(searchParams.get('per_page') || '20', 10);
     const page = parseInt(searchParams.get('page') || '1', 10);
 
-    let sb: any;
-    try {
-      sb = getServiceRoleClient();
-    } catch {
-      sb = anonSupabase;
-    }
+    let sb: any = anonSupabase;
 
     const from = (page - 1) * perPage;
     const to = from + perPage - 1;
