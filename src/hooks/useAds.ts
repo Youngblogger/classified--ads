@@ -106,11 +106,16 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
     let boosted = normalizeAds((boostedRes?.data?.data || []).filter((a: any) => a.is_boosted));
     const categories = (catsRes?.data?.data || []);
 
-    if (recent.length === 0 && featured.length === 0) {
-      console.debug('[AdsFetch] Homepage Laravel returned 0 results — falling back to Supabase');
-      const supabaseRecent = await fetchSupabaseListings({ status: 'active' }, 1, 20);
-      if (supabaseRecent.data.length > 0) {
-        recent = supabaseRecent.data;
+    const supabaseRecent = await fetchSupabaseListings({ status: 'active' }, 1, 20);
+    if (supabaseRecent.data.length > 0) {
+      const recentIds = new Set(recent.map((a: any) => a.id));
+      const mergedRecent = supabaseRecent.data.filter((a: any) => !recentIds.has(a.id));
+      if (mergedRecent.length > 0) {
+        recent = [...mergedRecent, ...recent].sort(
+          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+      if (featured.length === 0) {
         featured = supabaseRecent.data.slice(0, 10);
       }
     }
