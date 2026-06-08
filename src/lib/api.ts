@@ -234,25 +234,36 @@ export const adsApi = {
   get: async (id: string | number) => {
     try {
       const res = await http.get(`/ads/${id}`);
-      const ad = res?.data?.data || res?.data || null;
-      if (!ad) return sbError({ message: 'Ad not found' });
-      return sbResponse({ data: normalizeAd(ad, true) });
-    } catch (e: any) {
-      return sbError(e);
-    }
+      if (res?.status >= 200 && res?.status < 300) {
+        const ad = res?.data?.data || res?.data || null;
+        if (ad) return sbResponse({ data: normalizeAd(ad, true) });
+      }
+    } catch {}
+    const { data, error } = await supabase.from('listings').select('*, listing_images(*), profiles(*)').eq('id', String(id)).maybeSingle();
+    if (error || !data) return sbError({ message: 'Ad not found' });
+    return sbResponse({ data: normalizeAd({ ...data, user: data.profiles, images: data.listing_images, listing_images: data.listing_images }, true) });
   },
 
   getAll: async (params?: Record<string, any>) => {
     try {
       const res = await http.get('/ads', { params: params as any });
-      const responseData = res?.data || { data: [], meta: null };
-      return sbResponse({
-        data: normalizeAds(responseData.data || []),
-        meta: responseData.meta || buildMeta(0, params?.page || 1, params?.per_page || params?.limit || PAGE_SIZE),
-      });
-    } catch (e: any) {
-      return sbError(e);
-    }
+      if (res?.status >= 200 && res?.status < 300) {
+        const responseData = res?.data || { data: [], meta: null };
+        const ads = responseData.data || [];
+        if (Array.isArray(ads) && ads.length > 0) {
+          return sbResponse({
+            data: normalizeAds(ads),
+            meta: responseData.meta || buildMeta(0, params?.page || 1, params?.per_page || params?.limit || PAGE_SIZE),
+          });
+        }
+      }
+    } catch {}
+    const page = params?.page || 1;
+    const perPage = params?.per_page || params?.limit || PAGE_SIZE;
+    const { data, error, count } = await supabase.from('listings').select('*, listing_images(*), profiles(*)', { count: 'exact' }).eq('status', 'active').order('created_at', { ascending: false }).range((page - 1) * perPage, page * perPage - 1);
+    if (error) return sbError(error);
+    const items = (data || []).map((item: any) => normalizeAd({ ...item, user: item.profiles, images: item.listing_images, listing_images: item.listing_images }));
+    return sbResponse({ data: items, meta: buildMeta(count || 0, page, perPage) });
   },
 
   getById: async (id: string | number) => adsApi.get(id),
@@ -260,39 +271,53 @@ export const adsApi = {
   getBySlug: async (slug: string) => {
     try {
       const res = await http.get(`/ads/${slug}`);
-      const ad = res?.data?.data || res?.data || null;
-      if (!ad) return sbError({ message: 'Ad not found' });
-      return sbResponse({ data: normalizeAd(ad, true) });
-    } catch (e: any) {
-      return sbError(e);
-    }
+      if (res?.status >= 200 && res?.status < 300) {
+        const ad = res?.data?.data || res?.data || null;
+        if (ad) return sbResponse({ data: normalizeAd(ad, true) });
+      }
+    } catch {}
+    const { data, error } = await supabase.from('listings').select('*, listing_images(*), profiles(*)').eq('slug', slug).maybeSingle();
+    if (error || !data) return sbError({ message: 'Ad not found' });
+    return sbResponse({ data: normalizeAd({ ...data, user: data.profiles, images: data.listing_images, listing_images: data.listing_images }, true) });
   },
 
   getFeatured: async (limit = 10) => {
     try {
       const res = await http.get('/ads/featured');
-      return sbResponse({ data: normalizeAds(res?.data?.data || []) });
-    } catch (e: any) {
-      return sbError(e);
-    }
+      if (res?.status >= 200 && res?.status < 300) {
+        const ads = res?.data?.data || [];
+        if (Array.isArray(ads) && ads.length > 0) return sbResponse({ data: normalizeAds(ads) });
+      }
+    } catch {}
+    const { data, error } = await supabase.from('listings').select('*, listing_images(*), profiles(*)').eq('status', 'active').not('boost_type', 'is', null).order('boost_priority_score', { ascending: false }).limit(limit);
+    if (error) return sbResponse({ data: [] });
+    return sbResponse({ data: (data || []).map((item: any) => normalizeAd({ ...item, user: item.profiles, images: item.listing_images, listing_images: item.listing_images })) });
   },
 
   getRecent: async (limit = 20) => {
     try {
       const res = await http.get('/ads/recent');
-      return sbResponse({ data: normalizeAds(res?.data?.data || []) });
-    } catch (e: any) {
-      return sbError(e);
-    }
+      if (res?.status >= 200 && res?.status < 300) {
+        const ads = res?.data?.data || [];
+        if (Array.isArray(ads) && ads.length > 0) return sbResponse({ data: normalizeAds(ads) });
+      }
+    } catch {}
+    const { data, error } = await supabase.from('listings').select('*, listing_images(*), profiles(*)').eq('status', 'active').order('created_at', { ascending: false }).limit(limit);
+    if (error) return sbResponse({ data: [] });
+    return sbResponse({ data: (data || []).map((item: any) => normalizeAd({ ...item, user: item.profiles, images: item.listing_images, listing_images: item.listing_images })) });
   },
 
   getSimilar: async (adId: number, limit = 8) => {
     try {
       const res = await http.get('/ads/similar', { params: { ad_id: adId, limit } as any });
-      return sbResponse({ data: normalizeAds(res?.data?.data || []) });
-    } catch (e: any) {
-      return sbError(e);
-    }
+      if (res?.status >= 200 && res?.status < 300) {
+        const ads = res?.data?.data || [];
+        if (Array.isArray(ads) && ads.length > 0) return sbResponse({ data: normalizeAds(ads) });
+      }
+    } catch {}
+    const { data, error } = await supabase.from('listings').select('*, listing_images(*), profiles(*)').eq('status', 'active').limit(limit);
+    if (error) return sbResponse({ data: [] });
+    return sbResponse({ data: (data || []).map((item: any) => normalizeAd({ ...item, user: item.profiles, images: item.listing_images, listing_images: item.listing_images })) });
   },
 
   create: async (formData: FormData) => {
