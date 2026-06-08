@@ -1171,78 +1171,79 @@ export default function AdsModerationPage() {
       } else {
         setLoading(true);
       }
-      
-      const params = new URLSearchParams({
-        per_page: String(perPage),
-        page: String(pageNum)
-      });
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (searchTerm) params.append('search', searchTerm);
 
-      const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ads?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`,
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!res.ok) {
-        if (res.status === 401) {
-          toast.error('Session expired');
-          window.location.href = '/admin/login';
-          return;
-        }
-      } else {
-        const data = await res.json();
-        const newAds = data.data || [];
-        
-        if (newAds.length > 0) {
-          setTotalCount(data.total || newAds.length);
-          setHasMore(newAds.length === perPage);
-          
-          if (append) {
-            setAds(prev => [...prev, ...newAds]);
-          } else {
-            setAds(newAds);
-            setSelectedAds(new Set());
-          }
-          
-          setPage(pageNum);
-          return;
-        }
-        // Laravel returned empty — fall through to Supabase fallback
-      }
+      // 1. Try Supabase first — it has all the data
+      let allAds: Ad[] = [];
+      let totalCount = 0;
 
-      // Fallback to Supabase API route
       try {
-        const fallbackParams = new URLSearchParams({
+        const sbParams = new URLSearchParams({
           per_page: String(perPage),
           page: String(pageNum)
         });
-        if (statusFilter !== 'all') fallbackParams.append('status', statusFilter);
-        if (searchTerm) fallbackParams.append('search', searchTerm);
-        const fallbackRes = await fetch(`/api/admin/ads/all?${fallbackParams}`);
-        const fallbackData = fallbackRes.ok ? await fallbackRes.json() : null;
-        if (fallbackRes.ok && fallbackData) {
-          const rawListings = fallbackData.data || [];
+        if (statusFilter !== 'all') sbParams.append('status', statusFilter);
+        if (searchTerm) sbParams.append('search', searchTerm);
+        const sbRes = await fetch(`/api/admin/ads/all?${sbParams}`);
+        const sbData = sbRes.ok ? await sbRes.json() : null;
+        if (sbRes.ok && sbData) {
+          const rawListings = sbData.data || [];
           const mapped: Ad[] = rawListings.map((l: any) => normalizeAd({ ...l, images: l.listing_images || [], listing_images: l.listing_images || [] }));
-          setTotalCount(fallbackData.total || mapped.length);
-          setHasMore(mapped.length === perPage);
-          if (append) {
-            setAds(prev => [...prev, ...mapped]);
-          } else {
-            setAds(mapped);
-            setSelectedAds(new Set());
-          }
-          setPage(pageNum);
-        } else {
-          throw new Error(fallbackData?.error || 'Fallback failed');
+          allAds = mapped;
+          totalCount = sbData.total || mapped.length;
         }
-      } catch (sbErr) {
-        console.error('Fallback also failed:', sbErr);
-        if (!append) setAds([]);
-        toast.error('Failed to load ads');
+      } catch (e) {
+        console.error('Supabase fetch failed:', e);
       }
+
+      // 2. Also try Laravel (may have extra ads or different data)
+      try {
+        const params = new URLSearchParams({
+          per_page: String(perPage),
+          page: String(pageNum)
+        });
+        if (statusFilter !== 'all') params.append('status', statusFilter);
+        if (searchTerm) params.append('search', searchTerm);
+
+        const res = await fetch(`${API_URL}${STEALTH_PREFIX}/ads?${params}`, {
+          headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            toast.error('Session expired');
+            window.location.href = '/admin/login';
+            return;
+          }
+        } else {
+          const data = await res.json();
+          const laravelAds: Ad[] = data.data || [];
+          // Merge Laravel ads (prefer their data, but deduplicate by id)
+          const existingIds = new Set(allAds.map(a => a.id));
+          for (const la of laravelAds) {
+            if (!existingIds.has(la.id)) {
+              allAds.push(la);
+              existingIds.add(la.id);
+            }
+          }
+          if (!totalCount) totalCount = data.total || laravelAds.length;
+        }
+      } catch (e) {
+        console.error('Laravel fetch failed:', e);
+        // Continue with Supabase data only
+      }
+
+      if (append) {
+        setAds(prev => [...prev, ...allAds]);
+      } else {
+        setAds(allAds);
+        setSelectedAds(new Set());
+      }
+      setTotalCount(totalCount || allAds.length);
+      setHasMore(allAds.length === perPage);
+      setPage(pageNum);
     } catch (error) {
       console.error('Failed to fetch ads:', error);
       toast.error('Failed to load ads');
