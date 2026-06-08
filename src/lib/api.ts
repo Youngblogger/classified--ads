@@ -632,7 +632,7 @@ export const favoritesApi = {
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
       const res = await http.post('/favorites', { ad_id: adId });
-      if (res?.data) return sbResponse({ data: { message: 'Added to favorites' } });
+      if (res?.status >= 200 && res?.status < 300 && res?.data) return sbResponse({ data: { message: 'Added to favorites' } });
     } catch {}
     const supabaseUserId = await getSupabaseUserId();
     if (!supabaseUserId) return sbError({ message: 'Not authenticated with Supabase' });
@@ -649,7 +649,7 @@ export const favoritesApi = {
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
       const res = await http.delete(`/favorites/${adId}`);
-      if (res?.data) return sbResponse({ data: { message: 'Removed from favorites' } });
+      if (res?.status >= 200 && res?.status < 300 && res?.data) return sbResponse({ data: { message: 'Removed from favorites' } });
     } catch {}
     const supabaseUserId = await getSupabaseUserId();
     if (!supabaseUserId) return sbError({ message: 'Not authenticated with Supabase' });
@@ -667,7 +667,7 @@ export const favoritesApi = {
     try {
       const res = await http.get(`/favorites/check/${adId}`);
       const is_favorited = res?.data?.data?.is_favorited ?? res?.data?.is_favorited;
-      if (is_favorited !== undefined) return sbResponse({ data: { is_favorited } });
+      if (res?.status >= 200 && res?.status < 300 && is_favorited !== undefined) return sbResponse({ data: { is_favorited } });
     } catch {}
     const supabaseUserId = await getSupabaseUserId();
     if (!supabaseUserId) return sbResponse({ data: { is_favorited: false } });
