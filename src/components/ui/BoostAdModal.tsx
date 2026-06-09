@@ -115,7 +115,6 @@ export default function BoostAdModal({
   const router = useRouter();
   const prevStepRef = useRef<ModalStep | null>(null);
   const packageTrackedRef = useRef(false);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
   const [step, setStep] = useState<ModalStep>(showInitialStep ? 'initial' : 'packages');
@@ -556,21 +555,20 @@ export default function BoostAdModal({
     >
       <div className="fixed inset-0 bg-black/60" onClick={handleClose} aria-hidden="true" />
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-        {/* Close button */}
-        <button
-          ref={closeButtonRef}
-          onClick={handleClose}
-          className="absolute top-4 right-4 z-10 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5 text-gray-500" />
-        </button>
-
         {/* Scrollable content area */}
         <div className="overflow-y-auto flex-1">
           {/* STEP: Initial - Success Message with Mini Ad Preview */}
           {step === 'initial' && (
-            <div className="p-8 md:p-10">
+            <div className="p-8 md:p-10 relative">
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={handleClose}
+                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  aria-label="Close modal"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
               <div className="text-center mb-6">
                 <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-200">
                   <PartyPopper className="w-10 h-10 text-white" />
@@ -693,18 +691,27 @@ export default function BoostAdModal({
           {/* STEP: Packages - Boost Package Selection */}
           {step === 'packages' && (
             <div className="p-6 md:p-8">
-              {/* Header with wallet balance */}
+              {/* Header with wallet balance and close button */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2 min-w-0">
                   <Sparkles className="w-5 h-5 text-violet-500 flex-shrink-0" />
                   <h2 className="text-lg font-bold text-gray-900 truncate">Boost Your Ad</h2>
                 </div>
-                {walletBalance !== null && (
-                  <div className="flex items-center gap-1.5 text-sm bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 flex-shrink-0 ml-3">
-                    <Wallet className="w-4 h-4 text-emerald-600" />
-                    <span className="font-semibold text-emerald-700">{formatPrice(walletBalance)}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                  {walletBalance !== null && (
+                    <div className="flex items-center gap-1.5 text-sm bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
+                      <Wallet className="w-4 h-4 text-emerald-600" />
+                      <span className="font-semibold text-emerald-700">{formatPrice(walletBalance)}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={handleClose}
+                    className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    aria-label="Close modal"
+                  >
+                    <X className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
               </div>
 
               {adTitle && (
@@ -866,14 +873,23 @@ export default function BoostAdModal({
           {/* STEP: Payment Method Selection */}
           {step === 'payment_method' && selectedPkg && (
             <div className="p-6 md:p-8">
-              <button
-                onClick={() => { setStep('packages'); setSelectedPaymentMethod(null); }}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-5 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 rounded-lg"
-                aria-label="Back to package selection"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Change package
-              </button>
+              <div className="flex items-center justify-between mb-5">
+                <button
+                  onClick={() => { setStep('packages'); setSelectedPaymentMethod(null); }}
+                  className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 rounded-lg"
+                  aria-label="Back to package selection"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Change package
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  aria-label="Close modal"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
 
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-1">Payment Method</h2>
@@ -1096,7 +1112,16 @@ export default function BoostAdModal({
 
           {/* STEP: Processing */}
           {step === 'processing' && (
-            <div className="p-8 md:p-10 text-center" role="status" aria-label="Processing your boost">
+            <div className="p-8 md:p-10 text-center relative" role="status" aria-label="Processing your boost">
+              <div className="flex justify-end -mt-2 -mr-2 mb-2">
+                <button
+                  onClick={handleClose}
+                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  aria-label="Close modal"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
               <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 {verifying ? (
                   <RefreshCw className="w-10 h-10 animate-spin text-violet-600" />
@@ -1128,7 +1153,16 @@ export default function BoostAdModal({
 
           {/* STEP: Error */}
           {step === 'error' && (
-            <div className="p-8 md:p-10 text-center" role="alert">
+            <div className="p-8 md:p-10 text-center relative" role="alert">
+              <div className="flex justify-end -mt-2 -mr-2 mb-2">
+                <button
+                  onClick={handleClose}
+                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  aria-label="Close modal"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
               <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <X className="w-10 h-10 text-red-500" />
               </div>
@@ -1155,7 +1189,16 @@ export default function BoostAdModal({
 
           {/* STEP: Success - Boost Activated */}
           {step === 'success' && (
-            <div className="p-8 md:p-10">
+            <div className="p-8 md:p-10 relative">
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={handleClose}
+                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  aria-label="Close modal"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
               <div className="text-center mb-8">
                 <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-violet-200">
                   <Sparkles className="w-10 h-10 text-white" />
