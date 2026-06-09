@@ -312,6 +312,7 @@ Route::prefix('stores')->group(function () {
 Route::post('/analytics/record-view/{adId}', [AnalyticsController::class, 'recordView']);
 Route::post('/analytics/record-click/{adId}', [AnalyticsController::class, 'recordClick']);
 Route::post('/analytics/record-share/{adId}', [AnalyticsController::class, 'recordShare']);
+Route::post('/analytics/events', [AnalyticsController::class, 'trackEvent']);
 
 // Icons (read-only public, write operations protected)
 Route::prefix('icons')->group(function () {
@@ -405,8 +406,6 @@ Route::middleware('auth.api')->group(function () {
 
     // Growth & Monetization
     Route::get('/my-boosts', [GrowthController::class, 'myBoosts']);
-    Route::get('/ads/{id}/boost-status', [GrowthController::class, 'getBoostStatus']);
-    Route::get('/ads/{id}/boost-renewal-check', [GrowthController::class, 'checkRenewal']);
     Route::post('/ads/{id}/save', [GrowthController::class, 'saveAd']);
     Route::delete('/ads/{id}/unsave', [GrowthController::class, 'unsaveAd']);
     Route::get('/ads/{id}/saved-check', [GrowthController::class, 'checkSavedStatus']);
@@ -548,6 +547,8 @@ Route::post('/wallet/fund', [WalletController::class, 'fund']);
 Route::post('/wallet/verify', [WalletController::class, 'verify']);
 Route::post('/wallet/check-balance', [WalletController::class, 'checkBalance']);
 Route::post('/wallet/bank-transfer-proof', [WalletController::class, 'bankTransferProof']);
+Route::get('/ads/{id}/boost-status', [GrowthController::class, 'getBoostStatus']);
+Route::get('/ads/{id}/boost-renewal-check', [GrowthController::class, 'checkRenewal']);
 Route::post('/ads/{id}/boost', [GrowthController::class, 'boostAd'])->middleware('throttle:boost');
 Route::post('/ads/{id}/post-submission-boost', [GrowthController::class, 'postSubmissionBoost'])->middleware('throttle:boost');
 Route::post('/ads/{id}/boost-renew', [GrowthController::class, 'renewBoost'])->middleware('throttle:boost');

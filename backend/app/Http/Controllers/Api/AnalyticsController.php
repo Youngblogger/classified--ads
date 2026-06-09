@@ -7,6 +7,7 @@ use App\Models\Ad;
 use App\Models\AdAnalytic;
 use App\Models\Store;
 use App\Models\StoreAnalytic;
+use App\Models\AnalyticsEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -409,6 +410,39 @@ class AnalyticsController extends Controller
                 'message' => 'No store found',
             ], 404);
         }
+    }
+
+    public function trackEvent(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'ad_id' => 'sometimes|string',
+            'package_type' => 'sometimes|string',
+            'package_price' => 'sometimes|numeric',
+            'reference' => 'sometimes|string',
+            'duration_days' => 'sometimes|integer',
+            'error' => 'sometimes|string',
+            'payment_method' => 'sometimes|string',
+            'available' => 'sometimes|numeric',
+            'required' => 'sometimes|numeric',
+            'timestamp' => 'sometimes|integer',
+        ]);
+
+        try {
+            AnalyticsEvent::create([
+                'event_name' => $validated['name'],
+                'ad_id' => $validated['ad_id'] ?? null,
+                'metadata' => json_encode($validated),
+                'created_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to store analytics event', [
+                'event' => $validated['name'],
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return response()->json(['success' => true]);
     }
 
     public function recordView(Request $request, $adId)

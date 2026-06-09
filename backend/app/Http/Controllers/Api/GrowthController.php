@@ -43,17 +43,14 @@ class GrowthController extends Controller
             return null;
         }
 
-        $user = \App\Models\User::where('email', $email)->first();
-        if ($user) return $user;
-
-        $user = new \App\Models\User();
-        $user->name = explode('@', $email)[0];
-        $user->email = $email;
-        $user->password = \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32));
-        $user->email_verified_at = now();
-        $user->save();
-
-        return $user;
+        return \App\Models\User::firstOrCreate(
+            ['email' => $email],
+            [
+                'name' => explode('@', $email)[0],
+                'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32)),
+                'email_verified_at' => now(),
+            ]
+        );
     }
 
     public function getBoostPlans(BoostTierService $tierService)
@@ -67,113 +64,131 @@ class GrowthController extends Controller
 
     public function boostAd(Request $request, int $id, BoostAdService $boostAdService, PaymentService $paymentService)
     {
-        $user = $this->resolveUser($request);
-        if (!$user) {
-            return response()->json(['success' => false, 'error' => 'Unauthenticated'], 401);
-        }
-
-        $key = 'boost-attempts:' . $user->id;
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Too many boost attempts. Please try again in ' . RateLimiter::availableIn($key) . ' seconds.',
-            ], 429);
-        }
-        RateLimiter::hit($key, 3600);
-
-        $validated = $request->validate([
-            'plan_type' => 'required_without:boost_type|in:silver,gold,platinum',
-            'boost_type' => 'required_without:plan_type|in:top,featured,highlight',
-            'duration_days' => 'required_if:boost_type,top,featured,highlight|integer|in:1,3,7,14,30',
-            'payment_method' => 'sometimes|in:wallet,paystack',
-        ]);
-
-        $paymentMethod = $validated['payment_method'] ?? 'paystack';
-
-        if (isset($validated['plan_type'])) {
-            $result = $boostAdService->createPlanBoost($id, $user->id, $validated['plan_type'], $paymentMethod);
-        } else {
-            $result = $boostAdService->createBoost($id, $user->id, $validated['boost_type'], $validated['duration_days'], $paymentMethod);
-        }
-
-        if (!$result['success']) {
-            $status = match ($result['code'] ?? '') {
-                'ad_not_found' => 404,
-                'ad_not_active' => 422,
-                'insufficient_balance' => 402,
-                'wallet_not_found' => 404,
-                'invalid_plan' => 400,
-                default => 400,
-            };
-
-            $response = [
-                'success' => false,
-                'error' => $result['error'],
-            ];
-
-            if (isset($result['available_balance'])) {
-                $response['available_balance'] = $result['available_balance'];
-            }
-            if (isset($result['required_amount'])) {
-                $response['required_amount'] = $result['required_amount'];
+        try {
+            $user = $this->resolveUser($request);
+            if (!$user) {
+                return response()->json(['success' => false, 'error' => 'Unauthenticated'], 401);
             }
 
-            return response()->json($response, $status);
-        }
+            $key = 'boost-attempts:' . $user->id;
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Too many boost attempts. Please try again in ' . RateLimiter::availableIn($key) . ' seconds.',
+                ], 429);
+            }
+            RateLimiter::hit($key, 3600);
 
-        // Wallet boost — instant activation (no payment redirect needed)
-        if ($paymentMethod === 'wallet') {
-            return response()->json([
+            $validated = $request->validate([
+                'plan_type' => 'required_without:boost_type|in:silver,gold,platinum',
+                'boost_type' => 'required_without:plan_type|in:top,featured,highlight',
+                'duration_days' => 'required_if:boost_type,top,featured,highlight|integer|in:1,3,7,14,30',
+                'payment_method' => 'sometimes|in:wallet,paystack',
+            ]);
+
+            $paymentMethod = $validated['payment_method'] ?? 'paystack';
+
+            if (isset($validated['plan_type'])) {
+                $result = $boostAdService->createPlanBoost($id, $user->id, $validated['plan_type'], $paymentMethod);
+            } else {
+                $result = $boostAdService->createBoost($id, $user->id, $validated['boost_type'], $validated['duration_days'], $paymentMethod);
+            }
+
+            if (!$result['success']) {
+                $status = match ($result['code'] ?? '') {
+                    'ad_not_found' => 404,
+                    'ad_not_active' => 422,
+                    'insufficient_balance' => 402,
+                    'wallet_not_found' => 404,
+                    'invalid_plan' => 400,
+                    default => 400,
+                };
+
+                $response = [
+                    'success' => false,
+                    'error' => $result['error'],
+                ];
+
+                if (isset($result['available_balance'])) {
+                    $response['available_balance'] = $result['available_balance'];
+                }
+                if (isset($result['required_amount'])) {
+                    $response['required_amount'] = $result['required_amount'];
+                }
+
+                return response()->json($response, $status);
+            }
+
+            // Wallet boost — instant activation (no payment redirect needed)
+            if ($paymentMethod === 'wallet') {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'boost_id' => $result['boost']->id,
+                        'amount' => $result['price'],
+                        'paid_from' => 'wallet',
+                        'plan' => isset($result['plan']) ? [
+                            'id' => $result['plan']->id,
+                            'type' => $result['plan']->type,
+                            'name' => $result['plan']->name,
+                            'price' => $result['plan']->price,
+                            'duration_days' => $result['plan']->duration_days,
+                        ] : null,
+                        'boost_type' => $result['boost_type'] ?? null,
+                        'duration_days' => $result['duration_days'] ?? null,
+                        'balance_after' => $result['balance_after'] ?? null,
+                        'message' => 'Boost activated successfully via wallet',
+                    ],
+                ]);
+            }
+
+            // Paystack boost — redirect to payment
+            $responseData = [
                 'success' => true,
                 'data' => [
-                    'boost_id' => $result['boost']->id,
+                    'payment_intent' => $result['payment_intent']->reference,
+                    'authorization_url' => $result['authorization_url'] ?? null,
+                    'access_code' => $result['access_code'] ?? null,
                     'amount' => $result['price'],
-                    'paid_from' => 'wallet',
-                    'plan' => isset($result['plan']) ? [
-                        'id' => $result['plan']->id,
-                        'type' => $result['plan']->type,
-                        'name' => $result['plan']->name,
-                        'price' => $result['plan']->price,
-                        'duration_days' => $result['plan']->duration_days,
-                    ] : null,
-                    'boost_type' => $result['boost_type'] ?? null,
                     'duration_days' => $result['duration_days'] ?? null,
-                    'balance_after' => $result['balance_after'] ?? null,
-                    'message' => 'Boost activated successfully via wallet',
                 ],
-            ]);
-        }
-
-        // Paystack boost — redirect to payment
-        $responseData = [
-            'success' => true,
-            'data' => [
-                'payment_intent' => $result['payment_intent']->reference,
-                'authorization_url' => $result['authorization_url'] ?? null,
-                'access_code' => $result['access_code'] ?? null,
-                'amount' => $result['price'],
-                'duration_days' => $result['duration_days'] ?? null,
-            ],
-        ];
-
-        if (isset($result['plan']) && $result['plan']) {
-            $responseData['data']['plan'] = [
-                'id' => $result['plan']->id,
-                'type' => $result['plan']->type,
-                'name' => $result['plan']->name,
-                'price' => $result['plan']->price,
-                'duration_days' => $result['plan']->duration_days,
             ];
-        } else {
-            $responseData['data']['boost_type'] = $result['boost_type'] ?? null;
-        }
 
-        return response()->json($responseData);
+            if (isset($result['plan']) && $result['plan']) {
+                $responseData['data']['plan'] = [
+                    'id' => $result['plan']->id,
+                    'type' => $result['plan']->type,
+                    'name' => $result['plan']->name,
+                    'price' => $result['plan']->price,
+                    'duration_days' => $result['plan']->duration_days,
+                ];
+            } else {
+                $responseData['data']['boost_type'] = $result['boost_type'] ?? null;
+            }
+
+            return response()->json($responseData);
+        } catch (\Exception $e) {
+            Log::error('Boost failed', [
+                'ad_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'An unexpected error occurred. Please try again.',
+            ], 500);
+        }
     }
 
     public function getBoostStatus(Request $request, int $id, BoostAdService $boostAdService)
     {
-        $status = $boostAdService->getBoostStatus($id, $request->user()->id);
+        $user = $this->resolveUser($request);
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $status = $boostAdService->getBoostStatus($id, $user->id);
 
         if (isset($status['error'])) {
             return response()->json(['error' => $status['error']], 404);
@@ -287,7 +302,12 @@ class GrowthController extends Controller
 
     public function checkRenewal(Request $request, int $id, BoostAdService $boostService)
     {
-        $result = $boostService->canRenewBoost($id, $request->user()->id);
+        $user = $this->resolveUser($request);
+        if (!$user) {
+            return response()->json(['success' => false, 'error' => 'Unauthenticated'], 401);
+        }
+
+        $result = $boostService->canRenewBoost($id, $user->id);
 
         if (!$result['can_renew']) {
             return response()->json([
