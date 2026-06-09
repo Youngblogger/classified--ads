@@ -126,15 +126,7 @@ export default function MyAdsPage() {
       const params = statusFilter === 'all' ? {} : { status: statusFilter };
       const res = await adsApi.getMyAds(params);
       const fetchedAds = (res.data as any)?.data ?? [];
-      const ownedAds = fetchedAds.filter((ad: any) => {
-        const adUserId = ad.user_id ?? ad.user?.id ?? null;
-        if (adUserId === null) return false;
-        return String(adUserId) === String(currentUserId) || String(adUserId) === String(authUser?.supabase_user_id);
-      });
-      if (ownedAds.length !== fetchedAds.length) {
-        console.warn(`Filtered out ${fetchedAds.length - ownedAds.length} ad(s) not owned by current user`);
-      }
-      setAds(ownedAds);
+      setAds(fetchedAds);
     } catch (error) {
       console.error('Failed to fetch ads:', error);
       setAds([]);
@@ -321,19 +313,19 @@ export default function MyAdsPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
           {[1, 2, 3, 4].map((i) => (
             <AdSkeleton key={i} />
           ))}
         </div>
       ) : filteredAds.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
           {filteredAds.map((ad) => {
             const boostCardClasses = getBoostCardClasses((ad as any).boost_type);
             return (
             <div
               key={ad.id}
-              className={`bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all duration-300 group ${boostCardClasses}`}
+              className={`bg-white rounded-[7px] border border-gray-200/70 hover:border-gray-300 overflow-hidden hover:shadow-lg transition-all duration-200 group ${boostCardClasses}`}
             >
               {/* Image */}
               <div className="relative aspect-square bg-gray-100">
@@ -399,12 +391,12 @@ export default function MyAdsPage() {
               </div>
 
               {/* Content */}
-              <div className="p-4">
+              <div className="p-2">
                 <Link href={`/ad/${ad.slug || `ad-${ad.id}`}`} className="block group/link">
-                  <h3 className="text-lg sm:text-base font-semibold text-gray-900 mb-1 line-clamp-1 group-hover/link:text-primary-600 transition-colors">{ad.title}</h3>
+                  <h3 className="font-medium text-gray-900 text-sm leading-snug truncate group-hover/link:text-primary-600 transition-colors">{ad.title}</h3>
                 </Link>
 
-                <p className="text-2xl sm:text-xl font-bold text-primary-600 mb-2">
+                <p className="text-base font-bold text-primary-600 leading-tight mb-1">
                   {formatPrice(ad.price)}
                 </p>
 
