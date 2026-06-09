@@ -40,18 +40,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const isValidUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
     if (category) {
       const { data: cat } = await sb.from('categories').select('id').eq('slug', category).maybeSingle();
       if (cat) query = query.eq('category_id', (cat as any).id);
     }
-    if (category_id) query = query.eq('category_id', String(category_id));
-    if (subcategory_id) query = query.eq('subcategory_id', String(subcategory_id));
+    if (category_id && isValidUuid(category_id)) query = query.eq('category_id', category_id);
+    if (subcategory_id && isValidUuid(subcategory_id)) query = query.eq('subcategory_id', subcategory_id);
     if (state) query = query.eq('state', state);
     if (lga) query = query.eq('lga', lga);
     if (condition) query = query.eq('condition', condition);
     if (min_price) query = query.gte('price', Number(min_price));
     if (max_price) query = query.lte('price', Number(max_price));
-    if (user_id) query = query.eq('user_id', user_id);
+    if (user_id && isValidUuid(user_id)) query = query.eq('user_id', user_id);
     if (search) query = query.ilike('title', `%${search}%`);
     if (slug) query = query.eq('slug', slug);
 
