@@ -66,58 +66,51 @@ function ClientLayoutInner({ children }: { children: React.ReactNode }) {
         </AuthProvider>
       )}
       <Toaster position="top-center">
-        {(t: any) => {
-          const isError = t.type === 'error';
-          const isSuccess = t.type === 'success';
-          return (
-            <div
+        {(t: any) => (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '14px 16px',
+              background: '#fff',
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              fontSize: '14px',
+              color: '#111827',
+              width: '100%',
+              maxWidth: '420px',
+              margin: '0 auto',
+              opacity: t.visible ? 1 : 0,
+              transition: 'all 0.3s ease',
+              pointerEvents: 'auto',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0, lineHeight: 1.4 }}>{t.message}</div>
+            <button
+              onClick={() => toast.dismiss(t.id)}
               style={{
+                flexShrink: 0,
+                padding: '4px',
+                margin: '-4px',
+                marginRight: '-8px',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                borderRadius: '8px',
+                color: '#ef4444',
                 display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px',
-                padding: '12px 16px',
-                background: '#fff',
-                borderRadius: '12px',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.06)',
-                fontSize: '14px',
-                color: '#374151',
-                width: '100%',
-                maxWidth: '420px',
-                margin: '0 auto',
-                border: '1px solid #f3f4f6',
-                borderLeft: `3px solid ${isError ? '#fca5a5' : isSuccess ? '#86efac' : '#e5e7eb'}`,
-                opacity: t.visible ? 1 : 0,
-                transition: 'all 0.3s ease',
-                pointerEvents: 'auto',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              <div style={{ flex: 1, minWidth: 0, lineHeight: 1.4 }}>{t.message}</div>
-              <button
-                onClick={() => toast.dismiss(t.id)}
-                style={{
-                  flexShrink: 0,
-                  padding: '4px',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  borderRadius: '6px',
-                  color: '#9ca3af',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.15s, color 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.color = '#6b7280'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-          );
-        }}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        )}
       </Toaster>
     </div>
   );
