@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { growthApi, walletApi } from '@/lib/api';
 import { getAuthToken } from '@/lib/cookies';
+import { useAuthStore } from '@/lib/store';
 import { recommendBoostPlan, BOOST_IMPACT, BOOST_PACKAGES, getBoostPlanLabel, type PackageDefinition } from '@/lib/boost-config';
 import { trackBoostEvent } from '@/lib/analytics';
 import { useWalletBalance, useInvalidateWallet, WALLET_QUERY_KEY } from '@/hooks/useWallet';
@@ -403,6 +404,8 @@ export default function BoostAdModal({
         body: JSON.stringify({
           plan_type: selectedPackage,
           payment_method: paymentMethod,
+          user_id: useAuthStore.getState().user?.id,
+          email: useAuthStore.getState().user?.email,
         }),
       });
 
@@ -487,6 +490,8 @@ export default function BoostAdModal({
         body: JSON.stringify({
           plan_type: selectedPackage,
           payment_method: method,
+          user_id: useAuthStore.getState().user?.id,
+          email: useAuthStore.getState().user?.email,
         }),
       });
 

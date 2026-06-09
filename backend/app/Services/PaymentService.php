@@ -23,18 +23,20 @@ class PaymentService
 
     protected function getApiKey(): string
     {
-        return config('services.paystack.secret_key');
+        return config('services.paystack.secret_key') ?? env('PAYSTACK_SECRET_KEY');
     }
 
     protected function getPublicKey(): string
     {
-        return config('services.paystack.public_key');
+        return config('services.paystack.public_key') ?? env('PAYSTACK_PUBLIC_KEY');
     }
 
     protected function getWebhookSecret(): string
     {
         return config('services.paystack.webhook_secret')
-            ?? config('services.paystack.secret_key');
+            ?? config('services.paystack.secret_key')
+            ?? env('PAYSTACK_WEBHOOK_SECRET')
+            ?? env('PAYSTACK_SECRET_KEY');
     }
 
     public function initializePayment(array $data): array

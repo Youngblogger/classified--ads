@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { Wallet } from 'lucide-react';
+import { useAuthStore } from '@/lib/store';
 import {
   WalletBalanceCard,
   WalletTransactionList,
@@ -76,9 +77,12 @@ export default function WalletPage() {
   const handleFund = async (amount: number) => {
     setFunding(true);
     try {
+      const { user } = useAuthStore.getState();
       const res = await api.post('/wallet/fund', {
         amount,
         method: 'paystack',
+        user_id: user?.id,
+        email: user?.email,
       });
 
       if (res.data.authorization_url) {

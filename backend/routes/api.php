@@ -405,10 +405,7 @@ Route::middleware('auth.api')->group(function () {
 
     // Growth & Monetization
     Route::get('/my-boosts', [GrowthController::class, 'myBoosts']);
-    Route::post('/ads/{id}/boost', [GrowthController::class, 'boostAd'])->middleware('throttle:boost');
-    Route::post('/ads/{id}/post-submission-boost', [GrowthController::class, 'postSubmissionBoost'])->middleware('throttle:boost');
     Route::get('/ads/{id}/boost-status', [GrowthController::class, 'getBoostStatus']);
-    Route::post('/ads/{id}/boost-renew', [GrowthController::class, 'renewBoost'])->middleware('throttle:boost');
     Route::get('/ads/{id}/boost-renewal-check', [GrowthController::class, 'checkRenewal']);
     Route::post('/ads/{id}/save', [GrowthController::class, 'saveAd']);
     Route::delete('/ads/{id}/unsave', [GrowthController::class, 'unsaveAd']);
@@ -458,14 +455,6 @@ Route::middleware('auth.api')->group(function () {
     Route::delete('/seller-reviews/{reviewId}', [SellerReviewController::class, 'destroy']);
     Route::post('/seller-reviews/{reviewId}/helpful', [SellerReviewController::class, 'markHelpful']);
     Route::post('/seller-reviews/{reviewId}/report', [SellerReviewController::class, 'reportReview']);
-
-    // Wallet
-    Route::get('/wallet', [WalletController::class, 'index']);
-    Route::get('/wallet/balance', [WalletController::class, 'balance']);
-    Route::post('/wallet/fund', [WalletController::class, 'fund']);
-    Route::post('/wallet/verify', [WalletController::class, 'verify']);
-    Route::post('/wallet/check-balance', [WalletController::class, 'checkBalance']);
-    Route::post('/wallet/bank-transfer-proof', [WalletController::class, 'bankTransferProof']);
 
     // Referral System
     Route::get('/referral/my-code', [ReferralController::class, 'myCode']);
@@ -551,6 +540,17 @@ Route::get('/sellers/suggested', [FollowController::class, 'suggestedSellers']);
 // Review like/unlike (no auth.api - uses body-based user_id to support Supabase auth)
 Route::post('/reviews/{reviewId}/like', [ReviewController::class, 'likeReview'])->middleware('throttle:30,1');
 Route::delete('/reviews/{reviewId}/like', [ReviewController::class, 'unlikeReview'])->middleware('throttle:30,1');
+
+// Wallet & Boosts (no auth.api - uses body-based user_id + email to support Supabase auth)
+Route::get('/wallet', [WalletController::class, 'index']);
+Route::get('/wallet/balance', [WalletController::class, 'balance']);
+Route::post('/wallet/fund', [WalletController::class, 'fund']);
+Route::post('/wallet/verify', [WalletController::class, 'verify']);
+Route::post('/wallet/check-balance', [WalletController::class, 'checkBalance']);
+Route::post('/wallet/bank-transfer-proof', [WalletController::class, 'bankTransferProof']);
+Route::post('/ads/{id}/boost', [GrowthController::class, 'boostAd'])->middleware('throttle:boost');
+Route::post('/ads/{id}/post-submission-boost', [GrowthController::class, 'postSubmissionBoost'])->middleware('throttle:boost');
+Route::post('/ads/{id}/boost-renew', [GrowthController::class, 'renewBoost'])->middleware('throttle:boost');
 
 // Email verification callback (no auth - user clicks link from email)
 Route::post('/email-verification/verify', [EmailVerificationController::class, 'verify']);

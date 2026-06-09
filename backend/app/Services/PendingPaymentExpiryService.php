@@ -17,7 +17,7 @@ class PendingPaymentExpiryService
 
     protected function getApiKey(): string
     {
-        return config('services.paystack.secret_key');
+        return config('services.paystack.secret_key') ?? env('PAYSTACK_SECRET_KEY');
     }
 
     public function getExpiryMinutes(): int
