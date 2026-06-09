@@ -129,7 +129,7 @@ export default function MyAdsPage() {
       const ownedAds = fetchedAds.filter((ad: any) => {
         const adUserId = ad.user_id ?? ad.user?.id ?? null;
         if (adUserId === null) return false;
-        return String(adUserId) === String(currentUserId);
+        return String(adUserId) === String(currentUserId) || String(adUserId) === String(authUser?.supabase_user_id);
       });
       if (ownedAds.length !== fetchedAds.length) {
         console.warn(`Filtered out ${fetchedAds.length - ownedAds.length} ad(s) not owned by current user`);

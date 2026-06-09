@@ -266,7 +266,14 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
   if (endpoint.startsWith('ads/similar?')) {
     const params = Object.fromEntries(new URLSearchParams(endpoint.replace('ads/similar?', '')));
     const res = await http.get('/ads/similar', { params: params as any });
-    return { data: normalizeAds(res?.data?.data || []) };
+    const laravelData = normalizeAds(res?.data?.data || []);
+    if (laravelData.length > 0) return { data: laravelData };
+    // Fallback to Supabase
+    try {
+      const { data: supabaseData } = await fetchSupabaseListings({ status: 'active' }, 1, 8);
+      if (supabaseData.length > 0) return { data: supabaseData };
+    } catch {}
+    return { data: [] };
   }
 
   return { data: [], meta: null };

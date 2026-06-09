@@ -564,8 +564,10 @@ export const adsApi = {
       }
     } catch {}
     try {
+      const supabaseUserId = await getSupabaseUserId();
+      if (!supabaseUserId) return sbResponse({ data: [] });
       const sp = new URLSearchParams();
-      sp.set('user_id', String(userId));
+      sp.set('user_id', supabaseUserId);
       sp.set('limit', '100');
       if (params?.status && params.status !== 'all') sp.set('status', params.status);
       const res = await fetch(`/api/listings?${sp.toString()}`, { cache: 'no-store' });

@@ -431,8 +431,8 @@ export default function AdDetailPage() {
                 {/* Thumbnail Strip */}
                 {showArrows && (
                   <div
-                    className="flex gap-2 sm:gap-3 p-3 sm:p-4 overflow-x-scroll sm:overflow-x-auto scrollbar-thumb snap-x snap-mandatory"
-                    style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 #f1f5f9', WebkitOverflowScrolling: 'touch' }}
+                    className="flex gap-2 sm:gap-3 p-3 sm:p-4 pb-3 overflow-x-auto scrollbar-thumb snap-x snap-mandatory"
+                    style={{ scrollbarWidth: 'thin', scrollbarColor: '#94a3b8 #e2e8f0', WebkitOverflowScrolling: 'touch' }}
                   >
                     {images.map((imgUrl: string, idx: number) => (
                       <button
@@ -685,7 +685,7 @@ export default function AdDetailPage() {
                         </button>
                       )}
                       <button onClick={handleChat} className="py-2.5 px-2 sm:px-3 bg-gray-900 hover:bg-gray-800 active:scale-[0.98] text-white rounded-xl font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                        <MessageCircle className="w-4 h-4 flex-shrink-0" /><span className="truncate">Chat</span>
+                        <MessageCircle className="w-4 h-4 flex-shrink-0" /><span className="truncate">Chat Seller</span>
                       </button>
                     </div>
                   </>
@@ -696,7 +696,7 @@ export default function AdDetailPage() {
               {ad.user?.id || ad.user?.name ? (
                 <SellerProfileCard
                   seller={{
-                    id: Number(ad.user?.id || ad.id || 0),
+                    id: ad.user?.id && typeof ad.user.id === 'number' ? ad.user.id : 0,
                     name: ad.user?.name || ad.sellerName || 'Unknown Seller',
                     avatar: ad.user?.avatar || null,
                     full_avatar_url: ad.user?.full_avatar_url || null,
