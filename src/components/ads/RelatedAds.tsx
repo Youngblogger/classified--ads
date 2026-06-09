@@ -76,7 +76,7 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
                 href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`}
                 className={`block bg-white rounded-[7px] overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 break-inside-avoid group ${boostCardCls}`}
               >
-                <div className="relative max-h-[200px] md:max-h-[280px] overflow-hidden bg-gray-100 flex items-center justify-center">
+                <div className="relative max-h-[300px] md:max-h-[400px] overflow-hidden bg-gray-100 flex items-center justify-center">
                   <SafeImage
                     src={imgUrl || fallbackImage}
                     alt={ad.title}
@@ -102,10 +102,12 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
                   {ad.short_description && (
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{ad.short_description}</p>
                   )}
-                  <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-400">
+                  {!ad.boost_type && (
+                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
                     <MapPin className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">{ad.state && ad.lga ? `${ad.state}, ${ad.lga}` : ''}</span>
                   </div>
+                  )}
                 </div>
               </Link>
             );

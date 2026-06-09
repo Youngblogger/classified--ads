@@ -63,7 +63,7 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
       href={safeHref}
       className={`block bg-white rounded-[7px] overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group break-inside-avoid ${cardBoostClasses}`}
     >
-      <div className="relative w-full overflow-hidden bg-gray-100 rounded-t-[7px]" style={{ maxHeight: '200px' }}>
+      <div className="relative w-full overflow-hidden bg-gray-100 rounded-t-[7px] flex items-center justify-center max-h-[300px] md:max-h-[400px]">
         <SafeImage
           src={imageUrl || fallbackImage}
           alt={safeTitle}
@@ -81,7 +81,7 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
           </div>
         )}
       </div>
-      <div className="p-2.5">
+      <div className="p-2">
         <div className="flex items-center justify-between flex-wrap gap-0.5 mb-0.5">
           <p className="text-base font-bold text-primary-600 leading-tight">
             {formatPrice(ad.price, ad.currency)}
@@ -100,16 +100,17 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
             {description}
           </p>
         )}
-        {(getLocationDisplay()) && (
-          <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-400">
-            <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{getLocationDisplay()}</span>
-          </div>
-        )}
-        {boostType && (
-          <div className="mt-1.5">
+        {boostType ? (
+          <div className="flex items-center justify-end mt-1">
             <PromotedBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} />
           </div>
+        ) : (
+          getLocationDisplay() && (
+            <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{getLocationDisplay()}</span>
+            </div>
+          )
         )}
       </div>
     </Link>
