@@ -62,7 +62,7 @@ class GrowthController extends Controller
         ]);
     }
 
-    public function boostAd(Request $request, int $id, BoostAdService $boostAdService, PaymentService $paymentService)
+    public function boostAd(Request $request, int|string $id, BoostAdService $boostAdService, PaymentService $paymentService)
     {
         try {
             $user = $this->resolveUser($request);
@@ -181,7 +181,7 @@ class GrowthController extends Controller
         }
     }
 
-    public function getBoostStatus(Request $request, int $id, BoostAdService $boostAdService)
+    public function getBoostStatus(Request $request, int|string $id, BoostAdService $boostAdService)
     {
         $user = $this->resolveUser($request);
         if (!$user) {
@@ -209,7 +209,7 @@ class GrowthController extends Controller
         ]);
     }
 
-    public function renewBoost(Request $request, int $id, BoostAdService $boostAdService)
+    public function renewBoost(Request $request, int|string $id, BoostAdService $boostAdService)
     {
         $user = $this->resolveUser($request);
         if (!$user) {
@@ -300,7 +300,7 @@ class GrowthController extends Controller
         ]);
     }
 
-    public function checkRenewal(Request $request, int $id, BoostAdService $boostService)
+    public function checkRenewal(Request $request, int|string $id, BoostAdService $boostService)
     {
         $user = $this->resolveUser($request);
         if (!$user) {
@@ -531,7 +531,7 @@ class GrowthController extends Controller
         return response()->json(['message' => 'Recently viewed cleared']);
     }
 
-    public function postSubmissionBoost(Request $request, int $id, BoostAdService $boostAdService, PaymentService $paymentService)
+    public function postSubmissionBoost(Request $request, int|string $id, BoostAdService $boostAdService, PaymentService $paymentService)
     {
         $user = $this->resolveUser($request);
         if (!$user) {

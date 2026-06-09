@@ -52,7 +52,7 @@ class BoostAdService
         return round($basePrice * $days * $multiplier, 2);
     }
 
-    public function createBoost(int $adId, int $userId, string $boostType, int $durationDays, string $paymentMethod = 'paystack'): array
+    public function createBoost(int|string $adId, int $userId, string $boostType, int $durationDays, string $paymentMethod = 'paystack'): array
     {
         $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
 
@@ -256,7 +256,7 @@ class BoostAdService
         });
     }
 
-    public function createPlanBoost(int $adId, int $userId, string $planType, string $paymentMethod = 'paystack'): array
+    public function createPlanBoost(int|string $adId, int $userId, string $planType, string $paymentMethod = 'paystack'): array
     {
         $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
 
@@ -296,7 +296,7 @@ class BoostAdService
         return $this->processPaystackPlanBoost($ad, $userId, $plan, $price, $durationDays);
     }
 
-    public function createPlanRenew(int $adId, int $userId, string $planType, string $paymentMethod = 'paystack'): array
+    public function createPlanRenew(int|string $adId, int $userId, string $planType, string $paymentMethod = 'paystack'): array
     {
         $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
 
@@ -501,7 +501,7 @@ class BoostAdService
         });
     }
 
-    public function renewBoost(int $adId, int $userId, string $boostType, int $durationDays): array
+    public function renewBoost(int|string $adId, int $userId, string $boostType, int $durationDays): array
     {
         $canRenew = $this->canRenewBoost($adId, $userId, $boostType);
 
@@ -560,7 +560,7 @@ class BoostAdService
         });
     }
 
-    public function canRenewBoost(int $adId, int $userId, ?string $boostType = null): array
+    public function canRenewBoost(int|string $adId, int $userId, ?string $boostType = null): array
     {
         $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
 
@@ -736,14 +736,14 @@ class BoostAdService
         ];
     }
 
-    public function isActiveBoost(int $adId): bool
+    public function isActiveBoost(int|string $adId): bool
     {
         return BoostedAd::where('ad_id', $adId)
             ->active()
             ->exists();
     }
 
-    public function getActiveBoost(int $adId): ?BoostedAd
+    public function getActiveBoost(int|string $adId): ?BoostedAd
     {
         return BoostedAd::where('ad_id', $adId)
             ->active()
@@ -751,7 +751,7 @@ class BoostAdService
             ->first();
     }
 
-    public function getLatestExpiredBoost(int $adId, ?string $boostType = null): ?BoostedAd
+    public function getLatestExpiredBoost(int|string $adId, ?string $boostType = null): ?BoostedAd
     {
         $query = BoostedAd::where('ad_id', $adId)
             ->where('status', 'expired');
@@ -763,7 +763,7 @@ class BoostAdService
         return $query->latest('end_time')->first();
     }
 
-    public function getBoostPriority(int $adId): int
+    public function getBoostPriority(int|string $adId): int
     {
         $boost = $this->getActiveBoost($adId);
 
@@ -779,7 +779,7 @@ class BoostAdService
         };
     }
 
-    public function getBoostStatus(int $adId, int $userId): array
+    public function getBoostStatus(int|string $adId, int $userId): array
     {
         $ad = Ad::where('id', $adId)->where('user_id', $userId)->first();
 
