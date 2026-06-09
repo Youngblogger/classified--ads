@@ -75,6 +75,7 @@
 
   body {
     @apply text-slate-800 font-sans;
+    position: relative;
     background-color: #F5F7FA;
     margin: 0;
     padding: 0;
@@ -416,6 +417,28 @@
 
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  .scrollbar-thumb {
+    -ms-overflow-style: auto;
+  }
+
+  .scrollbar-thumb::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .scrollbar-thumb::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  .scrollbar-thumb::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  .scrollbar-thumb::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
   }
 
   .glass-effect {
