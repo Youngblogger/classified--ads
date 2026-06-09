@@ -384,10 +384,10 @@ export const adsApi = {
           if (parentId) {
             listing.category_id = await resolveCategoryUuid(parentId);
           }
-          listing.subcategory_id = await resolveSubcategoryUuid(rawId);
+          listing.subcategory_id = await resolveSubcategoryUuid(rawId, undefined, listing.category_id as string | undefined);
         } else if (parentSlug) {
           listing.category_id = await resolveCategoryUuid(0, parentSlug);
-          listing.subcategory_id = await resolveSubcategoryUuid(0, rawSlug);
+          listing.subcategory_id = await resolveSubcategoryUuid(0, rawSlug, listing.category_id as string | undefined);
         } else if (rawSlug) {
           listing.category_id = await resolveCategoryUuid(rawId, rawSlug);
           delete listing.subcategory_id;
@@ -504,7 +504,7 @@ export const adsApi = {
           if (parentId) {
             updates.category_id = await resolveCategoryUuid(parentId);
           }
-          updates.subcategory_id = await resolveSubcategoryUuid(rawId);
+          updates.subcategory_id = await resolveSubcategoryUuid(rawId, undefined, updates.category_id as string | undefined);
         } else {
           updates.category_id = await resolveCategoryUuid(rawId);
           delete updates.subcategory_id;

@@ -11,6 +11,22 @@ const ID_TO_SLUG: Record<number, string> = {
   8: 'services', 801: 'cleaning-services', 802: 'repair-services', 803: 'moving-services', 804: 'event-planning',
   9: 'pets', 901: 'dogs', 902: 'cats', 903: 'birds', 904: 'pet-food',
   10: 'health-beauty', 1001: 'skincare', 1002: 'haircare', 1003: 'makeup', 1004: 'fragrances',
+  11: 'baby-kids', 12: 'sports', 13: 'books-music-movies', 14: 'food-drinks', 15: 'office-supplies',
+  16: 'travel', 17: 'agriculture', 18: 'repair-services', 19: 'cleaning-services', 20: 'moving-services',
+  21: 'photography', 22: 'event-planning', 23: 'tutoring', 24: 'fitness', 25: 'healthcare',
+  26: 'beauty-services', 27: 'it-services', 28: 'construction', 29: 'accounting', 30: 'legal',
+  31: 'security', 32: 'entertainment', 33: 'manufacturing', 34: 'mining', 35: 'energy',
+  36: 'telecommunications', 37: 'logistics', 38: 'religious-items', 39: 'party-supplies', 40: 'pets-supplies',
+  41: 'baby-gear', 42: 'maternity', 43: 'kids-toys', 44: 'kids-clothing', 45: 'kids-footwear',
+  46: 'school-supplies', 47: 'kids-furniture', 48: 'kids-electronics', 49: 'kids-books', 50: 'kids-sports',
+  51: 'kids-health', 52: 'kids-services', 53: 'baby-health', 54: 'baby-feeding', 55: 'baby-bathing',
+  56: 'baby-safety', 57: 'baby-nursing', 58: 'baby-bedding', 59: 'baby-strollers', 60: 'baby-carriers',
+  61: 'baby-car-seats', 62: 'baby-toys', 63: 'baby-books', 64: 'baby-clothing', 65: 'baby-footwear',
+  66: 'baby-room-decor', 67: 'baby-gifts', 68: 'kids-room-decor', 69: 'kids-gifts', 70: 'kids-bags',
+  71: 'kids-shoes', 72: 'kids-watches', 73: 'kids-jewelry', 74: 'kids-sunglasses', 75: 'kids-hats',
+  76: 'kids-swimwear', 77: 'kids-sleepwear', 78: 'kids-underwear', 79: 'kids-costumes', 80: 'kids-uniforms',
+  81: 'kids-backpacks', 82: 'kids-lunch-boxes', 83: 'kids-water-bottles', 84: 'kids-bedding',
+  85: 'kids-lighting',   86: 'kids-storage', 88: 'baby-kids',
 };
 
 const CHILD_TO_PARENT: Record<number, number> = {
@@ -62,35 +78,68 @@ export async function resolveCategoryUuid(intId: number | string, slugFallback?:
   if (!slug) {
     throw new Error(`Unknown category ID: ${id}. No slug mapping found.`);
   }
+
   // Try categories table first
   const catMap = await getCategoriesMap();
   const catUuid = catMap.get(slug);
   if (catUuid) return catUuid;
+
   // Fallback: slug may live in subcategories
   const subMap = await getSubcategoriesMap();
   const subUuid = subMap.get(slug);
   if (subUuid) return subUuid;
-  throw new Error(
-    `Category slug "${slug}" (ID: ${id}) not found in Supabase categories or subcategories. ` +
-    `Ensure the slug is seeded in the correct table.`
-  );
+
+  // Auto-create the category in Supabase if it doesn't exist
+  const name = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const { data: newCat, error: insertErr } = await supabase
+    .from('categories')
+    .insert({ name, slug, is_active: true })
+    .select('id')
+    .single();
+
+  if (insertErr || !newCat) {
+    throw new Error(
+      `Category slug "${slug}" (ID: ${id}) not found and auto-creation failed: ${insertErr?.message || 'unknown error'}`
+    );
+  }
+
+  // Invalidate cache so subsequent lookups find the new row
+  categoriesCache = null;
+  return newCat.id;
 }
 
-export async function resolveSubcategoryUuid(intId: number | string, slugFallback?: string): Promise<string> {
+export async function resolveSubcategoryUuid(intId: number | string, slugFallback?: string, parentUuid?: string): Promise<string> {
   const id = typeof intId === 'string' ? parseInt(intId, 10) : intId;
   const slug = ID_TO_SLUG[id] || slugFallback;
   if (!slug) {
     throw new Error(`Unknown subcategory ID: ${id}. No slug mapping found.`);
   }
+
   // Try subcategories table first
   const subMap = await getSubcategoriesMap();
   const subUuid = subMap.get(slug);
   if (subUuid) return subUuid;
-  // Fallback: API treats all categories as a single hierarchy, so the slug may
-  // live in the categories table instead of subcategories.
+
+  // Fallback: slug may live in categories table
   const catMap = await getCategoriesMap();
   const catUuid = catMap.get(slug);
   if (catUuid) return catUuid;
+
+  // Auto-create in subcategories if we have a parent UUID
+  if (parentUuid) {
+    const name = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const { data: newSub, error: insertErr } = await supabase
+      .from('subcategories')
+      .insert({ category_id: parentUuid, name, slug, is_active: true })
+      .select('id')
+      .single();
+
+    if (!insertErr && newSub) {
+      subcategoriesCache = null;
+      return newSub.id;
+    }
+  }
+
   throw new Error(
     `Subcategory slug "${slug}" (ID: ${id}) not found in Supabase subcategories or categories. ` +
     `Seed the subcategories table with this slug or add a mapping.`
