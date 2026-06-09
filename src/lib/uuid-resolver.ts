@@ -72,78 +72,36 @@ export function invalidateUuidCache(): void {
   subcategoriesCache = null;
 }
 
-export async function resolveCategoryUuid(intId: number | string, slugFallback?: string): Promise<string> {
+export async function resolveCategoryUuid(intId: number | string, slugFallback?: string): Promise<string | null> {
   const id = typeof intId === 'string' ? parseInt(intId, 10) : intId;
   const slug = ID_TO_SLUG[id] || slugFallback;
-  if (!slug) {
-    throw new Error(`Unknown category ID: ${id}. No slug mapping found.`);
-  }
+  if (!slug) return null;
 
-  // Try categories table first
   const catMap = await getCategoriesMap();
   const catUuid = catMap.get(slug);
   if (catUuid) return catUuid;
 
-  // Fallback: slug may live in subcategories
   const subMap = await getSubcategoriesMap();
   const subUuid = subMap.get(slug);
   if (subUuid) return subUuid;
 
-  // Auto-create the category in Supabase if it doesn't exist
-  const name = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  const { data: newCat, error: insertErr } = await supabase
-    .from('categories')
-    .insert({ name, slug, is_active: true })
-    .select('id')
-    .single();
-
-  if (insertErr || !newCat) {
-    throw new Error(
-      `Category slug "${slug}" (ID: ${id}) not found and auto-creation failed: ${insertErr?.message || 'unknown error'}`
-    );
-  }
-
-  // Invalidate cache so subsequent lookups find the new row
-  categoriesCache = null;
-  return newCat.id;
+  return null;
 }
 
-export async function resolveSubcategoryUuid(intId: number | string, slugFallback?: string, parentUuid?: string): Promise<string> {
+export async function resolveSubcategoryUuid(intId: number | string, slugFallback?: string, _parentUuid?: string): Promise<string | null> {
   const id = typeof intId === 'string' ? parseInt(intId, 10) : intId;
   const slug = ID_TO_SLUG[id] || slugFallback;
-  if (!slug) {
-    throw new Error(`Unknown subcategory ID: ${id}. No slug mapping found.`);
-  }
+  if (!slug) return null;
 
-  // Try subcategories table first
   const subMap = await getSubcategoriesMap();
   const subUuid = subMap.get(slug);
   if (subUuid) return subUuid;
 
-  // Fallback: slug may live in categories table
   const catMap = await getCategoriesMap();
   const catUuid = catMap.get(slug);
   if (catUuid) return catUuid;
 
-  // Auto-create in subcategories if we have a parent UUID
-  if (parentUuid) {
-    const name = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    const { data: newSub, error: insertErr } = await supabase
-      .from('subcategories')
-      .insert({ category_id: parentUuid, name, slug, is_active: true })
-      .select('id')
-      .single();
-
-    if (!insertErr && newSub) {
-      subcategoriesCache = null;
-      return newSub.id;
-    }
-  }
-
-  throw new Error(
-    `Subcategory slug "${slug}" (ID: ${id}) not found in Supabase subcategories or categories. ` +
-    `Seed the subcategories table with this slug or add a mapping.`
-  );
+  return null;
 }
 
 export function isChildId(id: number | string): boolean {
