@@ -3,13 +3,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import SellerProfileCard from '@/components/ui/SellerProfileCard';
 import RelatedAds from '@/components/ads/RelatedAds';
 import LatestReviews from '@/components/reviews/LatestReviews';
-import AdAttributes from '@/components/ads/AdAttributes';
 import AdSpecifications from '@/components/ads/AdSpecifications';
 import ReportAdModal from '@/components/ui/ReportAdModal';
 import BoostAdModal from '@/components/ui/BoostAdModal';
@@ -18,12 +17,13 @@ import { DynamicChatModal } from '@/lib/dynamicImports';
 import { copyToClipboard } from '@/lib/share';
 import { useAuthStore } from '@/lib/store';
 import { requireAuth } from '@/lib/require-auth';
-import { Heart, Phone, ChevronRight, MessageCircle, Home, CheckCircle, Flag, ImageIcon, Zap, Ban, X, Maximize2 } from 'lucide-react';
+import { Heart, Phone, ChevronRight, MessageCircle, Home, CheckCircle, Flag, ImageIcon, Zap, Ban, X } from 'lucide-react';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 import toast from 'react-hot-toast';
-import { formatPrice, FALLBACK_IMAGE, getAdImages, getAdImageUrl } from '@/lib/utils';
-import { normalizeAd, extractAdImages, normalizeSpecifications } from '@/lib/normalize-ad';
+import { formatPrice, FALLBACK_IMAGE } from '@/lib/utils';
+import { normalizeAd } from '@/lib/normalize-ad';
+import type { NormalizedAd } from '@/lib/normalize-ad';
 import { favoritesApi } from '@/lib/api';
 import { useAdDetail } from '@/hooks/useAds';
 
@@ -39,8 +39,6 @@ const FacebookIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-
-
 const XIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
@@ -54,12 +52,57 @@ const EmailIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+function getImageUrls(ad: NormalizedAd | null): string[] {
+  if (!ad?.images || ad.images.length === 0) return [FALLBACK_IMAGE];
+  return ad.images.map((img) => img.url).filter(Boolean);
+}
+
+function getConditionBadge(condition: string): { label: string; className: string } {
+  const c = condition.toLowerCase();
+  if (c === 'new' || c === 'brand_new' || c === 'brand new') return { label: 'New', className: 'bg-green-50 text-green-700' };
+  if (c === 'like_new' || c === 'like new') return { label: 'Like New', className: 'bg-blue-50 text-blue-700' };
+  if (c === 'good') return { label: 'Used', className: 'bg-amber-50 text-amber-700' };
+  if (c === 'fair') return { label: 'Refurbished', className: 'bg-yellow-50 text-yellow-800' };
+  return { label: condition.charAt(0).toUpperCase() + condition.slice(1), className: 'bg-gray-50 text-gray-600' };
+}
+
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  sold: { label: 'Sold', className: 'bg-gray-900/80 text-white' },
+  paused: { label: 'Paused', className: 'bg-amber-500/90 text-white' },
+  expired: { label: 'Expired', className: 'bg-red-500/90 text-white' },
+  rejected: { label: 'Rejected', className: 'bg-red-500/90 text-white' },
+  suspended: { label: 'Suspended', className: 'bg-red-600/90 text-white' },
+  draft: { label: 'Draft', className: 'bg-gray-500/90 text-white' },
+};
+
+function formatNigerianPhone(phone: string): string {
+  const clean = phone.replace(/\D/g, '');
+  if (clean.startsWith('234')) return clean;
+  if (clean.startsWith('0')) return '234' + clean.substring(1);
+  return clean;
+}
+
+function formatPhoneDisplay(phone: string): string {
+  const clean = phone.replace(/\D/g, '');
+  if (clean.startsWith('234') && clean.length === 13) {
+    return `+234 ${clean.slice(3, 6)} ${clean.slice(6, 9)} ${clean.slice(9)}`;
+  }
+  if (clean.length === 11 && clean.startsWith('0')) {
+    const national = '234' + clean.slice(1);
+    return `+234 ${national.slice(3, 6)} ${national.slice(6, 9)} ${national.slice(9)}`;
+  }
+  if (clean.length >= 10) {
+    const national = clean.length > 10 ? clean.slice(-10) : clean;
+    return `+234 ${national.slice(0, 3)} ${national.slice(3, 6)} ${national.slice(6)}`;
+  }
+  return phone;
+}
+
 export default function AdDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params?.slug as string | undefined;
   
-  const [ad, setAd] = useState<any>(null);
+  const [ad, setAd] = useState<NormalizedAd | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -80,14 +123,9 @@ export default function AdDetailPage() {
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [boostButtonLoading, setBoostButtonLoading] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
   const { user } = useAuthStore();
   
-  const getCurrentImageUrl = useCallback((adData: any, index: number): string => {
-    const images = getAdImages(adData);
-    if (images.length === 0) return FALLBACK_IMAGE;
-    return images[index] || images[0] || FALLBACK_IMAGE;
-  }, []);
-
   const minSwipeDistance = 50;
 
   const onTouchStart = (e: React.TouchEvent) => {
@@ -100,15 +138,10 @@ export default function AdDetailPage() {
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (touchStart === null || touchEnd === null) return;
     const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    if (isLeftSwipe) {
-      nextImage();
-    } else if (isRightSwipe) {
-      prevImage();
-    }
+    if (distance > minSwipeDistance) nextImage();
+    else if (distance < -minSwipeDistance) prevImage();
   };
 
   const onMouseDown = (e: React.MouseEvent) => {
@@ -119,11 +152,8 @@ export default function AdDetailPage() {
     if (mouseDown === null) return;
     const distance = mouseDown - e.clientX;
     if (Math.abs(distance) > minSwipeDistance) {
-      if (distance > 0) {
-        nextImage();
-      } else {
-        prevImage();
-      }
+      if (distance > 0) nextImage();
+      else prevImage();
       setMouseDown(null);
     }
   };
@@ -132,22 +162,26 @@ export default function AdDetailPage() {
     setMouseDown(null);
   };
 
-  const { ad: fetchedAd, isLoading: adLoading, isError: adError, error: adFetchError } = useAdDetail(slug && slug !== '[slug]' && slug !== 'undefined' && slug !== 'ad-undefined' && slug !== 'null' && slug !== 'ad-null' ? slug : '');
+  const { ad: fetchedAd, isLoading: adLoading, isError: adError, error: adFetchError } = useAdDetail(
+    slug && slug !== '[slug]' && slug !== 'undefined' && slug !== 'ad-undefined' && slug !== 'null' && slug !== 'ad-null' ? slug : ''
+  );
+
+  const isValidSlug = slug && slug !== '[slug]' && slug !== 'undefined' && slug !== 'ad-undefined' && slug !== 'null' && slug !== 'ad-null';
 
   useEffect(() => {
-    if (!slug || slug === '[slug]' || slug === 'undefined' || slug === 'ad-undefined' || slug === 'null' || slug === 'ad-null') {
+    if (!isValidSlug) {
       setLoading(false);
       setError('Invalid ad URL');
     }
-  }, [slug]);
+  }, [isValidSlug]);
 
   useEffect(() => {
-    if (slug && slug !== '[slug]' && slug !== 'undefined' && slug !== 'ad-undefined' && slug !== 'null' && slug !== 'ad-null') {
+    if (isValidSlug) {
       setCurrentImageIndex(0);
       setCurrentImageError(false);
       setThumbnailErrors({});
     }
-  }, [slug]);
+  }, [isValidSlug]);
 
   useEffect(() => {
     if (adLoading) {
@@ -160,74 +194,70 @@ export default function AdDetailPage() {
       setLoading(false);
       setError('Ad not found');
     } else if (fetchedAd) {
-      const rawId = fetchedAd.id;
-      const rawTitle = fetchedAd.title;
-
       const normalized = normalizeAd(fetchedAd, true);
-      const adWithImages = normalized ? {
-        ...normalized,
-        images: extractAdImages(normalized.images || fetchedAd.images || fetchedAd.listing_images || []),
-        specifications: normalizeSpecifications(
-          normalized.specifications?.length ? normalized.specifications :
-          fetchedAd.specifications || fetchedAd.specs || fetchedAd.attributes || fetchedAd.attrs || {}
-        ),
-      } : fetchedAd;
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[DETAIL] Raw fetchedAd:', { id: rawId, title: rawTitle, images: fetchedAd.images?.length, specsKeys: fetchedAd.specifications?.length || Object.keys(fetchedAd.attributes || {}).length });
-        console.log('[DETAIL] Normalized:', { id: adWithImages.id, imagesCount: adWithImages.images?.length, specsCount: adWithImages.specifications?.length, images: adWithImages.images?.slice(0, 2), specs: adWithImages.specifications?.slice(0, 2) });
-        if (adWithImages.images?.length === 0) console.warn('[DETAIL] ZERO images after normalization', { rawImagesField: fetchedAd.images, rawListingImages: fetchedAd.listing_images, rawImageUrl: fetchedAd.image_url });
-        if (!adWithImages.specifications?.length) console.warn('[DETAIL] ZERO specs after normalization', { rawSpecs: fetchedAd.specifications, rawAttributes: fetchedAd.attributes, rawSpecsField: fetchedAd.specs });
-      }
-
-      setAd(adWithImages);
+      setAd(normalized);
       setLoading(false);
       setError(null);
     }
   }, [fetchedAd, adLoading, adError, adFetchError]);
 
-  // Set page title
   useEffect(() => {
     document.title = 'iList - Your Trusted Classified Marketplace';
   }, []);
 
-  // Set current URL only on client side (not in iframe)
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && window.self === window.top && window.location.href) {
         setCurrentUrl(window.location.href);
       }
     } catch (e) {
-      // Ignore errors when in restricted context (iframes)
+      // Ignore cross-origin iframe context errors
     }
   }, []);
 
-  // Auto-slide images - uses sliderImages count to stay in sync
+  const images = useMemo(() => getImageUrls(ad), [ad]);
+  const showArrows = images.length > 1;
+
+  const currentImageUrl = currentImageError ? FALLBACK_IMAGE : (images[currentImageIndex] || images[0] || FALLBACK_IMAGE);
+
+  // Auto-slide images
+  const userInteracted = useRef(false);
   useEffect(() => {
-    const images = getAdImages(ad);
     if (!ad || images.length <= 1) return;
-    
     const interval = setInterval(() => {
       if (!userInteracted.current) {
         setCurrentImageIndex((prev) => (prev + 1) % images.length);
       }
     }, 4000);
-    
     return () => clearInterval(interval);
-  }, [ad]);
+  }, [ad, images.length]);
 
-  // Track user interaction to pause autoplay
-  const userInteracted = useRef(false);
   const pauseAutoplay = useCallback(() => {
     userInteracted.current = true;
     setTimeout(() => { userInteracted.current = false; }, 8000);
+  }, []);
+
+  const nextImage = () => {
+    if (images.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    }
+  };
+
+  const prevImage = () => {
+    if (images.length > 0) {
+      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    }
+  };
+
+  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setIsPortrait(img.naturalHeight > img.naturalWidth * 1.2);
   }, []);
 
   const toggleFavorite = async () => {
     if (!requireAuth(window.location.pathname)) return;
     if (favoriteLoading || !ad) return;
     
-    // Trigger animation
     if (!isFavorited) {
       setFavoriteAnimating(true);
       setTimeout(() => setFavoriteAnimating(false), 500);
@@ -248,33 +278,6 @@ export default function AdDetailPage() {
       toast.error('Failed to update favorite', { id: 'fav-toast' });
     }
     setFavoriteLoading(false);
-  };
-
-  const formatNigerianPhone = (phone: string): string => {
-    const clean = phone.replace(/\D/g, '');
-    if (clean.startsWith('234')) {
-      return clean;
-    }
-    if (clean.startsWith('0')) {
-      return '234' + clean.substring(1);
-    }
-    return clean;
-  };
-
-  const formatPhoneDisplay = (phone: string): string => {
-    const clean = phone.replace(/\D/g, '');
-    if (clean.startsWith('234') && clean.length === 13) {
-      return `+234 ${clean.slice(3, 6)} ${clean.slice(6, 9)} ${clean.slice(9)}`;
-    }
-    if (clean.length === 11 && clean.startsWith('0')) {
-      const national = '234' + clean.slice(1);
-      return `+234 ${national.slice(3, 6)} ${national.slice(6, 9)} ${national.slice(9)}`;
-    }
-    if (clean.length >= 10) {
-      const national = clean.length > 10 ? clean.slice(-10) : clean;
-      return `+234 ${national.slice(0, 3)} ${national.slice(3, 6)} ${national.slice(6)}`;
-    }
-    return phone;
   };
 
   const handleWhatsApp = () => {
@@ -307,35 +310,6 @@ export default function AdDetailPage() {
       return;
     }
     setShowChat(true);
-  };
-
-  const nextImage = () => {
-    if (imagesArray.length > 0) {
-      setCurrentImageIndex((prev) => (prev + 1) % imagesArray.length);
-    }
-  };
-
-  const prevImage = () => {
-    if (imagesArray.length > 0) {
-      setCurrentImageIndex((prev) => (prev - 1 + imagesArray.length) % imagesArray.length);
-    }
-  };
-
-  const getImageUrl = (img: any) => {
-    if (!img) return null;
-    let url = '';
-    if (typeof img === 'string') {
-      url = img;
-    } else {
-      url = img.full_url || img.full_thumbnail_url || img.display_url || img.thumbnail_url || img.thumbnail || img.url || img.original_url || '';
-    }
-    if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('/storage/')) return url;
-    if (url.startsWith('storage/')) return `/${url}`;
-    if (url.startsWith('/')) return url;
-    if (url.startsWith('json_dataset/')) return url.replace('json_dataset/', '/');
-    return `/images/${url}`;
   };
 
   if (loading) return (
@@ -376,37 +350,25 @@ export default function AdDetailPage() {
   );
 }
 
-  // Build slider images from normalized ad.images (objects → URL strings)
-  const getSliderImageUrls = () => {
-    if (!ad?.images || !Array.isArray(ad.images) || ad.images.length === 0) {
-      const fallback = getAdImages(ad);
-      return fallback.length > 0 ? fallback : [FALLBACK_IMAGE];
-    }
-    return ad.images
-      .map((img: any) => getAdImageUrl(img))
-      .filter(Boolean);
-  };
-  
-  const sliderImages = getSliderImageUrls();
-  const imagesArray = sliderImages;
-  const imagesUrls = sliderImages;
-  const currentImageUrl = currentImageError ? FALLBACK_IMAGE : (sliderImages[currentImageIndex] || sliderImages[0] || FALLBACK_IMAGE);
-  
-  // Show arrows only when multiple UNIQUE images exist
-  const showArrows = sliderImages.length > 1;
+  if (!ad) return null;
+
+  const contactPhone = ad.user?.phone || ad.phone || ad.sellerPhone;
+  const displayPhone = showPhone ? formatPhoneDisplay(formatNigerianPhone(contactPhone)) : '';
+  const categoryName = ad.category?.name;
+  const categorySlug = ad.category?.slug || ad.category_id;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <ResponsiveHeader />
-      <main className="flex-1 container mx-auto px-2 sm:px-4 md:pb-6 md:pt-24">
+      <main className="flex-1 container mx-auto px-3 sm:px-4 md:pb-6 md:pt-24 overflow-x-hidden">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
-          <div className="pt-2 mb-1 sm:mb-4 md:pt-4 flex items-center gap-1 text-xs text-gray-500">
+          <div className="pt-2 mb-1 sm:mb-4 md:pt-4 flex items-center gap-1 text-xs text-gray-500 flex-wrap">
             <Link href="/" className="hover:text-primary-600 flex items-center gap-0.5"><Home className="w-3 h-3" />Home</Link>
             <ChevronRight className="w-3 h-3" />
-            {ad.category?.name ? (
-              <Link href={`/ads?category=${ad.category?.slug || ad.category_id || ''}`} className="hover:text-primary-600">
-                {ad.category.name}
+            {categoryName ? (
+              <Link href={`/ads?category=${categorySlug || ''}`} className="hover:text-primary-600">
+                {categoryName}
               </Link>
             ) : (
               <span className="text-gray-900">Category</span>
@@ -417,11 +379,12 @@ export default function AdDetailPage() {
 
           <div className="grid lg:grid-cols-3 gap-3 md:gap-6">
             {/* Left Column - Images & Details */}
-            <div className="lg:col-span-2 space-y-px">
+            <div className="lg:col-span-2 space-y-px min-w-0">
               {/* Image Gallery */}
-              <div className="bg-white rounded-t-2xl shadow-sm overflow-hidden border-t-8 border-primary-600">
+              <div className="bg-white rounded-t-2xl shadow-sm border-t-8 border-primary-600 overflow-hidden">
                 <div 
-                  className="relative aspect-[4/3] bg-gray-100 select-none cursor-pointer"
+                  className="relative bg-gray-100 select-none cursor-pointer w-full"
+                  style={{ minHeight: '300px', maxHeight: 'min(70vh, 600px)' }}
                   onTouchStart={(e) => { pauseAutoplay(); onTouchStart(e); }}
                   onTouchMove={onTouchMove}
                   onTouchEnd={(e) => { pauseAutoplay(); onTouchEnd(); }}
@@ -431,93 +394,54 @@ export default function AdDetailPage() {
                   onMouseLeave={onMouseUp}
                   onClick={() => setShowFullscreen(true)}
                 >
-                  {imagesUrls.length > 0 ? (
+                  {images.length > 0 ? (
                     <Image 
                       key={`${ad.id}-img-${currentImageIndex}`}
-                      src={`${currentImageUrl}${currentImageUrl.includes('?') ? '&' : '?'}_cb=${ad?.updated_at || ad?.created_at || Date.now()}`}
+                      src={`${currentImageUrl}${currentImageUrl.includes('?') ? '&' : '?'}_cb=${ad.updated_at || ad.created_at || Date.now()}`}
                       alt={ad.title} 
                       fill
                       sizes="(max-width: 768px) 100vw, 60vw"
-                      className="object-cover"
+                      className={`${isPortrait ? 'object-contain' : 'object-cover'}`}
                       onError={() => setCurrentImageError(true)}
+                      onLoad={handleImageLoad}
                       priority={currentImageIndex === 0}
                     />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100">
+                    <div className="w-full h-full min-h-[300px] flex flex-col items-center justify-center bg-gray-100">
                       <ImageIcon className="w-16 h-16 text-gray-300 mb-2" />
                       <span className="text-gray-400 text-sm">No image available</span>
                     </div>
                   )}
                   
                   {/* Badges */}
-                  <div className="absolute top-2 left-12 flex flex-col gap-1.5">
+                  <div className="absolute top-2 left-3 flex flex-col gap-1.5">
                     {ad.condition && (
-                      <div>
-                        {(() => {
-                          const condition = String(ad.condition).toLowerCase();
-                          let badgeClass = '';
-                          let label = '';
-                          
-                          if (condition === 'new' || condition === 'brand_new' || condition === 'brand new') {
-                            badgeClass = 'bg-green-50 text-green-700';
-                            label = 'New';
-                          } else if (condition === 'like_new' || condition === 'like new') {
-                            badgeClass = 'bg-blue-50 text-blue-700';
-                            label = 'Like New';
-                          } else if (condition === 'good') {
-                            badgeClass = 'bg-amber-50 text-amber-700';
-                            label = 'Used';
-                          } else if (condition === 'fair') {
-                            badgeClass = 'bg-yellow-50 text-yellow-800';
-                            label = 'Refurbished';
-                          } else {
-                            badgeClass = 'bg-gray-50 text-gray-600';
-                            label = condition.charAt(0).toUpperCase() + condition.slice(1);
-                          }
-                          
-                          return (
-                            <span className={`px-2 py-0.5 rounded-[5px] text-xs font-medium ${badgeClass}`}>
-                              {label}
-                            </span>
-                          );
-                        })()}
-                      </div>
+                      <span className={`px-2 py-0.5 rounded-[5px] text-xs font-medium ${getConditionBadge(ad.condition).className}`}>
+                        {getConditionBadge(ad.condition).label}
+                      </span>
                     )}
                     {ad.status && !['active', 'pending'].includes(ad.status) && (
-                      <div>
-                        {(() => {
-                          const statusMap: Record<string, { label: string; class: string }> = {
-                            sold: { label: 'Sold', class: 'bg-gray-900/80 text-white' },
-                            paused: { label: 'Paused', class: 'bg-amber-500/90 text-white' },
-                            expired: { label: 'Expired', class: 'bg-red-500/90 text-white' },
-                            rejected: { label: 'Rejected', class: 'bg-red-500/90 text-white' },
-                            suspended: { label: 'Suspended', class: 'bg-red-600/90 text-white' },
-                            draft: { label: 'Draft', class: 'bg-gray-500/90 text-white' },
-                          };
-                          const cfg = statusMap[ad.status] || { label: ad.status, class: 'bg-gray-500/90 text-white' };
-                          return (
-                            <span className={`px-2 py-0.5 rounded-[5px] text-xs font-medium ${cfg.class}`}>
-                              {cfg.label}
-                            </span>
-                          );
-                        })()}
-                      </div>
+                      <span className={`px-2 py-0.5 rounded-[5px] text-xs font-medium ${(STATUS_CONFIG[ad.status] || STATUS_CONFIG.draft).className}`}>
+                        {(STATUS_CONFIG[ad.status] || STATUS_CONFIG.draft).label}
+                      </span>
                     )}
                   </div>
-
                 </div>
 
                 {/* Thumbnail Strip */}
                 {showArrows && (
-                  <div className="flex gap-2 p-4 overflow-x-auto">
-                    {imagesUrls.map((imgUrl: string, idx: number) => (
+                  <div
+                    className="flex gap-2 sm:gap-3 p-3 sm:p-4 overflow-x-scroll sm:overflow-x-auto scrollbar-thumb snap-x snap-mandatory"
+                    style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 #f1f5f9', WebkitOverflowScrolling: 'touch' }}
+                  >
+                    {images.map((imgUrl: string, idx: number) => (
                       <button
                         key={idx}
                         onClick={() => {
                           setCurrentImageIndex(idx);
                           setCurrentImageError(false);
                         }}
-                        className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${currentImageIndex === idx ? 'border-primary-500' : 'border-transparent'}`}
+                        className={`relative flex-shrink-0 snap-start w-[72px] sm:w-24 h-[72px] sm:h-24 rounded-lg overflow-hidden border-2 ${currentImageIndex === idx ? 'border-primary-500' : 'border-transparent'}`}
                       >
                         <SafeImage
                           src={imgUrl}
@@ -542,7 +466,7 @@ export default function AdDetailPage() {
                     )}
                   </div>
 
-                  {/* Mobile buttons - on the right side on mobile, hidden on desktop */}
+                  {/* Mobile buttons */}
                   <div className="flex sm:hidden items-center gap-1">
                     <button 
                       onClick={() => setShowReportModal(true)}
@@ -582,7 +506,7 @@ export default function AdDetailPage() {
                     </button>
                   </div>
 
-                  {/* Desktop buttons - hidden on mobile */}
+                  {/* Desktop buttons */}
                   <div className="hidden sm:flex items-center gap-2">
                     <button 
                       onClick={() => setShowReportModal(true)}
@@ -626,8 +550,8 @@ export default function AdDetailPage() {
                 {/* Title */}
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{ad.title}</h1>
 
-                {/* Description with Show More on right */}
-                <div className="text-gray-600 whitespace-pre-wrap pt-2 text-xs sm:text-sm md:text-base">
+                {/* Description */}
+                <div className="text-gray-600 whitespace-pre-wrap break-words pt-2 text-xs sm:text-sm md:text-base">
                   {ad.description ? (
                     <>
                       <p className={`${showFullDescription ? '' : 'line-clamp-2 sm:line-clamp-3'} transition-all duration-300`}>
@@ -656,21 +580,16 @@ export default function AdDetailPage() {
                   <div className="flex items-center gap-3 mb-4">
                     {ad.user?.is_verified_seller && <VerifiedSellerBadge size="md" showLabel />}
                     {ad.user?.is_verified_business && <BusinessVerifiedBadge size="md" showLabel />}
-                    {ad.is_verified && (
-                      <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4" />Verified Listing
-                      </span>
-                    )}
                   </div>
 
                   {/* Location, Views */}
                   <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-600">
-                    <div>
-                      <span className="text-gray-400">Location: </span>
-                      <span className="font-medium text-gray-900">
-                        {typeof ad.location === 'string' ? ad.location : (ad.location?.name || ad.location || 'N/A')}
-                      </span>
-                    </div>
+                    {ad.location && (
+                      <div>
+                        <span className="text-gray-400">Location: </span>
+                        <span className="font-medium text-gray-900">{ad.location || 'N/A'}</span>
+                      </div>
+                    )}
                     <div>
                       <span className="text-gray-400">Views: </span>
                       <span className="font-medium text-gray-900">{ad.views || 0}</span>
@@ -678,22 +597,17 @@ export default function AdDetailPage() {
                   </div>
                 </div>
 
-                {/* Dynamic Specifications Section */}
-                {ad.specifications && ad.specifications.length > 0 ? (
+                {/* Dynamic Specifications */}
+                {ad.specifications && ad.specifications.length > 0 && (
                   <div className="mt-6 pt-4 border-t border-gray-200">
                     <AdSpecifications specifications={ad.specifications} />
                   </div>
-                ) : ad.attributes && Object.keys(ad.attributes).length > 0 ? (
-                  <div className="mt-6 pt-4 border-t border-gray-200">
-                    <AdAttributes attributes={ad.attributes} />
-                  </div>
-                ) : null}
+                )}
               </div>
-
             </div>
 
             {/* Right Column - Seller & Contact */}
-            <div className="space-y-px lg:max-w-sm">
+            <div className="space-y-2 sm:space-y-px lg:max-w-sm min-w-0">
               {/* Boost Ad Card - Owner Only */}
               {user && ad.user && user.id === ad.user.id && (
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-sm p-5 border border-amber-200">
@@ -738,80 +652,72 @@ export default function AdDetailPage() {
                   </div>
                 ) : (
                   <>
-                    {(() => {
-                      const contactPhone = ad.user?.phone || ad.phone || ad.sellerPhone;
-                      if (!contactPhone) {
-                        return <p className="text-sm text-gray-500 mb-3 text-center">No phone number available</p>;
-                      }
-                      
-                      const displayPhone = showPhone ? formatPhoneDisplay(formatNigerianPhone(contactPhone)) : '';
-                      
-                      return (
-                        <>
-                          {showPhone ? (
-                            <div className="mb-3">
-                              <a href={`tel:${contactPhone}`} className="w-full py-3.5 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-lg tracking-wide transition-colors flex items-center justify-center gap-3">
-                                <Phone className="w-5 h-5" />{displayPhone}
-                              </a>
-                            </div>
-                          ) : (
-                            <button 
-                              onClick={() => {
-                                if (!requireAuth(window.location.pathname)) return;
-                                setShowPhone(true);
-                              }} 
-                              className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 mb-3"
-                            >
-                              <Phone className="w-4 h-4" />Show Phone Number
-                            </button>
-                          )}
-                        </>
-                      );
-                    })()}
+                    {contactPhone ? (
+                      showPhone ? (
+                        <div className="mb-3">
+                          <a href={`tel:${contactPhone}`} className="w-full py-3.5 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm sm:text-lg tracking-wide transition-colors flex items-center justify-center gap-3">
+                            <Phone className="w-5 h-5 flex-shrink-0" /><span className="truncate">{displayPhone}</span>
+                          </a>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => {
+                            if (!requireAuth(window.location.pathname)) return;
+                            setShowPhone(true);
+                          }} 
+                          className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 mb-3"
+                        >
+                          <Phone className="w-4 h-4" />Show Phone Number
+                        </button>
+                      )
+                    ) : (
+                      <p className="text-sm text-gray-500 mb-3 text-center">No phone number available</p>
+                    )}
                     
                     <div className="grid grid-cols-2 gap-2.5">
-                      {(ad.user?.phone || ad.whatsapp || ad.phone || ad.sellerPhone) ? (
-                        <button onClick={handleWhatsApp} className="py-2.5 px-3 bg-green-500 hover:bg-green-600 active:scale-[0.98] text-white rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-sm">
-                          <WhatsAppIcon className="w-4 h-4" />WhatsApp
+                      {contactPhone ? (
+                        <button onClick={handleWhatsApp} className="py-2.5 px-2 sm:px-3 bg-green-500 hover:bg-green-600 active:scale-[0.98] text-white rounded-xl font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                          <WhatsAppIcon className="w-4 h-4 flex-shrink-0" /><span className="truncate">WhatsApp</span>
                         </button>
                       ) : (
-                        <button disabled className="py-2.5 px-3 bg-gray-200 text-gray-400 rounded-xl font-medium text-sm cursor-not-allowed flex items-center justify-center gap-2">
-                          <WhatsAppIcon className="w-4 h-4" />WhatsApp
+                        <button disabled className="py-2.5 px-2 sm:px-3 bg-gray-200 text-gray-400 rounded-xl font-medium text-xs sm:text-sm cursor-not-allowed flex items-center justify-center gap-1.5">
+                          <WhatsAppIcon className="w-4 h-4 flex-shrink-0" /><span className="truncate">WhatsApp</span>
                         </button>
                       )}
-                      <button onClick={handleChat} className="py-2.5 px-3 bg-gray-900 hover:bg-gray-800 active:scale-[0.98] text-white rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-sm">
-                        <MessageCircle className="w-4 h-4" />Chat Seller
+                      <button onClick={handleChat} className="py-2.5 px-2 sm:px-3 bg-gray-900 hover:bg-gray-800 active:scale-[0.98] text-white rounded-xl font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <MessageCircle className="w-4 h-4 flex-shrink-0" /><span className="truncate">Chat</span>
                       </button>
                     </div>
                   </>
                 )}
-
               </div>
 
-              {/* Seller Card - handle both API and seeded ads */}
-              {(ad.user && ad.user.id) || ad.sellerName ? (
+              {/* Seller Card */}
+              {ad.user?.id || ad.user?.name ? (
                 <SellerProfileCard
                   seller={{
-                    id: ad.user?.id || ad.id || 0,
+                    id: Number(ad.user?.id || ad.id || 0),
                     name: ad.user?.name || ad.sellerName || 'Unknown Seller',
-                    avatar: ad.user?.avatar,
-                    full_avatar_url: ad.user?.full_avatar_url,
-                    google_avatar: ad.user?.google_avatar,
-                    facebook_avatar: ad.user?.facebook_avatar,
-                    verified: ad.user?.verified || ad.is_verified || false,
+                    avatar: ad.user?.avatar || null,
+                    full_avatar_url: ad.user?.full_avatar_url || null,
+                    google_avatar: ad.user?.google_avatar || null,
+                    facebook_avatar: ad.user?.facebook_avatar || null,
+                    verified: ad.user?.verified || false,
                     created_at: ad.user?.created_at || ad.createdAt,
                     phone: ad.user?.phone || ad.sellerPhone,
                     location: ad.user?.location,
-                  } as any}
+                    is_verified: ad.user?.is_verified || false,
+                    rating: ad.user?.rating_avg || undefined,
+                  }}
                   showFollowButton={true}
                   showLocation={false}
                   showPhone={false}
                 />
               ) : null}
 
-              {/* Latest Reviews - Separate Card */}
+              {/* Latest Reviews */}
               <div className="bg-white rounded-2xl shadow-sm p-4">
-                <LatestReviews adId={ad.id} adSlug={ad.slug} sellerId={ad.user?.id} />
+                <LatestReviews adId={Number(ad.id)} adSlug={ad.slug} sellerId={ad.user?.id ? Number(ad.user.id) : undefined} />
               </div>
 
               {/* Safety Tips */}
@@ -835,12 +741,12 @@ export default function AdDetailPage() {
           </div>
 
           {/* Related Ads - Full Width */}
-          <div className="-mx-4 md:mx-0">
+          <div className="-mx-3 sm:-mx-4 md:mx-0 overflow-hidden">
             <RelatedAds
-              currentAdId={ad.id}
-              categoryId={ad.category?.id}
-              subcategoryId={ad.subcategory_id || ad.subcategory?.id}
-              locationId={ad.location_id || ad.location?.id}
+              currentAdId={Number(ad.id)}
+              categoryId={ad.category?.id ? Number(ad.category.id) : undefined}
+              subcategoryId={ad.subcategory_id ? Number(ad.subcategory_id) : undefined}
+              locationId={ad.category_id ? Number(ad.category_id) : undefined}
             />
           </div>
         </div>
@@ -848,21 +754,23 @@ export default function AdDetailPage() {
       <Footer />
 
       {/* Chat Modal */}
-      <DynamicChatModal
-        isOpen={showChat}
-        onClose={() => setShowChat(false)}
-        adId={ad.id}
-        adTitle={ad.title}
-        sellerId={ad.user?.id || 0}
-        sellerName={ad.user?.name || ad.sellerName || 'Seller'}
-        sellerVerified={ad.user?.verified || ad.is_verified || ad.user?.is_verified_seller || false}
-        isVerifiedSeller={ad.user?.is_verified_seller || ad.user?.is_verified || false}
-        sellerRating={(ad as any).user?.rating_avg}
-        sellerResponseTime={(ad as any).user?.response_time}
-        sellerTotalSales={(ad as any).user?.completed_transactions}
-      />
+      {ad.user && (
+        <DynamicChatModal
+          isOpen={showChat}
+          onClose={() => setShowChat(false)}
+          adId={Number(ad.id)}
+          adTitle={ad.title}
+          sellerId={ad.user.id ? Number(ad.user.id) : 0}
+          sellerName={ad.user.name || ad.sellerName || 'Seller'}
+          sellerVerified={ad.user.verified || false}
+          isVerifiedSeller={ad.user.is_verified_seller || false}
+          sellerRating={ad.user.rating_avg ?? undefined}
+          sellerResponseTime={ad.user.response_time != null ? String(ad.user.response_time) : undefined}
+          sellerTotalSales={ad.user.completed_transactions ?? undefined}
+        />
+      )}
 
-      {/* Share Popup - Centered Modal */}
+      {/* Share Popup */}
       {showSharePopup && (
         <>
           <div 
@@ -871,7 +779,6 @@ export default function AdDetailPage() {
           />
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden pointer-events-auto animate-in zoom-in-95 duration-300">
-              {/* Header */}
               <div className="px-6 pt-6 pb-2">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xl font-bold text-gray-900">Share this ad</h4>
@@ -886,7 +793,6 @@ export default function AdDetailPage() {
                 </div>
               </div>
               
-              {/* Social Buttons Grid */}
               <div className="px-6 py-4 grid grid-cols-4 gap-4">
                 <a 
                   href={`https://wa.me/?text=${encodeURIComponent(`Check out this "${ad.title}" - ${formatPrice(ad.price, ad.currency)}\n${currentUrl}`)}`}
@@ -934,7 +840,6 @@ export default function AdDetailPage() {
                 </a>
               </div>
               
-              {/* Copy Link */}
               <div className="px-6 pb-6">
                 <button
                   onClick={async () => {
@@ -955,65 +860,69 @@ export default function AdDetailPage() {
       )}
 
       {/* Fullscreen Image Viewer */}
-      {showFullscreen && imagesUrls.length > 0 && (
+      {showFullscreen && images.length > 0 && (
         <div
-          className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
+          className="fixed inset-0 z-[200] bg-black flex flex-col"
           onClick={() => setShowFullscreen(false)}
         >
-          <button
-            onClick={() => setShowFullscreen(false)}
-            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); prevImage(); pauseAutoplay(); }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors disabled:opacity-30"
-            disabled={imagesUrls.length <= 1}
-          >
-            <ChevronRight className="w-8 h-8 rotate-180" />
-          </button>
-          <div
-            className="relative w-full h-full max-w-5xl max-h-[90vh] m-4"
-            onClick={(e) => e.stopPropagation()}
-            onTouchStart={(e) => { pauseAutoplay(); onTouchStart(e); }}
-            onTouchMove={onTouchMove}
-            onTouchEnd={() => { pauseAutoplay(); onTouchEnd(); }}
-          >
-            <Image
-              key={`fs-${ad.id}-img-${currentImageIndex}`}
-              src={`${currentImageUrl}${currentImageUrl.includes('?') ? '&' : '?'}_cb=${ad?.updated_at || ad?.created_at || Date.now()}`}
-              alt={ad.title}
-              fill
-              sizes="100vw"
-              className="object-contain"
-              priority
-            />
+          <div className="flex items-center justify-between px-4 py-3 shrink-0">
+            <div className="text-white/70 text-sm font-medium">
+              {currentImageIndex + 1} / {images.length}
+            </div>
+            <button
+              onClick={() => setShowFullscreen(false)}
+              className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); nextImage(); pauseAutoplay(); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors disabled:opacity-30"
-            disabled={imagesUrls.length <= 1}
-          >
-            <ChevronRight className="w-8 h-8" />
-          </button>
-          {/* Image counter */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium">
-            {currentImageIndex + 1} / {imagesUrls.length}
+
+          <div className="flex-1 relative flex items-center justify-center">
+            <button
+              onClick={(e) => { e.stopPropagation(); prevImage(); pauseAutoplay(); }}
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors disabled:opacity-30"
+              disabled={images.length <= 1}
+            >
+              <ChevronRight className="w-7 h-7 sm:w-8 sm:h-8 rotate-180" />
+            </button>
+            <div
+              className="relative w-full h-full"
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => { pauseAutoplay(); onTouchStart(e); }}
+              onTouchMove={onTouchMove}
+              onTouchEnd={() => { pauseAutoplay(); onTouchEnd(); }}
+            >
+              <Image
+                key={`fs-${ad.id}-img-${currentImageIndex}`}
+                src={`${currentImageUrl}${currentImageUrl.includes('?') ? '&' : '?'}_cb=${ad.updated_at || ad.created_at || Date.now()}`}
+                alt={ad.title}
+                fill
+                sizes="100vw"
+                className="object-contain"
+                priority
+              />
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); nextImage(); pauseAutoplay(); }}
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors disabled:opacity-30"
+              disabled={images.length <= 1}
+            >
+              <ChevronRight className="w-7 h-7 sm:w-8 h-8" />
+            </button>
           </div>
         </div>
       )}
 
       {/* Report Ad Modal */}
       <ReportAdModal
-        adId={ad.id}
+        adId={Number(ad.id)}
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
       />
 
       {/* Boost Ad Modal */}
       <BoostAdModal
-        adId={ad.id}
+        adId={Number(ad.id)}
         adTitle={ad.title}
         isOpen={showBoostModal}
         onClose={() => setShowBoostModal(false)}

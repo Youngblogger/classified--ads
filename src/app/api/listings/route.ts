@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     let query = sb
       .from('listings')
-      .select('*, listing_images(*)', { count: 'estimated' });
+      .select('*, listing_images(*), profiles(*)', { count: 'estimated' });
 
     if (status && status !== 'all') {
       if (['active', 'sold'].includes(status)) {
