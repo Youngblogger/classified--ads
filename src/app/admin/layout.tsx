@@ -1,6 +1,5 @@
 'use client';
 
-import '../globals.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';

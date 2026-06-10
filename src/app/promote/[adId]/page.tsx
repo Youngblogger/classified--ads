@@ -207,7 +207,7 @@ export default function PromoteAdPage() {
                   adId={ad?.id}
                   disabled={!isAuthenticated}
                   onPaymentSuccess={handleCardPaymentSuccess}
-                  onPaymentError={(error) => {
+                  onPaymentError={(error: any) => {
                     setError(error);
                     setStep('failed');
                   }}

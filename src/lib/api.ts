@@ -1502,6 +1502,26 @@ export const imageUploadApi = {
   upload: async (file: File, onProgress?: (pct: number) => void) => {
     try {
       const formData = new FormData();
+      formData.append('images', file);
+      const res = await http.upload('/api/upload', formData, onProgress);
+      const data = res?.data?.data?.[0] || res?.data?.[0];
+      if (data?.secure_url) {
+        return sbResponse({
+          data: {
+            url: data.secure_url,
+            thumbnail_url: data.thumbnail_url || data.optimized_url,
+            medium_url: data.optimized_url || data.secure_url,
+            original_url: data.secure_url,
+            path: data.public_id,
+            storage_path: data.public_id,
+          },
+        });
+      }
+    } catch (e) {
+      console.warn('[Upload] Cloudinary upload failed, falling back:', e);
+    }
+    try {
+      const formData = new FormData();
       formData.append('image', file);
       const res = await http.upload('/uploads/image', formData, onProgress);
       const url = res?.data?.data?.url || res?.data?.url;
@@ -1790,132 +1810,7 @@ export const storeApi = {
   },
 };
 
-// ==============================
-//  SAVED SEARCHES API
-// ==============================
-export const savedSearchesApi = {
-  getAll: async () => {
-    try {
-      const res = await http.get('/saved-searches');
-      return sbResponse({ data: res?.data?.data || [] });
-    } catch { return sbResponse({ data: [] }); }
-  },
-  getById: async (id: number) => {
-    try {
-      const res = await http.get(`/saved-searches/${id}`);
-      return sbResponse({ data: res?.data?.data || null });
-    } catch { return sbResponse({ data: null }); }
-  },
-  create: async (data: any) => {
-    try {
-      const res = await http.post('/saved-searches', data);
-      return sbResponse({ data: res?.data?.data || { message: 'Saved' } });
-    } catch { return sbResponse({ data: { message: 'Saved' } }); }
-  },
-  update: async (id: number, data: any) => {
-    try {
-      const res = await http.put(`/saved-searches/${id}`, data);
-      return sbResponse({ data: res?.data?.data || { message: 'Updated' } });
-    } catch { return sbResponse({ data: { message: 'Updated' } }); }
-  },
-  delete: async (id: number) => {
-    try {
-      const res = await http.delete(`/saved-searches/${id}`);
-      return sbResponse({ data: res?.data?.data || { message: 'Deleted' } });
-    } catch { return sbResponse({ data: { message: 'Deleted' } }); }
-  },
-  search: async (id: number, page?: number) => {
-    try {
-      const res = await http.get(`/saved-searches/${id}/search`, { params: { page } as any });
-      return sbResponse({ data: res?.data?.data || [] });
-    } catch { return sbResponse({ data: [] }); }
-  },
-};
 
-// ==============================
-//  VERIFICATION API
-// ==============================
-export const verificationApi = {
-  getMyVerifications: async () => {
-    const userId = await ensureUserId();
-    if (!userId) return sbResponse({ data: [] });
-    try {
-      const res = await http.get('/verifications');
-      const data = res?.data?.data || res?.data || [];
-      if (Array.isArray(data) && data.length > 0) return sbResponse({ data });
-    } catch {}
-    const { data, error } = await supabase.from('verification_requests').select('*').eq('user_id', userId).limit(20);
-    return error ? sbError(error) : sbResponse({ data: data || [] });
-  },
-  submitPhone: async (phone: string) => {
-    const userId = await ensureUserId();
-    if (!userId) return sbError({ message: 'Not authenticated' });
-    try {
-      const res = await http.post('/verifications/phone', { phone });
-      if (res?.data) return sbResponse({ data: { message: 'Phone submitted' } });
-    } catch {}
-    const { error } = await supabase.from('profiles').update({ phone }).eq('id', userId);
-    return error ? sbError(error) : sbResponse({ data: { message: 'Phone submitted' } });
-  },
-  submitEmail: async (email: string) => {
-    try {
-      const res = await http.post('/verifications/email', { email });
-      return sbResponse({ data: res?.data?.data || { message: 'Email submitted' } });
-    } catch { return sbResponse({ data: { message: 'Email submitted' } }); }
-  },
-  submitIdentity: async (formData: FormData) => {
-    const userId = await ensureUserId();
-    if (!userId) return sbError({ message: 'Not authenticated' });
-    try {
-      const res = await http.post('/verifications/identity', formData);
-      if (res?.data) return sbResponse({ data: res?.data?.data || { message: 'Identity submitted' } });
-    } catch {}
-    const files: any[] = [];
-    formData.forEach((v, k) => { if (v instanceof File) files.push({ key: k, file: v }); });
-    const docs: Record<string, string> = {};
-    for (const { key, file } of files) {
-      const path = `verifications/${userId}/${Date.now()}_${file.name}`;
-      await supabase.storage.from('verification-docs').upload(path, file);
-      const { data: { publicUrl } } = supabase.storage.from('verification-docs').getPublicUrl(path);
-      docs[key] = publicUrl;
-    }
-    const { error } = await supabase.from('verification_requests').insert({
-      user_id: userId, verification_type: 'identity',
-      document_front_url: docs.document_front || docs.front || null,
-      document_back_url: docs.document_back || docs.back || null,
-      selfie_url: docs.selfie || null,
-    });
-    return error ? sbError(error) : sbResponse({ data: { message: 'Identity submitted' } });
-  },
-  getStatus: async () => {
-    const userId = await ensureUserId();
-    if (!userId) return sbResponse({ data: { status: 'not_submitted' } });
-    try {
-      const res = await http.get('/verifications/status');
-      const status = res?.data?.data?.status || res?.data?.status;
-      if (status) return sbResponse({ data: { status } });
-    } catch {}
-    const { data } = await supabase.from('verification_requests').select('status').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle();
-    return sbResponse({ data: { status: data?.status || 'not_submitted' } });
-  },
-  uploadDocument: async (file: File, type: string, field: string) => {
-    const userId = await ensureUserId();
-    if (!userId) return sbError({ message: 'Not authenticated' });
-    try {
-      const formData = new FormData();
-      formData.append('document', file);
-      formData.append('type', type);
-      formData.append('field', field);
-      const res = await http.post('/verifications/upload', formData);
-      const url = res?.data?.data?.url || res?.data?.url;
-      if (url) return sbResponse({ data: { url, field } });
-    } catch {}
-    const path = `verifications/${userId}/${Date.now()}_${file.name}`;
-    await supabase.storage.from('verification-docs').upload(path, file);
-    const { data: { publicUrl } } = supabase.storage.from('verification-docs').getPublicUrl(path);
-    return sbResponse({ data: { url: publicUrl, field } });
-  },
-};
 
 // ==============================
 //  EMAIL VERIFICATION API
@@ -1944,137 +1839,6 @@ export const emailVerificationApi = {
       const res = await http.get('/email-verification/status');
       return sbResponse({ data: res?.data?.data || { verified: true } });
     } catch { return sbResponse({ data: { verified: true } }); }
-  },
-};
-
-// ==============================
-//  BUSINESS VERIFICATION API
-// ==============================
-export const businessVerificationApi = {
-  getMyVerification: async () => {
-    const userId = await ensureUserId();
-    if (!userId) return sbResponse({ data: null });
-    try {
-      const res = await http.get('/business-verification');
-      const data = res?.data?.data || res?.data;
-      if (data) return sbResponse({ data });
-    } catch {}
-    const { data, error } = await supabase.from('verification_requests').select('*').eq('user_id', userId).eq('verification_type', 'business').maybeSingle();
-    return error ? sbError(error) : sbResponse({ data });
-  },
-  submit: async (formData: FormData) => {
-    const userId = await ensureUserId();
-    if (!userId) return sbError({ message: 'Not authenticated' });
-    try {
-      const res = await http.post('/business-verification', formData);
-      if (res?.data) return sbResponse({ data: res?.data?.data || { message: 'Business verification submitted' } });
-    } catch {}
-    const files: any[] = [];
-    formData.forEach((v, k) => { if (v instanceof File) files.push({ key: k, file: v }); });
-    const docs: Record<string, string> = {};
-    for (const { key, file } of files) {
-      const path = `business-verifications/${userId}/${Date.now()}_${file.name}`;
-      await supabase.storage.from('verification-docs').upload(path, file);
-      const { data: { publicUrl } } = supabase.storage.from('verification-docs').getPublicUrl(path);
-      docs[key] = publicUrl;
-    }
-    const { error } = await supabase.from('verification_requests').insert({
-      user_id: userId,
-      verification_type: 'business',
-      business_document_url: docs.business_document || docs.document || null,
-    });
-    return error ? sbError(error) : sbResponse({ data: { message: 'Business verification submitted' } });
-  },
-  getStatus: async () => {
-    const userId = await ensureUserId();
-    if (!userId) return sbResponse({ data: { status: 'not_submitted' } });
-    try {
-      const res = await http.get('/business-verification/status');
-      const status = res?.data?.data?.status || res?.data?.status;
-      if (status) return sbResponse({ data: { status } });
-    } catch {}
-    const { data } = await supabase.from('verification_requests').select('status').eq('user_id', userId).eq('verification_type', 'business').order('created_at', { ascending: false }).limit(1).maybeSingle();
-    return sbResponse({ data: { status: data?.status || 'not_submitted' } });
-  },
-  uploadDocument: async (file: File, field: string) => {
-    const userId = await ensureUserId();
-    if (!userId) return sbError({ message: 'Not authenticated' });
-    try {
-      const formData = new FormData();
-      formData.append(field || 'document', file);
-      const res = await http.post('/business-verification/upload', formData);
-      return sbResponse({ data: res?.data?.data || { url: '' } });
-    } catch {}
-    const path = `business-verifications/${userId}/${Date.now()}_${file.name}`;
-    await supabase.storage.from('verification-docs').upload(path, file);
-    const { data: { publicUrl } } = supabase.storage.from('verification-docs').getPublicUrl(path);
-    return sbResponse({ data: { url: publicUrl } });
-  },
-};
-
-// ==============================
-//  ANALYTICS API
-// ==============================
-export const analyticsApi = {
-  getOverview: async (period?: string) => {
-    try {
-      const res = await http.get('/analytics/overview', { params: { period } as any });
-      return sbResponse({ data: res?.data?.data || res?.data || {} });
-    } catch { return sbResponse({ data: {} }); }
-  },
-  getAdPerformance: async (period?: string) => {
-    try {
-      const res = await http.get('/analytics/ad-performance', { params: { period } as any });
-      return sbResponse({ data: res?.data?.data || [] });
-    } catch { return sbResponse({ data: [] }); }
-  },
-  getSingleAdPerformance: async (adId: number, period?: string) => {
-    try {
-      const res = await http.get(`/analytics/ad/${adId}`, { params: { period } as any });
-      return sbResponse({ data: res?.data?.data || {} });
-    } catch { return sbResponse({ data: {} }); }
-  },
-  getDailyBreakdown: async (period?: string) => {
-    try {
-      const res = await http.get('/analytics/daily', { params: { period } as any });
-      return sbResponse({ data: res?.data?.data || [] });
-    } catch { return sbResponse({ data: [] }); }
-  },
-  getTrends: async (period?: string) => {
-    try {
-      const res = await http.get('/analytics/trends', { params: { period } as any });
-      return sbResponse({ data: res?.data?.data || [] });
-    } catch { return sbResponse({ data: [] }); }
-  },
-  getTopAds: async () => {
-    try {
-      const res = await http.get('/analytics/top-ads');
-      return sbResponse({ data: res?.data?.data || [] });
-    } catch { return sbResponse({ data: [] }); }
-  },
-  getStorePerformance: async (period?: string) => {
-    try {
-      const res = await http.get('/analytics/store', { params: { period } as any });
-      return sbResponse({ data: res?.data?.data || {} });
-    } catch { return sbResponse({ data: {} }); }
-  },
-  recordView: async (adId: number) => {
-    try {
-      await http.post(`/analytics/record-view/${adId}`);
-      return sbResponse({ data: { message: 'View recorded' } });
-    } catch { return adsApi.incrementViews(adId); }
-  },
-  recordClick: async (adId: number, type: string) => {
-    try {
-      const res = await http.post(`/analytics/record-click/${adId}`, { type });
-      return sbResponse({ data: res?.data?.data || { message: 'Click recorded' } });
-    } catch { return sbResponse({ data: { message: 'Click recorded' } }); }
-  },
-  recordShare: async (adId: number) => {
-    try {
-      const res = await http.post(`/analytics/record-share/${adId}`);
-      return sbResponse({ data: res?.data?.data || { message: 'Share recorded' } });
-    } catch { return sbResponse({ data: { message: 'Share recorded' } }); }
   },
 };
 
