@@ -46,10 +46,10 @@ export class ErrorBoundary extends Component<Props, State> {
               <RefreshCw className="w-4 h-4" /> Try Again
             </button>
             <button
-              onClick={() => window.location.href = '/dashboard/profile'}
+              onClick={() => window.location.href = '/dashboard/settings'}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-2"
             >
-              <Home className="w-4 h-4" /> Go to Profile
+              <Home className="w-4 h-4" /> Go to Settings
             </button>
           </div>
         </div>

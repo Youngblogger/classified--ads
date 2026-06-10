@@ -7,7 +7,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/dashboard/profile');
+    router.replace('/dashboard/my-ads');
   }, [router]);
 
   return null;

@@ -51,7 +51,7 @@ const tabs = [
   {
     key: 'account',
     label: 'Account',
-    href: '/dashboard',
+    href: '/dashboard/my-ads',
     icon: User,
     activeIcon: UserFill,
     requiresAuth: true,
@@ -94,7 +94,7 @@ export default function BottomNav({ onPostAdClick }: BottomNavProps) {
     if (tab.key === 'home') return pathname === '/';
     if (tab.key === 'saved') return pathname === '/dashboard/favorites';
     if (tab.key === 'chats') return pathname.startsWith('/dashboard/messages');
-    if (tab.key === 'account') return pathname === '/dashboard' || pathname.startsWith('/dashboard/');
+    if (tab.key === 'account') return pathname === '/dashboard' || pathname === '/dashboard/my-ads' || pathname.startsWith('/dashboard/');
     return false;
   };
 
