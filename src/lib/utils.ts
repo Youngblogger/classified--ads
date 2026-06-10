@@ -124,14 +124,16 @@ export function getAdImageUrl(img: any, adId?: number): string {
   return url;
 }
 
-const WATERMARK_TEXT = 'iList';
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
 
 function addWatermarkToCloudinaryUrl(url: string, adId?: number): string {
   if (!CLOUD_NAME) return url;
+
   const marker = `/image/upload/`;
   const idx = url.indexOf(marker);
   if (idx === -1) return url;
+
+  if (url.includes('fl_layer_apply')) return url;
 
   const afterUpload = url.slice(idx + marker.length);
   const baseUrl = url.slice(0, idx + marker.length);
@@ -139,13 +141,11 @@ function addWatermarkToCloudinaryUrl(url: string, adId?: number): string {
   const publicIdIndex = parts.findIndex((p) => !p.includes('_'));
   const publicId = publicIdIndex >= 0 ? parts.slice(publicIdIndex).join('/') : afterUpload;
 
-  const fontName = 'Arial';
-  const fontSize = 28;
-  let textStr = WATERMARK_TEXT;
+  let textStr = 'iList';
   if (adId) textStr += ` | ID:${adId}`;
   const encodedText = textStr.replace(/ /g, '%20').replace(/,/g, '%252C').replace(/\|/g, '%7C');
 
-  const overlay = `l_text:${fontName}_${fontSize}:${encodedText},co_rgb:FFFFFF,o_60,g_se,x_15,y_15,fl_layer_apply`;
+  const overlay = `l_text:Arial_28:${encodedText},co_rgb:FFFFFF,o_60,g_se,x_15,y_15,fl_layer_apply`;
 
   return `${baseUrl}${overlay}/${publicId}`;
 }
