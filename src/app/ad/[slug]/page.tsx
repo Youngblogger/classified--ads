@@ -123,7 +123,6 @@ export default function AdDetailPage() {
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [boostButtonLoading, setBoostButtonLoading] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
-  const [isPortrait, setIsPortrait] = useState(false);
   const { user } = useAuthStore();
   
   const minSwipeDistance = 50;
@@ -249,9 +248,7 @@ export default function AdDetailPage() {
     }
   };
 
-  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    setIsPortrait(img.naturalHeight > img.naturalWidth * 1.2);
+  const handleImageLoad = useCallback((_e: React.SyntheticEvent<HTMLImageElement>) => {
   }, []);
 
   const toggleFavorite = async () => {
@@ -384,7 +381,7 @@ export default function AdDetailPage() {
               <div className="bg-white rounded-t-2xl shadow-sm border-t-8 border-primary-600 overflow-hidden">
                 <div 
                   className="relative bg-gray-100 select-none cursor-pointer w-full flex items-center justify-center"
-                  style={{ minHeight: '300px', maxHeight: 'min(80vh, 700px)' }}
+                  style={{ minHeight: '300px', maxHeight: 'calc(100vh - 250px)' }}
                   onTouchStart={(e) => { pauseAutoplay(); onTouchStart(e); }}
                   onTouchMove={onTouchMove}
                   onTouchEnd={(e) => { pauseAutoplay(); onTouchEnd(); }}
@@ -401,7 +398,7 @@ export default function AdDetailPage() {
                       alt={ad.title} 
                       fill
                       sizes="(max-width: 768px) 100vw, 60vw"
-                      className="object-contain"
+                      className="object-cover"
                       onError={() => setCurrentImageError(true)}
                       onLoad={handleImageLoad}
                       priority={currentImageIndex === 0}
