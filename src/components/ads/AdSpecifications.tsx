@@ -134,7 +134,7 @@ export default function AdSpecifications({ specifications }: AdSpecificationsPro
       </div>
 
       {hasGroups ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+        <div className="sm:columns-2 gap-6 [&>*]:mb-4 [&>*]:break-inside-avoid">
           {Object.entries(grouped).map(([groupName, items]) => {
             const GroupIcon = getGroupIcon(groupName);
             const style = getGroupStyle(groupName);
@@ -189,7 +189,7 @@ export default function AdSpecifications({ specifications }: AdSpecificationsPro
             );
           })}
           {ungrouped.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden sm:col-span-2">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="px-5 py-3 border-b border-gray-200 bg-gray-50 flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center">
                   <Package className="w-4 h-4 text-gray-500" />
