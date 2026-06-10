@@ -168,8 +168,7 @@ export default function HomePage() {
           <ErrorBoundary>
           {/* Desktop Hero */}
           <section className="hidden md:block w-full overflow-visible">
-            <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-b-[5px] mb-6"
-              style={{ marginRight: 'calc(-1rem + min(0px, (1536px - 100vw) / 2))' }}>
+            <div className="relative rounded-b-[5px] mb-6" style={{ backgroundColor: '#173a38', marginRight: 'calc(-1rem + min(0px, (1536px - 100vw) / 2))' }}>
               <div className="relative py-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div className="pl-6">
@@ -238,7 +237,7 @@ export default function HomePage() {
 
           {/* Mobile Hero */}
           <section className="block md:hidden">
-            <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden rounded-b-[5px] mb-4">
+            <div className="relative overflow-hidden rounded-b-[5px] mb-4" style={{ backgroundColor: '#173a38' }}>
               <div className="relative py-4">
                 <h1 className="text-lg font-bold text-white px-4">
                   Find Anything,{' '}
