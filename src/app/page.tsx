@@ -217,7 +217,7 @@ export default function HomePage() {
                   {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 12).map((cat: any) => (
                     <Link
                       key={cat.id}
-                      href={`/ads?category=${cat.slug}`}
+                      href={`/category/${cat.slug}`}
                       className="flex flex-col items-center gap-1 bg-white rounded-lg p-2 border border-gray-100 hover:border-gray-200 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200"
                     >
                       <img
@@ -282,7 +282,7 @@ export default function HomePage() {
                   {safeArray(supabaseCategories).filter((cat: any) => cat && !cat.parent_id).slice(0, 12).map((cat: any) => (
                     <Link
                       key={cat.id}
-                      href={`/ads?category=${cat.slug}`}
+                      href={`/category/${cat.slug}`}
                       className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 active:scale-95 transition-all duration-150"
                     >
                       <img

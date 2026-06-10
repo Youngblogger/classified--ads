@@ -13,7 +13,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { adsApi } from '@/lib/api';
 import { FormSkeleton } from '@/components/ui/Skeleton';
 import { getPhoneValidationError, getAdImageUrl } from '@/lib/utils';
-import CategorySelector from '@/components/ui/CategorySelector';
+import CategoryModal from '@/components/ui/CategoryModal';
 import LocationSelector from '@/components/ui/LocationSelector';
 import toast from 'react-hot-toast';
 import { getCategorySpec, SpecField } from '@/lib/category-spec-schema';
@@ -36,6 +36,9 @@ export default function EditAdPage() {
   const [price, setPrice] = useState('');
   const [negotiable, setNegotiable] = useState(false);
   const [categoryId, setCategoryId] = useState<string | number | null>(null);
+  const [categorySlug, setCategorySlug] = useState<string>('');
+  const [subcategorySlug, setSubcategorySlug] = useState<string>('');
+  const [categoryParentSlug, setCategoryParentSlug] = useState<string>('');
   const [categoryBreadcrumb, setCategoryBreadcrumb] = useState('');
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
@@ -180,8 +183,11 @@ export default function EditAdPage() {
     setDraggedIndex(targetIndex);
   };
 
-  const handleCategorySelect = (id: string | number, name: string, breadcrumb: string) => {
+  const handleCategorySelect = (id: string | number, name: string, breadcrumb: string, slug?: string, parentSlug?: string) => {
     setCategoryId(id);
+    setCategorySlug(slug || '');
+    setSubcategorySlug(slug || '');
+    setCategoryParentSlug(parentSlug || '');
     setCategoryBreadcrumb(breadcrumb);
   };
 
@@ -252,6 +258,9 @@ export default function EditAdPage() {
       formData.append('price', price);
       formData.append('negotiable', negotiable ? '1' : '0');
       if (categoryId) formData.append('category_id', categoryId.toString());
+      if (categorySlug) formData.append('category_slug', categorySlug);
+      if (categoryParentSlug) formData.append('category_parent_slug', categoryParentSlug);
+      if (subcategorySlug) formData.append('subcategory_slug', subcategorySlug);
       if (locationId) formData.append('location_id', locationId.toString());
       if (selectedStateName) formData.append('state', selectedStateName);
       if (lgaId) formData.append('lga', lgaId);
@@ -609,12 +618,11 @@ export default function EditAdPage() {
               </div>
 
               {/* Modals */}
-              <CategorySelector
+              <CategoryModal
                 isOpen={showCategorySelector}
                 onClose={() => setShowCategorySelector(false)}
                 onSelect={handleCategorySelect}
-                selectedCategoryId={categoryId}
-                selectedBreadcrumb={categoryBreadcrumb}
+                currentCategoryId={categoryId}
               />
               <LocationSelector
                 isOpen={showLocationSelector}

@@ -3,7 +3,7 @@ import { useAuthStore } from '@/lib/store';
 import { http, type RequestConfig } from '@/lib/http-client';
 import type { Database, Tables } from '@/types/supabase';
 import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
-import { resolveCategoryUuid, resolveSubcategoryUuid, isChildId, getParentId } from '@/lib/uuid-resolver';
+import { resolveCategoryUuid, resolveSubcategoryUuid, isChildId, getParentId, ID_TO_SLUG } from '@/lib/uuid-resolver';
 
 type SupabaseResponse<T = any> = {
   data: T;
@@ -376,15 +376,37 @@ export const adsApi = {
         const rawId = listing.category_id;
         const rawSlug: string | undefined = listing.category_slug;
         const parentSlug: string | undefined = listing.category_parent_slug;
+
+        // Store category_slug in metadata for querying by category
+        const metadata: Record<string, unknown> = {};
+        if (listing.metadata && typeof listing.metadata === 'object') {
+          Object.assign(metadata, listing.metadata);
+        }
+        if (rawSlug) metadata.category_slug = rawSlug;
+        if (parentSlug) metadata.category_parent_slug = parentSlug;
+
+        // Also store subcategory_slug if available
+        const subSlug = listing.subcategory_slug;
+        if (subSlug) metadata.subcategory_slug = subSlug;
+
+        // Remove raw slug fields from listing top-level (not DB columns)
         delete listing.category_slug;
         delete listing.category_parent_slug;
+        delete listing.subcategory_slug;
 
         if (isChildId(rawId)) {
           const parentId = getParentId(rawId);
           if (parentId) {
             listing.category_id = await resolveCategoryUuid(parentId);
+            if (!metadata.category_parent_slug && ID_TO_SLUG[parentId]) {
+              metadata.category_parent_slug = ID_TO_SLUG[parentId];
+            }
           }
           listing.subcategory_id = await resolveSubcategoryUuid(rawId, undefined, listing.category_id as string | undefined);
+          if (!metadata.subcategory_slug) {
+            const resolvedSlug = ID_TO_SLUG[typeof rawId === 'string' ? parseInt(rawId, 10) : rawId];
+            if (resolvedSlug) metadata.subcategory_slug = resolvedSlug;
+          }
         } else if (parentSlug) {
           listing.category_id = await resolveCategoryUuid(0, parentSlug);
           listing.subcategory_id = await resolveSubcategoryUuid(0, rawSlug, listing.category_id as string | undefined);
@@ -395,6 +417,8 @@ export const adsApi = {
           listing.category_id = await resolveCategoryUuid(rawId);
           delete listing.subcategory_id;
         }
+
+        listing.metadata = metadata;
       } catch (e: any) {
         console.error('[adsApi.create] UUID resolution failed:', e.message);
         return sbError({ message: `Category mapping failed: ${e.message}` });

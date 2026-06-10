@@ -8,15 +8,44 @@ import { useGlobalStore } from '@/lib/store';
 import { useDebounce } from './useDebounce';
 import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
 
+// Mapping from integer category_id to slug (for Supabase fallback queries)
+const CATEGORY_ID_TO_SLUG: Record<string, string> = {
+  '1': 'vehicles', '101': 'cars', '102': 'motorcycles', '103': 'buses-vans', '104': 'trucks-trailers',
+  '2': 'property', '201': 'apartments-rent', '202': 'apartments-sale', '203': 'houses-rent', '204': 'houses-sale',
+  '3': 'mobile-phones', '301': 'smartphones', '302': 'tablets', '303': 'smartwatches', '304': 'phone-accessories',
+  '4': 'electronics', '401': 'laptops', '402': 'desktops', '403': 'tvs', '404': 'gaming',
+  '5': 'fashion', '501': 'men-clothing', '502': 'women-clothing', '503': 'shoes', '504': 'watches',
+  '6': 'home-furniture', '601': 'furniture', '602': 'home-decor', '603': 'kitchen-appliances', '604': 'bedding',
+  '7': 'jobs', '701': 'full-time-jobs', '702': 'part-time-jobs', '703': 'remote-jobs', '704': 'internship-jobs',
+  '8': 'services', '801': 'cleaning-services', '802': 'repair-services', '803': 'moving-services', '804': 'event-planning',
+  '9': 'pets', '901': 'dogs', '902': 'cats', '903': 'birds', '904': 'pet-food',
+  '10': 'health-beauty', '1001': 'skincare', '1002': 'haircare', '1003': 'makeup', '1004': 'fragrances',
+};
+
 async function fetchSupabaseListings(params: Record<string, string>, page: number = 1, perPage: number = 20, forUser?: string): Promise<{ data: any[], meta: any }> {
   try {
     const sp = new URLSearchParams();
     sp.set('page', String(page));
     sp.set('limit', String(perPage));
 
-    for (const [key, value] of Object.entries(params)) {
-      if (value) sp.set(key, value);
+    // Determine category slug for Supabase query
+    let categorySlug = '';
+    if (params.category) {
+      categorySlug = params.category;
+    } else if (params.category_id && CATEGORY_ID_TO_SLUG[params.category_id]) {
+      categorySlug = CATEGORY_ID_TO_SLUG[params.category_id];
     }
+    // If we have a subcategory_id, use its slug as the category param for Supabase
+    if (params.subcategory_id && CATEGORY_ID_TO_SLUG[params.subcategory_id]) {
+      categorySlug = CATEGORY_ID_TO_SLUG[params.subcategory_id];
+    }
+
+    for (const [key, value] of Object.entries(params)) {
+      if (value && key !== 'category' && key !== 'category_id' && key !== 'subcategory_id') {
+        sp.set(key, value);
+      }
+    }
+    if (categorySlug) sp.set('category', categorySlug);
     if (forUser) sp.set('user_id', forUser);
 
     const res = await fetch(`/api/listings?${sp.toString()}`, { cache: 'no-store' });
@@ -141,6 +170,41 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
     const params = Object.fromEntries(new URLSearchParams(endpoint.replace('ads?', '')));
     const page = parseInt(params.page || '1', 10);
     const perPage = parseInt(params.limit || params.per_page || '20', 10);
+
+    // Convert category slug to integer category_id for Laravel API
+    if (params.category && !params.category_id) {
+      const slugToId: Record<string, number> = {
+        'vehicles': 1, 'cars': 101, 'motorcycles': 102, 'buses-vans': 103, 'trucks-trailers': 104,
+        'property': 2, 'apartments-rent': 201, 'apartments-sale': 202, 'houses-rent': 203, 'houses-sale': 204,
+        'mobile-phones': 3, 'smartphones': 301, 'tablets': 302, 'smartwatches': 303, 'phone-accessories': 304,
+        'electronics': 4, 'laptops': 401, 'desktops': 402, 'tvs': 403, 'gaming': 404,
+        'fashion': 5, 'men-clothing': 501, 'women-clothing': 502, 'shoes': 503, 'watches': 504,
+        'home-furniture': 6, 'furniture': 601, 'home-decor': 602, 'kitchen-appliances': 603, 'bedding': 604,
+        'jobs': 7, 'full-time-jobs': 701, 'part-time-jobs': 702, 'remote-jobs': 703, 'internship-jobs': 704,
+        'services': 8, 'cleaning-services': 801, 'repair-services': 802, 'moving-services': 803, 'event-planning': 804,
+        'pets': 9, 'dogs': 901, 'cats': 902, 'birds': 903, 'pet-food': 904,
+        'health-beauty': 10, 'skincare': 1001, 'haircare': 1002, 'makeup': 1003, 'fragrances': 1004,
+        'baby-kids': 11, 'sports': 12, 'books-music-movies': 13, 'food-drinks': 14, 'agriculture': 15,
+      };
+      const id = slugToId[params.category];
+      if (id) {
+        // If it's a subcategory ID (>= 100), resolve parent
+        if (id >= 100) {
+          const parentMap: Record<number, number> = {
+            101:1,102:1,103:1,104:1, 201:2,202:2,203:2,204:2,
+            301:3,302:3,303:3,304:3, 401:4,402:4,403:4,404:4,
+            501:5,502:5,503:5,504:5, 601:6,602:6,603:6,604:6,
+            701:7,702:7,703:7,704:7, 801:8,802:8,803:8,804:8,
+            901:9,902:9,903:9,904:9, 1001:10,1002:10,1003:10,1004:10,
+          };
+          params.category_id = String(parentMap[id] || id);
+          params.subcategory_id = String(id);
+        } else {
+          params.category_id = String(id);
+        }
+      }
+      delete params.category;
+    }
 
     const res = await http.get('/ads', { params: params as any });
     let responseData = res?.data || { data: [], meta: null };

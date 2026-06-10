@@ -44,7 +44,16 @@ export async function GET(request: NextRequest) {
 
     if (category) {
       const { data: cat } = await sb.from('categories').select('id').eq('slug', category).maybeSingle();
-      if (cat) query = query.eq('category_id', (cat as any).id);
+      if (cat) {
+        query = query.eq('category_id', (cat as any).id);
+      } else {
+        const { data: subcat } = await sb.from('subcategories').select('id').eq('slug', category).maybeSingle();
+        if (subcat) {
+          query = query.eq('subcategory_id', (subcat as any).id);
+        } else {
+          query = query.filter('metadata->>category_slug', 'eq', category);
+        }
+      }
     }
     if (category_id && isValidUuid(category_id)) query = query.eq('category_id', category_id);
     if (subcategory_id && isValidUuid(subcategory_id)) query = query.eq('subcategory_id', subcategory_id);

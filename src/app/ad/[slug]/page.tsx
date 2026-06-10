@@ -364,7 +364,7 @@ export default function AdDetailPage() {
             <Link href="/" className="hover:text-primary-600 flex items-center gap-0.5"><Home className="w-3 h-3" />Home</Link>
             <ChevronRight className="w-3 h-3" />
             {categoryName ? (
-              <Link href={`/ads?category=${categorySlug || ''}`} className="hover:text-primary-600">
+              <Link href={`/category/${categorySlug || ''}`} className="hover:text-primary-600">
                 {categoryName}
               </Link>
             ) : (

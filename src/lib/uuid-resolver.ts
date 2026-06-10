@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const ID_TO_SLUG: Record<number, string> = {
+export const ID_TO_SLUG: Record<number, string> = {
   1: 'vehicles', 101: 'cars', 102: 'motorcycles', 103: 'buses-vans', 104: 'trucks-trailers',
   2: 'property', 201: 'apartments-rent', 202: 'apartments-sale', 203: 'houses-rent', 204: 'houses-sale',
   3: 'mobile-phones', 301: 'smartphones', 302: 'tablets', 303: 'smartwatches', 304: 'phone-accessories',

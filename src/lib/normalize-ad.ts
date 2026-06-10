@@ -86,7 +86,9 @@ export interface NormalizedAd {
   updated_at: string;
   expires_at: string | null;
   category_id: number | null;
+  category_slug: string;
   subcategory_id: number | null;
+  subcategory_slug: string;
   user_id: number | string | null;
   category: NormalizedAdCategory | null;
   subcategory: unknown;
@@ -506,7 +508,9 @@ export function normalizeAd(ad: unknown, isDetail = false): NormalizedAd | null 
     updated_at: String(a.updated_at || createdAt),
     expires_at: a.expires_at ? String(a.expires_at) : null,
     category_id: (a.category_id as number) || ((a.category as Record<string, unknown>)?.id as number) || null,
+    category_slug: String(a.category_slug || (a.category as Record<string, unknown>)?.slug || extractCategory(a)?.slug || ''),
     subcategory_id: (a.subcategory_id as number) || ((a.subcategory as Record<string, unknown>)?.id as number) || null,
+    subcategory_slug: String(a.subcategory_slug || (a.subcategory as Record<string, unknown>)?.slug || ''),
     user_id: (a.user_id as number | string) || ((a.user as Record<string, unknown>)?.id as number | string) || null,
     category: extractCategory(a),
     subcategory: a.subcategory || null,
@@ -588,7 +592,9 @@ export function mapDbAdToUiAd(dbAd: Record<string, unknown>): NormalizedAd | nul
     updated_at: String(dbAd.updated_at || dbAd.created_at || ''),
     expires_at: dbAd.expires_at ? String(dbAd.expires_at) : null,
     category_id: (dbAd.category_id as number) || (categoryObj?.id as number) || null,
+    category_slug: String(dbAd.category_slug || categoryObj?.slug || ''),
     subcategory_id: (dbAd.subcategory_id as number) || null,
+    subcategory_slug: String(dbAd.subcategory_slug || ''),
     user_id: (dbAd.user_id as number | string) || (userObj?.id as number | string) || null,
     category: categoryObj ? { id: categoryObj.id as number | undefined, name: String(categoryObj.name || ''), slug: String(categoryObj.slug || '') } : null,
     subcategory: dbAd.subcategory || null,

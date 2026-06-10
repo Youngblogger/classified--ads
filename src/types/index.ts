@@ -87,7 +87,9 @@ export interface Ad {
   updated_at?: string;
   user?: Partial<User>;
   category?: Category | string;
+  category_slug?: string;
   subcategory?: string;
+  subcategory_slug?: string;
   location?: Location | string;
   state?: string;
   lga?: string;

@@ -14,7 +14,7 @@ import { requireAuth } from '@/lib/require-auth';
 import { getPhoneValidationError } from '@/lib/utils';
 import { nigeriaLocations } from '@/lib/nigeriaLocations';
 import toast from 'react-hot-toast';
-import CategorySelector from '@/components/ui/CategorySelector';
+import CategoryModal from '@/components/ui/CategoryModal';
 import LocationSelector from '@/components/ui/LocationSelector';
 import { CategoryField } from './DynamicField';
 import structuredCategories from '@/data/structured-categories.json';
@@ -166,6 +166,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [categoryId, setCategoryId] = useState<string | number | null>(null);
   const [categorySlug, setCategorySlug] = useState<string>('');
   const [categoryParentSlug, setCategoryParentSlug] = useState<string>('');
+  const [subcategorySlug, setSubcategorySlug] = useState<string>('');
   const [categoryBreadcrumb, setCategoryBreadcrumb] = useState<string>('');
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
@@ -227,6 +228,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
         if (draft.categoryId) setCategoryId(draft.categoryId);
         if (draft.categorySlug) setCategorySlug(draft.categorySlug);
         if (draft.categoryParentSlug) setCategoryParentSlug(draft.categoryParentSlug);
+        if (draft.subcategorySlug) setSubcategorySlug(draft.subcategorySlug);
         if (draft.categoryBreadcrumb) setCategoryBreadcrumb(draft.categoryBreadcrumb);
         if (draft.locationId) setLocationId(draft.locationId);
         if (draft.locationBreadcrumb) setLocationBreadcrumb(draft.locationBreadcrumb);
@@ -924,6 +926,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       formData.append('category_id', String(categoryId));
       if (categorySlug) formData.append('category_slug', categorySlug);
       if (categoryParentSlug) formData.append('category_parent_slug', categoryParentSlug);
+      if (subcategorySlug) formData.append('subcategory_slug', subcategorySlug);
       formData.append('location_id', String(locationId));
       if (selectedStateName) formData.append('state', selectedStateName);
       if (lgaId) formData.append('lga', lgaId);
@@ -1074,6 +1077,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     setCategoryId(id);
     setCategorySlug(slug || '');
     setCategoryParentSlug(parentSlug || '');
+    setSubcategorySlug(slug || '');
     setCategoryBreadcrumb(breadcrumb);
   };
 
@@ -1681,12 +1685,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       </div>
 
       {/* Category Selector Modal */}
-      <CategorySelector
+      <CategoryModal
         isOpen={showCategorySelector}
         onClose={() => setShowCategorySelector(false)}
         onSelect={handleCategorySelect}
-        selectedCategoryId={categoryId}
-        selectedBreadcrumb={categoryBreadcrumb}
+        currentCategoryId={categoryId}
       />
 
       {/* Location Selector Modal */}
