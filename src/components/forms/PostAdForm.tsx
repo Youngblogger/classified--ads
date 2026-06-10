@@ -16,9 +16,9 @@ import { nigeriaLocations } from '@/lib/nigeriaLocations';
 import toast from 'react-hot-toast';
 import CategoryModal from '@/components/ui/CategoryModal';
 import LocationSelector from '@/components/ui/LocationSelector';
-import { CategoryField } from './DynamicField';
 import structuredCategories from '@/data/structured-categories.json';
-import { getCategorySpec, SpecField } from '@/lib/category-spec-schema';
+import DynamicSpecFields from '@/components/ui/DynamicSpecFields';
+import { getCategoryFieldsBySubcategory, getCategoryFields } from '@/config/category-fields';
 import { usePostAdDraft, clearPostAdDraft, DraftImage } from '@/hooks/usePostAdDraft';
 import { compressImage, CompressedImage } from '@/lib/imageCompression';
 import { imageUploadApi } from '@/lib/api';
@@ -182,10 +182,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const [whatsapp, setWhatsapp] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   
-  // Dynamic fields state
-  const [categoryFields, setCategoryFields] = useState<CategoryField[]>([]);
   const [attributes, setAttributes] = useState<Record<string, any>>({});
-  const [fieldsLoading, setFieldsLoading] = useState(false);
   
   // Structured category dropdowns
   const [selectedStructuredCategory, setSelectedStructuredCategory] = useState<StructuredCategory | null>(null);
@@ -537,38 +534,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     });
   }, []);
 
-  // Fetch category fields when category is selected
-  useEffect(() => {
-    const fetchCategoryFields = async () => {
-      if (!categoryId) {
-        setCategoryFields([]);
-        setAttributes({});
-        return;
-      }
-
-      setFieldsLoading(true);
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/categories/${categoryId}/fields`);
-        const data = await response.json();
-        if (data.flat && Array.isArray(data.flat)) {
-          setCategoryFields(data.flat);
-        } else if (data.fields) {
-          // Handle grouped format
-          const flatFields = Object.values(data.fields as Record<string, CategoryField[]>).flat();
-          setCategoryFields(flatFields);
-        }
-      } catch (err) {
-        console.error('Failed to fetch category fields:', err);
-        setCategoryFields([]);
-      } finally {
-        setFieldsLoading(false);
-      }
-    };
-
-    fetchCategoryFields();
-  }, [categoryId]);
-
-  // Handle attribute change
   const handleAttributeChange = (name: string, value: any) => {
     setAttributes(prev => ({
       ...prev,
@@ -622,55 +587,22 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     fetchCategories();
   }, []);
 
-  // Resolve schema spec for current category
-  const currentSpec = useMemo(() => {
-    if (!selectedStructuredCategory) return undefined;
-    return getCategorySpec(selectedStructuredCategory.category);
-  }, [selectedStructuredCategory]);
+  // Resolve spec fields from centralized config using category slug
+  const specFields = useMemo(() => {
+    const slug = subcategorySlug || categorySlug || categoryParentSlug;
+    if (!slug) return [];
+    const catFields = getCategoryFieldsBySubcategory(slug) || getCategoryFields(slug);
+    return catFields?.fields || [];
+  }, [subcategorySlug, categorySlug, categoryParentSlug]);
 
-  // Render a single schema field with the form's styled select/input pattern
-  const renderSchemaField = useCallback((field: SpecField) => {
-    const value = attributes[field.name] ?? '';
-    if (field.type === 'select') {
-      return (
-        <div key={field.name} className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            {field.label}
-          </label>
-          <div className="relative group">
-            <select
-              value={value}
-              onChange={(e) => handleAttributeChange(field.name, e.target.value)}
-              className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
-            >
-              <option value="">Select {field.label}</option>
-              {field.options?.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
-          </div>
-        </div>
-      );
+  // Filter out fields already covered by the structured brand/model dropdown
+  const hasStructuredBrand = selectedStructuredCategory?.hasBrand && getAvailableBrands().length > 0;
+  const displayFields = useMemo(() => {
+    if (hasStructuredBrand) {
+      return specFields.filter(f => !['make', 'brand', 'model'].includes(f.name));
     }
-    if (field.type === 'number' || field.type === 'text') {
-      return (
-        <div key={field.name} className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            {field.label}
-          </label>
-          <input
-            type={field.type === 'number' ? 'number' : 'text'}
-            value={value}
-            onChange={(e) => handleAttributeChange(field.name, e.target.value)}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition-all bg-white"
-          />
-        </div>
-      );
-    }
-    return null;
-  }, [attributes, handleAttributeChange]);
+    return specFields;
+  }, [specFields, hasStructuredBrand]);
 
   // Get LGAs for selected state from local data
   const getLgasForState = (stateSlug: string): string[] => {
@@ -985,7 +917,6 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       
       setImages([]);
       setAttributes({});
-      setCategoryFields([]);
       
       // Clear saved draft
       clearPostAdDraft();
@@ -1409,19 +1340,21 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 )}
               </div>
 
-              {/* Schema-driven specification fields for categories with brands */}
-              {currentSpec && selectedModel && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                  {currentSpec.fields.map((field) => renderSchemaField(field))}
-                </div>
-              )}
             </div>
           )}
 
-          {/* Schema-driven specification fields for categories without brands */}
-          {currentSpec && !selectedStructuredCategory?.hasBrand && currentSpec.fields.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {currentSpec.fields.map((field) => renderSchemaField(field))}
+          {/* Dynamic specification fields from centralized config */}
+          {displayFields.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-6 bg-primary-500 rounded-full" />
+                <h3 className="text-base font-bold text-gray-900">Specifications</h3>
+              </div>
+              <DynamicSpecFields
+                fields={displayFields}
+                values={attributes}
+                onChange={handleAttributeChange}
+              />
             </div>
           )}
 

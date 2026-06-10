@@ -75,21 +75,21 @@ function formatValue(value: string, type: string): { text: string; isBoolean: bo
 }
 
 const GROUP_COLORS: Record<string, string> = {
-  'Basic Info': 'bg-blue-50 border-blue-200 text-blue-700',
-  'Specifications': 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  'Appearance': 'bg-purple-50 border-purple-200 text-purple-700',
-  'Features': 'bg-amber-50 border-amber-200 text-amber-700',
-  'Safety': 'bg-red-50 border-red-200 text-red-700',
-  'Legal': 'bg-slate-50 border-slate-200 text-slate-700',
+  'Basic Info': 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
+  'Specifications': 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300',
+  'Appearance': 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300',
+  'Features': 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
+  'Safety': 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
+  'Legal': 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300',
 };
 
 function getGroupColors(group: string | null): string {
-  if (!group) return 'bg-gray-50 border-gray-200 text-gray-700';
+  if (!group) return 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300';
   const key = group.toLowerCase();
   for (const [k, colors] of Object.entries(GROUP_COLORS)) {
     if (key === k.toLowerCase()) return colors;
   }
-  return 'bg-gray-50 border-gray-200 text-gray-700';
+  return 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300';
 }
 
 export default function AdSpecifications({ specifications }: AdSpecificationsProps) {
@@ -113,8 +113,8 @@ export default function AdSpecifications({ specifications }: AdSpecificationsPro
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <div className="w-1 h-6 bg-primary-500 rounded-full" />
-        <h3 className="text-base sm:text-lg font-bold text-gray-900">Specifications</h3>
-        <span className="text-xs text-gray-400 font-medium bg-gray-100 px-2 py-0.5 rounded-full">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">Specifications</h3>
+        <span className="text-xs text-gray-400 dark:text-gray-500 font-medium bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
           {specifications.length}
         </span>
       </div>
@@ -125,7 +125,7 @@ export default function AdSpecifications({ specifications }: AdSpecificationsPro
             const GroupIcon = getGroupIcon(groupName);
             const colors = getGroupColors(groupName);
             return (
-              <div key={groupName} className={`rounded-xl border ${colors.split(' ').slice(0, 2).join(' ')} overflow-hidden bg-white shadow-sm`}>
+              <div key={groupName} className={`rounded-xl border ${colors.split(' ').slice(0, 2).join(' ')} overflow-hidden bg-white dark:bg-gray-800 shadow-sm`}>
                 <div className={`px-4 py-2.5 border-b ${colors.split(' ')[1]} bg-opacity-30 flex items-center gap-2`}>
                   <GroupIcon className={`w-4 h-4 ${colors.split(' ')[2]}`} />
                   <span className={`text-xs font-semibold uppercase tracking-wider ${colors.split(' ')[2]}`}>
@@ -137,25 +137,25 @@ export default function AdSpecifications({ specifications }: AdSpecificationsPro
                     const Icon = getFieldIcon(spec.name);
                     const { text, isBoolean, boolValue } = formatValue(spec.value, spec.type);
                     return (
-                      <div key={spec.name} className={`flex items-center gap-3 px-3 py-2 ${idx % 2 === 0 ? 'bg-gray-50/50' : ''} rounded-lg mx-0.5`}>
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-4 h-4 text-gray-500" />
+                      <div key={spec.name} className={`flex items-center gap-3 px-3 py-2 ${idx % 2 === 0 ? 'bg-gray-50/50 dark:bg-gray-700/30' : ''} rounded-lg mx-0.5`}>
+                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider block">
+                          <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider block">
                             {spec.label}
                           </span>
                           {isBoolean ? (
-                            <span className={`inline-flex items-center gap-1 text-sm font-semibold ${boolValue ? 'text-emerald-700' : 'text-gray-500'}`}>
+                            <span className={`inline-flex items-center gap-1 text-sm font-semibold ${boolValue ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
                               {boolValue ? (
-                                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                               ) : (
-                                <X className="w-3.5 h-3.5 text-gray-400" />
+                                <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                               )}
                               {text}
                             </span>
                           ) : (
-                            <span className="text-sm font-semibold text-gray-900 truncate block">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate block">
                               {text}
                             </span>
                           )}
@@ -168,29 +168,29 @@ export default function AdSpecifications({ specifications }: AdSpecificationsPro
             );
           })}
           {ungrouped.length > 0 && (
-            <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm sm:col-span-2">
-              <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <Package className="w-4 h-4 text-gray-500" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Details</span>
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 shadow-sm sm:col-span-2">
+              <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center gap-2">
+                <Package className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Details</span>
               </div>
               <div className="p-1">
                 {ungrouped.map((spec, idx) => {
                   const Icon = getFieldIcon(spec.name);
                   const { text, isBoolean, boolValue } = formatValue(spec.value, spec.type);
                   return (
-                    <div key={spec.name} className={`flex items-center gap-3 px-3 py-2 ${idx % 2 === 0 ? 'bg-gray-50/50' : ''} rounded-lg mx-0.5`}>
-                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <Icon className="w-4 h-4 text-gray-500" />
+                    <div key={spec.name} className={`flex items-center gap-3 px-3 py-2 ${idx % 2 === 0 ? 'bg-gray-50/50 dark:bg-gray-700/30' : ''} rounded-lg mx-0.5`}>
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider block">{spec.label}</span>
+                        <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider block">{spec.label}</span>
                         {isBoolean ? (
-                          <span className={`inline-flex items-center gap-1 text-sm font-semibold ${boolValue ? 'text-emerald-700' : 'text-gray-500'}`}>
-                            {boolValue ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <X className="w-3.5 h-3.5 text-gray-400" />}
+                          <span className={`inline-flex items-center gap-1 text-sm font-semibold ${boolValue ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                            {boolValue ? <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" /> : <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />}
                             {text}
                           </span>
                         ) : (
-                          <span className="text-sm font-semibold text-gray-900 truncate block">{text}</span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate block">{text}</span>
                         )}
                       </div>
                     </div>
@@ -201,25 +201,25 @@ export default function AdSpecifications({ specifications }: AdSpecificationsPro
           )}
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
-          <div className="divide-y divide-gray-100">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {specifications.map((spec, idx) => {
               const Icon = getFieldIcon(spec.name);
               const { text, isBoolean, boolValue } = formatValue(spec.value, spec.type);
               return (
-                <div key={spec.name} className={`flex items-center gap-3 px-4 py-2.5 ${idx % 2 === 0 ? 'bg-gray-50/30' : ''}`}>
-                  <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 text-gray-500" />
+                <div key={spec.name} className={`flex items-center gap-3 px-4 py-2.5 ${idx % 2 === 0 ? 'bg-gray-50/30 dark:bg-gray-700/20' : ''}`}>
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   </div>
                   <div className="flex-1 min-w-0 flex items-baseline justify-between gap-4">
-                    <span className="text-sm text-gray-600 truncate">{spec.label}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 truncate">{spec.label}</span>
                     {isBoolean ? (
-                      <span className={`inline-flex items-center gap-1 text-sm font-semibold flex-shrink-0 ${boolValue ? 'text-emerald-700' : 'text-gray-500'}`}>
-                        {boolValue ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <X className="w-3.5 h-3.5 text-gray-400" />}
+                      <span className={`inline-flex items-center gap-1 text-sm font-semibold flex-shrink-0 ${boolValue ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {boolValue ? <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" /> : <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />}
                         {text}
                       </span>
                     ) : (
-                      <span className="text-sm font-semibold text-gray-900 flex-shrink-0">{text}</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-shrink-0">{text}</span>
                     )}
                   </div>
                 </div>

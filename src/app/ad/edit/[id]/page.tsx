@@ -6,7 +6,7 @@ import Image from 'next/image';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 import Footer from '@/components/layout/Footer';
 import {
-  Upload, X, Check, ChevronRight, ChevronDown, Loader2, ArrowLeft,
+  Upload, X, Check, ChevronRight, Loader2, ArrowLeft,
   GripVertical, Phone
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
@@ -16,8 +16,9 @@ import { getPhoneValidationError, getAdImageUrl } from '@/lib/utils';
 import CategoryModal from '@/components/ui/CategoryModal';
 import LocationSelector from '@/components/ui/LocationSelector';
 import toast from 'react-hot-toast';
-import { getCategorySpec, SpecField } from '@/lib/category-spec-schema';
 import { normalizeAttributeKeys } from '@/lib/normalize-ad';
+import DynamicSpecFields from '@/components/ui/DynamicSpecFields';
+import { getCategoryFieldsBySubcategory, getCategoryFields } from '@/config/category-fields';
 
 const MAX_IMAGES = 6;
 
@@ -197,52 +198,17 @@ export default function EditAdPage() {
     setLgaId(lga);
   };
 
-  const currentSpec = useMemo(() => {
-    return categoryBreadcrumb ? getCategorySpec(categoryBreadcrumb) : undefined;
-  }, [categoryBreadcrumb]);
-
   const handleAttributeChange = useCallback((name: string, value: any) => {
     setAttributeValues(prev => ({ ...prev, [name]: value }));
   }, []);
 
-  const renderSchemaField = useCallback((field: SpecField) => {
-    const value = attributeValues[field.name] ?? '';
-    if (field.type === 'select') {
-      return (
-        <div key={field.name} className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">{field.label}</label>
-          <div className="relative group">
-            <select
-              value={value}
-              onChange={(e) => handleAttributeChange(field.name, e.target.value)}
-              className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl bg-white text-gray-900 appearance-none cursor-pointer transition-all group-focus-within:border-primary-500 group-hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
-            >
-              <option value="">Select {field.label}</option>
-              {field.options?.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none transition-transform group-focus-within:rotate-180" />
-          </div>
-        </div>
-      );
-    }
-    if (field.type === 'number' || field.type === 'text') {
-      return (
-        <div key={field.name} className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">{field.label}</label>
-          <input
-            type={field.type === 'number' ? 'number' : 'text'}
-            value={value}
-            onChange={(e) => handleAttributeChange(field.name, e.target.value)}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition-all bg-white"
-          />
-        </div>
-      );
-    }
-    return null;
-  }, [attributeValues, handleAttributeChange]);
+  // Resolve spec fields from centralized config using category slug
+  const specFields = useMemo(() => {
+    const slug = subcategorySlug || categorySlug || categoryParentSlug;
+    if (!slug) return [];
+    const catFields = getCategoryFieldsBySubcategory(slug) || getCategoryFields(slug);
+    return catFields?.fields || [];
+  }, [subcategorySlug, categorySlug, categoryParentSlug]);
 
   const handleSubmit = async () => {
     if (!title || !description || !price || !categoryId || !locationId || !condition) {
@@ -504,15 +470,17 @@ export default function EditAdPage() {
                     </div>
                   </div>
 
-                  {currentSpec && currentSpec.fields.length > 0 && (
+                  {specFields.length > 0 && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <div className="w-1 h-6 bg-primary-500 rounded-full" />
                         <h3 className="text-base font-bold text-gray-900">Specifications</h3>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {currentSpec.fields.map((field) => renderSchemaField(field))}
-                      </div>
+                      <DynamicSpecFields
+                        fields={specFields}
+                        values={attributeValues}
+                        onChange={handleAttributeChange}
+                      />
                     </div>
                   )}
 
