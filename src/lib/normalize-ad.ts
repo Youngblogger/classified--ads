@@ -244,6 +244,69 @@ function extractImages(src: unknown): NormalizedAdImage[] {
   return [];
 }
 
+const SPEC_GROUP_MAP: Record<string, string> = {
+  // Property
+  property_type: 'Property Details',
+  bedrooms: 'Property Details',
+  bathrooms: 'Property Details',
+  toilets: 'Property Details',
+  square_meters: 'Property Details',
+  furnishing: 'Property Details',
+  parking: 'Property Details',
+  parking_spaces: 'Property Details',
+  floor: 'Property Details',
+  floors: 'Property Details',
+  rent_duration: 'Pricing',
+  service_charge: 'Pricing',
+  price_per_unit: 'Pricing',
+  listing_type: 'Listing Type',
+  title_document: 'Legal',
+  // Vehicle
+  make: 'Basic Info',
+  model: 'Basic Info',
+  year: 'Basic Info',
+  condition: 'Condition',
+  body_type: 'Basic Info',
+  mileage: 'Performance',
+  fuel_type: 'Performance',
+  transmission: 'Performance',
+  engine_capacity: 'Performance',
+  drive_type: 'Performance',
+  color: 'Appearance',
+  interior_color: 'Appearance',
+  // Features
+  air_conditioning: 'Features',
+  sunroof: 'Features',
+  leather_seats: 'Features',
+  heated_seats: 'Features',
+  navigation: 'Features',
+  bluetooth: 'Connectivity',
+  // Safety
+  abs: 'Safety',
+  airbags: 'Safety',
+  parking_sensors: 'Safety',
+  reverse_camera: 'Safety',
+  // Phone
+  brand: 'Basic Info',
+  ram: 'Performance',
+  storage: 'Storage',
+  processor: 'Performance',
+  gpu: 'Performance',
+  screen_size: 'Display',
+  battery_capacity: 'Battery',
+  operating_system: 'Software',
+  connectivity: 'Connectivity',
+  // Fashion
+  size: 'Size',
+  material: 'Material',
+  gender: 'Gender',
+};
+
+function getSpecGroupName(name: string): string | null {
+  const key = name.toLowerCase().replace(/[\s_-]+/g, '_');
+  return SPEC_GROUP_MAP[key] || SPEC_GROUP_MAP[name] || null;
+}
+
 function extractSpecifications(src: unknown): NormalizedAdSpecification[] {
   if (!src) return [];
 
@@ -303,7 +366,7 @@ function extractSpecifications(src: unknown): NormalizedAdSpecification[] {
         value: String(value),
         raw_value: value,
         type: typeof value === 'boolean' ? 'boolean' : 'text',
-        group_name: null,
+        group_name: getSpecGroupName(machineName) || null,
         sort_order: 0,
         options: [],
       };

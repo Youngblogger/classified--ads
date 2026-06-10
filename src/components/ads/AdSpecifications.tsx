@@ -66,6 +66,38 @@ function getGroupIcon(group: string | null): React.FC<{ className?: string }> {
   return Package;
 }
 
+const GROUP_STYLE: Record<string, { header: string; icon: string; text: string; border: string }> = {
+  'Basic Info': { header: 'bg-blue-50 border-blue-200', icon: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+  'Specifications': { header: 'bg-emerald-50 border-emerald-200', icon: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
+  'Appearance': { header: 'bg-purple-50 border-purple-200', icon: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+  'Features': { header: 'bg-amber-50 border-amber-200', icon: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+  'Safety': { header: 'bg-red-50 border-red-200', icon: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
+  'Legal': { header: 'bg-slate-50 border-slate-200', icon: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
+  'Performance': { header: 'bg-orange-50 border-orange-200', icon: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
+  'Battery': { header: 'bg-yellow-50 border-yellow-200', icon: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' },
+  'Display': { header: 'bg-cyan-50 border-cyan-200', icon: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
+  'Connectivity': { header: 'bg-indigo-50 border-indigo-200', icon: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' },
+  'Storage': { header: 'bg-teal-50 border-teal-200', icon: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200' },
+  'Material': { header: 'bg-rose-50 border-rose-200', icon: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-200' },
+  'Size': { header: 'bg-pink-50 border-pink-200', icon: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200' },
+  'Gender': { header: 'bg-violet-50 border-violet-200', icon: 'bg-violet-100', text: 'text-violet-700', border: 'border-violet-200' },
+  'Software': { header: 'bg-sky-50 border-sky-200', icon: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200' },
+  'Pricing': { header: 'bg-lime-50 border-lime-200', icon: 'bg-lime-100', text: 'text-lime-700', border: 'border-lime-200' },
+  'Condition': { header: 'bg-teal-50 border-teal-200', icon: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200' },
+  'Listing Type': { header: 'bg-stone-50 border-stone-200', icon: 'bg-stone-100', text: 'text-stone-700', border: 'border-stone-200' },
+  'Property Details': { header: 'bg-blue-50 border-blue-200', icon: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+};
+
+function getGroupStyle(group: string | null) {
+  if (!group) return {
+    header: 'bg-gray-50 border-gray-200',
+    icon: 'bg-gray-100',
+    text: 'text-gray-700',
+    border: 'border-gray-200',
+  };
+  return GROUP_STYLE[group] || GROUP_STYLE['Specifications'];
+}
+
 function formatValue(value: string, type: string): { text: string; isBoolean: boolean; boolValue: boolean } {
   if (type === 'boolean') {
     const boolVal = value === 'Yes' || value === 'true' || value === '1';
@@ -102,16 +134,17 @@ export default function AdSpecifications({ specifications }: AdSpecificationsPro
       </div>
 
       {hasGroups ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
           {Object.entries(grouped).map(([groupName, items]) => {
             const GroupIcon = getGroupIcon(groupName);
+            const style = getGroupStyle(groupName);
             return (
-              <div key={groupName} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 border-b border-gray-50 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-primary-50 flex items-center justify-center">
-                    <GroupIcon className="w-4 h-4 text-primary-600" />
+              <div key={groupName} className={`bg-white rounded-2xl border ${style.border} shadow-sm overflow-hidden`}>
+                <div className={`px-5 py-3 border-b ${style.border} ${style.header} flex items-center gap-2.5`}>
+                  <div className={`w-8 h-8 rounded-xl ${style.icon} flex items-center justify-center`}>
+                    <GroupIcon className={`w-4 h-4 ${style.text}`} />
                   </div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <span className={`text-xs font-semibold uppercase tracking-wider ${style.text}`}>
                     {groupName}
                   </span>
                 </div>
@@ -156,12 +189,12 @@ export default function AdSpecifications({ specifications }: AdSpecificationsPro
             );
           })}
           {ungrouped.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden sm:col-span-2">
-              <div className="px-5 py-3 border-b border-gray-50 flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
-                  <Package className="w-4 h-4 text-gray-400" />
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden sm:col-span-2">
+              <div className="px-5 py-3 border-b border-gray-200 bg-gray-50 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center">
+                  <Package className="w-4 h-4 text-gray-500" />
                 </div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Details</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">Details</span>
               </div>
               <div className="p-2">
                 {ungrouped.map((spec, idx) => {
