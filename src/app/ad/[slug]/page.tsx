@@ -383,8 +383,8 @@ export default function AdDetailPage() {
               {/* Image Gallery */}
               <div className="bg-white rounded-t-2xl shadow-sm border-t-8 border-primary-600 overflow-hidden">
                 <div 
-                  className="relative bg-gray-100 select-none cursor-pointer w-full"
-                  style={{ minHeight: '300px', maxHeight: 'min(70vh, 600px)' }}
+                  className="relative bg-gray-100 select-none cursor-pointer w-full flex items-center justify-center"
+                  style={{ minHeight: '300px', maxHeight: 'min(80vh, 700px)' }}
                   onTouchStart={(e) => { pauseAutoplay(); onTouchStart(e); }}
                   onTouchMove={onTouchMove}
                   onTouchEnd={(e) => { pauseAutoplay(); onTouchEnd(); }}
@@ -401,7 +401,7 @@ export default function AdDetailPage() {
                       alt={ad.title} 
                       fill
                       sizes="(max-width: 768px) 100vw, 60vw"
-                      className={`${isPortrait ? 'object-contain' : 'object-cover'}`}
+                      className="object-contain"
                       onError={() => setCurrentImageError(true)}
                       onLoad={handleImageLoad}
                       priority={currentImageIndex === 0}
@@ -743,7 +743,7 @@ export default function AdDetailPage() {
           {/* Related Ads - Full Width */}
           <div className="-mx-3 sm:-mx-4 md:mx-0 overflow-hidden">
             <RelatedAds
-              currentAdId={Number(ad.id)}
+              currentAdId={ad.id}
               categoryId={ad.category?.id ? Number(ad.category.id) : undefined}
               subcategoryId={ad.subcategory_id ? Number(ad.subcategory_id) : undefined}
               locationId={ad.category_id ? Number(ad.category_id) : undefined}
@@ -922,7 +922,7 @@ export default function AdDetailPage() {
 
       {/* Boost Ad Modal */}
       <BoostAdModal
-        adId={Number(ad.id)}
+        adId={ad.id}
         adTitle={ad.title}
         isOpen={showBoostModal}
         onClose={() => setShowBoostModal(false)}

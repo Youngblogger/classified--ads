@@ -66,7 +66,7 @@ const RECOMMENDED_PACKAGE = 'gold';
 interface BoostAdModalProps {
   isOpen: boolean;
   onClose: () => void;
-  adId: number;
+  adId: string | number;
   adTitle?: string;
   adSlug?: string;
   adImage?: string;

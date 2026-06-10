@@ -168,6 +168,28 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
     };
   }
 
+  if (endpoint.startsWith('ads/similar?')) {
+    const params = Object.fromEntries(new URLSearchParams(endpoint.replace('ads/similar?', '')));
+    const adId = params.ad_id;
+    const limit = parseInt(params.limit || '8', 10);
+    if (adId) {
+      try {
+        const res = await http.get('/ads/similar', { params: { ad_id: adId, limit } as any });
+        const ads = res?.data?.data || [];
+        if (Array.isArray(ads) && ads.length > 0) {
+          return { data: normalizeAds(ads), meta: null };
+        }
+      } catch {}
+      try {
+        const fbRes = await fetch(`/api/listings?limit=${limit}&status=active`, { cache: 'no-store' });
+        const fbJson = await fbRes.json();
+        const fbAds = (fbJson?.data || []).map((item: any) => normalizeAd({ ...item, images: item.listing_images || [], listing_images: item.listing_images || [] }));
+        if (fbAds.length > 0) return { data: fbAds.filter(Boolean), meta: null };
+      } catch {}
+    }
+    return { data: [], meta: null };
+  }
+
   if (endpoint.startsWith('ads/')) {
     const slug = endpoint.replace('ads/', '');
     if (slug && slug.length > 0 && !slug.includes('?')) {
@@ -528,7 +550,7 @@ export function useSearchInfinite(params: Record<string, any> = {}, pageSize: nu
   };
 }
 
-export function useSimilarAds(adId: number | null, limit: number = 8) {
+export function useSimilarAds(adId: string | number | null, limit: number = 8) {
   const { data, error, isLoading } = useSWR(
     adId ? `ads/similar?ad_id=${adId}&limit=${limit}` : null,
     fetchFromLaravel,

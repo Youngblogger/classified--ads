@@ -18,7 +18,7 @@ export type BoostEvent =
 
 interface AnalyticsPayload {
   name: BoostEvent;
-  ad_id?: number;
+  ad_id?: string | number;
   package_type?: string;
   package_price?: number;
   reference?: string;

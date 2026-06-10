@@ -514,7 +514,49 @@ export const adsApi = {
       }
     }
     const { data, error } = await supabase.from('listings').update(updates).eq('id', String(id)).eq('user_id', userId).select().single();
-    return error ? sbError(error) : sbResponse({ data });
+    if (error) return sbError(error);
+
+    // Handle removed images
+    const removedImagesRaw = formData.get('removed_images');
+    if (removedImagesRaw) {
+      try {
+        const removedIds = JSON.parse(removedImagesRaw as string);
+        if (Array.isArray(removedIds) && removedIds.length > 0) {
+          const { data: imagesToDelete } = await supabase.from('listing_images').select('storage_path').in('id', removedIds);
+          if (imagesToDelete) {
+            for (const img of imagesToDelete) {
+              if (img.storage_path) {
+                await supabase.storage.from('listing-images').remove([img.storage_path]).catch(() => {});
+              }
+            }
+          }
+          await supabase.from('listing_images').delete().in('id', removedIds);
+        }
+      } catch {}
+    }
+
+    // Handle new images
+    const imageFiles = formData.getAll('images[]').filter(Boolean);
+    if (imageFiles.length > 0) {
+      const newImages: any[] = [];
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i] as File;
+        try {
+          const ext = file.name.split('.').pop();
+          const path = `listings/${data!.id}/${Date.now()}-${i}.${ext}`;
+          const { error: uploadErr } = await supabase.storage.from('listing-images').upload(path, file);
+          if (uploadErr) continue;
+          const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(path);
+          const { data: imgInsert, error: imgErr } = await supabase.from('listing_images').insert({
+            listing_id: data!.id, url: publicUrl, storage_path: path,
+            is_primary: i === 0, sort_order: i,
+          }).select().single();
+          if (!imgErr && imgInsert) newImages.push(imgInsert);
+        } catch {}
+      }
+    }
+
+    return sbResponse({ data });
   },
 
   delete: async (slug: string) => {
@@ -1454,19 +1496,19 @@ export const growthApi = {
     const { data, error } = await supabase.from('boosted_listings').select('*, boost_plans(*)').eq('user_id', userId).limit(50);
     return error ? sbError(error) : sbResponse({ data: data || [] });
   },
-  boostAd: async (adId: number, data: any) => {
+  boostAd: async (adId: string | number, data: any) => {
     try {
       const res = await http.post(`/ads/${adId}/boost`, data);
       return sbResponse({ data: res?.data?.data || { message: 'Boosted' } });
     } catch { return sbResponse({ data: { message: 'Boosted' } }); }
   },
-  postSubmissionBoost: async (adId: number, data: any) => {
+  postSubmissionBoost: async (adId: string | number, data: any) => {
     try {
       const res = await http.post(`/ads/${adId}/post-submission-boost`, data);
       return sbResponse({ data: res?.data?.data || { message: 'Boosted' } });
     } catch { return sbResponse({ data: { message: 'Boosted' } }); }
   },
-  getBoostStatus: async (adId: number) => {
+  getBoostStatus: async (adId: string | number) => {
     try {
       const res = await http.get(`/ads/${adId}/boost-status`);
       return sbResponse({ data: res?.data?.data || { is_boosted: false } });

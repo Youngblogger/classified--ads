@@ -11,7 +11,7 @@ import { SafeImage } from '@/components/ui/SafeImage';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 interface RelatedAdsProps {
-  currentAdId: number;
+  currentAdId: string | number;
   categoryId?: number;
   subcategoryId?: number;
   locationId?: number;
@@ -20,7 +20,7 @@ interface RelatedAdsProps {
 export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
   const { similarAds, isLoading, isError } = useSimilarAds(currentAdId);
 
-  const ads = similarAds.filter((ad: any) => ad.id !== currentAdId);
+  const ads = similarAds.filter((ad: any) => String(ad.id) !== String(currentAdId));
 
   if (isLoading) {
     return (
