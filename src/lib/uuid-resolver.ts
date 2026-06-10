@@ -6,12 +6,12 @@ export const ID_TO_SLUG: Record<number, string> = {
   3: 'mobile-phones', 301: 'smartphones', 302: 'tablets', 303: 'smartwatches', 304: 'phone-accessories',
   4: 'electronics', 401: 'laptops', 402: 'desktops', 403: 'tvs', 404: 'gaming',
   5: 'fashion', 501: 'men-clothing', 502: 'women-clothing', 503: 'shoes', 504: 'watches',
-  6: 'home-furniture', 601: 'furniture', 602: 'home-decor', 603: 'kitchen-appliances', 604: 'bedding',
+  6: 'home-garden', 601: 'furniture', 602: 'home-decor', 603: 'kitchen-appliances', 604: 'bedding',
   7: 'jobs', 701: 'full-time-jobs', 702: 'part-time-jobs', 703: 'remote-jobs', 704: 'internship-jobs',
   8: 'services', 801: 'cleaning-services', 802: 'repair-services', 803: 'moving-services', 804: 'event-planning',
   9: 'pets', 901: 'dogs', 902: 'cats', 903: 'birds', 904: 'pet-food',
   10: 'health-beauty', 1001: 'skincare', 1002: 'haircare', 1003: 'makeup', 1004: 'fragrances',
-  11: 'baby-kids', 12: 'sports', 13: 'books-music-movies', 14: 'food-drinks', 15: 'office-supplies',
+  11: 'baby-kids', 12: 'sports-fitness', 13: 'books-media', 14: 'food-drinks', 15: 'agriculture',
   16: 'travel', 17: 'agriculture', 18: 'repair-services', 19: 'cleaning-services', 20: 'moving-services',
   21: 'photography', 22: 'event-planning', 23: 'tutoring', 24: 'fitness', 25: 'healthcare',
   26: 'beauty-services', 27: 'it-services', 28: 'construction', 29: 'accounting', 30: 'legal',
@@ -26,7 +26,7 @@ export const ID_TO_SLUG: Record<number, string> = {
   71: 'kids-shoes', 72: 'kids-watches', 73: 'kids-jewelry', 74: 'kids-sunglasses', 75: 'kids-hats',
   76: 'kids-swimwear', 77: 'kids-sleepwear', 78: 'kids-underwear', 79: 'kids-costumes', 80: 'kids-uniforms',
   81: 'kids-backpacks', 82: 'kids-lunch-boxes', 83: 'kids-water-bottles', 84: 'kids-bedding',
-  85: 'kids-lighting',   86: 'kids-storage', 88: 'baby-kids',
+  85: 'kids-lighting', 86: 'kids-storage', 88: 'baby-kids',
 };
 
 const CHILD_TO_PARENT: Record<number, number> = {
@@ -60,10 +60,10 @@ async function getCategoriesMap(): Promise<Map<string, string>> {
 async function getSubcategoriesMap(): Promise<Map<string, string>> {
   if (subcategoriesCache) return subcategoriesCache;
   const { data, error } = await supabase.from('subcategories').select('id, slug');
-  if (error || !data || data.length === 0) {
-    throw new Error(`Failed to fetch subcategories: ${error?.message || 'no data'}`);
+  if (error) {
+    throw new Error(`Failed to fetch subcategories: ${error.message}`);
   }
-  subcategoriesCache = new Map(data.map(s => [s.slug, s.id]));
+  subcategoriesCache = new Map((data || []).map(s => [s.slug, s.id]));
   return subcategoriesCache;
 }
 
@@ -78,30 +78,16 @@ export async function resolveCategoryUuid(intId: number | string, slugFallback?:
   if (!slug) return null;
 
   const catMap = await getCategoriesMap();
-  const catUuid = catMap.get(slug);
-  if (catUuid) return catUuid;
-
-  const subMap = await getSubcategoriesMap();
-  const subUuid = subMap.get(slug);
-  if (subUuid) return subUuid;
-
-  return null;
+  return catMap.get(slug) || null;
 }
 
-export async function resolveSubcategoryUuid(intId: number | string, slugFallback?: string, _parentUuid?: string): Promise<string | null> {
+export async function resolveSubcategoryUuid(intId: number | string, slugFallback?: string): Promise<string | null> {
   const id = typeof intId === 'string' ? parseInt(intId, 10) : intId;
   const slug = ID_TO_SLUG[id] || slugFallback;
   if (!slug) return null;
 
   const subMap = await getSubcategoriesMap();
-  const subUuid = subMap.get(slug);
-  if (subUuid) return subUuid;
-
-  const catMap = await getCategoriesMap();
-  const catUuid = catMap.get(slug);
-  if (catUuid) return catUuid;
-
-  return null;
+  return subMap.get(slug) || null;
 }
 
 export function isChildId(id: number | string): boolean {

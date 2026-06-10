@@ -402,14 +402,14 @@ export const adsApi = {
               metadata.category_parent_slug = ID_TO_SLUG[parentId];
             }
           }
-          listing.subcategory_id = await resolveSubcategoryUuid(rawId, undefined, listing.category_id as string | undefined);
+          listing.subcategory_id = await resolveSubcategoryUuid(rawId, undefined);
           if (!metadata.subcategory_slug) {
             const resolvedSlug = ID_TO_SLUG[typeof rawId === 'string' ? parseInt(rawId, 10) : rawId];
             if (resolvedSlug) metadata.subcategory_slug = resolvedSlug;
           }
         } else if (parentSlug) {
           listing.category_id = await resolveCategoryUuid(0, parentSlug);
-          listing.subcategory_id = await resolveSubcategoryUuid(0, rawSlug, listing.category_id as string | undefined);
+          listing.subcategory_id = await resolveSubcategoryUuid(0, rawSlug);
         } else if (rawSlug) {
           listing.category_id = await resolveCategoryUuid(rawId, rawSlug);
           delete listing.subcategory_id;
@@ -422,6 +422,22 @@ export const adsApi = {
       } catch (e: any) {
         console.error('[adsApi.create] UUID resolution failed:', e.message);
         return sbError({ message: `Category mapping failed: ${e.message}` });
+      }
+    }
+
+    // Validate resolved UUIDs against their target tables — fail safe, never cross-table
+    if (listing.category_id) {
+      const { data: catRow } = await supabase.from('categories').select('id').eq('id', listing.category_id).maybeSingle();
+      if (!catRow) {
+        console.warn(`[adsApi.create] category_id ${listing.category_id} not in categories table — clearing`);
+        listing.category_id = null;
+      }
+    }
+    if (listing.subcategory_id) {
+      const { data: subRow } = await supabase.from('subcategories').select('id').eq('id', listing.subcategory_id).maybeSingle();
+      if (!subRow) {
+        console.warn(`[adsApi.create] subcategory_id ${listing.subcategory_id} not in subcategories table — clearing`);
+        listing.subcategory_id = null;
       }
     }
 
@@ -528,7 +544,7 @@ export const adsApi = {
           if (parentId) {
             updates.category_id = await resolveCategoryUuid(parentId);
           }
-          updates.subcategory_id = await resolveSubcategoryUuid(rawId, undefined, updates.category_id as string | undefined);
+          updates.subcategory_id = await resolveSubcategoryUuid(rawId, undefined);
         } else {
           updates.category_id = await resolveCategoryUuid(rawId);
           delete updates.subcategory_id;

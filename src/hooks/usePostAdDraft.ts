@@ -18,9 +18,12 @@ interface PostAdDraft {
   description: string;
   price: string;
   negotiable: boolean;
-  categoryId: number | null;
+  categoryId: string | number | null;
+  categorySlug: string;
+  categoryParentSlug: string;
+  subcategorySlug: string;
   categoryBreadcrumb: string;
-  locationId: number | null;
+  locationId: string | number | null;
   locationBreadcrumb: string;
   selectedStateName: string;
   lgaId: string;
@@ -72,6 +75,9 @@ function saveDraft(draft: Partial<PostAdDraft>) {
       price: '',
       negotiable: false,
       categoryId: null,
+      categorySlug: '',
+      categoryParentSlug: '',
+      subcategorySlug: '',
       categoryBreadcrumb: '',
       locationId: null,
       locationBreadcrumb: '',
