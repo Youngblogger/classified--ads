@@ -114,7 +114,7 @@ export function getAdImageUrl(img: any, adId?: number): string {
   if (!url || url === 'null' || url === 'undefined') return '';
   
   if (url.startsWith('http://') || url.startsWith('https://')) {
-    return addWatermarkToCloudinaryUrl(url, adId);
+    return url;
   }
   
   if (url.startsWith('/')) {
