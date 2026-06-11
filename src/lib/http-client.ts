@@ -158,10 +158,12 @@ export const http = {
     onProgress?: (pct: number) => void,
     timeoutOverride?: number,
   ): Promise<HttpClientResponse<T>> {
+    const isFullUrl = url.startsWith('http://') || url.startsWith('https://');
+    const resolvedUrl = isFullUrl ? url : `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
     if (typeof XMLHttpRequest !== 'undefined') {
       return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`);
+        xhr.open('POST', resolvedUrl);
 
         const token = url.includes('secure-control-9ja') ? getAdminToken() : getAuthToken();
         if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);

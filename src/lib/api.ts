@@ -1500,26 +1500,40 @@ export const walletApi = {
 // ==============================
 export const imageUploadApi = {
   upload: async (file: File, onProgress?: (pct: number) => void) => {
-    try {
-      const formData = new FormData();
-      formData.append('images', file);
-      const res = await http.upload('/api/upload', formData, onProgress);
-      const data = res?.data?.data?.[0] || res?.data?.[0];
-      if (data?.secure_url) {
-        return sbResponse({
-          data: {
-            url: data.secure_url,
-            thumbnail_url: data.thumbnail_url || data.optimized_url,
-            medium_url: data.optimized_url || data.secure_url,
-            original_url: data.secure_url,
-            path: data.public_id,
-            storage_path: data.public_id,
-          },
-        });
+    const tryNextJsUpload = async (): Promise<SupabaseResponse | null> => {
+      try {
+        const formData = new FormData();
+        formData.append('images', file);
+        formData.append('folder', 'classified-ads');
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('user-auth-storage') : null;
+        let token: string | null = null;
+        if (stored) { try { const p = JSON.parse(stored); token = p?.state?.token || null; } catch {} }
+        if (!token) token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch('/api/upload', { method: 'POST', body: formData, headers });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const item = json?.data?.[0] || json?.[0];
+        if (item?.secure_url) {
+          return sbResponse({
+            data: {
+              url: item.secure_url,
+              thumbnail_url: item.thumbnail_url || item.optimized_url,
+              medium_url: item.optimized_url || item.secure_url,
+              original_url: item.secure_url,
+              path: item.public_id,
+              storage_path: item.public_id,
+            },
+          });
+        }
+        return null;
+      } catch {
+        return null;
       }
-    } catch (e) {
-      console.warn('[Upload] Cloudinary upload failed, falling back:', e);
-    }
+    };
+    const nextRes = await tryNextJsUpload();
+    if (nextRes) return nextRes;
     try {
       const formData = new FormData();
       formData.append('image', file);

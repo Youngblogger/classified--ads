@@ -22,9 +22,22 @@ async function getWatermarkSettingsLive(): Promise<WatermarkConfig | null> {
       .select('*')
       .eq('id', 'default')
       .single();
-    if (!error && data?.enabled) return data as WatermarkConfig;
-    return null;
-  } catch {
+    if (error) {
+      console.warn('[Upload][Watermark] Settings query error:', error?.message || error);
+      return null;
+    }
+    if (!data) {
+      console.warn('[Upload][Watermark] No settings found in DB');
+      return null;
+    }
+    if (!data.enabled) {
+      console.warn('[Upload][Watermark] Watermark is DISABLED in settings');
+      return null;
+    }
+    console.log('[Upload][Watermark] Settings loaded:', JSON.stringify({ type: data.type, text: data.text, position: data.position, opacity: data.opacity }));
+    return data as WatermarkConfig;
+  } catch (e) {
+    console.warn('[Upload][Watermark] Exception loading settings:', e);
     return null;
   }
 }
@@ -65,15 +78,26 @@ export async function POST(request: NextRequest) {
       }
 
       const rawBuffer = Buffer.from(await file.arrayBuffer());
+      console.log(`[Upload][File] ${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)}KB) - watermark: ${!!watermark}`);
       const publicId = `ad_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
       let uploadBuffer: Buffer = rawBuffer;
 
       if (watermark) {
-        if (watermark.type === 'text') {
-          uploadBuffer = await applyWatermarkSharp(rawBuffer, watermark, adId);
-        } else if (watermark.type === 'logo' && watermark.logo_url) {
-          uploadBuffer = await applyLogoWatermarkSharp(rawBuffer, watermark, fetchLogoBuffer);
+        console.log(`[Upload][Watermark] Processing type=${watermark.type}, position=${watermark.position}, opacity=${watermark.opacity}`);
+        try {
+          if (watermark.type === 'text') {
+            const before = Date.now();
+            uploadBuffer = await applyWatermarkSharp(rawBuffer, watermark, adId);
+            console.log(`[Upload][Watermark] Sharp text watermark applied in ${Date.now() - before}ms, output buffer: ${(uploadBuffer.length / 1024).toFixed(1)}KB`);
+          } else if (watermark.type === 'logo' && watermark.logo_url) {
+            const before = Date.now();
+            uploadBuffer = await applyLogoWatermarkSharp(rawBuffer, watermark, fetchLogoBuffer);
+            console.log(`[Upload][Watermark] Sharp logo watermark applied in ${Date.now() - before}ms, output buffer: ${(uploadBuffer.length / 1024).toFixed(1)}KB`);
+          }
+        } catch (wmError) {
+          console.error('[Upload][Watermark] Sharp processing FAILED:', wmError);
+          throw wmError;
         }
       }
 
@@ -82,6 +106,7 @@ export async function POST(request: NextRequest) {
         public_id: publicId,
         resource_type: 'image',
       });
+      console.log(`[Upload][Cloudinary] Uploaded ${publicId} -> ${result.secure_url} (${result.width}x${result.height}, ${(result.bytes / 1024).toFixed(1)}KB)`);
 
       return {
         public_id: result.public_id,
