@@ -14,7 +14,22 @@ function getSb() {
   }
 }
 
-async function getWatermarkSettingsLive(): Promise<WatermarkConfig | null> {
+const DEFAULT_WATERMARK: WatermarkConfig = {
+  enabled: true,
+  type: 'text',
+  text: 'iList.ng',
+  logo_url: null,
+  text_color: '#FFFFFF',
+  position: 'bottom_right',
+  opacity: 35,
+  font_size: 36,
+  font_family: 'arial',
+  margin: 20,
+  rotation: 0,
+  show_ad_id: false,
+};
+
+async function getWatermarkSettingsLive(): Promise<WatermarkConfig> {
   try {
     const sb = getSb() as any;
     const { data, error } = await sb
@@ -22,24 +37,17 @@ async function getWatermarkSettingsLive(): Promise<WatermarkConfig | null> {
       .select('*')
       .eq('id', 'default')
       .single();
+    if (!error && data && data.enabled) {
+      console.log('[Upload][Watermark] Settings loaded:', JSON.stringify({ type: data.type, text: data.text, position: data.position, opacity: data.opacity }));
+      return data as WatermarkConfig;
+    }
     if (error) {
-      console.warn('[Upload][Watermark] Settings query error:', error?.message || error);
-      return null;
+      console.warn('[Upload][Watermark] Settings query error, using defaults:', error?.message || error);
     }
-    if (!data) {
-      console.warn('[Upload][Watermark] No settings found in DB');
-      return null;
-    }
-    if (!data.enabled) {
-      console.warn('[Upload][Watermark] Watermark is DISABLED in settings');
-      return null;
-    }
-    console.log('[Upload][Watermark] Settings loaded:', JSON.stringify({ type: data.type, text: data.text, position: data.position, opacity: data.opacity }));
-    return data as WatermarkConfig;
   } catch (e) {
-    console.warn('[Upload][Watermark] Exception loading settings:', e);
-    return null;
+    console.warn('[Upload][Watermark] Exception loading settings, using defaults:', e);
   }
+  return DEFAULT_WATERMARK;
 }
 
 async function fetchLogoBuffer(url: string): Promise<Buffer> {
