@@ -107,6 +107,7 @@ class GrowthController extends Controller
                 $response = [
                     'success' => false,
                     'error' => $result['error'],
+                    'code' => $result['code'] ?? 'unknown',
                 ];
 
                 if (isset($result['available_balance'])) {
@@ -246,6 +247,7 @@ class GrowthController extends Controller
             $response = [
                 'success' => false,
                 'error' => $result['error'],
+                'code' => $result['code'] ?? 'unknown',
             ];
 
             if (isset($result['available_balance'])) {
@@ -551,6 +553,7 @@ class GrowthController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Ad not found or unauthorized',
+                'code' => 'ad_not_found',
             ], 404);
         }
 
@@ -560,6 +563,7 @@ class GrowthController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Invalid or inactive boost plan',
+                'code' => 'invalid_plan',
             ], 400);
         }
 
@@ -570,13 +574,14 @@ class GrowthController extends Controller
             $wallet = \App\Models\Wallet::where('user_id', $user->id)->first();
 
             if (!$wallet) {
-                return response()->json(['success' => false, 'error' => 'Wallet not found'], 404);
+                return response()->json(['success' => false, 'error' => 'Wallet not found', 'code' => 'wallet_not_found'], 404);
             }
 
             if ($wallet->available_balance < $price) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Insufficient wallet balance. Available: ₦' . number_format($wallet->available_balance, 2) . ', Required: ₦' . number_format($price, 2),
+                    'code' => 'insufficient_balance',
                     'available_balance' => $wallet->available_balance,
                     'required_amount' => $price,
                 ], 402);

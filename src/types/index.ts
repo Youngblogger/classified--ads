@@ -535,6 +535,99 @@ export interface BoostOrderResponse {
   };
 }
 
+// ==============================
+//  HARDENED BOOST/PAYMENT TYPES
+// ==============================
+
+export interface BoostPlan {
+  id: number;
+  name: string;
+  slug?: string;
+  type: string;
+  description?: string;
+  price: number;
+  formatted_price?: string;
+  duration_days: number;
+  features: string[];
+  is_active: boolean;
+  priority_score?: number;
+  badge_label?: string;
+  badge_icon?: string;
+  color_scheme?: string;
+}
+
+export interface BoostAdRequest {
+  ad_id: number | string;
+  plan_id?: number;
+  plan_type?: string;
+  boost_type?: string;
+  price: number;
+  duration_days?: number;
+  payment_method: 'wallet' | 'paystack';
+}
+
+export interface BoostWalletResponseData {
+  boost_id: number;
+  amount: number;
+  paid_from: 'wallet';
+  plan?: BoostPlanSummary;
+  boost_type?: string;
+  duration_days?: number;
+  balance_after?: number;
+  message: string;
+}
+
+export interface BoostPaystackResponseData {
+  payment_intent: string;
+  authorization_url: string;
+  access_code?: string;
+  amount: number;
+  duration_days?: number;
+  plan?: BoostPlanSummary;
+  boost_type?: string;
+}
+
+export interface BoostPlanSummary {
+  id: number;
+  type: string;
+  name: string;
+  price: number;
+  duration_days: number;
+}
+
+export interface WalletBalanceData {
+  balance: number;
+  available_balance?: number;
+  pending_balance?: number;
+  currency?: string;
+}
+
+export interface PaymentVerificationData {
+  success?: boolean;
+  status?: string;
+  code?: string;
+  message?: string;
+  payment?: {
+    type?: string;
+    ad_id?: number;
+    reference?: string;
+  };
+}
+
+export interface BoostStatusData {
+  is_boosted: boolean;
+  has_active_boost?: boolean;
+  active_boost?: {
+    id: number;
+    boost_type: string;
+    start_time: string;
+    end_time: string;
+    time_remaining: string;
+    days_remaining: number;
+  } | null;
+  can_renew?: boolean;
+}
+
 // Upload Image Types
 export type ImageUploadStatus = 'pending' | 'queued' | 'uploading' | 'processing' | 'completed' | 'failed';
 

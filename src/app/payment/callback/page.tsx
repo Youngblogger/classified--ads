@@ -2,11 +2,11 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, CheckCircle, XCircle, Zap, Home, ArrowLeft, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
-import { paymentApi } from '@/lib/api';
+import { Loader2, CheckCircle, XCircle, Zap, Home, ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
 import { mutate } from 'swr';
 import { useQueryClient } from '@tanstack/react-query';
 import { adKeys } from '@/lib/query-keys';
+import { verifyPayment } from '@/services/boost-service';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import PendingPaymentTimer from '@/components/ui/PendingPaymentTimer';
@@ -48,17 +48,16 @@ function PaymentCallbackContent() {
       attemptRef.current += 1;
 
       try {
-        const response = await paymentApi.verifyPayment(ref);
+        const result = await verifyPayment(ref);
 
-        if ((response.data as any).success || (response.data as any)?.data?.message) {
+        if (result.success) {
           if (pollRef.current) clearInterval(pollRef.current);
-          const payment = (response.data as any).payment;
-          const type = payment?.type || 'unknown';
-          setPaymentType(type as any);
-          if (payment?.ad_id) setAdId(payment.ad_id);
+          const paymentType = result.data?.payment?.type || 'unknown';
+          setPaymentType(paymentType as 'boost' | 'promotion' | 'unknown');
+          if (result.data?.payment?.ad_id) setAdId(result.data.payment.ad_id);
           setStatus('success');
           setMessage('Payment confirmed successfully!');
-          if (type === 'boost') {
+          if (paymentType === 'boost') {
             toast.success('Boost activated successfully!');
             mutate('boosted_ads_listing');
             mutate('homepage_data');
@@ -67,35 +66,22 @@ function PaymentCallbackContent() {
             toast.success('Payment successful!');
           }
         } else {
-          const code = (response.data as any).code;
+          const code = result.data?.code;
 
           if (code === 'pending') {
             setMessage('Payment still processing...');
           } else if (code === 'validation_failed') {
             if (pollRef.current) clearInterval(pollRef.current);
             setStatus('failed');
-            setMessage((response.data as any).message || (response.data as any)?.data?.message || 'Payment validation failed');
+            setMessage(result.data?.message || result.error || 'Payment validation failed');
           } else if (code === 'gateway_error') {
             setMessage('Contacting payment gateway...');
+          } else {
+            setMessage(result.data?.message || result.error || 'Payment verification failed');
           }
         }
-      } catch (error: any) {
-        const httpStatus = error.response?.status;
-
-        if (httpStatus === 202 || httpStatus === 400) {
-          const data = error.response?.data;
-          if (data?.code === 'pending') {
-            setMessage('Payment still processing...');
-          } else if (data?.code === 'validation_failed' || data?.code === 'payment_not_found') {
-            if (pollRef.current) clearInterval(pollRef.current);
-            setStatus('failed');
-            setMessage(data.message || 'Payment not found');
-          }
-        } else if (httpStatus === 404) {
-          if (pollRef.current) clearInterval(pollRef.current);
-          setStatus('failed');
-          setMessage('Payment reference not found');
-        }
+      } catch {
+        setMessage('Payment verification failed unexpectedly');
       }
     };
 

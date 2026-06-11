@@ -7,27 +7,16 @@ import Image from 'next/image';
 import { adsApi } from '@/lib/api';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { useWalletBalance } from '@/hooks/useWallet';
+import type { BoostPlan } from '@/types';
 import toast from 'react-hot-toast';
 import PromotionPackages from '@/components/promotion/PromotionPackages';
 import PaymentMethods from '@/components/promotion/PaymentMethods';
 import BankTransferDetails from '@/components/promotion/BankTransferDetails';
 import PaymentStatus from '@/components/promotion/PaymentStatus';
 
+type Plan = BoostPlan;
 type Step = 'packages' | 'payment' | 'processing' | 'success' | 'failed';
 type PaymentMethod = 'card' | 'bank' | 'ussd' | 'wallet';
-
-interface Plan {
-  id: number;
-  name: string;
-  slug: string;
-  type: string;
-  description: string;
-  price: number;
-  formatted_price: string;
-  duration_days: number;
-  features: string[];
-  is_active: boolean;
-}
 
 interface AdData {
   id: number;
