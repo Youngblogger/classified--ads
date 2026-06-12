@@ -54,7 +54,7 @@ export default function EmailLayout({
           <Section
             style={{
               backgroundColor: COLORS.primary,
-              padding: '12px 0',
+              padding: '20px 0',
             }}
           >
             <Container style={{ maxWidth: '560px', margin: '0 auto', padding: '0 16px' }}>
@@ -67,9 +67,7 @@ export default function EmailLayout({
                           style={{
                             color: COLORS.white,
                             fontFamily: FONT.body,
-                            fontSize: '18px',
-                            fontWeight: '700',
-                            lineHeight: '32px',
+                            paddingBottom: '4px',
                           }}
                         >
                           <Img
@@ -79,6 +77,19 @@ export default function EmailLayout({
                             height="24"
                             style={{ display: 'block' }}
                           />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td
+                          style={{
+                            color: COLORS.white,
+                            fontFamily: FONT.body,
+                            fontSize: '14px',
+                            lineHeight: '16px',
+                            opacity: '0.85',
+                          }}
+                        >
+                          Nigeria&apos;s trusted marketplace
                         </td>
                       </tr>
                     </table>

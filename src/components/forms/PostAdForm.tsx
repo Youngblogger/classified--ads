@@ -1089,7 +1089,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {/* Post-Submission Boost Modal */}
       <BoostAdModal
         isOpen={showPostModal}
-        onClose={() => { setShowPostModal(false); router.push(postedAdSlug ? `/ad/${postedAdSlug}` : '/dashboard/my-ads'); }}
+        onClose={() => { setShowPostModal(false); router.push('/'); }}
         adId={postedAdId || 0}
         adSlug={postedAdSlug}
         adTitle={title}
