@@ -104,8 +104,7 @@ export async function POST(request: NextRequest) {
             console.log(`[Upload][Watermark] Sharp logo watermark applied in ${Date.now() - before}ms, output buffer: ${(uploadBuffer.length / 1024).toFixed(1)}KB`);
           }
         } catch (wmError) {
-          console.error('[Upload][Watermark] Sharp processing FAILED:', wmError);
-          throw wmError;
+          console.error('[Upload][Watermark] Sharp processing FAILED, uploading without watermark:', wmError);
         }
       }
 
