@@ -303,8 +303,8 @@ export default function HomePage() {
           </section>
 
           {/* Unified Latest Ads Feed */}
-          <section className="py-5 sm:py-6 bg-white">
-            <div className="px-1 sm:px-3 md:px-4">
+          <section className="w-full py-5 sm:py-6 bg-white">
+            <div className="w-full px-1 sm:px-3 md:px-4">
               <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
                 <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">
                   Fresh Listings

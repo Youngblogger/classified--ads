@@ -407,6 +407,7 @@ export function useInfiniteAds(params: Record<string, any> = {}, pageSize: numbe
       revalidateOnFocus: false,
       dedupingInterval: 30000,
       revalidateFirstPage: false,
+      refreshInterval: 30000,
       errorRetryCount: 2,
     }
   );
