@@ -210,14 +210,20 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
     const responseData = res?.data || { data: [], meta: null };
     const mapped = normalizeAds(responseData.data || []);
 
+    const supabaseResult = await fetchSupabaseListings(params, page, perPage);
+
+    if (mapped.length > 0 && supabaseResult.data.length > 0) {
+      const existingIds = new Set(mapped.map((a: any) => a.id));
+      const merged = [...mapped, ...supabaseResult.data.filter((a: any) => !existingIds.has(a.id))];
+      return { data: merged, meta: responseData.meta || supabaseResult.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 } };
+    }
+
     if (mapped.length > 0) {
       return {
         data: mapped,
         meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
       };
     }
-
-    const supabaseResult = await fetchSupabaseListings(params, page, perPage);
 
     if (supabaseResult.data.length > 0) {
       return { data: supabaseResult.data, meta: supabaseResult.meta };
