@@ -130,8 +130,11 @@ class WalletController extends Controller
         $amountInKobo = (int) ($amount * 100);
 
         try {
-            $response = Http::withToken(config('services.paystack.secret_key') ?? env('PAYSTACK_SECRET_KEY'))
-                ->post('https://api.paystack.co/transaction/initialize', [
+            $http = Http::withToken(config('services.paystack.secret_key') ?? env('PAYSTACK_SECRET_KEY'));
+            if (!config('app.paystack_verify_ssl', true)) {
+                $http = $http->withoutVerifying();
+            }
+            $response = $http->post('https://api.paystack.co/transaction/initialize', [
                     'email' => $user->email,
                     'amount' => $amountInKobo,
                     'reference' => $reference,
@@ -255,8 +258,11 @@ class WalletController extends Controller
         }
 
         try {
-            $response = Http::withToken(config('services.paystack.secret_key') ?? env('PAYSTACK_SECRET_KEY'))
-                ->get("https://api.paystack.co/transaction/verify/{$reference}");
+            $http = Http::withToken(config('services.paystack.secret_key') ?? env('PAYSTACK_SECRET_KEY'));
+            if (!config('app.paystack_verify_ssl', true)) {
+                $http = $http->withoutVerifying();
+            }
+            $response = $http->get("https://api.paystack.co/transaction/verify/{$reference}");
 
             $data = $response->json();
 

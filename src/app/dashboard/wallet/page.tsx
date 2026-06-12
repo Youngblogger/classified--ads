@@ -78,6 +78,7 @@ export default function WalletPage() {
     setFunding(true);
     try {
       const { user } = useAuthStore.getState();
+      console.log('[Wallet fund] API URL:', process.env.NEXT_PUBLIC_API_URL);
       const res = await api.post('/wallet/fund', {
         amount,
         method: 'paystack',
@@ -89,6 +90,7 @@ export default function WalletPage() {
         window.location.href = res.data.authorization_url;
       }
     } catch (error: any) {
+      console.error('[Wallet fund error]', error?.response?.data || error?.message || error);
       toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to initiate payment');
     } finally {
       setFunding(false);

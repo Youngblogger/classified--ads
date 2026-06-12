@@ -122,6 +122,8 @@ return [
 
     'temp_upload_lifetime_hours' => env('TEMP_UPLOAD_LIFETIME_HOURS', 24),
 
+    'paystack_verify_ssl' => env('PAYSTACK_VERIFY_SSL', true),
+
     'socket_url' => env('SOCKET_URL', 'http://localhost:3006'),
 
     'pending_payment_expiry_minutes' => env('PENDING_PAYMENT_EXPIRY_MINUTES', 15),
