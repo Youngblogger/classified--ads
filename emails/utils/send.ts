@@ -2,15 +2,42 @@ import { render } from '@react-email/render';
 import { getResend } from './resend';
 import type { SendEmailParams } from './types';
 
-const DEFAULT_FROM = 'iList <noreply@ilist.ng>';
+/**
+ * Default sender for transactional emails.
+ *
+ * DEVELOPMENT: Uses Resend's built-in testing address (onboarding@resend.dev).
+ *              This requires no domain verification and works immediately.
+ *
+ * PRODUCTION:  Must use a verified custom domain (e.g. noreply@ilist.ng).
+ *              Before switching, configure SPF, DKIM, and DMARC records for
+ *              the domain in your DNS provider and verify it in Resend.
+ *
+ * Switching to the production sender is a one-line change:
+ *   export const DEFAULT_FROM = 'iList <noreply@ilist.ng>';
+ */
+export const DEFAULT_FROM =
+  process.env.NODE_ENV === 'production'
+    ? 'iList <noreply@ilist.ng>'
+    : 'iList <onboarding@resend.dev>';
+
+if (
+  process.env.NODE_ENV === 'production' &&
+  DEFAULT_FROM.includes('onboarding@resend.dev')
+) {
+  console.warn(
+    '[Email] WARNING: Using Resend testing sender (onboarding@resend.dev) in production. ' +
+    'Configure SPF/DKIM/DMARC and verify your domain in Resend before going live.'
+  );
+}
 
 export async function sendEmail({
   to,
   subject,
   react,
-  from = DEFAULT_FROM,
+  from,
   replyTo,
 }: SendEmailParams) {
+  const resolvedFrom = from || DEFAULT_FROM;
   const startTime = Date.now();
 
   console.log(`[Email] Preparing to send "${subject}" to ${typeof to === 'string' ? to : to.join(', ')}`);
@@ -21,7 +48,7 @@ export async function sendEmail({
     const resend = getResend();
 
     const { data, error } = await resend.emails.send({
-      from,
+      from: resolvedFrom,
       to: Array.isArray(to) ? to : [to],
       subject,
       html,
