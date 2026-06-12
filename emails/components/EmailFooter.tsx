@@ -1,5 +1,5 @@
-import { Column, Hr, Img, Link, Row, Section, Text } from '@react-email/components';
-import { BRAND, COLORS } from '../utils/constants';
+import { Column, Hr, Link, Row, Section, Text } from '@react-email/components';
+import { BRAND, COLORS, FONT, FONT_SIZE } from '../utils/constants';
 
 interface EmailFooterProps {
   preferencesUrl?: string;
@@ -11,31 +11,18 @@ export default function EmailFooter({ preferencesUrl, unsubscribeUrl }: EmailFoo
 
   return (
     <Section style={{ padding: '0 0 32px' }}>
-      <Hr style={{ borderColor: COLORS.gray[200], margin: '0 0 24px' }} />
+      <Hr style={{ borderColor: COLORS.slate[200], margin: '0 0 24px' }} />
 
       <Row>
         <Column align="center">
-          <Row style={{ marginBottom: '16px' }}>
-            <Column align="center">
-              <Link href={BRAND.twitter} style={{ margin: '0 8px', display: 'inline-block' }}>
-                <Img src={`${BRAND.website}/icons/x.svg`} alt="X" width="20" height="20" style={{ display: 'inline' }} />
-              </Link>
-              <Link href={BRAND.instagram} style={{ margin: '0 8px', display: 'inline-block' }}>
-                <Img src={`${BRAND.website}/icons/instagram.svg`} alt="Instagram" width="20" height="20" style={{ display: 'inline' }} />
-              </Link>
-              <Link href={BRAND.supportUrl} style={{ margin: '0 8px', display: 'inline-block' }}>
-                <Img src={`${BRAND.website}/icons/help.svg`} alt="Help" width="20" height="20" style={{ display: 'inline' }} />
-              </Link>
-            </Column>
-          </Row>
-
           <Text
             style={{
-              fontSize: '12px',
+              fontSize: FONT_SIZE.tiny.size,
               lineHeight: '18px',
-              color: COLORS.gray[400],
+              color: COLORS.slate[400],
               textAlign: 'center',
               margin: '0 0 4px',
+              fontFamily: FONT.body,
             }}
           >
             Need help? Visit{' '}
@@ -46,11 +33,12 @@ export default function EmailFooter({ preferencesUrl, unsubscribeUrl }: EmailFoo
 
           <Text
             style={{
-              fontSize: '12px',
+              fontSize: FONT_SIZE.tiny.size,
               lineHeight: '18px',
-              color: COLORS.gray[400],
+              color: COLORS.slate[400],
               textAlign: 'center',
               margin: '0 0 8px',
+              fontFamily: FONT.body,
             }}
           >
             {BRAND.address}
@@ -60,9 +48,10 @@ export default function EmailFooter({ preferencesUrl, unsubscribeUrl }: EmailFoo
             style={{
               fontSize: '11px',
               lineHeight: '16px',
-              color: COLORS.gray[400],
+              color: COLORS.slate[400],
               textAlign: 'center',
               margin: '0',
+              fontFamily: FONT.body,
             }}
           >
             {BRAND.copyright}
@@ -73,18 +62,19 @@ export default function EmailFooter({ preferencesUrl, unsubscribeUrl }: EmailFoo
               style={{
                 fontSize: '11px',
                 lineHeight: '16px',
-                color: COLORS.gray[400],
+                color: COLORS.slate[400],
                 textAlign: 'center',
                 margin: '8px 0 0',
+                fontFamily: FONT.body,
               }}
             >
               {preferencesUrl && (
-                <Link href={preferencesUrl} style={{ color: COLORS.gray[400], textDecoration: 'underline', marginRight: '12px' }}>
+                <Link href={preferencesUrl} style={{ color: COLORS.slate[400], textDecoration: 'underline', marginRight: '12px' }}>
                   Email Preferences
                 </Link>
               )}
               {unsubscribeUrl && (
-                <Link href={unsubscribeUrl} style={{ color: COLORS.gray[400], textDecoration: 'underline' }}>
+                <Link href={unsubscribeUrl} style={{ color: COLORS.slate[400], textDecoration: 'underline' }}>
                   Unsubscribe
                 </Link>
               )}
@@ -95,9 +85,10 @@ export default function EmailFooter({ preferencesUrl, unsubscribeUrl }: EmailFoo
             style={{
               fontSize: '11px',
               lineHeight: '16px',
-              color: COLORS.gray[300],
+              color: COLORS.slate[300],
               textAlign: 'center',
               margin: '12px 0 0',
+              fontFamily: FONT.body,
             }}
           >
             This email was sent to you because you have an account with {BRAND.name}.

@@ -2,7 +2,7 @@ import { Text } from '@react-email/components';
 import EmailLayout from '../../components/EmailLayout';
 import CTAButton from '../../components/CTAButton';
 import SectionCard from '../../components/SectionCard';
-import { COLORS } from '../../utils/constants';
+import { COLORS, FONT, FONT_SIZE } from '../../utils/constants';
 import type { SellerReplyProps } from '../../utils/types';
 
 export default function SellerReply({
@@ -17,19 +17,21 @@ export default function SellerReply({
   return (
     <EmailLayout
       previewText={previewText || `${sellerName} replied to your message about "${adTitle}"`}
+      showAppBar
+      pageTitle="Messages"
     >
-      <Text style={{ fontSize: '24px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '0 0 8px' }}>
+      <Text style={{ fontSize: '22px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '0 0 6px', fontFamily: FONT.display }}>
         Seller replied 📬
       </Text>
 
-      <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px' }}>
+      <Text style={{ fontSize: '15px', lineHeight: '24px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 20px', fontFamily: FONT.body }}>
         Hi {recipientName},
         <br /><br />
-        <strong>{sellerName}</strong> has replied to your message about <strong>"{adTitle}"</strong>.
+        <strong style={{ color: COLORS.text }}>{sellerName}</strong> replied about <strong style={{ color: COLORS.text }}>"{adTitle}"</strong>.
       </Text>
 
-      <SectionCard title="REPLY PREVIEW">
-        <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.text, margin: '0', fontStyle: 'italic' }}>
+      <SectionCard title="Reply Preview">
+        <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.text, margin: '0', fontStyle: 'italic', fontFamily: FONT.body }}>
           "{replyPreview}"
         </Text>
       </SectionCard>

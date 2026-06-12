@@ -1,8 +1,8 @@
-import { Text } from '@react-email/components';
+import { Link, Text } from '@react-email/components';
 import EmailLayout from '../../components/EmailLayout';
 import CTAButton from '../../components/CTAButton';
 import SecurityNotice from '../../components/SecurityNotice';
-import { COLORS } from '../../utils/constants';
+import { COLORS, FONT, FONT_SIZE } from '../../utils/constants';
 import type { EmailVerificationProps } from '../../utils/types';
 
 export default function EmailVerification({
@@ -14,22 +14,24 @@ export default function EmailVerification({
   return (
     <EmailLayout
       previewText={previewText || `Verify your email address to start using iList.`}
+      showAppBar
+      pageTitle="Security"
     >
-      <Text style={{ fontSize: '24px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '0 0 8px' }}>
+      <Text style={{ fontSize: '22px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '0 0 6px', fontFamily: FONT.display }}>
         Verify your email
       </Text>
 
-      <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px' }}>
+      <Text style={{ fontSize: '15px', lineHeight: '24px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px', fontFamily: FONT.body }}>
         Hi {recipientName},
         <br /><br />
-        Thanks for signing up! Please verify your email address to get started.
+        Please confirm this email address to activate your account.
       </Text>
 
       <CTAButton href={verificationLink}>
         Verify Email Address
       </CTAButton>
 
-      <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.textSecondary, textAlign: 'center', margin: '16px 0 0' }}>
+      <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.textSecondary, textAlign: 'center', margin: '16px 0 0', fontFamily: FONT.body }}>
         This link expires in {expiryMinutes} minutes.
       </Text>
 

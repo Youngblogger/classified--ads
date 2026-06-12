@@ -3,7 +3,7 @@ import EmailLayout from '../../components/EmailLayout';
 import SectionCard from '../../components/SectionCard';
 import InfoRow from '../../components/InfoRow';
 import ReceiptTable from '../../components/ReceiptTable';
-import { COLORS } from '../../utils/constants';
+import { COLORS, FONT, FONT_SIZE } from '../../utils/constants';
 import type { PaymentReceiptProps } from '../../utils/types';
 
 export default function PaymentReceipt({
@@ -21,14 +21,16 @@ export default function PaymentReceipt({
   return (
     <EmailLayout
       previewText={previewText || `Receipt #${receiptNumber} for your iList payment`}
+      showAppBar
+      pageTitle="Wallet"
     >
-      <Text style={{ fontSize: '24px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '0 0 8px' }}>
+      <Text style={{ fontSize: '22px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '0 0 6px', fontFamily: FONT.display }}>
         Payment receipt 🧾
       </Text>
 
-      <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px' }}>
+      <Text style={{ fontSize: '15px', lineHeight: '24px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 20px', fontFamily: FONT.body }}>
         Hi {recipientName},
-        <br /><br />
+        <br />
         Thanks for your payment. Here&apos;s your receipt.
       </Text>
 
@@ -38,11 +40,9 @@ export default function PaymentReceipt({
         <InfoRow label="Payment Method" value={paymentMethod} />
       </SectionCard>
 
-      {items && items.length > 0 && (
+      {items && items.length > 0 ? (
         <ReceiptTable items={items} total={total} fees={fees} />
-      )}
-
-      {!items && (
+      ) : (
         <SectionCard>
           <InfoRow label="Amount" value={`₦${amount}`} bold />
           {fees && <InfoRow label="Fees" value={`₦${fees}`} />}

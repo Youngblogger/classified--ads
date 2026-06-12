@@ -3,7 +3,7 @@ import EmailLayout from '../../components/EmailLayout';
 import CTAButton from '../../components/CTAButton';
 import SectionCard from '../../components/SectionCard';
 import StatusBadge from '../../components/StatusBadge';
-import { COLORS } from '../../utils/constants';
+import { COLORS, FONT, FONT_SIZE } from '../../utils/constants';
 import type { VerificationStatusProps } from '../../utils/types';
 
 export default function VerificationStatus({
@@ -19,24 +19,26 @@ export default function VerificationStatus({
   return (
     <EmailLayout
       previewText={previewText || `Your ${type} verification has been ${isApproved ? 'approved' : 'rejected'}`}
+      showAppBar
+      pageTitle="Verification"
     >
       <StatusBadge status={isApproved ? 'success' : 'error'} label={isApproved ? 'Verified' : 'Not Verified'} />
 
-      <Text style={{ fontSize: '24px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 8px' }}>
+      <Text style={{ fontSize: '22px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 6px', fontFamily: FONT.display }}>
         {isApproved ? `${type} verified ✅` : `${type} verification`}
       </Text>
 
-      <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px' }}>
+      <Text style={{ fontSize: '15px', lineHeight: '24px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 20px', fontFamily: FONT.body }}>
         Hi {recipientName},
         <br /><br />
         {isApproved
-          ? `Your ${type} has been verified successfully.`
+          ? `Your ${type} has been verified.`
           : `Your ${type} verification was not approved.`}
       </Text>
 
       {!isApproved && reason && (
-        <SectionCard title="REASON">
-          <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.text, margin: '0' }}>
+        <SectionCard title="Reason">
+          <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.text, margin: '0', fontFamily: FONT.body }}>
             {reason}
           </Text>
         </SectionCard>

@@ -3,7 +3,7 @@ import EmailLayout from '../../components/EmailLayout';
 import SectionCard from '../../components/SectionCard';
 import InfoRow from '../../components/InfoRow';
 import StatusBadge from '../../components/StatusBadge';
-import { COLORS } from '../../utils/constants';
+import { COLORS, FONT, FONT_SIZE } from '../../utils/constants';
 import type { WithdrawalSuccessProps } from '../../utils/types';
 
 export default function WithdrawalSuccessful({
@@ -20,17 +20,19 @@ export default function WithdrawalSuccessful({
   return (
     <EmailLayout
       previewText={previewText || `₦${amount} withdrawn from your iList wallet`}
+      showAppBar
+      pageTitle="Wallet"
     >
       <StatusBadge status="success" label="Withdrawal Complete" />
 
-      <Text style={{ fontSize: '24px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 8px' }}>
+      <Text style={{ fontSize: '22px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 6px', fontFamily: FONT.display }}>
         Withdrawal processed ✅
       </Text>
 
-      <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px' }}>
+      <Text style={{ fontSize: '15px', lineHeight: '24px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 20px', fontFamily: FONT.body }}>
         Hi {recipientName},
-        <br /><br />
-        Your withdrawal has been processed successfully.
+        <br />
+        Your withdrawal has been processed.
       </Text>
 
       <SectionCard>
@@ -43,8 +45,8 @@ export default function WithdrawalSuccessful({
         {estimatedArrival && <InfoRow label="Estimated Arrival" value={estimatedArrival} />}
       </SectionCard>
 
-      <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.textSecondary, textAlign: 'center', margin: '16px 0 0' }}>
-        Funds should arrive in your bank account within 1-3 business days.
+      <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.textSecondary, textAlign: 'center', margin: '12px 0 0', fontFamily: FONT.body }}>
+        Funds should arrive within 1–3 business days.
       </Text>
     </EmailLayout>
   );

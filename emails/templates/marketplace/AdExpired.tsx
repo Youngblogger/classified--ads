@@ -2,7 +2,7 @@ import { Link, Text } from '@react-email/components';
 import EmailLayout from '../../components/EmailLayout';
 import CTAButton from '../../components/CTAButton';
 import StatusBadge from '../../components/StatusBadge';
-import { COLORS } from '../../utils/constants';
+import { COLORS, FONT, FONT_SIZE } from '../../utils/constants';
 import type { AdExpiredProps } from '../../utils/types';
 
 export default function AdExpired({
@@ -15,17 +15,19 @@ export default function AdExpired({
   return (
     <EmailLayout
       previewText={previewText || `Your ad "${adTitle}" has expired on iList`}
+      showAppBar
+      pageTitle="My Ads"
     >
       <StatusBadge status="warning" label="Expired" />
 
-      <Text style={{ fontSize: '24px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 8px' }}>
-        Your ad has expired
+      <Text style={{ fontSize: '22px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 6px', fontFamily: FONT.display }}>
+        Ad expired
       </Text>
 
-      <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px' }}>
+      <Text style={{ fontSize: '15px', lineHeight: '24px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px', fontFamily: FONT.body }}>
         Hi {recipientName},
         <br /><br />
-        Your ad <strong>"{adTitle}"</strong> has expired and is no longer visible to buyers.
+        <strong style={{ color: COLORS.text }}>"{adTitle}"</strong> has expired and is no longer visible to buyers.
       </Text>
 
       {repostLink && (
@@ -34,7 +36,7 @@ export default function AdExpired({
         </CTAButton>
       )}
 
-      <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.textSecondary, textAlign: 'center', margin: '16px 0 0' }}>
+      <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.textSecondary, textAlign: 'center', margin: '12px 0 0', fontFamily: FONT.body }}>
         Or{' '}
         <Link href="https://classified-ads-nu.vercel.app/ads/create" style={{ color: COLORS.primary, textDecoration: 'underline' }}>
           create a new ad

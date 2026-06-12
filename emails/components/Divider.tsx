@@ -9,7 +9,7 @@ export default function Divider({ spacing = '16px 0' }: DividerProps) {
   return (
     <Hr
       style={{
-        borderColor: COLORS.gray[200],
+        borderColor: COLORS.slate[200],
         margin: spacing,
       }}
     />

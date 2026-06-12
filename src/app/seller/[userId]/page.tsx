@@ -38,6 +38,7 @@ export default function SellerProfilePage() {
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const { user } = useAuthStore();
 
   const fetchSellerProfile = useCallback(async () => {
@@ -190,7 +191,7 @@ export default function SellerProfilePage() {
               <div className="bg-white rounded-xl p-6 border border-gray-100">
                 <div className="text-center mb-6">
                   <div className="relative inline-block">
-                    {avatarUrl ? (
+                    {avatarUrl && !avatarError ? (
                       <Image
                         src={avatarUrl}
                         alt={seller.seller?.name || 'Seller'}
@@ -198,6 +199,7 @@ export default function SellerProfilePage() {
                         height={96}
                         className="rounded-full object-cover mx-auto"
                         unoptimized
+                        onError={() => setAvatarError(true)}
                       />
                     ) : (
                       <div className="w-24 h-24 rounded-full bg-[#4B5320]/10 flex items-center justify-center mx-auto">

@@ -1,5 +1,5 @@
 import { Column, Img, Link, Row, Section, Text } from '@react-email/components';
-import { COLORS } from '../utils/constants';
+import { COLORS, RADIUS, SHADOW, FONT, FONT_SIZE } from '../utils/constants';
 
 interface ProductCardProps {
   title: string;
@@ -11,64 +11,71 @@ interface ProductCardProps {
 
 export default function ProductCard({ title, imageUrl, price, status, href }: ProductCardProps) {
   return (
-    <Section
-      style={{
-        borderRadius: '8px',
-        border: `1px solid ${COLORS.gray[200]}`,
-        overflow: 'hidden',
-        margin: '12px 0',
-      }}
-    >
-      <Row>
-        {imageUrl && (
-          <Column style={{ width: '80px', padding: '0' }}>
-            <Img
-              src={imageUrl}
-              alt={title}
-              width="80"
-              height="80"
-              style={{ display: 'block', objectFit: 'cover' }}
-            />
+    <Link href={href} style={{ textDecoration: 'none', display: 'block' }}>
+      <Section
+        style={{
+          borderRadius: RADIUS.card,
+          border: `1px solid ${COLORS.slate[200]}`,
+          overflow: 'hidden',
+          margin: '12px 0',
+          boxShadow: SHADOW.card,
+          backgroundColor: COLORS.white,
+        }}
+      >
+        <Row>
+          {imageUrl && (
+            <Column style={{ width: '88px', padding: '0' }}>
+              <Img
+                src={imageUrl}
+                alt={title}
+                width="88"
+                height="88"
+                style={{ display: 'block', objectFit: 'cover' as const, width: '100%', height: '88px' }}
+              />
+            </Column>
+          )}
+          <Column style={{ padding: '14px 16px' }}>
+            <Text
+              style={{
+                fontSize: FONT_SIZE.adTitle.size,
+                fontWeight: FONT_SIZE.adTitle.weight,
+                color: COLORS.text,
+                textDecoration: 'none',
+                lineHeight: FONT_SIZE.adTitle.lineHeight,
+                margin: '0',
+                fontFamily: FONT.body,
+              }}
+            >
+              {title}
+            </Text>
+            {price && (
+              <Text
+                style={{
+                  fontSize: FONT_SIZE.price.size,
+                  fontWeight: FONT_SIZE.price.weight,
+                  color: COLORS.primary,
+                  margin: '5px 0 0',
+                  fontFamily: FONT.body,
+                }}
+              >
+                ₦{price}
+              </Text>
+            )}
+            {status && (
+              <Text
+                style={{
+                  fontSize: FONT_SIZE.small.size,
+                  color: COLORS.textSecondary,
+                  margin: '2px 0 0',
+                  fontFamily: FONT.body,
+                }}
+              >
+                {status}
+              </Text>
+            )}
           </Column>
-        )}
-        <Column style={{ padding: '12px 16px' }}>
-          <Link
-            href={href}
-            style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: COLORS.text,
-              textDecoration: 'none',
-              lineHeight: '20px',
-            }}
-          >
-            {title}
-          </Link>
-          {price && (
-            <Text
-              style={{
-                fontSize: '15px',
-                fontWeight: '700',
-                color: COLORS.primary,
-                margin: '4px 0 0',
-              }}
-            >
-              ₦{price}
-            </Text>
-          )}
-          {status && (
-            <Text
-              style={{
-                fontSize: '12px',
-                color: COLORS.textSecondary,
-                margin: '2px 0 0',
-              }}
-            >
-              {status}
-            </Text>
-          )}
-        </Column>
-      </Row>
-    </Section>
+        </Row>
+      </Section>
+    </Link>
   );
 }

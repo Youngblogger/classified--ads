@@ -256,6 +256,14 @@ export function buildImageQuery(ad: any): string {
   return `${category} ${title} real photo`.trim();
 }
 
+/**
+ * Safe image URL resolver.
+ * Returns the source if valid, or a fallback if empty/broken.
+ */
+export function safeImage(src?: string, fallback = '/placeholder-image.svg'): string {
+  return src?.trim() ? src : fallback;
+}
+
 export function getUserAvatarUrl(user: any): string | null {
   if (!user) return null;
   

@@ -1,6 +1,6 @@
 import { Section, Text } from '@react-email/components';
 import { ReactNode } from 'react';
-import { COLORS } from '../utils/constants';
+import { COLORS, RADIUS, FONT, FONT_SIZE } from '../utils/constants';
 
 interface SecurityNoticeProps {
   icon?: string;
@@ -11,19 +11,20 @@ export default function SecurityNotice({ icon = '🔒', children }: SecurityNoti
   return (
     <Section
       style={{
-        backgroundColor: COLORS.gray[50],
-        borderRadius: '8px',
+        backgroundColor: COLORS.slate[50],
+        borderRadius: RADIUS.card,
         padding: '12px 16px',
-        margin: '12px 0',
-        border: `1px solid ${COLORS.gray[100]}`,
+        margin: '14px 0',
+        border: `1px solid ${COLORS.slate[200]}`,
       }}
     >
       <Text
         style={{
-          fontSize: '13px',
+          fontSize: FONT_SIZE.small.size,
           lineHeight: '20px',
           color: COLORS.textSecondary,
           margin: '0',
+          fontFamily: FONT.body,
         }}
       >
         {icon} {children}

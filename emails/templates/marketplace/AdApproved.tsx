@@ -2,7 +2,7 @@ import { Text } from '@react-email/components';
 import EmailLayout from '../../components/EmailLayout';
 import CTAButton from '../../components/CTAButton';
 import StatusBadge from '../../components/StatusBadge';
-import { COLORS } from '../../utils/constants';
+import { COLORS, FONT, FONT_SIZE } from '../../utils/constants';
 import type { AdApprovedProps } from '../../utils/types';
 
 export default function AdApproved({
@@ -14,17 +14,19 @@ export default function AdApproved({
   return (
     <EmailLayout
       previewText={previewText || `Your ad "${adTitle}" has been approved on iList`}
+      showAppBar
+      pageTitle="Moderation"
     >
       <StatusBadge status="success" label="Approved" />
 
-      <Text style={{ fontSize: '24px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 8px' }}>
+      <Text style={{ fontSize: '22px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 6px', fontFamily: FONT.display }}>
         Ad approved ✅
       </Text>
 
-      <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px' }}>
+      <Text style={{ fontSize: '15px', lineHeight: '24px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px', fontFamily: FONT.body }}>
         Hi {recipientName},
         <br /><br />
-        Great news! Your ad <strong>"{adTitle}"</strong> has been reviewed and approved. It&apos;s now visible to everyone on iList.
+        <strong style={{ color: COLORS.text }}>"{adTitle}"</strong> has been reviewed and approved. It&apos;s live for everyone to see.
       </Text>
 
       <CTAButton href={`https://classified-ads-nu.vercel.app/ads/${adSlug}`}>

@@ -1,5 +1,5 @@
 import { Text } from '@react-email/components';
-import { COLORS } from '../utils/constants';
+import { COLORS, RADIUS, FONT, FONT_SIZE } from '../utils/constants';
 
 interface StatusBadgeProps {
   status: 'success' | 'warning' | 'error' | 'info';
@@ -7,10 +7,10 @@ interface StatusBadgeProps {
 }
 
 const colors: Record<string, { bg: string; text: string }> = {
-  success: { bg: COLORS.successLight, text: COLORS.success },
-  warning: { bg: COLORS.warningLight, text: COLORS.warning },
-  error: { bg: COLORS.errorLight, text: COLORS.error },
-  info: { bg: '#dbeafe', text: '#1d4ed8' },
+  success: { bg: COLORS.successLight, text: COLORS.primaryDarker },
+  warning: { bg: COLORS.warningLight, text: '#92400E' },
+  error: { bg: COLORS.errorLight, text: '#991B1B' },
+  info: { bg: '#DBEAFE', text: '#1E40AF' },
 };
 
 export default function StatusBadge({ status, label }: StatusBadgeProps) {
@@ -20,14 +20,15 @@ export default function StatusBadge({ status, label }: StatusBadgeProps) {
     <Text
       style={{
         display: 'inline-block',
-        padding: '4px 12px',
-        borderRadius: '9999px',
-        fontSize: '13px',
+        padding: '4px 14px',
+        borderRadius: RADIUS.badge,
+        fontSize: FONT_SIZE.small.size,
         fontWeight: '600',
         lineHeight: '20px',
         backgroundColor: bg,
         color: text,
         margin: '0',
+        fontFamily: FONT.body,
       }}
     >
       {label}

@@ -1,5 +1,5 @@
 import { Column, Row, Section, Text } from '@react-email/components';
-import { COLORS } from '../utils/constants';
+import { COLORS, RADIUS, FONT, FONT_SIZE } from '../utils/constants';
 
 interface ReceiptItem {
   name: string;
@@ -10,28 +10,33 @@ interface ReceiptTableProps {
   items: ReceiptItem[];
   total: string;
   fees?: string;
-  currency?: string;
 }
 
-export default function ReceiptTable({ items, total, fees, currency = 'NGN' }: ReceiptTableProps) {
+export default function ReceiptTable({ items, total, fees }: ReceiptTableProps) {
   return (
     <Section
       style={{
-        borderRadius: '8px',
-        border: `1px solid ${COLORS.gray[200]}`,
+        borderRadius: RADIUS.card,
+        border: `1px solid ${COLORS.slate[200]}`,
         overflow: 'hidden',
-        margin: '12px 0',
+        margin: '14px 0',
       }}
     >
-      <Section style={{ padding: '12px 16px', backgroundColor: COLORS.gray[50] }}>
+      <Section style={{ padding: '10px 16px', backgroundColor: COLORS.slate[50] }}>
         <Row>
           <Column>
-            <Text style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: COLORS.gray[400], margin: '0' }}>
+            <Text style={{
+              fontSize: FONT_SIZE.tiny.size, fontWeight: '700', textTransform: 'uppercase' as const,
+              letterSpacing: '0.05em', color: COLORS.slate[400], margin: '0', fontFamily: FONT.body,
+            }}>
               Item
             </Text>
           </Column>
           <Column align="right">
-            <Text style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: COLORS.gray[400], margin: '0' }}>
+            <Text style={{
+              fontSize: FONT_SIZE.tiny.size, fontWeight: '700', textTransform: 'uppercase' as const,
+              letterSpacing: '0.05em', color: COLORS.slate[400], margin: '0', fontFamily: FONT.body,
+            }}>
               Amount
             </Text>
           </Column>
@@ -41,12 +46,12 @@ export default function ReceiptTable({ items, total, fees, currency = 'NGN' }: R
       {items.map((item, i) => (
         <Row key={i} style={{ padding: '8px 16px' }}>
           <Column>
-            <Text style={{ fontSize: '13px', color: COLORS.text, margin: '0', lineHeight: '20px' }}>
+            <Text style={{ fontSize: FONT_SIZE.body.size, color: COLORS.text, margin: '0', lineHeight: '20px', fontFamily: FONT.body }}>
               {item.name}
             </Text>
           </Column>
           <Column align="right">
-            <Text style={{ fontSize: '13px', fontWeight: '600', color: COLORS.text, margin: '0' }}>
+            <Text style={{ fontSize: FONT_SIZE.body.size, fontWeight: '600', color: COLORS.text, margin: '0', fontFamily: FONT.body }}>
               {item.price}
             </Text>
           </Column>
@@ -54,28 +59,28 @@ export default function ReceiptTable({ items, total, fees, currency = 'NGN' }: R
       ))}
 
       {fees && (
-        <Row style={{ padding: '8px 16px', borderTop: `1px solid ${COLORS.gray[100]}` }}>
+        <Row style={{ padding: '8px 16px', borderTop: `1px solid ${COLORS.slate[100]}` }}>
           <Column>
-            <Text style={{ fontSize: '13px', color: COLORS.textSecondary, margin: '0' }}>
+            <Text style={{ fontSize: FONT_SIZE.body.size, color: COLORS.textSecondary, margin: '0', fontFamily: FONT.body }}>
               Fees
             </Text>
           </Column>
           <Column align="right">
-            <Text style={{ fontSize: '13px', color: COLORS.textSecondary, margin: '0' }}>
+            <Text style={{ fontSize: FONT_SIZE.body.size, color: COLORS.textSecondary, margin: '0', fontFamily: FONT.body }}>
               {fees}
             </Text>
           </Column>
         </Row>
       )}
 
-      <Row style={{ padding: '12px 16px', borderTop: `2px solid ${COLORS.gray[200]}`, backgroundColor: COLORS.gray[50] }}>
+      <Row style={{ padding: '12px 16px', borderTop: `2px solid ${COLORS.slate[200]}`, backgroundColor: COLORS.slate[50] }}>
         <Column>
-          <Text style={{ fontSize: '14px', fontWeight: '700', color: COLORS.text, margin: '0' }}>
+          <Text style={{ fontSize: '15px', fontWeight: '700', color: COLORS.text, margin: '0', fontFamily: FONT.body }}>
             Total
           </Text>
         </Column>
         <Column align="right">
-          <Text style={{ fontSize: '16px', fontWeight: '700', color: COLORS.primary, margin: '0' }}>
+          <Text style={{ fontSize: '17px', fontWeight: '700', color: COLORS.primary, margin: '0', fontFamily: FONT.body }}>
             {total}
           </Text>
         </Column>

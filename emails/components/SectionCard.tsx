@@ -1,6 +1,6 @@
 import { Section, Text } from '@react-email/components';
 import { ReactNode } from 'react';
-import { COLORS } from '../utils/constants';
+import { COLORS, RADIUS, SHADOW, FONT, FONT_SIZE } from '../utils/constants';
 
 interface SectionCardProps {
   children: ReactNode;
@@ -12,28 +12,30 @@ interface SectionCardProps {
 export default function SectionCard({
   children,
   title,
-  bgColor = COLORS.gray[50],
-  borderColor = COLORS.gray[100],
+  bgColor = COLORS.slate[50],
+  borderColor = COLORS.slate[200],
 }: SectionCardProps) {
   return (
     <Section
       style={{
         backgroundColor: bgColor,
-        borderRadius: '8px',
+        borderRadius: RADIUS.card,
         border: `1px solid ${borderColor}`,
         padding: '16px 20px',
-        margin: '12px 0',
+        margin: '14px 0',
+        boxShadow: SHADOW.card,
       }}
     >
       {title && (
         <Text
           style={{
-            fontSize: '11px',
+            fontSize: FONT_SIZE.tiny.size,
             fontWeight: '700',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: COLORS.gray[400],
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.04em',
+            color: COLORS.slate[400],
             margin: '0 0 12px',
+            fontFamily: FONT.body,
           }}
         >
           {title}

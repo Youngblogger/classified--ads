@@ -3,7 +3,7 @@ import EmailLayout from '../../components/EmailLayout';
 import CTAButton from '../../components/CTAButton';
 import SectionCard from '../../components/SectionCard';
 import StatusBadge from '../../components/StatusBadge';
-import { COLORS } from '../../utils/constants';
+import { COLORS, FONT, FONT_SIZE } from '../../utils/constants';
 import type { AdRejectedProps } from '../../utils/types';
 
 export default function AdRejected({
@@ -16,21 +16,23 @@ export default function AdRejected({
   return (
     <EmailLayout
       previewText={previewText || `Your ad "${adTitle}" was not approved`}
+      showAppBar
+      pageTitle="Moderation"
     >
       <StatusBadge status="error" label="Not Approved" />
 
-      <Text style={{ fontSize: '24px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 8px' }}>
+      <Text style={{ fontSize: '22px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 6px', fontFamily: FONT.display }}>
         Ad requires changes
       </Text>
 
-      <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px' }}>
+      <Text style={{ fontSize: '15px', lineHeight: '24px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 20px', fontFamily: FONT.body }}>
         Hi {recipientName},
         <br /><br />
-        Unfortunately, your ad <strong>"{adTitle}"</strong> couldn&apos;t be approved.
+        <strong style={{ color: COLORS.text }}>"{adTitle}"</strong> couldn&apos;t be approved.
       </Text>
 
-      <SectionCard title="REASON">
-        <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.text, margin: '0' }}>
+      <SectionCard title="Reason">
+        <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.text, margin: '0', fontFamily: FONT.body }}>
           {reason}
         </Text>
       </SectionCard>
@@ -41,11 +43,11 @@ export default function AdRejected({
         </CTAButton>
       )}
 
-      <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.textSecondary, textAlign: 'center', margin: '16px 0 0' }}>
-        Need clarification?{' '}
+      <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.textSecondary, textAlign: 'center', margin: '12px 0 0', fontFamily: FONT.body }}>
         <Link href="https://classified-ads-nu.vercel.app/support" style={{ color: COLORS.primary, textDecoration: 'underline' }}>
           Contact support
         </Link>
+        {' '}if you need clarification.
       </Text>
     </EmailLayout>
   );

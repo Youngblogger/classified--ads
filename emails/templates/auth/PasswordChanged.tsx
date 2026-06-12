@@ -2,7 +2,8 @@ import { Link, Text } from '@react-email/components';
 import EmailLayout from '../../components/EmailLayout';
 import SectionCard from '../../components/SectionCard';
 import SecurityNotice from '../../components/SecurityNotice';
-import { COLORS } from '../../utils/constants';
+import StatusBadge from '../../components/StatusBadge';
+import { COLORS, FONT, FONT_SIZE } from '../../utils/constants';
 import type { PasswordChangedProps } from '../../utils/types';
 
 export default function PasswordChanged({
@@ -15,34 +16,26 @@ export default function PasswordChanged({
   return (
     <EmailLayout
       previewText={previewText || `Your iList password has been changed`}
+      showAppBar
+      pageTitle="Security"
     >
-      <Text style={{ fontSize: '24px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '0 0 8px' }}>
-        Password changed
+      <StatusBadge status="success" label="Password Changed" />
+
+      <Text style={{ fontSize: '22px', fontWeight: '700', color: COLORS.text, textAlign: 'center', margin: '16px 0 6px', fontFamily: FONT.display }}>
+        Password updated ✅
       </Text>
 
-      <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px' }}>
+      <Text style={{ fontSize: '15px', lineHeight: '24px', color: COLORS.textSecondary, textAlign: 'center', margin: '0 0 24px', fontFamily: FONT.body }}>
         Hi {recipientName},
         <br /><br />
-        Your password was successfully changed.
+        Your password was changed successfully.
       </Text>
 
       {(ipAddress || device || location) && (
-        <SectionCard title="CHANGE DETAILS">
-          {location && (
-            <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.text, margin: '0 0 4px' }}>
-              Location: {location}
-            </Text>
-          )}
-          {ipAddress && (
-            <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.text, margin: '0 0 4px' }}>
-              IP Address: {ipAddress}
-            </Text>
-          )}
-          {device && (
-            <Text style={{ fontSize: '13px', lineHeight: '20px', color: COLORS.text, margin: '0' }}>
-              Device: {device}
-            </Text>
-          )}
+        <SectionCard title="Change Details">
+          {location && <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.text, margin: '0 0 4px', fontFamily: FONT.body }}>Location: {location}</Text>}
+          {ipAddress && <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.text, margin: '0 0 4px', fontFamily: FONT.body }}>IP: {ipAddress}</Text>}
+          {device && <Text style={{ fontSize: '14px', lineHeight: '22px', color: COLORS.text, margin: '0', fontFamily: FONT.body }}>Device: {device}</Text>}
         </SectionCard>
       )}
 
@@ -51,7 +44,7 @@ export default function PasswordChanged({
         <Link href="https://classified-ads-nu.vercel.app/support" style={{ color: COLORS.primary, textDecoration: 'underline' }}>
           contact support
         </Link>
-        {' '}immediately to secure your account.
+        {' '}immediately.
       </SecurityNotice>
     </EmailLayout>
   );

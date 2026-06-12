@@ -5,16 +5,17 @@ import {
   Html,
   Preview,
   Section,
-  Tailwind,
+  Img,
 } from '@react-email/components';
 import { ReactNode } from 'react';
-import EmailHeader from './EmailHeader';
+import { BRAND, COLORS, RADIUS, SHADOW, FONT, FONT_SIZE } from '../utils/constants';
 import EmailFooter from './EmailFooter';
 
 interface EmailLayoutProps {
   children: ReactNode;
   previewText?: string;
-  headerVariant?: 'default' | 'compact';
+  showAppBar?: boolean;
+  pageTitle?: string;
   preferencesUrl?: string;
   unsubscribeUrl?: string;
 }
@@ -22,7 +23,8 @@ interface EmailLayoutProps {
 export default function EmailLayout({
   children,
   previewText,
-  headerVariant = 'default',
+  showAppBar = false,
+  pageTitle,
   preferencesUrl,
   unsubscribeUrl,
 }: EmailLayoutProps) {
@@ -30,52 +32,89 @@ export default function EmailLayout({
     <Html>
       <Head />
       {previewText && <Preview>{previewText}</Preview>}
-      <Tailwind>
-        <Body
+      <Body
+        style={{
+          backgroundColor: COLORS.bg,
+          fontFamily: FONT.body,
+          margin: '0',
+          padding: '0',
+          WebkitFontSmoothing: 'antialiased',
+        }}
+      >
+        <Section
           style={{
-            backgroundColor: '#f5f7fa',
-            fontFamily:
-              '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-            margin: '0',
+            backgroundColor: COLORS.primary,
+            height: '4px',
             padding: '0',
-            WebkitFontSmoothing: 'antialiased',
+            margin: '0',
+          }}
+        />
+
+        {showAppBar && (
+          <Section
+            style={{
+              backgroundColor: COLORS.white,
+              borderBottom: `1px solid ${COLORS.slate[200]}`,
+              padding: '14px 0',
+              boxShadow: SHADOW.header,
+            }}
+          >
+            <Container style={{ maxWidth: '560px', margin: '0 auto', padding: '0 24px' }}>
+              <table width="100%" cellPadding="0" cellSpacing="0">
+                <tr>
+                  <td align="left" style={{ width: '50%' }}>
+                    <Img
+                      src={BRAND.logo}
+                      alt={BRAND.name}
+                      width="72"
+                      height="24"
+                      style={{ display: 'block' }}
+                    />
+                  </td>
+                  {pageTitle && (
+                    <td align="right" style={{ width: '50%' }}>
+                      <span
+                        style={{
+                          fontSize: FONT_SIZE.small.size,
+                          color: COLORS.textSecondary,
+                          fontWeight: '500',
+                        }}
+                      >
+                        {pageTitle}
+                      </span>
+                    </td>
+                  )}
+                </tr>
+              </table>
+            </Container>
+          </Section>
+        )}
+
+        <Container
+          style={{
+            maxWidth: '560px',
+            margin: '0 auto',
+            padding: showAppBar ? '20px 24px' : '32px 24px',
           }}
         >
           <Section
             style={{
-              backgroundColor: '#16a34a',
-              height: '4px',
-              padding: '0',
-            }}
-          />
-
-          <Container
-            style={{
-              maxWidth: '560px',
-              margin: '0 auto',
-              padding: '0 24px',
+              backgroundColor: COLORS.white,
+              borderRadius: RADIUS.card,
+              padding: '28px 28px 24px',
+              boxShadow: SHADOW.card,
+              border: `1px solid ${COLORS.slate[200]}`,
             }}
           >
-            <EmailHeader variant={headerVariant} />
+            {children}
+          </Section>
 
-            <Section
-              style={{
-                backgroundColor: '#ffffff',
-                borderRadius: '12px',
-                padding: '32px 32px 24px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
-              }}
-            >
-              {children}
-            </Section>
-
-            <EmailFooter
-              preferencesUrl={preferencesUrl}
-              unsubscribeUrl={unsubscribeUrl}
-            />
-          </Container>
-        </Body>
-      </Tailwind>
+          <EmailFooter
+            preferencesUrl={preferencesUrl}
+            unsubscribeUrl={unsubscribeUrl}
+          />
+        </Container>
+      </Body>
     </Html>
   );
 }
