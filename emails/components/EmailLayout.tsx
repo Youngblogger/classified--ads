@@ -75,8 +75,8 @@ export default function EmailLayout({
                           <Img
                             src={BRAND.logo}
                             alt={BRAND.name}
-                            width="96"
-                            height="32"
+                            width="72"
+                            height="24"
                             style={{ display: 'block' }}
                           />
                         </td>
