@@ -41,7 +41,7 @@ async function fetchSupabaseListings(params: Record<string, string>, page: numbe
     }
 
     for (const [key, value] of Object.entries(params)) {
-      if (value && key !== 'category' && key !== 'category_id' && key !== 'subcategory_id') {
+      if (value && key !== 'category' && key !== 'category_id' && key !== 'subcategory_id' && key !== 'limit' && key !== 'page' && key !== 'per_page') {
         sp.set(key, value);
       }
     }

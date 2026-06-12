@@ -84,7 +84,9 @@ function buildUnifiedFeed(ads: any[]): any[] {
     }
   }
 
-  return result;
+  return result.sort(
+    (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 }
 
 const FALLBACK_IMG = '/fallback-category.svg';
@@ -164,7 +166,7 @@ export default function HomePage() {
         <ErrorBoundary>
           <EnterpriseSidebar />
         </ErrorBoundary>
-        <main className="flex-1 min-w-0 relative pt-0">
+        <main className="flex-1 min-w-0 w-full relative pt-0">
           <ErrorBoundary>
           {/* Desktop Hero */}
           <section className="hidden md:block w-full overflow-visible">
