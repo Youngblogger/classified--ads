@@ -114,6 +114,9 @@ export function getAdImageUrl(img: any, adId?: number): string {
   if (!url || url === 'null' || url === 'undefined') return '';
   
   if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.includes('res.cloudinary.com')) {
+      return addWatermarkToCloudinaryUrl(url, adId);
+    }
     return url;
   }
   
@@ -126,7 +129,7 @@ export function getAdImageUrl(img: any, adId?: number): string {
 
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
 
-function addWatermarkToCloudinaryUrl(url: string, adId?: number): string {
+export function addWatermarkToCloudinaryUrl(url: string, adId?: number): string {
   if (!CLOUD_NAME) return url;
 
   const marker = `/image/upload/`;

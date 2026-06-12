@@ -1,5 +1,3 @@
-import sharp from 'sharp';
-
 const FONT_MAP: Record<string, string> = {
   arial: 'Arial',
   arial_black: 'Arial Black',
@@ -37,6 +35,18 @@ export interface WatermarkConfig {
   margin: number;
   rotation: number;
   show_ad_id: boolean;
+}
+
+let _sharp: any = null;
+
+async function getSharp(): Promise<any> {
+  if (_sharp) return _sharp;
+  try {
+    _sharp = (await import('sharp')).default;
+    return _sharp;
+  } catch {
+    throw new Error('sharp module not available');
+  }
 }
 
 function resolveFont(value: string): string {
@@ -108,6 +118,7 @@ export async function applyWatermarkSharp(
 ): Promise<Buffer> {
   if (wm.type !== 'text') return buffer;
 
+  const sharp = await getSharp();
   const meta = await sharp(buffer).metadata();
   const w = meta.width || 800;
   const h = meta.height || 600;
@@ -142,6 +153,7 @@ export async function applyLogoWatermarkSharp(
 ): Promise<Buffer> {
   if (wm.type !== 'logo' || !wm.logo_url) return buffer;
 
+  const sharp = await getSharp();
   const meta = await sharp(buffer).metadata();
   const w = meta.width || 800;
   const h = meta.height || 600;
@@ -178,14 +190,14 @@ export async function applyLogoWatermarkSharp(
       top = h - margin - (logoMeta.height || 100);
   }
 
-  const logoWithAlpha = await applyOpacity(logoResized, wm.opacity / 100);
+  const logoWithAlpha = await applyOpacity(sharp, logoResized, wm.opacity / 100);
 
   return sharp(buffer)
     .composite([{ input: logoWithAlpha, top: Math.round(top), left: Math.round(left) }])
     .toBuffer();
 }
 
-async function applyOpacity(buf: Buffer, factor: number): Promise<Buffer> {
+async function applyOpacity(sharp: any, buf: Buffer, factor: number): Promise<Buffer> {
   if (factor >= 1) return buf;
   const { data, info } = await sharp(buf)
     .ensureAlpha()
