@@ -62,13 +62,18 @@ export async function GET(request: NextRequest) {
     const component = templateFn({ recipientName: 'John' });
     const html = await render(component);
 
+    // Replace production URLs with local origin for preview
+    const origin = new URL(request.url).origin;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://classified-ads-nu.vercel.app';
+    const localHtml = html.replace(new RegExp(appUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), origin);
+
     if (format === 'html') {
-      return new NextResponse(html, {
+      return new NextResponse(localHtml, {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });
     }
 
-    return NextResponse.json({ html });
+    return NextResponse.json({ html: localHtml });
   } catch (error) {
     console.error('Preview render error:', error);
     return NextResponse.json({ error: 'Failed to render template' }, { status: 500 });

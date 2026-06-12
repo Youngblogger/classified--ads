@@ -53,10 +53,8 @@ export default function EmailLayout({
         {showAppBar && (
           <Section
             style={{
-              backgroundColor: COLORS.white,
-              borderBottom: `1px solid ${COLORS.slate[200]}`,
-              padding: '14px 0',
-              boxShadow: SHADOW.header,
+              backgroundColor: COLORS.primary,
+              padding: '12px 0',
             }}
           >
             <Container style={{ maxWidth: '560px', margin: '0 auto', padding: '0 24px' }}>
@@ -66,8 +64,8 @@ export default function EmailLayout({
                     <Img
                       src={BRAND.logo}
                       alt={BRAND.name}
-                      width="72"
-                      height="24"
+                      width="96"
+                      height="32"
                       style={{ display: 'block' }}
                     />
                   </td>
@@ -76,7 +74,7 @@ export default function EmailLayout({
                       <span
                         style={{
                           fontSize: FONT_SIZE.small.size,
-                          color: COLORS.textSecondary,
+                          color: COLORS.white,
                           fontWeight: '500',
                         }}
                       >

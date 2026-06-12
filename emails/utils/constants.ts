@@ -2,13 +2,20 @@
  * Design tokens synced with website Tailwind config.
  * When updating tailwind.config.js, mirror changes here.
  */
+function getAppUrl(): string {
+  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  return 'https://classified-ads-nu.vercel.app';
+}
+
 export const BRAND = {
   name: 'iList',
-  logo: 'https://classified-ads-nu.vercel.app/icons/iList-white.png',
-  logoDark: 'https://classified-ads-nu.vercel.app/icons/iList-dark.png',
-  website: 'https://classified-ads-nu.vercel.app',
+  logo: `${getAppUrl()}/icons/iList-white.png`,
+  logoDark: `${getAppUrl()}/icons/iList-logo.png`,
+  website: getAppUrl(),
   supportEmail: 'support@ilist.ng',
-  supportUrl: 'https://classified-ads-nu.vercel.app/help',
+  supportUrl: `${getAppUrl()}/help`,
   twitter: 'https://x.com/ilist_ng',
   instagram: 'https://instagram.com/ilist.ng',
   address: 'Lagos, Nigeria',
