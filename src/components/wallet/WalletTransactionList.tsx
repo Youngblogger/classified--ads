@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Receipt } from 'lucide-react';
+import { Search } from 'lucide-react';
 import WalletTransactionCard from './WalletTransactionCard';
 import FilterTabs from './FilterTabs';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -57,13 +57,32 @@ function TransactionSkeleton() {
   );
 }
 
+function NairaIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 4v16" />
+      <path d="M18 4v16" />
+      <path d="M6 9h12" />
+      <path d="M6 15h12" />
+    </svg>
+  );
+}
+
 function EmptyTransactions() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <EmptyState customIcon={Receipt} title="No transactions yet" description="Your transaction history will appear here once you make your first transaction" className="py-16" />
+      <EmptyState customIcon={NairaIcon} title="No transactions yet" description="Your transaction history will appear here once you make your first transaction" className="py-16" />
     </motion.div>
   );
 }
