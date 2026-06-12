@@ -95,6 +95,15 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    const apiOrigin = process.env.NEXT_PUBLIC_API_URL || '';
+    return [
+      {
+        source: '/api-backend/:path*',
+        destination: `${apiOrigin}/:path*`,
+      },
+    ];
+  },
   async redirects() {
     return [
       {

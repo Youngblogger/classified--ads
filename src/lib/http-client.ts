@@ -34,7 +34,8 @@ function getAdminToken(): string | null {
   return localStorage.getItem('admin_token') || null;
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const IS_LOCALHOST = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const BASE_URL = IS_LOCALHOST ? '/api-backend' : (process.env.NEXT_PUBLIC_API_URL || '');
 
 async function request<T = any>(
   method: HttpMethod,
