@@ -57,17 +57,31 @@ export default function EmailLayout({
               padding: '12px 0',
             }}
           >
-            <Container style={{ maxWidth: '560px', margin: '0 auto', padding: '0 24px' }}>
+            <Container style={{ maxWidth: '560px', margin: '0 auto', padding: '0 16px' }}>
               <table width="100%" cellPadding="0" cellSpacing="0">
                 <tr>
                   <td align="left" style={{ width: '50%' }}>
-                    <Img
-                      src={BRAND.logo}
-                      alt={BRAND.name}
-                      width="96"
-                      height="32"
-                      style={{ display: 'block' }}
-                    />
+                    <table cellPadding="0" cellSpacing="0">
+                      <tr>
+                        <td
+                          style={{
+                            color: COLORS.white,
+                            fontFamily: FONT.body,
+                            fontSize: '18px',
+                            fontWeight: '700',
+                            lineHeight: '32px',
+                          }}
+                        >
+                          <Img
+                            src={BRAND.logo}
+                            alt={BRAND.name}
+                            width="96"
+                            height="32"
+                            style={{ display: 'block' }}
+                          />
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                   {pageTitle && (
                     <td align="right" style={{ width: '50%' }}>
@@ -99,7 +113,7 @@ export default function EmailLayout({
             style={{
               backgroundColor: COLORS.white,
               borderRadius: RADIUS.card,
-              padding: '28px 28px 24px',
+              padding: '24px 16px',
               boxShadow: SHADOW.card,
               border: `1px solid ${COLORS.slate[200]}`,
             }}
