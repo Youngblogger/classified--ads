@@ -214,36 +214,32 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         setAuthCookie(session.access_token);
       } else if (event === 'SIGNED_OUT') {
         if (!mountedRef.current || cancelled) return;
-        setTimeout(() => {
-          if (!mountedRef.current || cancelled) return;
-          supabase.auth.getSession().then(({ data: { session: refreshedSession } }) => {
-            if (refreshedSession?.user) {
-              return;
+        console.log('[AuthProvider] SIGNED_OUT event received');
+        
+        // Immediately clear all auth state
+        useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+        clearAuthCookie();
+        setAuthState('guest');
+        setUser(null);
+        
+        // Wipe all persisted auth storage
+        if (typeof window !== 'undefined') {
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('supabase') || key.startsWith('sb-') || key.includes('auth') || key === 'user-auth-storage' || key === 'authToken')) {
+              keysToRemove.push(key);
             }
-            if (!mountedRef.current || cancelled) return;
-            const store = useAuthStore.getState();
-            if (store.isAuthenticated && store.token) {
-              // Check if the Zustand token is still valid before clearing
-              // auth. Supabase's session recovery may have failed for reasons
-              // unrelated to token validity (clock skew, cookie encoding,
-              // transient storage error). The JWT expiry is the ground truth.
-              try {
-                const payload = JSON.parse(atob(store.token.split('.')[1]));
-                if (payload.exp && payload.exp * 1000 > Date.now()) {
-                  // Token is still valid — trust Zustand over Supabase
-                  return;
-                }
-              } catch {}
-              // Token is expired or malformed — clear in-memory state but
-              // keep localStorage intact so the next page load can re-validate.
-              useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
-              sessionStorage.setItem('just_logged_out', 'true');
-            }
-            clearAuthCookie();
-            setAuthState('guest');
-            setUser(null);
-          });
-        }, LOGOUT_DEBOUNCE_MS);
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+          
+          document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
+          document.cookie = 'ilist-supabase-auth-token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
+          document.cookie = 'sb:token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
+          
+          sessionStorage.clear();
+          sessionStorage.setItem('just_logged_out', 'true');
+        }
       }
     });
 

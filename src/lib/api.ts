@@ -120,7 +120,25 @@ export const authApi = {
   },
 
   logout: async () => {
-    await supabase.auth.signOut();
+    if (typeof window !== 'undefined') {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase') || key.startsWith('sb-') || key.includes('auth') || key === 'user-auth-storage')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      ['token', 'ilist-supabase-auth-token', 'sb:token'].forEach((name) => {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax`;
+      });
+      
+      sessionStorage.clear();
+      sessionStorage.setItem('just_logged_out', 'true');
+    }
+    
+    await supabase.auth.signOut({ scope: 'global' });
     return sbResponse({ data: { message: 'Logged out' } });
   },
 
@@ -1140,6 +1158,27 @@ export const reportsApi = {
 //  NOTIFICATIONS API
 // ==============================
 export const notificationsApi = {
+  create: async (notification: {
+    user_id: string;
+    type: string;
+    title: string;
+    message: string;
+    data?: Record<string, unknown>;
+  }) => {
+    try {
+      const res = await http.post('/notifications', notification);
+      if (res?.data?.success) return sbResponse({ data: res.data.data });
+    } catch {}
+    const { data, error } = await supabase.from('notifications').insert({
+      user_id: notification.user_id,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      data: notification.data || null,
+      is_read: false,
+    }).select().single();
+    return error ? sbError(error) : sbResponse({ data });
+  },
   getAll: async () => {
     const userId = await ensureUserId();
     if (!userId) return sbResponse({ data: [] });

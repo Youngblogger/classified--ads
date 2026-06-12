@@ -616,10 +616,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const canSubmit = title && description && price && categoryId && locationId && images.length > 0 && condition && images.every(i => i.status === 'completed');
 
   const SUBMISSION_STEPS = [
-    { key: 'validating', label: 'Validating listing...' },
-    { key: 'preparing_images', label: 'Preparing images...' },
-    { key: 'uploading', label: 'Uploading your listing...' },
-    { key: 'finalizing', label: 'Finalizing your listing...' },
+    { key: 'uploading_images', label: 'Uploading images...' },
+    { key: 'processing', label: 'Processing your ad...' },
+    { key: 'publishing', label: 'Publishing your listing...' },
+    { key: 'success', label: 'Ad posted successfully' },
   ];
 
   const handleSubmit = async () => {
@@ -631,10 +631,10 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     if (pendingUploads.length > 0) { toast.error(`Please wait for all image uploads (${pendingUploads.length} pending).`); return; }
 
     setIsSubmitting(true);
-    setSubmissionStep('validating');
+    setSubmissionStep('uploading_images');
 
     try {
-      setSubmissionStep('preparing_images');
+      setSubmissionStep('processing');
       const formData = new FormData();
       formData.append('title', title);
       formData.append('description', description);
@@ -664,14 +664,14 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       }
       formData.append('_idempotency_key', idempotencyKey);
 
-      setSubmissionStep('uploading');
+      setSubmissionStep('publishing');
       const response = await adsApi.create(formData);
       if (!response?.data?.data?.id && !(response as any)?.data?.id) throw new Error((response as any)?.statusText || 'Failed to post ad');
 
       const adId = (response.data as any)?.data?.id || (response.data as any)?.id;
       if (!adId) throw new Error(response.statusText || 'Failed to post ad');
 
-      setSubmissionStep('finalizing');
+      setSubmissionStep('success');
       const adSlug = (response.data as any)?.data?.slug || (response.data as any)?.slug;
 
       // Reset form
@@ -696,12 +696,15 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       invalidateSwrCache('homepage_data');
       queryClient.invalidateQueries({ queryKey: adKeys.all });
 
-      setSubmissionStep(null);
-      setIsSubmitting(false);
       setPostedAdId(adId);
       setPostedAdSlug(adSlug);
-      setShowPostModal(true);
       if (onSuccess) onSuccess(adId);
+
+      setTimeout(() => {
+        setSubmissionStep(null);
+        setIsSubmitting(false);
+        setShowPostModal(true);
+      }, 800);
     } catch (err: any) {
       setSubmissionStep(null);
       setIsSubmitting(false);
@@ -1086,7 +1089,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {/* Post-Submission Boost Modal */}
       <BoostAdModal
         isOpen={showPostModal}
-        onClose={() => setShowPostModal(false)}
+        onClose={() => { setShowPostModal(false); router.push(postedAdSlug ? `/ad/${postedAdSlug}` : '/dashboard/my-ads'); }}
         adId={postedAdId || 0}
         adSlug={postedAdSlug}
         adTitle={title}
@@ -1101,22 +1104,34 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {isSubmitting && (
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-green-200">
-              <Loader2 className="w-8 h-8 text-white animate-spin" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Posting your ad</h3>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-green-400 to-emerald-500 h-full rounded-full transition-all duration-500"
-                style={{
-                  width: submissionStep === 'validating' ? '15%' : submissionStep === 'preparing_images' ? '35%' :
-                    submissionStep === 'uploading' ? '65%' : submissionStep === 'finalizing' ? '90%' : '50%',
-                }}
-              />
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-              {SUBMISSION_STEPS.find(s => s.key === submissionStep)?.label || 'Please wait...'}
-            </p>
+            {submissionStep === 'success' ? (
+              <>
+                <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-green-200">
+                  <Check className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Ad Posted Successfully!</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center">Your listing is now live and visible to buyers.</p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-primary-200">
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Posting your ad</h3>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-primary-400 to-primary-600 h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: submissionStep === 'uploading_images' ? '25%' : submissionStep === 'processing' ? '50%' :
+                        submissionStep === 'publishing' ? '75%' : '10%',
+                    }}
+                  />
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                  {SUBMISSION_STEPS.find(s => s.key === submissionStep)?.label || 'Please wait...'}
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}

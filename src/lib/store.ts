@@ -41,15 +41,29 @@ export const useAuthStore = create<AuthStore>()(
         if (typeof window !== 'undefined') {
           document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
           document.cookie = 'ilist-supabase-auth-token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
+          document.cookie = 'sb:token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
+          document.cookie = 'sb-refresh-token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
           
           localStorage.removeItem('user-auth-storage');
           localStorage.removeItem('authToken');
           localStorage.removeItem('ilist-supabase-auth');
+          localStorage.removeItem('ilist-supabase-auth-token');
           localStorage.removeItem('ilist-supabase-auth-code-verifier');
+          localStorage.removeItem('supabase.auth.token');
+          // Clear any supabase-related storage keys
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+              localStorage.removeItem(key);
+              i--;
+            }
+          }
+          
+          sessionStorage.clear();
           sessionStorage.setItem('just_logged_out', 'true');
         }
         
-        set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+        set({ user: null, token: null, isAuthenticated: false, isLoading: false, hasHydrated: true, _hasHydrated: true });
       },
       
       setUser: (user) => {
@@ -76,36 +90,21 @@ export const useAuthStore = create<AuthStore>()(
     {
       name: 'user-auth-storage',
       partialize: (state) => ({ 
-        token: state.token, 
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         hasHydrated: state.hasHydrated
       }),
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as Partial<AuthStore>),
+        token: current.token,
+      }),
       onRehydrateStorage: () => (persistedState) => {
-        // Handle fresh user (no persisted data) — signal hydration complete immediately.
         if (!persistedState) {
           useAuthStore.getState().setHasHydrated(true);
           return;
         }
 
-        // Validate token expiry. If expired, clear auth before hydration resolves
-        // so AuthProvider never sees stale authenticated state.
-        if (persistedState.token) {
-          try {
-            const payload = JSON.parse(atob(persistedState.token.split('.')[1]));
-            if (payload.exp && payload.exp * 1000 < Date.now()) {
-              useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
-              useAuthStore.getState().setHasHydrated(true);
-              return;
-            }
-          } catch {
-            useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
-            useAuthStore.getState().setHasHydrated(true);
-            return;
-          }
-        }
-
-        // Normalize user name if needed
         if (persistedState.user) {
           let user = { ...persistedState.user };
           let changed = false;
@@ -116,19 +115,9 @@ export const useAuthStore = create<AuthStore>()(
           if (changed) useAuthStore.setState({ user });
         }
 
-        // For authenticated users with a valid token: the persist middleware
-        // already applied the rehydrated state (which includes hasHydrated: true)
-        // to the store BEFORE this callback runs. The store update at that point
-        // resolves hydrationComplete via the subscription at line 154, with auth
-        // data already in place — so AuthProvider's storeAlreadyAuthed check
-        // succeeds without needing getSession().
-        //
-        // For fresh / non-authenticated users: the persisted state has no auth
-        // data and hasHydrated is false, so the subscription never fires. We
-        // must signal hydration complete directly here.
-        if (persistedState.isAuthenticated && persistedState.token) {
-          return;
-        }
+        // Token is no longer persisted. Auth is determined by Supabase session.
+        // If the persisted state says authenticated, trust it tentatively and
+        // let AuthProvider validate with Supabase.
         useAuthStore.getState().setHasHydrated(true);
       },
     }

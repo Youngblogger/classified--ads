@@ -36,6 +36,7 @@ import {
 import { useAdminAuthStore } from '@/lib/admin-store';
 import { api, adminApiClient } from '@/lib/api';
 import { getCookie, deleteCookie, setCookie } from '@/lib/cookies';
+import ResponsiveHeader from '@/components/home/ResponsiveHeader';
 
 interface NavItem {
   name: string;
@@ -337,7 +338,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Skip auth check for login page - render page's own login component
   if (isLoginPage) {
-    return <>{children}</>;
+    return (
+      <div className="min-h-screen flex flex-col">
+        <ResponsiveHeader />
+        <div className="flex-1">
+          {children}
+        </div>
+      </div>
+    );
   }
 
   // Show loading while verifying auth

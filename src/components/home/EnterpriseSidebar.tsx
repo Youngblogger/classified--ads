@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import useSWR from 'swr';
 import {
   X, ChevronRight, Menu, ChevronLeft, Search, TrendingUp, Star,
   Sparkles, Zap, Award, Flame
@@ -201,42 +202,35 @@ export default function EnterpriseSidebar() {
   const [showSearch, setShowSearch] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState<Category[]>([]);
   const [focusedCatIndex, setFocusedCatIndex] = useState(-1);
-  const [apiData, setApiData] = useState<MegaMenuData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
   const sidebarRef = useRef<HTMLDivElement>(null);
   const subPanelRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/categories/mega-menu`);
-        const json = await res.json();
-        const data = json?.data || {};
-        const cats = ((data.tree || []) as any[]);
-        const tree: Category[] = cats.map((cat: any) => ({
-          id: cat.id, name: cat.name, slug: cat.slug, icon: cat.icon || undefined,
-          image: cat.image || undefined,
-          children: (cat.activeChildren || []).map((s: any) => ({
-            id: s.id, name: s.name, slug: s.slug, parent_id: cat.id,
-            icon: s.icon || undefined, image: s.image || undefined,
-          })),
-        }));
-        if (mounted) {
-          setApiData({ tree, featured: data.featured || [], trending: data.trending || [], recently_added: data.recently_added || [] });
-          setIsLoading(false);
-        }
-      } catch (e) {
-        console.error('[EnterpriseSidebar] category load error:', e);
-        if (mounted) setIsLoading(false);
-      }
+  const { data: apiData, isLoading } = useSWR<MegaMenuData>(
+    'categories_mega_menu',
+    async () => {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/categories/mega-menu`);
+      const json = await res.json();
+      const data = json?.data || {};
+      const cats = (data.tree || []) as any[];
+      const tree: Category[] = cats.map((cat: any) => ({
+        id: cat.id, name: cat.name, slug: cat.slug, icon: cat.icon || undefined,
+        image: cat.image || undefined,
+        children: (cat.activeChildren || []).map((s: any) => ({
+          id: s.id, name: s.name, slug: s.slug, parent_id: cat.id,
+          icon: s.icon || undefined, image: s.image || undefined,
+        })),
+      }));
+      return { tree, featured: data.featured || [], trending: data.trending || [], recently_added: data.recently_added || [] };
+    },
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 86400000,
+      revalidateIfStale: false,
+      errorRetryCount: 2,
     }
-    load();
-    return () => { mounted = false; };
-  }, []);
+  );
 
   useEffect(() => { setRecentlyViewed(getRecentlyViewed()); }, []);
 

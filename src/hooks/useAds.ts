@@ -207,27 +207,24 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
     }
 
     const res = await http.get('/ads', { params: params as any });
-    let responseData = res?.data || { data: [], meta: null };
-    let mapped = normalizeAds(responseData.data || []);
+    const responseData = res?.data || { data: [], meta: null };
+    const mapped = normalizeAds(responseData.data || []);
+
+    if (mapped.length > 0) {
+      return {
+        data: mapped,
+        meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
+      };
+    }
 
     const supabaseResult = await fetchSupabaseListings(params, page, perPage);
 
-    if (mapped.length === 0 && supabaseResult.data.length > 0) {
+    if (supabaseResult.data.length > 0) {
       return { data: supabaseResult.data, meta: supabaseResult.meta };
     }
 
-    if (supabaseResult.data.length > 0) {
-      const existingIds = new Set(mapped.map((a: any) => a.id));
-      const newAds = supabaseResult.data.filter((a: any) => !existingIds.has(a.id));
-      if (newAds.length > 0) {
-        mapped = [...mapped, ...newAds].sort(
-          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      }
-    }
-
     return {
-      data: mapped,
+      data: [],
       meta: responseData.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 },
     };
   }
@@ -401,7 +398,7 @@ export function useInfiniteAds(params: Record<string, any> = {}, pageSize: numbe
     getKey,
     fetchFromLaravel,
     {
-      revalidateOnFocus: true,
+      revalidateOnFocus: false,
       dedupingInterval: 30000,
       revalidateFirstPage: false,
       errorRetryCount: 2,

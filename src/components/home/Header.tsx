@@ -156,7 +156,7 @@ function formatNotificationTime(dateString: string): string {
 export default function Header({ variant = 'homepage', onMenuToggle }: { variant?: 'homepage' | 'default' | 'home' | 'dashboard'; onMenuToggle?: () => void }) {
   const resolvedVariant = variant === 'home' || variant === 'homepage' ? 'homepage' : 'default';
   const router = useRouter();
-  const { user, logout, hasHydrated, isAuthenticated } = useAuthStore();
+  const { user, logout, isAuthenticated } = useAuthStore();
   const { toggleLoginModal, toggleRegisterModal, toggleLocationModal } = useUIStore();
   const { selectedLocation, setSelectedLocation } = useGlobalStore();
   
@@ -283,9 +283,6 @@ export default function Header({ variant = 'homepage', onMenuToggle }: { variant
   }, []);
 
   const { authState } = useAuthContext();
-  const isDefinitelyGuest = authState === 'guest' && !hasHydrated;
-  const isDefinitelyAuthed = authState === 'authenticated' || isAuthenticated;
-  const isLoading = (authState === 'loading' || !hasHydrated || !isMounted) && !isDefinitelyAuthed;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -412,28 +409,33 @@ export default function Header({ variant = 'homepage', onMenuToggle }: { variant
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await api.post('/auth/logout');
-    } catch (error) {
-    }
-    
-    await supabase.auth.signOut();
-    
-    logout();
-    
-    if (typeof window !== 'undefined') {
-      ['token', 'admin_token'].forEach((name) => {
+      logout();
+      
+      // Clear all supabase-related localStorage
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase') || key.startsWith('sb-') || key.includes('auth') || key === 'authToken' || key === 'user' || key === 'admin_token' || key === 'admin_user')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      ['token', 'admin_token', 'sb:token', 'sb-refresh-token', 'ilist-supabase-auth-token'].forEach((name) => {
         document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
       });
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_user');
+      
       sessionStorage.clear();
+      sessionStorage.setItem('just_logged_out', 'true');
+      
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (error) {
+      console.error('Logout error:', error);
     }
     
     setProfileMenuOpen(false);
     setIsLoggingOut(false);
-    router.push('/');
+    window.location.href = '/';
   };
 
   const handleRecentSearchClick = (term: string) => {
@@ -633,19 +635,6 @@ export default function Header({ variant = 'homepage', onMenuToggle }: { variant
     router.push(`/dashboard/messages?conversation=${conversation.id}`);
     setNotificationOpen(false);
   };
-
-  if (isLoading) {
-    return (
-      <header className="sticky top-0 z-[100] w-full bg-primary-600">
-        <div className="container-app">
-          <div className="h-12 flex items-center justify-between">
-            <div className="h-8 w-24 bg-white/20 rounded animate-pulse" />
-            <div className="h-6 w-32 bg-white/20 rounded animate-pulse" />
-          </div>
-        </div>
-      </header>
-    );
-  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-primary-600">

@@ -66,7 +66,7 @@ export function BoostPlanIcon({ badgeIcon, boostType, className = '' }: BoostPla
 
   if (boostType) {
     const plan = getBoostPlan(boostType);
-    const FallbackIcon = plan ? PLAN_NAME_MAP[plan] : null;
+    const FallbackIcon = plan ? PLAN_NAME_MAP[plan.type] : null;
     if (FallbackIcon) {
       return <FallbackIcon className={className} />;
     }

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Search, MapPin, Bell, User, ChevronDown, Menu, X } from 'lucide-react';
 import { useGlobalStore, useUIStore, useAuthStore } from '@/lib/store';
 import { useAuthContext } from '@/components/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import { api } from '@/lib/api';
 import { getUserAvatarUrl } from '@/lib/utils';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
@@ -50,21 +51,33 @@ export default function MobileHeader({ onMenuToggle }: { onMenuToggle?: () => vo
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    try { await api.post('/auth/logout'); } catch {}
-    logout();
-    if (typeof window !== 'undefined') {
-      ['token', 'admin_token'].forEach((name) => {
+    try {
+      logout();
+      
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase') || key.startsWith('sb-') || key.includes('auth') || key === 'authToken' || key === 'user' || key === 'admin_token' || key === 'admin_user')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      ['token', 'admin_token', 'sb:token', 'sb-refresh-token', 'ilist-supabase-auth-token'].forEach((name) => {
         document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
       });
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_user');
+      
       sessionStorage.clear();
+      sessionStorage.setItem('just_logged_out', 'true');
+      
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (error) {
+      console.error('Logout error:', error);
     }
+    
     setShowProfileMenu(false);
     setIsLoggingOut(false);
-    router.push('/');
+    window.location.href = '/';
   };
 
   const hasShadow = scrollY > 5;

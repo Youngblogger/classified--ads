@@ -280,6 +280,17 @@ export function formatPrice(price: number | string, currency: string = 'NGN'): s
   return '₦' + numericPrice.toLocaleString('en-US');
 }
 
+export function formatCurrency(amount: number | string): string {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(num)) return '₦0';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'NGN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
 export function formatDate(date: string | Date | undefined | null): string {
   if (!date) return '';
   

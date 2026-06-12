@@ -392,6 +392,8 @@ export function useBoostAd() {
     onSuccess: () => {
       toast.success('Ad boosted');
       syncAllCaches(queryClient);
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['boost', 'status'] });
     },
     onError: (error) => {
       handleMutationError(error);
@@ -399,6 +401,10 @@ export function useBoostAd() {
     onSettled: () => {
       invalidateSwrExact('boosted_ads_listing');
       invalidateSwrCache('homepage_data');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ilist:cache-invalidate'));
+        window.dispatchEvent(new CustomEvent('ilist:boost-activated'));
+      }
     },
   });
 }
