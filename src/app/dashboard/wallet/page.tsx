@@ -62,9 +62,13 @@ export default function WalletPage() {
     if (verified === 'true' && reference) {
       window.history.replaceState({}, '', '/dashboard/wallet');
       api.post('/wallet/verify', { reference })
-        .then(() => {
-          toast.success('Payment successful! Your wallet has been credited.', { duration: 5000 });
-          fetchWallet();
+        .then((res) => {
+          if (res.status >= 200 && res.status < 300) {
+            toast.success('Payment successful! Your wallet has been credited.', { duration: 5000 });
+            fetchWallet();
+          } else {
+            throw new Error(res.data?.message || 'Verification failed');
+          }
         })
         .catch(() => {
           toast.error('Payment verification failed');
