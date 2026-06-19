@@ -223,8 +223,8 @@ export default function HomePage() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                   {Array.from({ length: 12 }).map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg p-2 border border-gray-100 animate-pulse">
-                      <div className="w-14 h-14 rounded-full bg-gray-200" />
-                      <div className="h-2.5 bg-gray-200 rounded w-14" />
+                      <div className="w-16 h-16 rounded-full bg-gray-200" />
+                      <div className="h-2.5 bg-gray-200 rounded w-16" />
                     </div>
                   ))}
                 </div>
@@ -239,12 +239,12 @@ export default function HomePage() {
                       <img
                         src={getCategoryImageSrc(cat.slug)}
                         alt={cat.name}
-                        className="w-14 h-14 object-cover"
+                        className="w-16 h-16 object-cover"
                         loading="lazy"
                         decoding="async"
                         onError={handleImgError}
                       />
-                      <span className="text-[11px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
+                      <span className="text-[11px] font-bold text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
                     </Link>
                   ))}
                 </div>
@@ -288,7 +288,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-4 gap-2">
                   {Array.from({ length: 12 }).map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-1 bg-white rounded-lg py-2 px-1.5 border border-gray-100 animate-pulse">
-                      <div className="w-11 h-11 bg-gray-200" />
+                      <div className="w-14 h-14 bg-gray-200" />
                       <div className="h-2 bg-gray-200 rounded w-12" />
                     </div>
                   ))}
@@ -304,12 +304,12 @@ export default function HomePage() {
                       <img
                           src={getCategoryImageSrc(cat.slug)}
                           alt={cat.name}
-                          className="w-11 h-11 object-cover"
+                          className="w-14 h-14 object-cover"
                           loading="lazy"
                           decoding="async"
                           onError={handleImgError}
                         />
-                      <span className="text-[10px] font-medium text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
+                      <span className="text-[10px] font-bold text-gray-700 text-center leading-snug line-clamp-2">{cat.name}</span>
                     </Link>
                   ))}
                 </div>
@@ -326,7 +326,7 @@ export default function HomePage() {
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl">⚠️</span>
                 </div>
-                <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
+                <h3 className="text-lg font-bold text-dark mb-2">Unable to load ads from server</h3>
                 <p className="text-gray-500 mb-4">Please try again later.</p>
                 <button 
                   onClick={() => window.location.reload()} 
