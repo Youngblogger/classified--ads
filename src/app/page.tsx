@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, Plus, ArrowUp } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
@@ -165,6 +165,8 @@ export default function HomePage() {
       setShowBackToTop(true);
     }, 500);
   }, [loadMore]);
+
+  const feedAds = useMemo(() => buildUnifiedFeed(recentAds), [recentAds]);
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
@@ -332,7 +334,7 @@ export default function HomePage() {
             ) : recentAds.length > 0 ? (
               <>
                 <MasonryGrid>
-                  {buildUnifiedFeed(recentAds).filter((ad: any) => {
+                  {feedAds.filter((ad: any) => {
                     if (!ad || !ad.id) {
                       if (process.env.NODE_ENV === 'development') {
                         console.warn('[HomePage] Skipping invalid ad in feed:', ad);

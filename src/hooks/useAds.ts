@@ -2,7 +2,7 @@
 
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { http } from '@/lib/http-client';
 import { useGlobalStore } from '@/lib/store';
 import { useDebounce } from './useDebounce';
@@ -412,7 +412,10 @@ export function useInfiniteAds(params: Record<string, any> = {}, pageSize: numbe
     }
   );
 
-  const ads = data?.flatMap(page => page.data || []) || [];
+  const ads = useMemo(
+    () => data?.flatMap(page => page.data || []) || [],
+    [data]
+  );
   const total = data?.[0]?.meta?.total || 0;
   const hasMore = ads.length < total;
   const isLoadingMore: boolean = !!(isLoading || (size > 0 && data && typeof data[size - 1] === 'undefined'));
@@ -603,7 +606,10 @@ export function useSearchInfinite(params: Record<string, any> = {}, pageSize: nu
     }
   );
 
-  const ads = data?.flatMap(page => page.data || []) || [];
+  const ads = useMemo(
+    () => data?.flatMap(page => page.data || []) || [],
+    [data]
+  );
   const total = data?.[0]?.meta?.total || 0;
   const hasMore = ads.length < total;
   const isLoadingMore: boolean = !!(isLoading || (size > 0 && data && typeof data[size - 1] === 'undefined'));
