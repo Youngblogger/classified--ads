@@ -166,7 +166,10 @@ export default function HomePage() {
     }, 500);
   }, [loadMore]);
 
-  const feedAds = useMemo(() => buildUnifiedFeed(recentAds), [recentAds]);
+  const feedAds = useMemo(
+    () => recentAds.length > 0 ? buildUnifiedFeed(recentAds) : [],
+    [recentAds]
+  );
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#F5F7FA' }} suppressHydrationWarning>
