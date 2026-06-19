@@ -140,6 +140,7 @@ export default function HomePage() {
     total,
     hasMore,
     isLoading,
+    isValidating,
     isLoadingMore,
     isError: adsError,
     loadMore,
@@ -318,7 +319,7 @@ export default function HomePage() {
 
           {/* Unified Marketplace Feed */}
           <div className="w-full px-1 sm:px-3 md:px-4">
-            {isLoading ? (
+            {!adsError && recentAds.length === 0 && (isLoading || isValidating) ? (
               <AdMasonrySkeleton count={8} />
             ) : adsError ? (
               <div className="text-center py-12">

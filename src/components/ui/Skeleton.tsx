@@ -36,7 +36,7 @@ export const AdCardSkeleton = memo(function AdCardSkeleton({ className = '', ind
 
 export const AdMasonrySkeleton = memo(function AdMasonrySkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 [&>*]:mb-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       {Array.from({ length: count }).map((_, i) => (
         <AdCardSkeleton key={i} index={i} />
       ))}
