@@ -38,6 +38,17 @@ function buildUnifiedFeed(ads: any[]): any[] {
     const isActiveBoost = plan && ad?.boost_status === 'active' && !isBoostExpired(ad);
     return !isActiveBoost;
   });
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[DIAG] [FEED] buildUnifiedFeed', {
+      totalRaw: safeAds.length,
+      deduped: deduped.length,
+      boosted: boosted.length,
+      normal: normal.length,
+      boostedIds: boosted.map((a: any) => a.id),
+      dedupedIds: deduped.map((a: any) => a.id),
+      sampleImage: deduped[0] ? { id: deduped[0].id, image: !!deduped[0].image, images_len: deduped[0].images?.length, image_url: deduped[0].image_url?.slice(0, 60) } : null,
+    });
+  }
 
   const scoredBoosted = boosted
     .map(ad => ({ ad, score: calculateBoostScore(ad) }))
@@ -84,9 +95,7 @@ function buildUnifiedFeed(ads: any[]): any[] {
     }
   }
 
-  return result.sort(
-    (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  return result;
 }
 
 const FALLBACK_IMG = '/fallback-category.svg';
@@ -302,62 +311,51 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Unified Latest Ads Feed */}
-          <section className="w-full py-5 sm:py-6 bg-white">
-            <div className="w-full px-1 sm:px-3 md:px-4">
-              <div className="flex flex-nowrap items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">
-                  Fresh Listings
-                </h2>
-                <Link href="/ads" className="text-xs sm:text-sm text-primary-600 hover:underline font-medium whitespace-nowrap">
-                  View All
-                </Link>
-              </div>
-              
-              {isLoading ? (
-                <AdMasonrySkeleton count={8} />
-              ) : adsError ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl">⚠️</span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
-                  <p className="text-gray-500 mb-4">Please try again later.</p>
-                  <button 
-                    onClick={() => window.location.reload()} 
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
-                  >
-                    <span>Try Again</span>
-                  </button>
+          {/* Unified Marketplace Feed */}
+          <div className="w-full px-1 sm:px-3 md:px-4">
+            {isLoading ? (
+              <AdMasonrySkeleton count={8} />
+            ) : adsError ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">⚠️</span>
                 </div>
-              ) : recentAds.length > 0 ? (
-                <>
-                  <MasonryGrid>
-                    {buildUnifiedFeed(recentAds).filter((ad: any) => {
-                      if (!ad || !ad.id) {
-                        if (process.env.NODE_ENV === 'development') {
-                          console.warn('[HomePage] Skipping invalid ad in feed:', ad);
-                        }
-                        return false;
+                <h3 className="text-lg font-semibold text-dark mb-2">Unable to load ads from server</h3>
+                <p className="text-gray-500 mb-4">Please try again later.</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors text-sm"
+                >
+                  <span>Try Again</span>
+                </button>
+              </div>
+            ) : recentAds.length > 0 ? (
+              <>
+                <MasonryGrid>
+                  {buildUnifiedFeed(recentAds).filter((ad: any) => {
+                    if (!ad || !ad.id) {
+                      if (process.env.NODE_ENV === 'development') {
+                        console.warn('[HomePage] Skipping invalid ad in feed:', ad);
                       }
-                      return true;
-                    }).map((ad: any) => (
-                      <AdCard key={`ad-${ad.id}`} ad={ad} />
-                    ))}
-                  </MasonryGrid>
-                  {!isLoading && !adsError && (
-                    <LoadMoreButton
-                      onClick={handleLoadMore}
-                      loading={isLoadingMore}
-                      hasMore={hasMore}
-                    />
-                  )}
-                </>
-              ) : (
-                <EmptyState icon="inbox" title="No ads yet" description="Be the first to post an ad in your area!" actionLabel="Post Your First Ad" onAction={() => window.location.href = '/post-ad'} />
-              )}
-            </div>
-          </section>
+                      return false;
+                    }
+                    return true;
+                  }).map((ad: any) => (
+                    <AdCard key={`ad-${ad.id}`} ad={ad} />
+                  ))}
+                </MasonryGrid>
+                {!isLoading && !adsError && (
+                  <LoadMoreButton
+                    onClick={handleLoadMore}
+                    loading={isLoadingMore}
+                    hasMore={hasMore}
+                  />
+                )}
+              </>
+            ) : (
+              <EmptyState icon="inbox" title="No ads yet" description="Be the first to post an ad in your area!" actionLabel="Post Your First Ad" onAction={() => window.location.href = '/post-ad'} />
+            )}
+          </div>
 
             </ErrorBoundary>
         </main>

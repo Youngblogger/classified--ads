@@ -8,8 +8,12 @@ class AdListResource extends JsonResource
 {
     public function toArray($request): array
     {
-        $boost = $this->activeBoost;
-        $image = $this->images->first();
+        $boost = $this->relationLoaded('activeBoost') ? $this->activeBoost : null;
+        $images = $this->relationLoaded('images') ? $this->images : collect();
+        $image = $images->first();
+        $category = $this->relationLoaded('category') ? $this->category : null;
+        $location = $this->relationLoaded('location') ? $this->location : null;
+        $user = $this->relationLoaded('user') ? $this->user : null;
 
         return [
             'id' => $this->id,
@@ -43,31 +47,31 @@ class AdListResource extends JsonResource
                 'medium_url' => $image->medium_url,
                 'is_primary' => (bool) $image->is_primary,
             ] : null,
-            'images' => $this->whenLoaded('images', fn() => $this->images->take(5)->map(fn($img) => [
+            'images' => $images->take(5)->map(fn ($img) => [
                 'id' => $img->id,
                 'url' => $img->url,
                 'thumbnail_url' => $img->thumbnail,
                 'medium_url' => $img->medium_url,
                 'is_primary' => (bool) $img->is_primary,
-            ])),
-            'image_url' => $image?->url,
-            'images_count' => $this->images->count(),
-            'category' => $this->whenLoaded('category', fn() => [
-                'id' => $this->category->id,
-                'name' => $this->category->name,
-                'slug' => $this->category->slug,
             ]),
-            'location' => $this->whenLoaded('location', fn() => [
-                'id' => $this->location->id,
-                'name' => $this->location->name,
-                'slug' => $this->location->slug,
-            ]),
-            'user' => $this->whenLoaded('user', fn() => [
-                'id' => $this->user->id,
-                'name' => $this->user->name,
-                'avatar' => $this->user->full_avatar_url ?? $this->user->avatar_url,
-                'is_verified' => (bool) $this->user->email_verified_at,
-            ]),
+            'image_url' => $image?->url ?? $image?->original_url,
+            'images_count' => $images->count(),
+            'category' => $category ? [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+            ] : null,
+            'location' => $location ? [
+                'id' => $location->id,
+                'name' => $location->name,
+                'slug' => $location->slug,
+            ] : null,
+            'user' => $user ? [
+                'id' => $user->id,
+                'name' => $user->name,
+                'avatar' => $user->full_avatar_url ?? $user->avatar_url,
+                'is_verified' => (bool) $user->email_verified_at,
+            ] : null,
             'status' => $this->status,
             'freshness_score' => max(0, 100 - (now()->diffInHours($this->created_at) / 24)),
         ];

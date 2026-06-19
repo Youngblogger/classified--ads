@@ -19,7 +19,7 @@ import { useAuthStore, useUIStore, useGlobalStore } from '@/lib/store';
 import { useAuthContext } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { api, notificationsApi, messagesApi } from '@/lib/api';
-import { cn, BACKEND_URL } from '@/lib/utils';
+import { cn, BACKEND_URL, getAdImageUrl } from '@/lib/utils';
 import { getCategoryIcon } from '@/lib/categoryIcons';
 import { safeArray, normalizeNotificationArray, safeSlice } from '@/lib/safe-data';
 
@@ -343,7 +343,7 @@ export default function Header({ variant = 'homepage', onMenuToggle }: { variant
           slug: ad.slug,
           price: ad.price,
           currency: ad.currency || 'NGN',
-          thumbnail: ad.thumbnail_url || ad.image_url,
+          thumbnail: getAdImageUrl(ad),
           location: ad.location?.name || ad.state || '',
         })),
         categories: [],
@@ -761,9 +761,9 @@ export default function Header({ variant = 'homepage', onMenuToggle }: { variant
                                   onClick={() => handleSearchResultClick('ad', ad)}
                                   className="w-full flex items-center gap-3 px-3 py-3 hover:bg-primary-50 rounded-xl transition-colors text-left"
                                 >
-                                  {ad.thumbnail ? (
+                                  {getAdImageUrl(ad) ? (
                                     <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
-                                      <Image src={ad.thumbnail} alt="" fill sizes="48px" className="object-cover" />
+                                      <Image src={getAdImageUrl(ad)} alt="" fill sizes="48px" className="object-cover" />
                                     </div>
                                   ) : (
                                     <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">

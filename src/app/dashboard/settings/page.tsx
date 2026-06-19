@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getAdImageUrl } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import { nigeriaLocations } from '@/lib/nigeriaLocations';
@@ -759,7 +760,7 @@ function ActivitySection() {
               {savedAds.slice(0, 4).map((ad: any) => (
                 <div key={ad.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                   <div className="w-14 h-14 bg-gray-200 rounded-xl flex-shrink-0 overflow-hidden">
-                    {ad.image && <Image src={ad.image} alt={ad.title || 'Saved ad'} width={56} height={56} className="object-cover" />}
+                    {getAdImageUrl(ad) && <Image src={getAdImageUrl(ad)} alt={ad.title || 'Saved ad'} width={56} height={56} className="object-cover" />}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{ad.title}</p>
@@ -785,7 +786,7 @@ function ActivitySection() {
               {recentAds.slice(0, 4).map((ad: any) => (
                 <div key={ad.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                   <div className="w-14 h-14 bg-gray-200 rounded-xl flex-shrink-0 overflow-hidden">
-                    {ad.image && <Image src={ad.image} alt={ad.title || 'Recently viewed ad'} width={56} height={56} className="object-cover" />}
+                    {getAdImageUrl(ad) && <Image src={getAdImageUrl(ad)} alt={ad.title || 'Recently viewed ad'} width={56} height={56} className="object-cover" />}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{ad.title}</p>

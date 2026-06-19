@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { api, walletApi } from '@/lib/api';
+import { useState, useEffect, useCallback } from 'react';
+import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { Wallet } from 'lucide-react';
@@ -65,10 +65,14 @@ export default function WalletPage() {
         .then(async (res) => {
           if (res.status >= 200 && res.status < 300) {
             toast.success('Payment successful! Your wallet has been credited.', { duration: 5000 });
-            await fetchWallet();
-            const fresh = await walletApi.getBalance();
-            if (fresh?.data?.balance !== undefined) {
-              setWallet({ id: 0, balance: String(fresh.data.balance), pending_balance: '0.00' });
+            for (let i = 0; i < 5; i++) {
+              const wr = await api.get('/wallet');
+              if (wr?.data?.wallet?.balance && parseFloat(wr.data.wallet.balance) > 0) {
+                setWallet(wr.data.wallet);
+                setTransactions(wr.data.transactions?.data || wr.data.transactions || []);
+                break;
+              }
+              await new Promise(r => setTimeout(r, 2000));
             }
           } else {
             throw new Error(res.data?.message || 'Verification failed');
@@ -76,6 +80,7 @@ export default function WalletPage() {
         })
         .catch(() => {
           toast.error('Payment verification failed');
+          fetchWallet(true);
         });
     } else {
       fetchWallet();

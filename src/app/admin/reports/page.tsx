@@ -13,6 +13,7 @@ import {
   Trash2,
   Loader2
 } from 'lucide-react';
+import { getAdImageUrl } from '@/lib/utils';
 import { adminApi } from '@/lib/api';
 import { invalidateSwrCache, notifyCacheInvalidation } from '@/lib/cache-sync';
 import toast from 'react-hot-toast';
@@ -205,9 +206,9 @@ export default function ReportsPage() {
               <div className="flex flex-col lg:flex-row gap-6">
                 <div className="flex gap-4 lg:w-1/3">
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100">
-                    {report.ad?.image ? (
+                    {getAdImageUrl(report.ad?.image) ? (
                       <Image
-                        src={report.ad.image}
+                        src={getAdImageUrl(report.ad.image)}
                         alt={report.ad.title || 'Ad'}
                         fill
                         className="object-cover"

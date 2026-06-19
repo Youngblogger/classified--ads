@@ -7,6 +7,7 @@ import { User, Search, Mic, Square, Play, Pause, X, Trash2, ChevronLeft, MoreVer
 import { messagesApi, adsApi } from '@/lib/api';
 import { useSocket } from '@/hooks/useSocket';
 import { useAuthStore } from '@/lib/store';
+import { getAdImageUrl, getAdMainImage } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -907,23 +908,7 @@ export default function MessagesPage() {
             const ad = adDetails || selectedConversation.ad;
             const adAny = ad as any;
             
-            // Get image from different sources with fallback
-            let imageUrl = adAny?.image || adAny?.thumbnail || adAny?.thumbnail_url || adAny?.display_url;
-            
-            // Check images array
-            if (!imageUrl && adAny?.images && Array.isArray(adAny.images) && adAny.images.length > 0) {
-              const primaryImage = adAny.images.find((img: any) => img?.is_primary) || adAny.images[0];
-              imageUrl = primaryImage?.full_url || primaryImage?.full_thumbnail_url || primaryImage?.url || primaryImage?.thumbnail_url || primaryImage?.thumbnail;
-            }
-            
-            // Check if imageUrl is actually a user avatar (contains 'avatars')
-            if (imageUrl && imageUrl.includes('avatars')) {
-              imageUrl = undefined; // Reset to try other sources
-            }
-            
-            // Get formatted URL or use placeholder
-            const formattedUrl = getStorageUrl(imageUrl);
-            const displayImageUrl = formattedUrl || '/placeholder-image.svg';
+            const displayImageUrl = getAdMainImage(adAny) || '/placeholder-image.svg';
             
             const adTitle = selectedConversation.ad?.title || adDetails?.title || 'Ad Title';
             const adPrice = Number(selectedConversation.ad?.price || adDetails?.price || 0).toLocaleString();

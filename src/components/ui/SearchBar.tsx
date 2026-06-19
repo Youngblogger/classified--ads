@@ -13,6 +13,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { api } from '@/lib/api';
 import { useGlobalStore } from '@/lib/store';
 import { parseQuery, type ParsedQuery } from '@/lib/search-query';
+import { getAdImageUrl } from '@/lib/utils';
 
 interface SuggestionAd {
   id: number;
@@ -184,7 +185,7 @@ export default function SearchBar({
             ads: (data.ads || []).map((a: any) => ({
               id: a.id, title: a.title, slug: a.slug,
               price: a.price, currency: a.currency || 'NGN',
-              thumbnail: a.thumbnail_url || a.image_url,
+              thumbnail: getAdImageUrl(a),
               location: a.location?.name || a.state || '',
             })),
             locations: (data.locations || []).map((l: any) => ({
@@ -463,8 +464,8 @@ export default function SearchBar({
                   }`}
                 >
                   <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                    {ad.thumbnail ? (
-                      <Image src={ad.thumbnail} alt="" fill sizes="36px" className="object-cover" />
+                    {getAdImageUrl(ad) ? (
+                      <Image src={getAdImageUrl(ad)} alt="" fill sizes="36px" className="object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Search className="w-4 h-4 text-gray-300" />

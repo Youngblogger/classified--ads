@@ -34,6 +34,7 @@ import DynamicField, { CategoryField } from '@/components/forms/DynamicField';
 import PremiumBadge from '@/components/ui/PremiumBadge';
 import { invalidateSwrCache, notifyCacheInvalidation } from '@/lib/cache-sync';
 import { normalizeAd } from '@/lib/normalize-ad';
+import { getAdImageUrl, getAdMainImage } from '@/lib/utils';
 
 interface AdImage {
   id: string | number;
@@ -926,14 +927,7 @@ function ReplaceImagesModal({
   };
 
   const getImageUrl = (img: AdImage): string => {
-    const url = img.thumbnail_url || img.display_url || img.url || '';
-    // If it's already a full URL, return it
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    // Otherwise, prepend the storage base URL
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace('/api', '');
-    return `${baseUrl}/storage/${url}`;
+    return getAdImageUrl(img);
   };
 
   return (
@@ -1389,16 +1383,7 @@ export default function AdsModerationPage() {
   };
 
   const getImageUrl = (ad: Ad): string => {
-    const img = ad.images?.find(i => i.is_primary) || ad.images?.[0];
-    if (!img) return '';
-    const url = img.full_url || img.display_url || img.url || '';
-    // If it's already a full URL, return it
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    // Otherwise, prepend the storage base URL
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace('/api', '');
-    return `${baseUrl}/storage/${url}`;
+    return getAdMainImage(ad);
   };
 
   const toggleSelectAll = () => {

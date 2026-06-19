@@ -4,21 +4,20 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ad;
-use App\Models\Category;
 use App\Models\Banner;
+use App\Models\Category;
 use App\Models\Location;
-use App\Services\CacheService;
 use App\Services\BoostTierService;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 class HomepageController extends Controller
 {
     public function index(Request $request)
     {
         $lang = $request->get('lang', 'en');
-        $cacheKey = CacheService::KEY_HOMEPAGE . '_' . $lang;
+        $cacheKey = CacheService::KEY_HOMEPAGE.'_'.$lang;
 
         $data = Cache::remember($cacheKey, CacheService::TTL_HOMEPAGE, function () {
             $featured = $this->getFeaturedAds();
@@ -49,7 +48,7 @@ class HomepageController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get()
-            ->map(fn($ad) => $this->formatHomepageAd($ad));
+            ->map(fn ($ad) => $this->formatHomepageAd($ad));
     }
 
     private function getLatestAds()
@@ -59,12 +58,14 @@ class HomepageController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get()
-            ->map(fn($ad) => $this->formatHomepageAd($ad));
+            ->map(fn ($ad) => $this->formatHomepageAd($ad));
     }
 
     private function formatHomepageAd($ad)
     {
-        $firstImage = $ad->images->first();
+        $images = $ad->relationLoaded('images') ? $ad->images : collect();
+        $firstImage = $images->first();
+
         return [
             'id' => $ad->id,
             'title' => $ad->title,
@@ -80,14 +81,21 @@ class HomepageController extends Controller
             'category_slug' => $ad->category?->slug,
             'location_name' => $ad->location?->name,
             'image' => $firstImage ? [
+                'id' => $firstImage->id,
                 'url' => $firstImage->url,
                 'thumbnail_url' => $firstImage->thumbnail,
                 'medium_url' => $firstImage->medium_url,
                 'is_primary' => (bool) $firstImage->is_primary,
             ] : null,
-            'image_url' => $firstImage?->url,
-            'image_thumbnail_url' => $firstImage?->thumbnail,
-            'images_count' => $ad->images->count(),
+            'image_url' => $firstImage?->url ?? $firstImage?->original_url,
+            'images_count' => $images->count(),
+            'images' => $images->take(5)->map(fn ($img) => [
+                'id' => $img->id,
+                'url' => $img->url,
+                'thumbnail_url' => $img->thumbnail,
+                'medium_url' => $img->medium_url,
+                'is_primary' => (bool) $img->is_primary,
+            ]),
         ];
     }
 
@@ -98,7 +106,9 @@ class HomepageController extends Controller
             $boostData = $tierService->getBoostedAdsForListing();
             $boostedAdIds = $boostData['boosted_ad_ids'] ?? [];
 
-            if (empty($boostedAdIds)) return [];
+            if (empty($boostedAdIds)) {
+                return [];
+            }
 
             return Ad::with(['images', 'category', 'location'])
                 ->whereIn('ads.id', $boostedAdIds)
@@ -113,9 +123,10 @@ class HomepageController extends Controller
                     $formatted['boost_plan'] = $boostInfo['plan_type'] ?? $boostInfo['boost_type'] ?? null;
                     $formatted['boost_expires_at'] = $boostInfo['end_time']?->toIso8601String();
                     $formatted['boost_priority_score'] = $boostInfo['priority_score'] ?? 0;
+
                     return $formatted;
                 })
-                ->sortByDesc(fn($ad) => $ad['boost_priority_score'] ?? 0)
+                ->sortByDesc(fn ($ad) => $ad['boost_priority_score'] ?? 0)
                 ->values();
         } catch (\Exception $e) {
             return [];
@@ -127,7 +138,7 @@ class HomepageController extends Controller
         return Cache::remember('categories_homepage', CacheService::TTL_CATEGORIES, function () {
             return Category::where('is_active', true)
                 ->whereNull('parent_id')
-                ->with(['children' => fn($q) => $q->select('id', 'name', 'slug', 'parent_id')])
+                ->with(['children' => fn ($q) => $q->select('id', 'name', 'slug', 'parent_id')])
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug', 'icon', 'ad_count']);
@@ -165,7 +176,7 @@ class HomepageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Cache cleared successfully'
+            'message' => 'Cache cleared successfully',
         ]);
     }
 }

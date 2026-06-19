@@ -1477,27 +1477,31 @@ export const promotionsApi = {
 // ==============================
 export const walletApi = {
   getBalance: async () => {
-    const userId = await ensureUserId();
-    if (!userId) return sbResponse({ data: { balance: 0 } });
+    const laravelUserId = await ensureUserId();
+    if (!laravelUserId) return sbResponse({ data: { balance: 0 } });
     try {
       const res = await http.get('/wallet/balance');
       if (res?.data?.data?.balance !== undefined) return sbResponse({ data: res.data.data });
       if (res?.data?.balance !== undefined) return sbResponse({ data: res.data });
     } catch {}
-    const { data, error } = await supabase.from('transactions').select('amount, type').eq('user_id', userId);
+    const supabaseUserId = await getSupabaseUserId();
+    if (!supabaseUserId) return sbResponse({ data: { balance: 0 } });
+    const { data, error } = await supabase.from('transactions').select('amount, type').eq('user_id', supabaseUserId);
     if (error) return sbError(error);
     const balance = (data || []).reduce((acc: number, t: any) => t.type === 'credit' ? acc + (t.amount || 0) : acc - (t.amount || 0), 0);
     return sbResponse({ data: { balance, currency: 'NGN' } });
   },
   getTransactions: async () => {
-    const userId = await ensureUserId();
-    if (!userId) return sbResponse({ data: [] });
+    const laravelUserId = await ensureUserId();
+    if (!laravelUserId) return sbResponse({ data: [] });
     try {
       const res = await http.get('/wallet/transactions');
       const txns = res?.data?.data || res?.data || [];
       if (Array.isArray(txns) && txns.length > 0) return sbResponse({ data: txns });
     } catch {}
-    const { data, error } = await supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100);
+    const supabaseUserId = await getSupabaseUserId();
+    if (!supabaseUserId) return sbResponse({ data: [] });
+    const { data, error } = await supabase.from('transactions').select('*').eq('user_id', supabaseUserId).order('created_at', { ascending: false }).limit(100);
     return error ? sbError(error) : sbResponse({ data: data || [] });
   },
   fundWallet: async (amount: number, method: string) => {
@@ -1537,6 +1541,10 @@ export const walletApi = {
 // ==============================
 //  IMAGE UPLOAD API
 // ==============================
+const uploadDiag = (msg: string, data?: any) => {
+  if (typeof window !== 'undefined') console.warn('[DIAG] [UPLOAD]', msg, data);
+};
+
 export const imageUploadApi = {
   upload: async (file: File, onProgress?: (pct: number) => void) => {
     const tryNextJsUpload = async (): Promise<SupabaseResponse | null> => {
@@ -1551,10 +1559,14 @@ export const imageUploadApi = {
         const headers: Record<string, string> = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await fetch('/api/upload', { method: 'POST', body: formData, headers });
-        if (!res.ok) return null;
+        if (!res.ok) {
+          uploadDiag('Attempt 1 (Next.js) failed', { status: res.status, name: file.name });
+          return null;
+        }
         const json = await res.json();
         const item = json?.data?.[0] || json?.[0];
         if (item?.secure_url) {
+          uploadDiag('Attempt 1 (Next.js -> Cloudinary) succeeded', { public_id: item.public_id, url: item.secure_url.slice(0, 60) });
           return sbResponse({
             data: {
               url: item.secure_url,
@@ -1567,24 +1579,28 @@ export const imageUploadApi = {
           });
         }
         return null;
-      } catch {
+      } catch (e) {
+        uploadDiag('Attempt 1 (Next.js) threw', { error: String(e), name: file.name });
         return null;
       }
     };
     const nextRes = await tryNextJsUpload();
     if (nextRes) return nextRes;
+    uploadDiag('Attempt 1 failed, trying Attempt 2 (Laravel)');
     try {
       const formData = new FormData();
       formData.append('image', file);
       const res = await http.upload('/uploads/image', formData, onProgress);
       const url = res?.data?.data?.url || res?.data?.url;
-      if (url) return sbResponse({ data: { url, path: url } });
-    } catch {}
-    const path = `uploads/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from('uploads').upload(path, file);
-    if (error) return sbError(error);
-    const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
-    return sbResponse({ data: { url: publicUrl, path } });
+      if (url) {
+        uploadDiag('Attempt 2 (Laravel) succeeded', { url: url.slice(0, 60) });
+        return sbResponse({ data: { url, path: url } });
+      }
+    } catch (e) {
+      uploadDiag('Attempt 2 (Laravel) threw', { error: String(e) });
+    }
+    uploadDiag('Attempt 2 failed — image upload to Cloudinary failed. All uploads must go through Cloudinary.');
+    return sbError(new Error('Image upload failed: could not reach Cloudinary. Images must be stored on Cloudinary.'));
   },
 };
 

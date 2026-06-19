@@ -38,25 +38,31 @@ class AdImage extends Model
 
     public function getDisplayUrlAttribute(): string
     {
-        return $this->url ?? $this->original_url ?? '';
+        return $this->url ?? $this->medium_url ?? $this->original_url ?? '';
     }
 
     public function getThumbnailAttribute(): string
     {
-        return $this->thumbnail_url ?? $this->url ?? $this->original_url ?? '';
+        return $this->thumbnail_url ?? $this->medium_url ?? $this->url ?? $this->original_url ?? '';
     }
 
     public function getFullUrlAttribute(): string
     {
-        $url = $this->url ?? $this->original_url ?? '';
-        if (empty($url)) return '';
+        $url = $this->url ?? $this->medium_url ?? $this->original_url ?? '';
+        if (empty($url)) {
+            return '';
+        }
+
         return $this->buildFullUrl($url);
     }
 
     public function getFullThumbnailUrlAttribute(): string
     {
-        $url = $this->thumbnail_url ?? $this->url ?? $this->original_url ?? '';
-        if (empty($url)) return '';
+        $url = $this->thumbnail_url ?? $this->medium_url ?? $this->url ?? $this->original_url ?? '';
+        if (empty($url)) {
+            return '';
+        }
+
         return $this->buildFullUrl($url);
     }
 
@@ -66,9 +72,10 @@ class AdImage extends Model
             return $path;
         }
         $baseUrl = rtrim(config('app.url'), '/');
-        if (!str_starts_with($path, '/')) {
-            $path = '/' . $path;
+        if (! str_starts_with($path, '/')) {
+            $path = '/'.$path;
         }
-        return $baseUrl . $path;
+
+        return $baseUrl.$path;
     }
 }

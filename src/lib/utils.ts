@@ -1,7 +1,12 @@
 import { clsx, type ClassValue } from 'clsx';
-import { config, FALLBACK_IMAGE, CLOUDINARY_CLOUD_NAME, BACKEND_URL } from './config';
+import { config, CLOUDINARY_CLOUD_NAME, BACKEND_URL } from './config';
 
-export { BACKEND_URL, FALLBACK_IMAGE, CLOUDINARY_CLOUD_NAME } from './config';
+export { BACKEND_URL, CLOUDINARY_CLOUD_NAME } from './config';
+
+import { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust, FALLBACK_IMAGE as _fallback } from './image';
+
+export { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust };
+export const FALLBACK_IMAGE = _fallback;
 
 let _imageVersionCounter = 0;
 export function getImageVersionBuster(): string {
@@ -78,93 +83,6 @@ export async function validateImageUrl(url: string): Promise<boolean> {
   }
 }
 
-export function getValidImages(images: any[]): string[] {
-  if (!images || !Array.isArray(images) || images.length === 0) {
-    return [FALLBACK_IMAGE];
-  }
-  
-  const validUrls: string[] = [];
-  
-  for (const img of images) {
-    if (!img || img === null || img === undefined) continue;
-    const url = getAdImageUrl(img);
-    if (url) {
-      validUrls.push(url);
-    }
-  }
-  
-  if (validUrls.length === 0) {
-    return [FALLBACK_IMAGE];
-  }
-  
-  return validUrls;
-}
-
-export function getAdImageUrl(img: any, adId?: number): string {
-  if (!img || img === null || img === undefined) return '';
-  
-  let url = '';
-  
-  if (typeof img === 'string') {
-    url = img;
-  } else if (typeof img === 'object') {
-    url = img.thumbnail_url || img.listing_url || img.thumbnail || img.full_thumbnail_url || img.display_url || img.url || img.full_url || img.src || img.original_url || img.image || img.path || img.file || '';
-  }
-  
-  if (!url || url === 'null' || url === 'undefined') return '';
-  
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    if (url.includes('res.cloudinary.com')) {
-      return addWatermarkToCloudinaryUrl(url, adId);
-    }
-    return url;
-  }
-  
-  if (url.startsWith('/')) {
-    return url;
-  }
-  
-  return url;
-}
-
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
-
-export function addWatermarkToCloudinaryUrl(url: string, adId?: number): string {
-  if (!CLOUD_NAME) return url;
-
-  const marker = `/image/upload/`;
-  const idx = url.indexOf(marker);
-  if (idx === -1) return url;
-
-  if (url.includes('fl_layer_apply')) return url;
-
-  const afterUpload = url.slice(idx + marker.length);
-  const baseUrl = url.slice(0, idx + marker.length);
-  const parts = afterUpload.split('/');
-  const publicIdIndex = parts.findIndex((p) => !p.includes('_'));
-  const publicId = publicIdIndex >= 0 ? parts.slice(publicIdIndex).join('/') : afterUpload;
-
-  let textStr = 'iList';
-  if (adId) textStr += ` | ID:${adId}`;
-  const encodedText = textStr.replace(/ /g, '%20').replace(/,/g, '%252C').replace(/\|/g, '%7C');
-
-  const overlay = `l_text:Arial_28:${encodedText},co_rgb:FFFFFF,o_60,g_se,x_15,y_15,fl_layer_apply`;
-
-  return `${baseUrl}${overlay}/${publicId}`;
-}
-
-export function getPrimaryImageUrl(images: any[]): string {
-  if (!images || !Array.isArray(images) || images.length === 0) return '';
-  
-  const validImages = images.filter(img => img && img !== null && img !== undefined);
-  if (validImages.length === 0) return '';
-  
-  const primary = validImages.find((img: any) => img?.is_primary);
-  const img = primary || validImages[0];
-  
-  return getAdImageUrl(img);
-}
-
 export function getAdImage(ad: any, img?: any): string {
   if (!ad) return '';
   
@@ -175,79 +93,6 @@ export function getAdImage(ad: any, img?: any): string {
   
   const images = getAdImages(ad);
   return images[0] || '';
-}
-
-export function getAdImages(ad: any): string[] {
-  if (!ad) return [];
-  
-  let images: string[] = [];
-  
-  if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
-    images = ad.images
-      .filter((img: any) => img && img !== null && img !== undefined)
-      .map((img: any) => {
-        if (typeof img === 'string') {
-          if (img.startsWith('/') || img.startsWith('http')) return img;
-          return `/images/${img}`;
-        }
-        return getAdImageUrl(img);
-      })
-      .filter(Boolean);
-  }
-  
-  if (images.length === 0 && ad.image && typeof ad.image === 'object') {
-    const url = getAdImageUrl(ad.image);
-    if (url) images = [url];
-  }
-  
-  if (images.length === 0 && typeof ad.image_url === 'string' && ad.image_url) {
-    const url = getAdImageUrl(ad.image_url);
-    if (url) images = [url];
-  }
-  
-  return images;
-}
-
-function getImageTimestamp(ad: any): string {
-  const ts = ad?.updated_at || ad?.created_at || Date.now();
-  const d = new Date(ts);
-  return isNaN(d.getTime()) ? String(Date.now()) : String(d.getTime());
-}
-
-export function getAdMainImage(ad: any): string {
-  if (!ad) return FALLBACK_IMAGE;
-
-  if (ad.images && Array.isArray(ad.images) && ad.images.length > 0) {
-    for (const img of ad.images) {
-      const url = getAdImageUrl(img);
-      if (url) return url;
-    }
-  }
-
-  if (ad.image && typeof ad.image === 'object') {
-    const url = getAdImageUrl(ad.image);
-    if (url) return url;
-  }
-
-  if (typeof ad.image_url === 'string' && ad.image_url) {
-    const url = getAdImageUrl(ad.image_url);
-    if (url) return url;
-  }
-
-  if (typeof ad.image === 'string' && ad.image) {
-    const url = getAdImageUrl(ad.image);
-    if (url) return url;
-  }
-
-  return FALLBACK_IMAGE;
-}
-
-export function getAdMainImageWithCacheBust(ad: any): string {
-  const url = getAdMainImage(ad);
-  if (!url || url === FALLBACK_IMAGE || url.startsWith('/')) return url;
-  const ts = getImageTimestamp(ad);
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}_cb=${ts}`;
 }
 
 export function buildImageQuery(ad: any): string {

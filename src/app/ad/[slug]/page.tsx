@@ -21,7 +21,7 @@ import { Heart, Phone, ChevronRight, MessageCircle, Home, CheckCircle, Flag, Ima
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 import toast from 'react-hot-toast';
-import { formatPrice, FALLBACK_IMAGE } from '@/lib/utils';
+import { formatPrice, getAdGalleryUrls, getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
 import { normalizeAd } from '@/lib/normalize-ad';
 import type { NormalizedAd } from '@/lib/normalize-ad';
 import { favoritesApi } from '@/lib/api';
@@ -54,7 +54,7 @@ const EmailIcon = ({ className }: { className?: string }) => (
 
 function getImageUrls(ad: NormalizedAd | null): string[] {
   if (!ad?.images || ad.images.length === 0) return [FALLBACK_IMAGE];
-  return ad.images.map((img) => img.url).filter(Boolean);
+  return getAdGalleryUrls(ad);
 }
 
 function getConditionBadge(condition: string): { label: string; className: string } {

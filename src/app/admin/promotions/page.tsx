@@ -16,6 +16,7 @@ import {
   XCircle,
   Clock
 } from 'lucide-react';
+import { getAdImageUrl } from '@/lib/utils';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -387,9 +388,9 @@ export default function PromotionsPage() {
                   <div key={promo.id} className="bg-white rounded-xl border border-gray-200 p-4">
                     <div className="flex gap-4">
                       <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
-                        {promo.ad?.image ? (
+                        {getAdImageUrl(promo.ad?.image) ? (
                           <Image
-                            src={promo.ad.image}
+                            src={getAdImageUrl(promo.ad.image)}
                             alt={promo.ad.title || 'Ad'}
                             fill
                             className="object-cover"

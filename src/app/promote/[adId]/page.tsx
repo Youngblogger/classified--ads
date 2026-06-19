@@ -9,6 +9,7 @@ import { useAuthStore, useUIStore } from '@/lib/store';
 import { useWalletBalance } from '@/hooks/useWallet';
 import type { BoostPlan } from '@/types';
 import toast from 'react-hot-toast';
+import { getAdImageUrl } from '@/lib/utils';
 import PromotionPackages from '@/components/promotion/PromotionPackages';
 import PaymentMethods from '@/components/promotion/PaymentMethods';
 import BankTransferDetails from '@/components/promotion/BankTransferDetails';
@@ -151,7 +152,7 @@ export default function PromoteAdPage() {
             <div className="flex items-center gap-4">
               {ad.images?.[0] && (
                 <Image
-                  src={typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].url}
+                  src={getAdImageUrl(ad.images[0])}
                   alt={ad.title}
                   width={64}
                   height={64}

@@ -6,6 +6,7 @@ import { Search, X, Clock, TrendingUp, ArrowRight, Loader2, ArrowLeft, MapPin, S
 import { useGlobalStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import { parseQuery } from '@/lib/search-query';
+import { getAdImageUrl } from '@/lib/utils';
 import { SafeImage } from '@/components/ui/SafeImage';
 
 const RECENT_SEARCHES_KEY = 'ilist_recent_searches_mobile';
@@ -228,9 +229,9 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
                       }`}
                     >
                       <div className="w-12 h-12 bg-gray-100 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden">
-                        {item.data.thumbnail_url || item.data.image_url ? (
+                        {getAdImageUrl(item.data) ? (
                           <SafeImage
-                            src={item.data.thumbnail_url || item.data.image_url}
+                            src={getAdImageUrl(item.data)}
                             alt=""
                             className="object-cover w-full h-full"
                             containerClassName="w-full h-full"

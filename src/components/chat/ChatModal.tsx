@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store';
 import { useSocket } from '@/hooks/useSocket';
 import { messagesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { getAdImageUrl } from '@/lib/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const BACKEND_URL = API_URL.replace('/api', '');
@@ -33,32 +34,10 @@ function getDateMs(input: string | number | null | undefined): number {
 // Get image URL - handles all URL formats from backend
 function getImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  // Handle blob URLs (temporary recordings)
   if (url.startsWith('blob:')) {
     return url;
   }
-  // Handle full HTTP URLs - return as-is
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  // Handle /storage/ prefix
-  if (url.startsWith('/storage/')) {
-    return `${BACKEND_URL}${url}`;
-  }
-  // Handle storage/ prefix (without leading slash)
-  if (url.startsWith('storage/')) {
-    return `${BACKEND_URL}/${url}`;
-  }
-  // Handle / prefix
-  if (url.startsWith('/')) {
-    return url;
-  }
-  // Handle json_dataset/ prefix
-  if (url.startsWith('json_dataset/')) {
-    return url.replace('json_dataset/', '/');
-  }
-  // Default: assume it's a filename in /images/
-  return `/images/${url}`;
+  return getAdImageUrl(url) || null;
 }
 
 // Get audio URL - handles voice messages

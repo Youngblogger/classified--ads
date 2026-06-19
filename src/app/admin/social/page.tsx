@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
+import { getAdImageUrl } from '@/lib/utils';
 import { Facebook, Instagram } from '@/lib/social-icons';
 import { Loader2, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, ExternalLink, Calendar, Send, Plus, Trash2, Play, Pause, Share2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -721,7 +722,7 @@ export default function SocialPostsPage() {
                       <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0 relative">
                         {(() => {
                           const firstImg = ad.images?.[0];
-                          const imgUrl = typeof firstImg === 'string' ? firstImg : firstImg?.url;
+                          const imgUrl = firstImg ? getAdImageUrl(firstImg) : null;
                           return imgUrl ? (
                             <Image src={imgUrl} alt={ad.title} fill sizes="48px" className="object-cover" />
                           ) : (

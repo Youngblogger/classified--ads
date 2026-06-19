@@ -46,26 +46,28 @@ class AdDetailResource extends JsonResource
             'badge_icon' => $boost?->plan?->badge_icon,
             'attributes' => $this->attributes ?? [],
             'specifications' => $specs,
-            'images' => $this->whenLoaded('images', fn() => $this->images->map(fn($img) => [
-                'id' => $img->id,
-                'url' => $img->url,
-                'thumbnail_url' => $img->thumbnail_url,
-                'medium_url' => $img->medium_url,
-                'is_primary' => (bool) $img->is_primary,
-                'sort_order' => $img->sort_order,
-            ])),
-            'category' => $this->whenLoaded('category', fn() => [
+            'images' => $this->relationLoaded('images')
+                ? $this->images->map(fn ($img) => [
+                    'id' => $img->id,
+                    'url' => $img->url,
+                    'thumbnail_url' => $img->thumbnail,
+                    'medium_url' => $img->medium_url,
+                    'is_primary' => (bool) $img->is_primary,
+                    'sort_order' => $img->sort_order,
+                ])
+                : collect(),
+            'category' => $this->whenLoaded('category', fn () => [
                 'id' => $this->category->id,
                 'name' => $this->category->name,
                 'slug' => $this->category->slug,
                 'parent_id' => $this->category->parent_id,
             ]),
-            'location' => $this->whenLoaded('location', fn() => [
+            'location' => $this->whenLoaded('location', fn () => [
                 'id' => $this->location->id,
                 'name' => $this->location->name,
                 'slug' => $this->location->slug,
             ]),
-            'user' => $this->whenLoaded('user', fn() => [
+            'user' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
                 'avatar' => $this->user->full_avatar_url ?? $this->user->avatar_url,
@@ -85,12 +87,12 @@ class AdDetailResource extends JsonResource
     private function buildSpecifications(): array
     {
         $attrs = $this->attributes;
-        if (!$attrs || !is_array($attrs)) {
+        if (! $attrs || ! is_array($attrs)) {
             return [];
         }
 
         $category = $this->relationLoaded('category') ? $this->category : null;
-        if (!$category) {
+        if (! $category) {
             return $this->flattenAttributes($attrs);
         }
 
@@ -135,12 +137,13 @@ class AdDetailResource extends JsonResource
             return $value ? 'Yes' : 'No';
         }
 
-        if ($field->type === 'select' && !empty($field->options) && is_string($value)) {
+        if ($field->type === 'select' && ! empty($field->options) && is_string($value)) {
             $options = is_array($field->options) ? $field->options : json_decode($field->options, true) ?? [];
             $optionLabels = array_combine(
                 array_map('strtolower', $options),
                 $options
             );
+
             return $optionLabels[strtolower($value)] ?? $value;
         }
 
@@ -169,6 +172,7 @@ class AdDetailResource extends JsonResource
                 'sort_order' => 0,
             ];
         }
+
         return $specs;
     }
 

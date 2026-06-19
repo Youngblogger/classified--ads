@@ -35,8 +35,11 @@ function SafeImageComponent({
   const [imgLoaded, setImgLoaded] = useState(false);
 
   const handleError = useCallback(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[DIAG] [IMG_FAIL]', { src: src?.slice(0, 120), alt, fallback });
+    }
     setImgError(true);
-  }, []);
+  }, [src, alt, fallback]);
 
   const handleLoad = useCallback(() => {
     setImgLoaded(true);
