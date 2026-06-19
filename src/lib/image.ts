@@ -231,14 +231,22 @@ export function getAdThumbnailUrl(img: unknown, adId?: number): string {
     return url;
   }
 
-  if (isCloudinaryUrl(url) && !url.includes('w_')) {
-    try {
-      const thumbUrl = url.replace('/image/upload/', '/image/upload/w_400,h_300,c_fill,g_auto,q_auto,f_auto/');
-      urlCache.set(key, thumbUrl);
-      return thumbUrl;
-    } catch {
-      urlCache.set(key, url);
-      return url;
+  if (isCloudinaryUrl(url)) {
+    const uploadIdx = url.indexOf('/image/upload/');
+    if (uploadIdx !== -1) {
+      const afterUpload = url.slice(uploadIdx + '/image/upload/'.length);
+      const preOverlay = afterUpload.split('/l_')[0];
+      const hasWidth = /w_\d{2,}/.test(preOverlay);
+      if (!hasWidth) {
+        try {
+          const thumbUrl = url.replace('/image/upload/', '/image/upload/w_400,h_300,c_fill,g_auto,q_auto,f_auto/');
+          urlCache.set(key, thumbUrl);
+          return thumbUrl;
+        } catch {
+          urlCache.set(key, url);
+          return url;
+        }
+      }
     }
   }
   urlCache.set(key, url);
