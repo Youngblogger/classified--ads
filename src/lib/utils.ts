@@ -3,9 +3,9 @@ import { config, CLOUDINARY_CLOUD_NAME, BACKEND_URL } from './config';
 
 export { BACKEND_URL, CLOUDINARY_CLOUD_NAME } from './config';
 
-import { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust, FALLBACK_IMAGE as _fallback } from './image';
+import { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust, getCloudinarySrcset, getCloudinarySizes, getCloudinaryBlurUrl, getAdImageDimensions, getAspectRatioStyle, perfMonitor, FALLBACK_IMAGE as _fallback } from './image';
 
-export { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust };
+export { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust, getCloudinarySrcset, getCloudinarySizes, getCloudinaryBlurUrl, getAdImageDimensions, getAspectRatioStyle, perfMonitor };
 export const FALLBACK_IMAGE = _fallback;
 
 let _imageVersionCounter = 0;
@@ -48,26 +48,6 @@ export function getCloudinaryThumbnail(publicId: string, size = 300): string {
     quality: 80,
   });
 }
-
-export function getCloudinaryBlurUrl(publicId: string): string {
-  return getCloudinaryUrl(publicId, {
-    width: 50,
-    quality: 1,
-  }).replace('/upload/', '/upload/e_blur:500,');
-}
-
-export function getCloudinarySrcset(publicId: string, breakpoints = [320, 640, 768, 1024, 1280]): string {
-  if (!publicId) return '';
-  return breakpoints
-    .map((w) => `${getCloudinaryUrl(publicId, { width: w, crop: 'scale' })} ${w}w`)
-    .join(', ');
-}
-
-export function getCloudinarySizes(defaultWidth = 800): string {
-  return `(max-width: 640px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 768px, ${defaultWidth}px`;
-}
-
-
 
 export async function validateImageUrl(url: string): Promise<boolean> {
   if (!url) return false;

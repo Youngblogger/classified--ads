@@ -10,6 +10,7 @@ interface SafeImageProps {
   containerClassName?: string;
   width?: number;
   height?: number;
+  aspectRatio?: string;
   loading?: 'lazy' | 'eager';
   priority?: boolean;
   onLoad?: () => void;
@@ -26,6 +27,9 @@ function SafeImageComponent({
   className = '',
   fallback,
   containerClassName = '',
+  width,
+  height,
+  aspectRatio,
   loading = 'lazy',
   priority = false,
   onLoad,
@@ -49,8 +53,11 @@ function SafeImageComponent({
   const imageSrc = imgError ? (fallback || FALLBACK_SVG) : (src || FALLBACK_SVG);
   const showBlur = !imgLoaded && !imgError;
 
+  const aspectStyle = aspectRatio ? { aspectRatio } :
+    (width && height ? { aspectRatio: `${width} / ${height}` } : undefined);
+
   return (
-    <div className={`relative overflow-hidden ${containerClassName}`}>
+    <div className={`relative overflow-hidden ${containerClassName}`} style={aspectStyle}>
       {showBlur && (
         <img
           src={BLUR_DATA_URL}
