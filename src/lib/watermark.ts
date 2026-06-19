@@ -45,10 +45,10 @@ export function clearWatermarkCache() {
 
 /**
  * Apply watermark overlay transformation to a Cloudinary image URL.
- * This adds Cloudinary URL overlay params so the watermark is rendered
- * on-the-fly when the image is served, without re-uploading the image.
+ * Uses image-based overlay (l_{logoPublicId}) — NO l_text, NO font rendering.
+ * If settings specify 'text' type or no logo_url is provided, watermark is skipped.
  */
-export function applyWatermarkToUrl(url: string, wm: WatermarkSettings, adId?: number): string {
+export function applyWatermarkToUrl(url: string, wm: WatermarkSettings, _adId?: number): string {
   if (!url || !wm.enabled) return url;
   if (!wm.apply_to_original && !wm.apply_to_medium && !wm.apply_to_thumbnail) return url;
 
@@ -61,32 +61,17 @@ export function applyWatermarkToUrl(url: string, wm: WatermarkSettings, adId?: n
   const afterUpload = url.slice(uploadIndex + markerLen);
   const baseUrl = url.slice(0, uploadIndex + markerLen);
 
-  let overlay: string;
-  if (wm.type === 'text') {
-    let textStr = wm.text;
-    if (wm.show_ad_id && adId) {
-      textStr += ` | Ad ID: ${adId}`;
-    }
-    const fontName = (wm.font_family || 'Arial').replace(/_/g, '%20');
-    const fontSize = wm.font_size || 36;
-    const color = (wm.text_color || '#FFFFFF').replace('#', '');
-    const encodedText = textStr
-      .replace(/%/g, '%25')
-      .replace(/ /g, '%20')
-      .replace(/&/g, '%26')
-      .replace(/,/g, '%252C')
-      .replace(/\(/g, '%28')
-      .replace(/\)/g, '%29')
-      .replace(/\|/g, '%7C');
-    overlay = `l_text:${fontName}_${fontSize}:${encodedText},co_rgb:${color}`;
-  } else if (wm.type === 'logo' && wm.logo_url) {
+  let logoPath: string | null = null;
+
+  if (wm.type === 'logo' && wm.logo_url) {
     const parts = wm.logo_url.split('/');
     const folderIdx = parts.indexOf('upload') + 1;
-    const logoPath = parts.slice(folderIdx).join('/').replace(/\.[^.]+$/, '');
-    overlay = `l_${logoPath.replace(/\//g, ':')}`;
-  } else {
-    return url;
+    if (folderIdx > 0 && folderIdx < parts.length) {
+      logoPath = parts.slice(folderIdx).join('/').replace(/\.[^.]+$/, '');
+    }
   }
+
+  if (!logoPath) return url;
 
   const opacity = Math.round((wm.opacity / 100) * 100);
   const positionMap: Record<string, string> = {
@@ -99,7 +84,7 @@ export function applyWatermarkToUrl(url: string, wm: WatermarkSettings, adId?: n
   const gravity = positionMap[wm.position] || 'se';
   const margin = wm.margin || 20;
 
-  const wmTransform = `${overlay},o_${opacity},g_${gravity},x_${margin},y_${margin},fl_layer_apply`;
+  const wmTransform = `l_${logoPath.replace(/\//g, ':')},w_0.15,o_${opacity},g_${gravity},x_${margin},y_${margin},fl_layer_apply`;
 
   const existingTransforms = afterUpload.split('/');
   const publicIdParts: string[] = [];

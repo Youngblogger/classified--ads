@@ -15,6 +15,7 @@ export const config = {
   },
   images: {
     cloudinaryCloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dcklcvihq',
+    watermarkPublicId: process.env.NEXT_PUBLIC_CLOUDINARY_WATERMARK_ID || '',
     fallback: '/placeholder-image.svg',
     maxUploadSize: 5 * 1024 * 1024,
     compressionEnabled: process.env.NEXT_PUBLIC_ENABLE_IMAGE_OPTIMIZATION !== 'false',
@@ -29,5 +30,6 @@ export const config = {
 export const API_URL = config.api.baseUrl;
 export const BACKEND_URL = config.api.backendUrl;
 export const CLOUDINARY_CLOUD_NAME = config.images.cloudinaryCloudName;
+export const CLOUDINARY_WATERMARK_ID = config.images.watermarkPublicId;
 export const FALLBACK_IMAGE = config.images.fallback;
 export const ADS_PER_PAGE = config.pagination.adsPerPage;

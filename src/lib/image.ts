@@ -1,4 +1,4 @@
-import { FALLBACK_IMAGE } from './config';
+import { FALLBACK_IMAGE, CLOUDINARY_WATERMARK_ID } from './config';
 
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
 
@@ -14,13 +14,12 @@ interface CacheEntry {
 class LruCache {
   private max: number;
   private map: Map<string, CacheEntry>;
+  private order: string[] = [];
 
   constructor(max = 500) {
     this.max = max;
     this.map = new Map();
   }
-
-  private order: string[] = [];
 
   get(key: string): string | undefined {
     const entry = this.map.get(key);
@@ -71,65 +70,11 @@ function cacheKey(img: unknown, adId?: number): string {
 }
 
 // =====================================================
-//  PERFORMANCE MONITOR
-// =====================================================
-
-let perfCalls = 0;
-let cacheHits = 0;
-let cacheMisses = 0;
-let slowImages: string[] = [];
-let slowThresholdMs = 2000;
-
-function resetPerf() {
-  perfCalls = 0;
-  cacheHits = 0;
-  cacheMisses = 0;
-  slowImages = [];
-}
-
-function logPerf() {
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('[DIAG][PERF]', {
-      totalResolveCalls: perfCalls,
-      cacheHits,
-      cacheMisses,
-      hitRate: perfCalls > 0 ? `${Math.round((cacheHits / perfCalls) * 100)}%` : '0%',
-      urlCache: urlCache.stats,
-      slowImages: slowImages.length ? slowImages : 'none',
-    });
-  }
-}
-
-function markSlowImage(url: string, ms: number) {
-  if (ms > slowThresholdMs && slowImages.length < 10) {
-    slowImages.push(`${url.slice(0, 60)}... (${ms}ms)`);
-  }
-}
-
-// =====================================================
 //  CORE FUNCTIONS
 // =====================================================
 
 function isCloudinaryUrl(url: string): boolean {
   return url.includes('res.cloudinary.com');
-}
-
-function encodeCloudinaryText(text: string): string {
-  return text
-    .replace(/%/g, '%25')
-    .replace(/,/g, '%2C')
-    .replace(/\//g, '%2F')
-    .replace(/:/g, '%3A')
-    .replace(/\|/g, '%7C')
-    .replace(/\?/g, '%3F')
-    .replace(/#/g, '%23')
-    .replace(/"/g, '%22')
-    .replace(/'/g, '%27')
-    .replace(/\+/g, '%2B')
-    .replace(/&/g, '%26')
-    .replace(/@/g, '%40')
-    .replace(/\\/g, '%5C')
-    .replace(/ /g, '%20');
 }
 
 function parseCloudinaryUrl(url: string): { transforms: string[]; version: string; publicId: string } | null {
@@ -168,8 +113,24 @@ function parseCloudinaryUrl(url: string): { transforms: string[]; version: strin
   return { transforms, version, publicId: publicIdParts.join('/') };
 }
 
-function addWatermarkToCloudinaryUrl(url: string, adId?: number): string {
+/**
+ * Add watermark overlay to a Cloudinary image URL using a pre-uploaded image asset.
+ *
+ * Architecture (Image-Based Watermark — Option A):
+ *   - A watermark PNG is uploaded to Cloudinary once (public ID via WATERMARK_ID env var)
+ *   - Every image URL gets an l_{publicId} overlay appended to the transformation chain
+ *   - The overlay is scaled to 15% of image width, 70% opacity, bottom-right position
+ *   - NO l_text, NO fonts, NO text encoding — eliminates 400 errors entirely
+ *
+ * Failsafe:
+ *   - If WATERMARK_ID is empty, no watermark is applied (graceful skip)
+ *   - If URL is not parseable, original URL is returned
+ *   - If overlay insertion fails, original URL is returned
+ *   - Already-watermarked URLs (containing fl_layer_apply) are skipped
+ */
+function addWatermarkToCloudinaryUrl(url: string, _adId?: number): string {
   if (!CLOUD_NAME) return url;
+  if (!CLOUDINARY_WATERMARK_ID) return url;
   if (url.includes('fl_layer_apply')) return url;
 
   const parsed = parseCloudinaryUrl(url);
@@ -179,9 +140,7 @@ function addWatermarkToCloudinaryUrl(url: string, adId?: number): string {
     const marker = '/image/upload/';
     const baseUrl = url.slice(0, url.indexOf(marker) + marker.length);
 
-    const textStr = adId ? `iList | ID:${adId}` : 'iList';
-    const encodedText = encodeCloudinaryText(textStr);
-    const overlay = `l_text:Arial_28:${encodedText},co_rgb:FFFFFF,o_60,g_se,x_15,y_15,fl_layer_apply`;
+    const overlay = `l_${CLOUDINARY_WATERMARK_ID},w_0.15,o_70,g_south_east,x_10,y_10,fl_layer_apply`;
 
     const transformsStr = parsed.transforms.length > 0 ? parsed.transforms.join('/') + '/' : '';
     const versionStr = parsed.version ? parsed.version + '/' : '';
@@ -193,15 +152,9 @@ function addWatermarkToCloudinaryUrl(url: string, adId?: number): string {
 }
 
 function resolveSingleUrl(img: unknown, adId?: number): string {
-  perfCalls++;
-
   const key = cacheKey(img, adId);
   const cached = urlCache.get(key);
-  if (cached !== undefined) {
-    cacheHits++;
-    return cached;
-  }
-  cacheMisses++;
+  if (cached !== undefined) return cached;
 
   let url = '';
 
@@ -260,7 +213,7 @@ function extractImageObjects(ad: unknown): { images: Record<string, unknown>[]; 
 }
 
 // =====================================================
-//  PUBLIC API — CACHED
+//  PUBLIC API
 // =====================================================
 
 export function getAdImageUrl(img: unknown, adId?: number): string {
@@ -441,37 +394,7 @@ export function getAdMainImageWithCacheBust(ad: unknown, adId?: number): string 
 }
 
 // =====================================================
-//  RESPONSIVE IMAGE HELPERS
-// =====================================================
-
-export interface ResponsiveImageOptions {
-  widths?: number[];
-  sizes?: string;
-  quality?: number;
-}
-
-const BREAKPOINTS = [320, 640, 768, 1024, 1280];
-
-export function getCloudinarySrcset(publicId: string, options?: ResponsiveImageOptions): string {
-  if (!publicId) return '';
-  const widths = options?.widths || BREAKPOINTS;
-  const quality = options?.quality || 80;
-  return widths
-    .map((w) => `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/w_${w},c_scale,q_${quality},f_auto/${publicId} ${w}w`)
-    .join(', ');
-}
-
-export function getCloudinarySizes(defaultWidth = 800): string {
-  return `(max-width: 640px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 768px, ${defaultWidth}px`;
-}
-
-export function getCloudinaryBlurUrl(publicId: string): string {
-  if (!publicId) return '';
-  return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/w_50,e_blur:500,q_1,f_auto/${publicId}`;
-}
-
-// =====================================================
-//  IMAGE DIMENSIONS (ASPECT RATIO HELPERS)
+//  DIMENSION HELPERS (CLS prevention)
 // =====================================================
 
 export interface ImageDimensions {
@@ -489,20 +412,16 @@ export function getAdImageDimensions(img: unknown): ImageDimensions {
   return DEFAULT_AD_ASPECT;
 }
 
-/** Returns aspect-ratio CSS string for layout stability (CLS prevention). */
 export function getAspectRatioStyle(dimensions: ImageDimensions): string {
   return `${dimensions.width} / ${dimensions.height}`;
 }
 
 // =====================================================
-//  PERFORMANCE API (for devtools)
+//  WATERMARK CONFIG CHECK (for diagnostics)
 // =====================================================
 
-export const perfMonitor = {
-  reset: resetPerf,
-  log: logPerf,
-  markSlow: markSlowImage,
-  slowThreshold: (ms: number) => { slowThresholdMs = ms; },
-};
+export function isWatermarkConfigured(): boolean {
+  return !!(CLOUD_NAME && CLOUDINARY_WATERMARK_ID);
+}
 
 export { FALLBACK_IMAGE };

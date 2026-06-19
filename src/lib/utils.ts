@@ -3,9 +3,9 @@ import { config, CLOUDINARY_CLOUD_NAME, BACKEND_URL } from './config';
 
 export { BACKEND_URL, CLOUDINARY_CLOUD_NAME } from './config';
 
-import { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust, getCloudinarySrcset, getCloudinarySizes, getCloudinaryBlurUrl, getAdImageDimensions, getAspectRatioStyle, perfMonitor, FALLBACK_IMAGE as _fallback } from './image';
+import { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust, getAdImageDimensions, getAspectRatioStyle, isWatermarkConfigured, FALLBACK_IMAGE as _fallback } from './image';
 
-export { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust, getCloudinarySrcset, getCloudinarySizes, getCloudinaryBlurUrl, getAdImageDimensions, getAspectRatioStyle, perfMonitor };
+export { getAdImageUrl, getAdThumbnailUrl, getAdMainImage, getAdImages, getAdGalleryUrls, getPrimaryImageUrl, getValidImages, getAdMainImageWithCacheBust, getAdImageDimensions, getAspectRatioStyle, isWatermarkConfigured };
 export const FALLBACK_IMAGE = _fallback;
 
 let _imageVersionCounter = 0;
