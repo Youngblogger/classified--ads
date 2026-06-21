@@ -78,7 +78,16 @@ export const authApi = {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        console.error('[Auth API] Login failed:', error.message);
+        const msg = error.message.toLowerCase();
+        if (msg.includes('invalid login credentials')) {
+          throw new Error('Incorrect password. Please try again.');
+        }
+        if (msg.includes('user not found')) {
+          throw new Error('No account found with this email.');
+        }
+        if (msg.includes('email not confirmed')) {
+          throw new Error('Please confirm your email address before signing in.');
+        }
         throw new Error(error.message);
       }
       const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', data.user?.id).single();
@@ -116,15 +125,20 @@ export const authApi = {
         options: { data: { full_name: name, phone } },
       });
       if (error) {
-        const isUserExists = error.message?.toLowerCase().includes('user already registered');
-        if (isUserExists) {
+        const msg = error.message?.toLowerCase() || '';
+        if (msg.includes('user already registered')) {
           console.log('[Auth API] User already registered — falling back to login');
           try {
             const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
             if (loginError) {
-              console.error('[Auth API] Auto-login after existing user failed:', loginError.message);
+              const loginMsg = loginError.message.toLowerCase();
+              if (loginMsg.includes('invalid login credentials')) {
+                return sbResponse({
+                  data: { user: null, session: null, autoLogin: false, code: 'USER_EXISTS', message: 'User already exists. Please sign in instead.' },
+                });
+              }
               return sbResponse({
-                data: { user: null, session: null, autoLogin: false, message: 'An account with this email already exists. Please sign in with your password.' },
+                data: { user: null, session: null, autoLogin: false, code: 'USER_EXISTS', message: 'User already exists. Please sign in instead.' },
               });
             }
             if (loginData.user) {
@@ -140,17 +154,29 @@ export const authApi = {
               }
             }
             return sbResponse({
-              data: { user: loginData.user, session: loginData.session, autoLogin: true, message: 'Account exists, logging you in.' },
+              data: { user: loginData.user, session: loginData.session, autoLogin: true, message: 'Account found — logging you in...' },
             });
           } catch (loginErr) {
             console.error('[Auth API] Auto-login exception:', loginErr);
             return sbResponse({
-              data: { user: null, session: null, autoLogin: false, message: 'An account with this email already exists. Please sign in with your password.' },
+              data: { user: null, session: null, autoLogin: false, code: 'USER_EXISTS', message: 'User already exists. Please sign in instead.' },
             });
           }
         }
+        if (msg.includes('weak password')) {
+          return sbResponse({
+            data: { user: null, session: null, autoLogin: false, message: 'Password is too weak. Use at least 6 characters with a mix of letters and numbers.' },
+          });
+        }
+        if (msg.includes('invalid email')) {
+          return sbResponse({
+            data: { user: null, session: null, autoLogin: false, message: 'Please enter a valid email address.' },
+          });
+        }
         console.error('[Auth API] Signup failed:', error.message);
-        return sbError(error);
+        return sbResponse({
+          data: { user: null, session: null, autoLogin: false, message: 'Registration failed. Please try again.' },
+        });
       }
       if (data.user) {
         const { error: profileError } = await supabase.from('profiles').upsert({

@@ -72,18 +72,18 @@ export default function RegisterModal() {
           regData.session.access_token,
         );
         if (regData.autoLogin) {
-          toast.success('Account exists, logging you in!');
+          toast.success('Account found — logging you in...');
         } else {
           toast.success('Account created successfully!');
         }
         closeAllModals();
         resetForm();
       } else if (regData?.user && !regData?.session) {
-        toast.success(regData.autoLogin ? 'Account exists, logging you in!' : 'Account created! Check your email to verify.');
+        toast.success(regData.autoLogin ? 'Account found — logging you in...' : 'Account created! Check your email to verify.');
         closeAllModals();
         resetForm();
-      } else if (regData?.autoLogin === false && regData?.message) {
-        setError(regData.message);
+      } else if (regData?.autoLogin === false && (regData as any)?.message) {
+        setError((regData as any).message);
       } else {
         throw new Error('Registration failed. Please try again.');
       }
