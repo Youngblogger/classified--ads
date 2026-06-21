@@ -248,7 +248,7 @@ export default function DashboardLayout({
       <div className="lg:pl-48">
         <ResponsiveHeader variant="default" onMenuToggle={() => setSidebarOpen(true)} />
         {/* Spacer for fixed header (MobileHeader has its own spacer) */}
-        <div className="hidden md:block h-16" />
+        <div className="hidden md:block h-20" />
 
         {/* Page content */}
         <main className="p-4 sm:p-6 lg:p-8 pb-20 md:pb-0">

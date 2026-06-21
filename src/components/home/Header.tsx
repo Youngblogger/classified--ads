@@ -663,9 +663,9 @@ export default function Header({ variant = 'homepage', onMenuToggle }: { variant
       )}
 
       {/* MAIN HEADER */}
-      <div className={cn('bg-primary-600 shadow-header', resolvedVariant === 'homepage' ? 'h-14' : 'h-12')}>
+      <div className={cn('bg-primary-600 shadow-header', resolvedVariant === 'homepage' ? 'h-14' : 'h-16')}>
         <div className="container-app">
-          <div className={cn('flex items-center justify-between gap-4', resolvedVariant === 'homepage' ? 'h-14' : 'h-12')}>
+          <div className={cn('flex items-center justify-between gap-4', resolvedVariant === 'homepage' ? 'h-14' : 'h-16')}>
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
               <Image 
