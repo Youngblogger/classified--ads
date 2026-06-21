@@ -6,7 +6,7 @@ import { useAuthStore, useGlobalStore, hydrationComplete, isIgnoreSignOut } from
 import type { User } from '@supabase/supabase-js';
 
 const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000;
-const AUTH_INIT_TIMEOUT = 15000;
+const AUTH_INIT_TIMEOUT = 5000;
 const LOGOUT_DEBOUNCE_MS = 3000;
 
 export type AuthState = 'loading' | 'authenticated' | 'guest';
@@ -27,6 +27,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const authInitRef = useRef(false);
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
   const mountedRef = useRef(true);
+  const authStateRef = useRef<AuthState>('loading');
 
   useEffect(() => {
     mountedRef.current = true;
@@ -35,6 +36,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   const finishInit = useCallback((state: 'authenticated' | 'guest', sessionUser?: User | null) => {
     if (!mountedRef.current) return;
+    authStateRef.current = state;
     setAuthState(state);
     setUser(sessionUser || null);
   }, []);
@@ -113,15 +115,37 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      // Zustand is the single source of truth. If it has valid auth (token was
-      // already validated in onRehydrateStorage), trust it immediately without
-      // a destructive getSession() background check. Do NOT call logout() here
-      // — that would wipe localStorage and permanently lose auth on refresh.
       const storeAlreadyAuthed = useAuthStore.getState().isAuthenticated;
       if (storeAlreadyAuthed) {
         const userData = useAuthStore.getState().user;
-        finishInit('authenticated', userData as any);
-        return;
+
+        // Ensure authToken exists in localStorage for http-client.
+        // login() normally writes it via login(), but on page load restoring
+        // from Zustand persist (where token is partialized out), localStorage
+        // must already have it from a prior session. If it was cleared, try
+        // recovering from the cookie fallback. If that also fails, fall
+        // through to Supabase getSession() below rather than silently
+        // proceeding with a broken auth state.
+        if (typeof window !== 'undefined') {
+          const existingToken = localStorage.getItem('authToken');
+          if (existingToken) {
+            finishInit('authenticated', userData as any);
+            return;
+          }
+          const cookieMatch = document.cookie.match(/(?:^|;\s*)token\s*=\s*([^;]*)/);
+          if (cookieMatch) {
+            const tokenFromCookie = decodeURIComponent(cookieMatch[1]);
+            localStorage.setItem('authToken', tokenFromCookie);
+            finishInit('authenticated', userData as any);
+            return;
+          }
+          // No token anywhere — clear Zustand so the Supabase fallback
+          // below can attempt a clean recovery.
+          useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+        } else {
+          finishInit('authenticated', userData as any);
+          return;
+        }
       }
 
       // Fallback: try Supabase for a session (e.g. fresh login before Zustand
@@ -216,10 +240,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         if (!mountedRef.current || cancelled) return;
         
         // Ignore misleading SIGNED_OUT events during signup/login flows.
-        // Supabase fires SIGNED_OUT when signUp detects existing user or on
-        // local signOut before signUp, which should not wipe auth state.
         if (isIgnoreSignOut()) {
           console.log('[AuthProvider] SIGNED_OUT ignored — signup/login flow in progress');
+          return;
+        }
+        
+        // If initialize() already resolved to 'authenticated', this SIGNED_OUT
+        // is likely Supabase failing to refresh a stale token in the background.
+        // Do NOT wipe auth — the user is actively authenticated and their session
+        // is still valid via the Zustand persisted state + localStorage authToken.
+        if (authStateRef.current === 'authenticated') {
+          console.log('[AuthProvider] SIGNED_OUT ignored — auth already confirmed by initialize()');
           return;
         }
         
@@ -256,6 +287,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     return () => {
       cancelled = true;
+      authInitRef.current = false;
       subscription?.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

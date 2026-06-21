@@ -25,13 +25,36 @@ class WalletController extends Controller
 
         if (!$userId || !$email) {
             $token = $request->bearerToken();
-            if ($token) {
+            if (!$token) {
+                Log::warning('[Wallet] 401 — no Bearer token provided', [
+                    'path' => $request->path(),
+                    'method' => $request->method(),
+                    'ip' => $request->ip(),
+                ]);
+            } else {
                 $parts = explode('.', $token);
-                if (count($parts) === 3) {
+                if (count($parts) !== 3) {
+                    Log::warning('[Wallet] 401 — malformed JWT (not 3 parts)', [
+                        'path' => $request->path(),
+                        'parts_count' => count($parts),
+                    ]);
+                } else {
                     $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-                    if ($payload) {
+                    if (!$payload) {
+                        Log::warning('[Wallet] 401 — JWT payload decode failed', [
+                            'path' => $request->path(),
+                        ]);
+                    } else {
                         $userId = $payload['sub'] ?? null;
                         $email = $payload['email'] ?? null;
+
+                        if (!$userId || !$email) {
+                            Log::warning('[Wallet] 401 — JWT missing sub/email claims', [
+                                'path' => $request->path(),
+                                'has_sub' => isset($payload['sub']),
+                                'has_email' => isset($payload['email']),
+                            ]);
+                        }
                     }
                 }
             }
