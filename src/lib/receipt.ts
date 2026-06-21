@@ -182,14 +182,18 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   const currency = data.currency || 'NGN';
   const walletRef = data.reference;
 
-  // ── Watermark (background) ──
-  doc.setTextColor(240, 240, 240);
-  doc.setFontSize(48);
-  doc.setFont('helvetica', 'bold');
-  doc.text('iList', pageW / 2, pageH / 2 - 10, { align: 'center', angle: 30 });
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('classified ads marketplace', pageW / 2, pageH / 2 + 4, { align: 'center', angle: 30 });
+  // ── Watermarks (background) ──
+  const drawWatermark = (cy: number) => {
+    doc.setTextColor(240, 240, 240);
+    doc.setFontSize(48);
+    doc.setFont('helvetica', 'bold');
+    doc.text('iList', pageW / 2, cy, { align: 'center', angle: 30 });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('classified ads marketplace', pageW / 2, cy + 14, { align: 'center', angle: 30 });
+  };
+  drawWatermark(pageH * 0.28);
+  drawWatermark(pageH * 0.62);
 
   // ── Header ──
   doc.setFillColor(0, 158, 56);
@@ -225,14 +229,6 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
 
   y += 2;
 
-  // ── ACCOUNT INFORMATION ──
-  y = sectionTitle(doc, 'ACCOUNT INFORMATION', pageW, y);
-
-  y = infoRow(doc, 'Platform', 'iList Classified Marketplace', leftX, y, labelW, gap);
-  y = infoRow(doc, 'Wallet ID', walletRef, leftX, y, labelW, gap);
-
-  y += 2;
-
   // ── PAYMENT DETAILS ──
   y = sectionTitle(doc, 'PAYMENT DETAILS', pageW, y);
 
@@ -240,6 +236,14 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   y = infoRow(doc, 'Amount Paid', amt, leftX, y, labelW, gap);
   y = infoRow(doc, 'Fees', '\u20A60.00', leftX, y, labelW, gap);
   y = infoRow(doc, 'Total Credited', amt, leftX, y, labelW, gap);
+
+  y += 2;
+
+  // ── ACCOUNT INFORMATION ──
+  y = sectionTitle(doc, 'ACCOUNT INFORMATION', pageW, y);
+
+  y = infoRow(doc, 'Platform', 'iList Classified Marketplace', leftX, y, labelW, gap);
+  y = infoRow(doc, 'Wallet ID', walletRef, leftX, y, labelW, gap);
 
   y += 2;
 
