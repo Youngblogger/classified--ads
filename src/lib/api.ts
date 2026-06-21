@@ -23,21 +23,25 @@ function sbError(error: any): SupabaseResponse<any> {
 }
 
 function getUserId(): string | null {
-  return useAuthStore.getState().user?.id || supabase.auth.getUser().then(r => r.data?.user?.id || null) as any || null;
+  const id = useAuthStore.getState().user?.id;
+  return id ? String(id) : null;
 }
 
 async function ensureUserId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user?.id) return user.id;
   const storeId = useAuthStore.getState().user?.id;
   if (storeId) return String(storeId);
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id || null;
+  return null;
 }
 
 async function getSupabaseUserId(): Promise<string | null> {
-  const storeUser = useAuthStore.getState().user;
-  if (storeUser?.supabase_user_id) return storeUser.supabase_user_id;
   const { data: { user } } = await supabase.auth.getUser();
-  return user?.id || null;
+  if (user?.id) return user.id;
+  const storeUser = useAuthStore.getState().user;
+  const storeId: unknown = storeUser?.id;
+  if (typeof storeId === 'string' && storeId.includes('-')) return storeId;
+  return null;
 }
 
 function transformListing(listing: any): any {
@@ -1508,16 +1512,18 @@ export const walletApi = {
     try {
       const res = await http.post('/wallet/fund', { amount, method });
       return sbResponse({ data: res?.data?.data || { message: 'Funding initiated', reference: `REF-${Date.now()}` } });
-    } catch {
-      return sbResponse({ data: { message: 'Funding initiated', reference: `REF-${Date.now()}` } });
+    } catch (err: any) {
+      console.error('[Wallet] fundWallet failed:', err?.response?.data || err?.message || err);
+      throw err;
     }
   },
   verifyPayment: async (reference: string) => {
     try {
       const res = await http.post('/wallet/verify', { reference });
       return sbResponse({ data: res?.data?.data || { message: 'Payment verified' } });
-    } catch {
-      return sbResponse({ data: { message: 'Payment verified' } });
+    } catch (err: any) {
+      console.error('[Wallet] verifyPayment failed:', err?.response?.data || err?.message || err);
+      throw err;
     }
   },
   checkBalance: async (amount: number) => {

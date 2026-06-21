@@ -156,14 +156,20 @@ export default function MessagesPage() {
   const handleNewMessage = useCallback((message: Message & { conversation_id: number }) => {
     if (!message || !message.conversation_id) return;
     
+    // Skip messages from the current user to avoid duplicates (API response handles them)
+    if (currentUserId && String(message.sender_id) === String(currentUserId)) return;
+    
     // Check if message already exists in state to prevent duplicates
     setMessages((prev) => {
-      const exists = prev.some(msg => msg.id === message.id || 
-        (msg.id === message.id && msg.message_type === message.message_type));
+      const exists = prev.some(msg => 
+        (msg.id && msg.id === message.id) ||
+        (msg.sender_id === message.sender_id && 
+         msg.content === message.content &&
+         Math.abs(new Date(msg.created_at).getTime() - new Date(message.created_at).getTime()) < 5000)
+      );
       if (exists) return prev;
       
       if (selectedConversation && message.conversation_id === selectedConversation.id) {
-        // Auto-mark as read if viewing the conversation
         return [...prev, { ...message, status: 'seen' as const, is_read: true, read_at: new Date().toISOString() }];
       }
       return prev;
@@ -176,7 +182,7 @@ export default function MessagesPage() {
           : conv
       )
     );
-  }, [selectedConversation]);
+  }, [selectedConversation, currentUserId]);
 
   // Handle message read receipt
   const handleMessageRead = useCallback((data: { messageId: number; conversationId: number }) => {
@@ -629,25 +635,41 @@ export default function MessagesPage() {
       return;
     }
 
+    const tempId = Date.now();
+    const optimisticMsg: Message = {
+      id: tempId,
+      sender_id: currentUserId!,
+      content: messageInput.trim(),
+      message_type: 'text',
+      status: 'sending' as const,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    setMessageInput('');
+
     try {
       const res = await messagesApi.sendMessage(selectedConversation.id, messageInput.trim());
       const newMessage = (res.data as any)?.data || res.data;
       
-      (sendMessage as any)({
-        conversationId: selectedConversation.id.toString(),
-        message: newMessage,
-        receiverId: receiverId,
-        senderId: currentUserId!,
+      setMessages(prev => {
+        const withoutOptimistic = prev.filter(msg => msg.id !== tempId);
+        const exists = withoutOptimistic.some(msg => msg.id === newMessage?.id);
+        if (exists) {
+          return withoutOptimistic.map(msg =>
+            msg.id === newMessage?.id ? { ...msg, ...newMessage, status: 'sent' as const } : msg
+          );
+        }
+        return [...withoutOptimistic, { ...newMessage, status: 'sent' as const }];
       });
-
-      setMessages(prev => [...prev, newMessage]);
+      
       setConversations(prev => prev.map(c => 
         c.id === selectedConversation.id ? { ...c, last_message: messageInput.trim() } : c
       ));
-      setMessageInput('');
     } catch (error) {
       console.error('Failed to send message:', error);
       toast.error('Failed to send message');
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      setMessageInput(messageInput.trim());
     }
   };
 
@@ -677,22 +699,36 @@ export default function MessagesPage() {
       return;
     }
 
+    const tempId = Date.now();
+    const messageType = file.type.startsWith('image/') ? 'image' : 'file';
+    const optimisticMsg: Message = {
+      id: tempId,
+      sender_id: currentUserId!,
+      content: `Sent a ${messageType}`,
+      message_type: messageType,
+      status: 'sending' as const,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+
     try {
-      const messageType = file.type.startsWith('image/') ? 'image' : 'file';
       const res = await messagesApi.sendMessage(selectedConversation.id, `Sent a ${messageType}`, file, messageType);
       const newMessage = (res.data as any)?.data || res.data;
 
-      (sendMessage as any)({
-        conversationId: selectedConversation.id.toString(),
-        message: newMessage,
-        receiverId: receiverId,
-        senderId: currentUserId!,
+      setMessages(prev => {
+        const withoutOptimistic = prev.filter(msg => msg.id !== tempId);
+        const exists = withoutOptimistic.some(msg => msg.id === newMessage?.id);
+        if (exists) {
+          return withoutOptimistic.map(msg =>
+            msg.id === newMessage?.id ? { ...msg, ...newMessage, status: 'sent' as const } : msg
+          );
+        }
+        return [...withoutOptimistic, { ...newMessage, status: 'sent' as const }];
       });
-
-      setMessages(prev => [...prev, newMessage]);
     } catch (error) {
       console.error('Failed to upload file:', error);
       toast.error('Failed to upload file');
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
     }
   };
 

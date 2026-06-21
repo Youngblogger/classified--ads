@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { X, Mail, Lock, Eye, EyeOff, CheckCircle, Loader2, Search, Plus, Shield } from 'lucide-react';
-import { useUIStore } from '@/lib/store';
+import { useUIStore, useAuthStore } from '@/lib/store';
 import { authApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import OtpModal from './OtpModal';
@@ -62,6 +62,15 @@ export default function RegisterModal() {
       const regData = result?.data?.data;
 
       if (regData?.user && regData?.session) {
+        useAuthStore.getState().login(
+          {
+            id: regData.user.id,
+            email: regData.user.email,
+            name: regData.user.user_metadata?.full_name || regData.user.email?.split('@')[0] || 'User',
+            avatar_url: regData.user.user_metadata?.avatar_url || null,
+          } as any,
+          regData.session.access_token,
+        );
         toast.success('Account created successfully!');
         closeAllModals();
         resetForm();

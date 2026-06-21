@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { Wallet } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { useQueryClient } from '@tanstack/react-query';
+import { WALLET_QUERY_KEY } from '@/hooks/useWallet';
 import {
   WalletBalanceCard,
   WalletTransactionList,
@@ -33,6 +35,7 @@ interface Wallet {
 }
 
 export default function WalletPage() {
+  const queryClient = useQueryClient();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,9 +45,13 @@ export default function WalletPage() {
     if (showLoader) setLoading(true);
     try {
       const walletRes = await api.get('/wallet');
-      setWallet(walletRes.data.wallet);
-      setTransactions(walletRes.data.transactions?.data || walletRes.data.transactions || []);
-    } catch {
+      if (walletRes?.data?.wallet) {
+        setWallet(walletRes.data.wallet);
+        setTransactions(walletRes.data.transactions?.data || walletRes.data.transactions || []);
+        return walletRes.data.wallet;
+      }
+    } catch (err) {
+      console.error('[Wallet] fetch failed:', err);
       if (showLoader) {
         setWallet({ id: 0, balance: '0.00', pending_balance: '0.00' });
         setTransactions([]);
@@ -52,6 +59,7 @@ export default function WalletPage() {
     } finally {
       if (showLoader) setLoading(false);
     }
+    return null;
   }, []);
 
   useEffect(() => {
@@ -61,31 +69,48 @@ export default function WalletPage() {
 
     if (verified === 'true' && reference) {
       window.history.replaceState({}, '', '/dashboard/wallet');
-      api.post('/wallet/verify', { reference })
-        .then(async (res) => {
+      (async () => {
+        try {
+          const initialWr = await api.get('/wallet');
+          const initialBalance = parseFloat(initialWr?.data?.wallet?.balance || '0');
+          setWallet(initialWr?.data?.wallet || { id: 0, balance: '0.00', pending_balance: '0.00' });
+          setTransactions(initialWr?.data?.transactions?.data || initialWr?.data?.transactions || []);
+
+          const res = await api.post('/wallet/verify', { reference });
           if (res.status >= 200 && res.status < 300) {
             toast.success('Payment successful! Your wallet has been credited.', { duration: 5000 });
-            for (let i = 0; i < 5; i++) {
-              const wr = await api.get('/wallet');
-              if (wr?.data?.wallet?.balance && parseFloat(wr.data.wallet.balance) > 0) {
-                setWallet(wr.data.wallet);
-                setTransactions(wr.data.transactions?.data || wr.data.transactions || []);
-                break;
-              }
-              await new Promise(r => setTimeout(r, 2000));
+            queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEY });
+            let credited = false;
+            for (let i = 0; i < 10; i++) {
+              try {
+                const wr = await api.get('/wallet');
+                const newBalance = parseFloat(wr?.data?.wallet?.balance || '0');
+                if (wr?.data?.wallet && newBalance !== initialBalance) {
+                  setWallet(wr.data.wallet);
+                  setTransactions(wr.data.transactions?.data || wr.data.transactions || []);
+                  credited = true;
+                  break;
+                }
+              } catch {}
+              await new Promise(r => setTimeout(r, 1500));
+            }
+            if (!credited) {
+              toast.error('Payment confirmed but balance may take a moment. Refresh to see updates.', { duration: 8000 });
+              fetchWallet(true);
             }
           } else {
             throw new Error(res.data?.message || 'Verification failed');
           }
-        })
-        .catch(() => {
-          toast.error('Payment verification failed');
+        } catch (err: any) {
+          console.error('[Wallet] Payment verification failed:', err?.response?.data || err?.message || err);
+          toast.error(err?.response?.data?.message || err?.response?.data?.error || 'Payment verification failed');
           fetchWallet(true);
-        });
+        }
+      })();
     } else {
       fetchWallet();
     }
-  }, [fetchWallet]);
+  }, [fetchWallet, queryClient]);
 
   const handleFund = async (amount: number) => {
     setFunding(true);

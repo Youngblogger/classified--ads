@@ -384,7 +384,7 @@ export default function AdDetailPage() {
               {/* Image Gallery */}
               <div className="bg-white rounded-t-2xl shadow-sm border-t-8 border-primary-600 overflow-hidden">
                 <div 
-                  className="relative bg-gray-100 select-none cursor-pointer w-full flex items-center justify-center min-h-[300px] lg:min-h-[450px]"
+                  className="relative bg-gray-100 select-none cursor-pointer w-full flex items-center justify-center max-sm:min-h-[305px] min-h-[300px] lg:min-h-[450px]"
                   style={{ maxHeight: 'calc(100vh - 80px)' }}
                   onTouchStart={(e) => { pauseAutoplay(); onTouchStart(e); }}
                   onTouchMove={onTouchMove}

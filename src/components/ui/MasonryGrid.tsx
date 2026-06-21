@@ -1,6 +1,6 @@
 export default function MasonryGrid({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 ${className}`}>
+    <div className={`w-full columns-2 gap-x-3 sm:columns-3 lg:columns-4 [&>*]:mb-3 ${className}`}>
       {children}
     </div>
   );
