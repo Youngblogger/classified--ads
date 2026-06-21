@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Sparkles, Zap, ChevronRight, ShoppingBag } from 'lucide-react';
@@ -25,9 +25,9 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
-const fallbackImage = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image';
+const fallbackImage = '/fallback-category.svg';
 
-const MOCK_ITEMS: RecommendationItem[] = [
+const ITEMS: RecommendationItem[] = [
   { id: '1', title: 'iPhone 14 Pro Max 256GB', price: 850000, image: 'https://picsum.photos/seed/iphone14/400/300', location: 'Lagos', isFeatured: true, isBoosted: true, category: 'Mobile Phones' },
   { id: '2', title: 'Toyota Camry 2020 Sport Edition', price: 4500000, image: 'https://picsum.photos/seed/camry/400/300', location: 'Abuja', isFeatured: true, category: 'Vehicles' },
   { id: '3', title: '3-Bedroom Flat for Rent in Ikeja', price: 1500000, image: 'https://picsum.photos/seed/apartment/400/300', location: 'Lagos', category: 'Property' },
@@ -37,6 +37,12 @@ const MOCK_ITEMS: RecommendationItem[] = [
   { id: '7', title: 'LG Standing Fan 16-inch', price: 32000, image: 'https://picsum.photos/seed/fan/400/300', location: 'Ibadan', category: 'Home & Furniture' },
   { id: '8', title: 'German Shepherd Puppies for Sale', price: 180000, image: 'https://picsum.photos/seed/puppy/400/300', location: 'Abuja', isBoosted: true, category: 'Pets' },
 ];
+
+const SORTED_ITEMS = [...ITEMS].sort((a, b) => {
+  const aScore = (a.isFeatured ? 3 : 0) + (a.isBoosted ? 2 : 0);
+  const bScore = (b.isFeatured ? 3 : 0) + (b.isBoosted ? 2 : 0);
+  return bScore - aScore;
+});
 
 function RecommendationCard({ item }: { item: RecommendationItem }) {
   return (
@@ -91,66 +97,17 @@ function RecommendationCard({ item }: { item: RecommendationItem }) {
   );
 }
 
-function SkeletonCard() {
-  return (
-    <div className="flex-shrink-0 w-[200px] sm:w-[220px] snap-start bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
-      <div className="aspect-[4/3] bg-gray-200" />
-      <div className="p-2.5 space-y-2">
-        <div className="h-3 bg-gray-200 rounded w-3/4" />
-        <div className="h-3 bg-gray-200 rounded w-1/2" />
-        <div className="h-2.5 bg-gray-200 rounded w-2/3" />
-        <div className="h-2 bg-gray-200 rounded w-1/3" />
-      </div>
-    </div>
-  );
-}
-
 export default function RecommendationFeed() {
-  const [items, setItems] = useState<RecommendationItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const canScrollLeftRef = useRef(false);
-  const canScrollRightRef = useRef(true);
-  const [, forceRender] = useState(0);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function fetchRecommendations() {
-      try {
-        // Simulate API call — replace with real endpoint when available
-        await new Promise((r) => setTimeout(r, 600));
-        if (!mounted) return;
-
-        const sorted = [...MOCK_ITEMS].sort((a, b) => {
-          const aScore = (a.isFeatured ? 3 : 0) + (a.isBoosted ? 2 : 0);
-          const bScore = (b.isFeatured ? 3 : 0) + (b.isBoosted ? 2 : 0);
-          return bScore - aScore;
-        });
-
-        setItems(sorted);
-      } catch {
-        if (mounted) setItems([]);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    fetchRecommendations();
-    return () => { mounted = false; };
-  }, []);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   const handleScroll = () => {
     if (!scrollRef.current) return;
     const el = scrollRef.current;
-    canScrollLeftRef.current = el.scrollLeft > 8;
-    canScrollRightRef.current = el.scrollLeft < el.scrollWidth - el.clientWidth - 8;
-    forceRender((n) => n + 1);
+    setCanScrollLeft(el.scrollLeft > 8);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
   };
-
-  if (!loading && items.length === 0) {
-    return null;
-  }
 
   return (
     <section className="w-full mb-6">
@@ -174,7 +131,7 @@ export default function RecommendationFeed() {
       </div>
 
       <div className="relative">
-        {canScrollLeftRef.current && (
+        {canScrollLeft && (
           <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#F5F7FA]/50 to-transparent z-10 pointer-events-none" />
         )}
         <div
@@ -183,12 +140,11 @@ export default function RecommendationFeed() {
           className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory -mx-1 px-1"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {loading
-            ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            : items.map((item) => <RecommendationCard key={item.id} item={item} />)
-          }
+          {SORTED_ITEMS.map((item) => (
+            <RecommendationCard key={item.id} item={item} />
+          ))}
         </div>
-        {canScrollRightRef.current && (
+        {canScrollRight && (
           <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#F5F7FA]/50 to-transparent z-10 pointer-events-none" />
         )}
       </div>

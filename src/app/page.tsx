@@ -251,10 +251,6 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-
-            <div className="hidden md:block">
-              <RecommendationFeed />
-            </div>
           </section>
 
           {/* Mobile Hero */}
@@ -320,11 +316,9 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-
-            <div className="block md:hidden">
-              <RecommendationFeed />
-            </div>
           </section>
+
+          <RecommendationFeed />
 
           {/* Unified Marketplace Feed */}
           <div className="w-full px-1 sm:px-3 md:px-4">

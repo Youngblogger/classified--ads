@@ -132,6 +132,7 @@ const nextConfig = {
       { pathname: '/icons/**' },
       { pathname: '/placeholder-image.svg' },
       { pathname: '/placeholder-image.*' },
+      { pathname: '/fallback-category.svg' },
       { pathname: '/favicon.*' },
       { pathname: '/storage/**' },
     ],
