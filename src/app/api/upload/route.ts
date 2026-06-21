@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary, getOptimizedImageUrl } from '@/lib/cloudinary';
 import { RateLimiter, getClientIp } from '@/lib/rate-limiter';
+import { getServiceRoleClient } from '@/lib/supabase';
+import { applyWatermarkSharp, applyLogoWatermarkSharp } from '@/lib/watermark-sharp';
+import type { WatermarkConfig } from '@/lib/watermark-sharp';
 
 const uploadLimiter = new RateLimiter({ windowMs: 60000, max: 20 });
 
@@ -30,6 +33,41 @@ export async function POST(request: NextRequest) {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const maxSize = 10 * 1024 * 1024;
 
+    // Fetch watermark settings once (server-side, bypasses RLS)
+    let watermarkConfig: WatermarkConfig | null = null;
+    try {
+      const sb = getServiceRoleClient();
+      const { data } = await sb
+        .from('watermark_settings')
+        .select('*')
+        .eq('id', 'default')
+        .single();
+      if (data?.enabled) {
+        watermarkConfig = {
+          enabled: true,
+          type: data.type,
+          text: data.text,
+          logo_url: data.logo_url,
+          text_color: data.text_color,
+          position: data.position,
+          opacity: data.opacity,
+          font_size: data.font_size,
+          font_family: data.font_family,
+          margin: data.margin,
+          rotation: data.rotation,
+          show_ad_id: data.show_ad_id,
+        };
+      }
+    } catch {
+      // Watermark settings unavailable — upload originals without watermarking
+    }
+
+    const fetchLogoFn = async (url: string) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch logo: ${res.status}`);
+      return Buffer.from(await res.arrayBuffer());
+    };
+
     const uploadPromises = files.map(async (file) => {
       if (!allowedTypes.includes(file.type)) {
         throw new Error(`File type ${file.type} is not allowed`);
@@ -39,10 +77,21 @@ export async function POST(request: NextRequest) {
         throw new Error(`File ${file.name} exceeds 10MB limit`);
       }
 
-      const rawBuffer = Buffer.from(await file.arrayBuffer());
+      let buffer = Buffer.from(await file.arrayBuffer());
+
+      // Apply watermark server-side BEFORE upload — irreversible after storage
+      if (watermarkConfig) {
+        try {
+          buffer = await applyWatermarkSharp(buffer, watermarkConfig);
+          buffer = await applyLogoWatermarkSharp(buffer, watermarkConfig, fetchLogoFn);
+        } catch (wmErr) {
+          console.warn('[Upload] Watermark compositing failed, uploading original:', wmErr);
+        }
+      }
+
       const publicId = `ad_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-      const result = await uploadToCloudinary(rawBuffer, {
+      const result = await uploadToCloudinary(buffer, {
         folder,
         public_id: publicId,
         resource_type: 'image',

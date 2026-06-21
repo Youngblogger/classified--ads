@@ -26,20 +26,48 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
     return (
       <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6">
         <h3 className="text-base sm:text-lg font-bold text-dark mb-3 sm:mb-4">Similar Ads</h3>
-        <div className="columns-2 sm:columns-3 md:columns-4 gap-2 [&>*]:mb-2">
-          {[...Array(4)].map((_, i) => {
-            const heights = ['h-44', 'h-52', 'h-36', 'h-48'];
-            return (
-              <div key={i} className="animate-pulse break-inside-avoid bg-white rounded-[7px] overflow-hidden border border-gray-100">
-                <div className={`w-full ${heights[i % heights.length]} bg-gray-200`}></div>
-                <div className="p-2.5 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-                </div>
+        <div className="flex gap-2">
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="animate-pulse bg-white rounded-[7px] overflow-hidden border border-gray-100">
+              <div className="w-full h-44 bg-gray-200"></div>
+              <div className="p-2.5 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
               </div>
-            );
-          })}
+            </div>
+            <div className="animate-pulse bg-white rounded-[7px] overflow-hidden border border-gray-100">
+              <div className="w-full h-52 bg-gray-200"></div>
+              <div className="p-2.5 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 flex-col gap-2 hidden sm:flex">
+            <div className="animate-pulse bg-white rounded-[7px] overflow-hidden border border-gray-100">
+              <div className="w-full h-36 bg-gray-200"></div>
+              <div className="p-2.5 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            </div>
+            <div className="animate-pulse bg-white rounded-[7px] overflow-hidden border border-gray-100">
+              <div className="w-full h-48 bg-gray-200"></div>
+              <div className="p-2.5 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 flex-col gap-2 hidden lg:flex">
+            <div className="animate-pulse bg-white rounded-[7px] overflow-hidden border border-gray-100">
+              <div className="w-full h-44 bg-gray-200"></div>
+              <div className="p-2.5 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -74,37 +102,38 @@ export default function RelatedAds({ currentAdId }: RelatedAdsProps) {
               <Link
                 key={ad.id}
                 href={`/ad/${(ad.slug && ad.slug !== 'undefined') ? ad.slug : `ad-${ad.id}`}`}
-                className={`block bg-white rounded-[7px] overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 break-inside-avoid group ${boostCardCls}`}
+                className={`flex flex-col bg-white rounded-[7px] overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-200 group ${boostCardCls}`}
               >
-                <div className="relative max-h-[300px] md:max-h-[400px] overflow-hidden bg-gray-100 flex items-center justify-center">
+                <div className="relative w-full overflow-hidden bg-gray-100 rounded-t-[7px] leading-[0] max-h-[340px]">
                   <SafeImage
                     src={imgUrl || fallbackImage}
                     alt={ad.title}
-                    className="w-full h-auto block flex-shrink-0 group-hover:scale-[1.02] transition-transform duration-300"
+                    className="w-full block transition-all duration-300 group-hover:scale-[1.02]"
                     containerClassName="w-full"
+                    objectFit="cover"
                   />
-                  <div className="absolute top-2 left-2 z-10">
+                  <div className="absolute top-1.5 left-1.5 z-10">
                     <PremiumBadge boostType={ad.boost_type} badgeIcon={(ad as any).badge_icon} size="sm" />
                   </div>
                 </div>
-                <div className="p-2.5">
+                <div className="flex-1 p-1.5">
                   <div className="flex items-center justify-between flex-wrap gap-0.5 mb-0.5">
-                    <p className="text-base font-bold text-primary-600 leading-tight">
+                    <p className="text-sm font-bold text-primary-600 leading-tight">
                       {formatPrice(ad.price, ad.currency)}
                     </p>
                     {ad.negotiable && (
                       <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-[4px] whitespace-nowrap">Negotiable</span>
                     )}
                   </div>
-                  <h4 className="font-medium text-gray-900 text-sm leading-snug truncate">
+                  <h4 className="font-medium text-gray-900 text-xs leading-snug truncate">
                     {ad.title}
                   </h4>
                   {ad.short_description && (
-                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{ad.short_description}</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{ad.short_description}</p>
                   )}
                   {!ad.boost_type && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
-                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                  <div className="flex items-center gap-1 mt-0.5 text-[11px] text-gray-400">
+                    <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
                     <span className="truncate">{ad.state && ad.lga ? `${ad.state}, ${ad.lga}` : ''}</span>
                   </div>
                   )}

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
-import { formatPrice, formatRelativeTime, getAdMainImage } from '@/lib/utils';
-import { useState, memo, useCallback, useRef } from 'react';
+import { formatPrice, getAdMainImage } from '@/lib/utils';
+import { memo } from 'react';
 import { SafeImage } from './SafeImage';
 import PremiumBadge from './PremiumBadge';
 import PromotedBadge from './PromotedBadge';
@@ -15,16 +15,7 @@ interface AdCardProps {
 }
 
 function AdCardComponent({ ad, priority = false }: AdCardProps) {
-  const [isPortrait, setIsPortrait] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
   const fallbackImage = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image';
-
-  const handleImageLoad = useCallback(() => {
-    if (imgRef.current) {
-      const { naturalWidth, naturalHeight } = imgRef.current;
-      setIsPortrait(naturalHeight > naturalWidth * 1.2);
-    }
-  }, []);
 
   if (!ad || typeof ad !== 'object') {
     if (process.env.NODE_ENV === 'development') {
@@ -61,29 +52,29 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
   return (
     <Link
       href={safeHref}
-      className={`block bg-white rounded-[7px] overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group break-inside-avoid ${cardBoostClasses}`}
+      className={`flex flex-col bg-white rounded-[7px] overflow-hidden border border-gray-200/70 hover:border-gray-300 hover:shadow-lg transition-all duration-200 group ${cardBoostClasses}`}
     >
-      <div className="relative w-full overflow-hidden bg-gray-100 rounded-t-[7px] flex items-center justify-center max-h-[300px] md:max-h-[400px]">
+      <div className="relative w-full overflow-hidden bg-gray-100 rounded-t-[7px] leading-[0] max-h-[340px]">
         <SafeImage
           src={imageUrl || fallbackImage}
           alt={safeTitle}
-          className={`w-full transition-all duration-300 group-hover:scale-[1.02] ${isPortrait ? '!object-contain' : ''}`}
-          containerClassName="w-full h-full"
+          className="w-full block transition-all duration-300 group-hover:scale-[1.02]"
+          containerClassName="w-full"
           loading={priority ? 'eager' : 'lazy'}
-          onLoad={handleImageLoad}
+          objectFit="cover"
         />
-        <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+        <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
           {boostType && <PremiumBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} size="sm" />}
         </div>
         {(ad as any).user?.is_verified && (
-          <div className="absolute top-2 right-2 z-10">
+          <div className="absolute top-1.5 right-1.5 z-10">
             <VerifiedSellerBadge size="sm" />
           </div>
         )}
       </div>
-      <div className="p-2">
+      <div className="flex-1 p-1.5">
         <div className="flex items-center justify-between flex-wrap gap-0.5 mb-0.5">
-          <p className="text-base font-bold text-primary-600 leading-tight">
+          <p className="text-sm font-bold text-primary-600 leading-tight">
             {formatPrice(ad.price, ad.currency)}
           </p>
           {ad.negotiable && (
@@ -92,22 +83,22 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
             </span>
           )}
         </div>
-        <h3 className="font-medium text-gray-900 text-sm leading-snug truncate">
+        <h3 className="font-medium text-gray-900 text-xs leading-snug truncate">
           {safeTitle}
         </h3>
         {description && (
-          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mt-0.5">
+          <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-1 mt-0.5">
             {description}
           </p>
         )}
         {boostType ? (
-          <div className="flex items-center justify-end mt-1">
+          <div className="flex items-center justify-end mt-0.5">
             <PromotedBadge boostType={boostType} badgeIcon={(ad as any).badge_icon} />
           </div>
         ) : (
           getLocationDisplay() && (
-            <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
-              <MapPin className="w-3 h-3 flex-shrink-0" />
+            <div className="flex items-center gap-1 mt-0.5 text-[11px] text-gray-400">
+              <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
               <span className="truncate">{getLocationDisplay()}</span>
             </div>
           )
