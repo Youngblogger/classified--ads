@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { Wallet } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { useAuthContext } from '@/components/providers/AuthProvider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWalletBalance, useInvalidateWallet, WALLET_QUERY_KEY } from '@/hooks/useWallet';
 import {
@@ -70,14 +71,19 @@ export default function WalletPage() {
     return null;
   }, []);
 
-  const { isAuthenticated: isAuth } = useAuthStore();
+  const { authState } = useAuthContext();
 
   useEffect(() => {
+    const { isAuthenticated } = useAuthStore.getState();
     const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    if (!isAuth && !authToken) {
+    if (!isAuthenticated && !authToken) {
       setLoading(false);
       return;
     }
+
+    // Wait for auth to fully resolve before making API calls to avoid
+    // racing with token refresh after Paystack redirect round-trips.
+    if (authState === 'loading') return;
 
     const params = new URLSearchParams(window.location.search);
     const verified = params.get('verified');
@@ -101,7 +107,7 @@ export default function WalletPage() {
                 const txns = wr?.data?.transactions?.data || wr?.data?.transactions || [];
                 const match = txns.find((t: any) => t.reference === reference);
 
-                if ((match?.status === 'success' || match?.status === 'completed' || match?.type === 'credit') && walletData) {
+                if (match?.status === 'success' && walletData) {
                   setWallet(walletData);
                   setTransactions(txns);
                   toast.success('Payment successful! Your wallet has been credited.', { duration: 5000 });
@@ -134,9 +140,10 @@ export default function WalletPage() {
     } else {
       fetchWallet().then(() => setLoading(false));
     }
-  // fetchWallet is stable via useCallback([]); other deps are only used inside async IIFE
+  // fetchWallet is stable via useCallback([]); authState added to re-run
+  // once AuthProvider finishes init (ensures token is fresh after Paystack redirect).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchWallet]);
+  }, [fetchWallet, authState]);
 
   const handleFund = async (amount: number) => {
     setFunding(true);

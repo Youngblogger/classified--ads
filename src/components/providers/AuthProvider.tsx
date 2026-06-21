@@ -236,6 +236,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         });
       } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
         setAuthCookie(session.access_token);
+        // Update localStorage so http-client's getAuthToken() picks up the
+        // fresh token instead of the stale one that may have expired during
+        // Paystack redirect round-trips.
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('authToken', session.access_token);
+        }
       } else if (event === 'SIGNED_OUT') {
         if (!mountedRef.current || cancelled) return;
         
