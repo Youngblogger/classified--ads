@@ -15,6 +15,17 @@ use Illuminate\Support\Str;
 
 class WalletController extends Controller
 {
+    private function generateReference(string $prefix = 'ILW'): string
+    {
+        $date = now()->format('dmy');
+        $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $random = '';
+        for ($i = 0; $i < 8; $i++) {
+            $random .= $chars[random_int(0, 35)];
+        }
+        return "{$prefix}-{$date}-{$random}";
+    }
+
     private function resolveUser(Request $request)
     {
         $user = $request->user();
@@ -149,7 +160,7 @@ class WalletController extends Controller
 
     protected function initiatePaystackPayment($user, Wallet $wallet, float $amount)
     {
-        $reference = 'WAL_' . Str::uuid()->toString();
+        $reference = $this->generateReference('ILW');
         $amountInKobo = (int) ($amount * 100);
 
         try {
@@ -212,7 +223,7 @@ class WalletController extends Controller
 
     protected function initiateBankTransfer($user, Wallet $wallet, float $amount)
     {
-        $reference = 'WAL_BT_' . Str::uuid()->toString();
+        $reference = $this->generateReference('ILW-BT');
         
         // Generate unique account details
         $accountNumber = rand(1000000000, 9999999999);
