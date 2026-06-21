@@ -17,16 +17,25 @@ export interface RequestConfig {
 
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
+
+  // 1. authToken localStorage key (set by store.ts login() — survives SPA nav & hard refresh)
+  const authToken = localStorage.getItem('authToken');
+  if (authToken) return authToken;
+
+  // 2. token cookie (set by store.ts login() as secondary persistence)
+  const match = document.cookie.match(/(?:^|;\s*)token\s*=\s*([^;]*)/);
+  if (match) return decodeURIComponent(match[1]);
+
+  // 3. Fallback: try persisted Zustand storage (may not contain token due to partialize)
   try {
     const stored = localStorage.getItem('user-auth-storage');
     if (stored) {
       const parsed = JSON.parse(stored);
-      return parsed?.state?.token || null;
+      if (parsed?.state?.token) return parsed.state.token;
     }
   } catch {}
-  const token = localStorage.getItem('authToken');
-  if (token) return token;
-  return document.cookie.replace(/(?:(?:^|.*;\s*)token\s*=\s*([^;]*).*$)|^.*$/, '$1') || null;
+
+  return null;
 }
 
 function getAdminToken(): string | null {

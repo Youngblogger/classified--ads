@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, createContext, useContext } from 'react';
 import { supabase, setAuthCookie, clearAuthCookie } from '@/lib/supabase';
-import { useAuthStore, useGlobalStore, hydrationComplete } from '@/lib/store';
+import { useAuthStore, useGlobalStore, hydrationComplete, isIgnoreSignOut } from '@/lib/store';
 import type { User } from '@supabase/supabase-js';
 
 const LOCATION_RESET_TIMEOUT = 5 * 60 * 1000;
@@ -214,6 +214,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         setAuthCookie(session.access_token);
       } else if (event === 'SIGNED_OUT') {
         if (!mountedRef.current || cancelled) return;
+        
+        // Ignore misleading SIGNED_OUT events during signup/login flows.
+        // Supabase fires SIGNED_OUT when signUp detects existing user or on
+        // local signOut before signUp, which should not wipe auth state.
+        if (isIgnoreSignOut()) {
+          console.log('[AuthProvider] SIGNED_OUT ignored — signup/login flow in progress');
+          return;
+        }
+        
         console.log('[AuthProvider] SIGNED_OUT event received');
         
         // Immediately clear all auth state

@@ -1,5 +1,5 @@
 import { supabase, getServiceRoleClient } from '@/lib/supabase';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, setIgnoreSignOut } from '@/lib/store';
 import { http, type RequestConfig } from '@/lib/http-client';
 import type { Database, Tables } from '@/types/supabase';
 import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
@@ -35,13 +35,17 @@ async function ensureUserId(): Promise<string | null> {
   return null;
 }
 
+// Always returns Supabase auth UUID — never a numeric ID.
+// Wallet and payment operations MUST use this instead of getUserId/ensureUserId.
 async function getSupabaseUserId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (user?.id) return user.id;
   const storeUser = useAuthStore.getState().user;
   const storeId: unknown = storeUser?.id;
   if (typeof storeId === 'string' && storeId.includes('-')) return storeId;
-  return null;
+  // Last resort: try session
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user?.id || null;
 }
 
 function transformListing(listing: any): any {
@@ -70,6 +74,7 @@ function buildMeta(total: number, page: number, perPage: number) {
 // ==============================
 export const authApi = {
   login: async (email: string, password: string) => {
+    setIgnoreSignOut(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
@@ -94,33 +99,75 @@ export const authApi = {
         throw new Error('Connection timed out. Please check your internet and try again.');
       }
       throw err;
+    } finally {
+      setIgnoreSignOut(false);
     }
   },
 
   register: async (name: string, email: string, password: string, phone?: string) => {
-    await supabase.auth.signOut({ scope: 'local' });
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name, phone } },
-    });
-    if (error) {
-      console.error('[Auth API] Signup failed:', error.message);
-      return sbError(error);
-    }
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: data.user.id,
-        full_name: name,
+    setIgnoreSignOut(true);
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {}
+    try {
+      const { data, error } = await supabase.auth.signUp({
         email,
-        phone: phone || null,
-        username: email.split('@')[0],
+        password,
+        options: { data: { full_name: name, phone } },
       });
-      if (profileError) {
-        console.error('[Auth API] Profile creation after signup failed:', profileError.message);
+      if (error) {
+        const isUserExists = error.message?.toLowerCase().includes('user already registered');
+        if (isUserExists) {
+          console.log('[Auth API] User already registered — falling back to login');
+          try {
+            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+            if (loginError) {
+              console.error('[Auth API] Auto-login after existing user failed:', loginError.message);
+              return sbResponse({
+                data: { user: null, session: null, autoLogin: false, message: 'An account with this email already exists. Please sign in with your password.' },
+              });
+            }
+            if (loginData.user) {
+              const { error: profileError } = await supabase.from('profiles').upsert({
+                id: loginData.user.id,
+                full_name: name,
+                email,
+                phone: phone || null,
+                username: email.split('@')[0],
+              }, { onConflict: 'id' });
+              if (profileError) {
+                console.error('[Auth API] Profile upsert after auto-login failed:', profileError.message);
+              }
+            }
+            return sbResponse({
+              data: { user: loginData.user, session: loginData.session, autoLogin: true, message: 'Account exists, logging you in.' },
+            });
+          } catch (loginErr) {
+            console.error('[Auth API] Auto-login exception:', loginErr);
+            return sbResponse({
+              data: { user: null, session: null, autoLogin: false, message: 'An account with this email already exists. Please sign in with your password.' },
+            });
+          }
+        }
+        console.error('[Auth API] Signup failed:', error.message);
+        return sbError(error);
       }
+      if (data.user) {
+        const { error: profileError } = await supabase.from('profiles').upsert({
+          id: data.user.id,
+          full_name: name,
+          email,
+          phone: phone || null,
+          username: email.split('@')[0],
+        });
+        if (profileError) {
+          console.error('[Auth API] Profile creation after signup failed:', profileError.message);
+        }
+      }
+      return sbResponse({ data: { user: data.user, session: data.session, autoLogin: false } });
+    } finally {
+      setIgnoreSignOut(false);
     }
-    return sbResponse({ data: { user: data.user, session: data.session } });
   },
 
   logout: async () => {
@@ -1481,32 +1528,20 @@ export const promotionsApi = {
 // ==============================
 export const walletApi = {
   getBalance: async () => {
-    const laravelUserId = await ensureUserId();
-    if (!laravelUserId) return sbResponse({ data: { balance: 0 } });
     try {
       const res = await http.get('/wallet/balance');
       if (res?.data?.data?.balance !== undefined) return sbResponse({ data: res.data.data });
       if (res?.data?.balance !== undefined) return sbResponse({ data: res.data });
     } catch {}
-    const supabaseUserId = await getSupabaseUserId();
-    if (!supabaseUserId) return sbResponse({ data: { balance: 0 } });
-    const { data, error } = await supabase.from('transactions').select('amount, type').eq('user_id', supabaseUserId);
-    if (error) return sbError(error);
-    const balance = (data || []).reduce((acc: number, t: any) => t.type === 'credit' ? acc + (t.amount || 0) : acc - (t.amount || 0), 0);
-    return sbResponse({ data: { balance, currency: 'NGN' } });
+    return sbResponse({ data: { balance: 0, currency: 'NGN' } });
   },
   getTransactions: async () => {
-    const laravelUserId = await ensureUserId();
-    if (!laravelUserId) return sbResponse({ data: [] });
     try {
       const res = await http.get('/wallet/transactions');
       const txns = res?.data?.data || res?.data || [];
       if (Array.isArray(txns) && txns.length > 0) return sbResponse({ data: txns });
     } catch {}
-    const supabaseUserId = await getSupabaseUserId();
-    if (!supabaseUserId) return sbResponse({ data: [] });
-    const { data, error } = await supabase.from('transactions').select('*').eq('user_id', supabaseUserId).order('created_at', { ascending: false }).limit(100);
-    return error ? sbError(error) : sbResponse({ data: data || [] });
+    return sbResponse({ data: [] });
   },
   fundWallet: async (amount: number, method: string) => {
     try {

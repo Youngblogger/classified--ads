@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { walletApi } from '@/lib/api';
 
@@ -28,5 +29,8 @@ export function useWalletBalance() {
 
 export function useInvalidateWallet() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEY });
+  return useCallback(
+    () => queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEY }),
+    [queryClient]
+  );
 }

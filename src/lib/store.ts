@@ -31,6 +31,7 @@ export const useAuthStore = create<AuthStore>()(
       login: (user, token) => {
         if (typeof window !== 'undefined') {
           sessionStorage.removeItem('just_logged_out');
+          localStorage.setItem('authToken', token);
         }
         setCookie('token', token, 7);
         
@@ -48,6 +49,7 @@ export const useAuthStore = create<AuthStore>()(
           localStorage.removeItem('authToken');
           localStorage.removeItem('ilist-supabase-auth');
           localStorage.removeItem('ilist-supabase-auth-token');
+          localStorage.removeItem('authToken');
           localStorage.removeItem('ilist-supabase-auth-code-verifier');
           localStorage.removeItem('supabase.auth.token');
           // Clear any supabase-related storage keys
@@ -207,6 +209,16 @@ export const useGlobalStore = create<GlobalStore>()(
     }
   )
 );
+
+// Guard to prevent SIGNED_OUT events from resetting auth during signup/login flows.
+// Set to true before calling signUp/signIn and restore after the flow completes.
+let _ignoreSignOut = false;
+export function setIgnoreSignOut(val: boolean) {
+  _ignoreSignOut = val;
+}
+export function isIgnoreSignOut(): boolean {
+  return _ignoreSignOut;
+}
 
 // UI Store for modals and sidebars
 interface UIStore {
