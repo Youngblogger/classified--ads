@@ -7,6 +7,7 @@ interface ReceiptData {
   created_at: string;
   description?: string;
   receiptId?: string;
+  currency?: string;
 }
 
 function generateReceiptReference(): string {
@@ -114,15 +115,58 @@ async function loadLogo(): Promise<string | null> {
   }
 }
 
+function dashedLine(doc: any, x: number, y: number, w: number): void {
+  const dashLen = 1.2;
+  const gapLen = 0.8;
+  let cx = x;
+  while (cx < x + w) {
+    const end = Math.min(cx + dashLen, x + w);
+    doc.line(cx, y, end, y);
+    cx += dashLen + gapLen;
+  }
+}
+
+function sectionTitle(doc: any, text: string, pageW: number, y: number): number {
+  const leftX = 14;
+  const rightX = pageW - 14;
+  const sepW = rightX - leftX;
+
+  doc.setDrawColor(180, 180, 180);
+  dashedLine(doc, leftX, y, sepW);
+  y += 5;
+
+  doc.setTextColor(100, 100, 100);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.text(text, pageW / 2, y, { align: 'center' });
+  y += 5;
+
+  doc.setDrawColor(180, 180, 180);
+  dashedLine(doc, leftX, y, sepW);
+  y += 5;
+
+  return y;
+}
+
+function infoRow(doc: any, label: string, value: string, x: number, y: number, labelW: number, gap: number): number {
+  doc.setTextColor('#1F2937');
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text(label + ':', x, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(value, x + labelW, y);
+  return y + gap;
+}
+
 export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   const jsPDF = (await import('jspdf')).default;
   const doc = new jsPDF({ unit: 'mm', format: 'a5' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
 
-  const green = [0, 158, 56] as const;
-  const dark = '#1F2937';
-  const muted = '#6B7280';
+  const leftX = 14;
+  const rightX = pageW - 14;
 
   const receiptId = data.receiptId || generateReceiptReference();
   const desc = getDescription(data.type, data.status, data.payment_method, data.description);
@@ -135,9 +179,11 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
     month: 'long',
     day: 'numeric',
   });
+  const currency = data.currency || 'NGN';
+  const walletRef = data.reference;
 
   // ── Header ──
-  doc.setFillColor(green[0], green[1], green[2]);
+  doc.setFillColor(0, 158, 56);
   doc.rect(0, 0, pageW, 24, 'F');
 
   doc.setTextColor(255, 255, 255);
@@ -148,152 +194,58 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.text('iList Marketplace', pageW / 2, 16, { align: 'center' });
-  doc.text(`Issued: ${issuedDate}`, pageW / 2, 21, { align: 'center' });
 
-  // ── Identifier block ──
-  let y = 32;
-  const leftX = 14;
-  const labelW = 38;
-  const gap = 4.5;
+  let y = 34;
 
-  doc.setTextColor(dark);
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
+  // ── TRANSACTION CONFIRMATION ──
+  y = sectionTitle(doc, 'TRANSACTION CONFIRMATION', pageW, y);
 
-  doc.text('Receipt ID:', leftX, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(75, 85, 99);
-  doc.text(receiptId, leftX + labelW, y);
-  y += gap;
+  const labelW = 42;
+  const gap = 5;
 
-  doc.setTextColor(dark);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Reference ID:', leftX, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(75, 85, 99);
-  doc.text(data.reference, leftX + labelW, y);
-  y += gap;
+  y = infoRow(doc, 'Receipt ID', receiptId, leftX, y, labelW, gap);
+  y = infoRow(doc, 'Status', statusLabel, leftX, y, labelW, gap);
+  y = infoRow(doc, 'Transaction Type', txType, leftX, y, labelW, gap);
+  y = infoRow(doc, 'Payment Method', data.payment_method || 'Wallet', leftX, y, labelW, gap);
+  y = infoRow(doc, 'Currency', currency, leftX, y, labelW, gap);
 
-  // ── Separator ──
   y += 2;
-  doc.setDrawColor(229, 231, 235);
-  doc.line(leftX, y, pageW - leftX, y);
-  y += 6;
 
-  // ── Status & Type block ──
-  doc.setTextColor(dark);
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Status:', leftX, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(75, 85, 99);
-  doc.text(statusLabel, leftX + labelW, y);
-  y += gap;
+  // ── ACCOUNT INFORMATION ──
+  y = sectionTitle(doc, 'ACCOUNT INFORMATION', pageW, y);
 
-  doc.setTextColor(dark);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Transaction Type:', leftX, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(75, 85, 99);
-  doc.text(txType, leftX + labelW, y);
-  y += gap;
+  y = infoRow(doc, 'Platform', 'iList Classified Marketplace', leftX, y, labelW, gap);
+  y = infoRow(doc, 'Wallet ID', walletRef, leftX, y, labelW, gap);
 
-  doc.setTextColor(dark);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Payment Method:', leftX, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(75, 85, 99);
-  doc.text(data.payment_method || 'Wallet', leftX + labelW, y);
-  y += gap;
-
-  doc.setTextColor(dark);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Description:', leftX, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(75, 85, 99);
-  doc.text(desc, leftX + labelW, y);
-  y += gap;
-
-  // ── Separator ──
   y += 2;
-  doc.setDrawColor(229, 231, 235);
-  doc.line(leftX, y, pageW - leftX, y);
-  y += 6;
 
-  // ── Payment Summary ──
-  doc.setTextColor(dark);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PAYMENT SUMMARY', pageW / 2, y, { align: 'center' });
-  y += 7;
+  // ── PAYMENT DETAILS ──
+  y = sectionTitle(doc, 'PAYMENT DETAILS', pageW, y);
 
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Amount Paid:', leftX, y);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(green[0], green[1], green[2]);
-  doc.text(amt, pageW - leftX, y, { align: 'right' });
-  y += gap;
+  y = infoRow(doc, 'Description', desc, leftX, y, labelW, gap);
+  y = infoRow(doc, 'Amount Paid', amt, leftX, y, labelW, gap);
+  y = infoRow(doc, 'Fees', '\u20A60.00', leftX, y, labelW, gap);
+  y = infoRow(doc, 'Total Credited', amt, leftX, y, labelW, gap);
 
-  doc.setFontSize(8.5);
-  doc.setTextColor(dark);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Fees:', leftX, y);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(75, 85, 99);
-  doc.text('\u20A60.00', pageW - leftX, y, { align: 'right' });
-  y += gap;
-
-  doc.setFontSize(8.5);
-  doc.setTextColor(dark);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Total Credited:', leftX, y);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(green[0], green[1], green[2]);
-  doc.text(amt, pageW - leftX, y, { align: 'right' });
-  y += gap;
-
-  // ── Separator ──
   y += 2;
-  doc.setDrawColor(229, 231, 235);
-  doc.line(leftX, y, pageW - leftX, y);
-  y += 6;
 
-  // ── Timeline ──
-  doc.setTextColor(dark);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('TIMELINE', pageW / 2, y, { align: 'center' });
-  y += 7;
+  // ── TIMELINE ──
+  y = sectionTitle(doc, 'TIMELINE', pageW, y);
 
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Transaction Date:', leftX, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(75, 85, 99);
-  doc.text(txDate, leftX + labelW, y);
-  y += gap;
+  y = infoRow(doc, 'Transaction Date', txDate, leftX, y, labelW, gap);
+  y = infoRow(doc, 'Issued Date', issuedDate, leftX, y, labelW, gap);
 
-  doc.setTextColor(dark);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Issued Date:', leftX, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(75, 85, 99);
-  doc.text(issuedDate, leftX + labelW, y);
-  y += gap;
+  y += 4;
 
-  // ── Footer ──
-  y = pageH - 22;
-  doc.setDrawColor(229, 231, 235);
-  doc.line(leftX, y, pageW - leftX, y);
+  // ── Footer separator ──
+  doc.setDrawColor(180, 180, 180);
+  dashedLine(doc, leftX, y, rightX - leftX);
   y += 6;
 
   doc.setFontSize(8);
-  doc.setTextColor(muted);
+  doc.setTextColor('#6B7280');
   doc.setFont('helvetica', 'normal');
-  doc.text('Thank you for using iList Marketplace.', pageW / 2, y, { align: 'center' });
-  y += 4.5;
-  doc.text('This is a computer-generated receipt.', pageW / 2, y, { align: 'center' });
+  doc.text('iList Marketplace \u00A9 2026', pageW / 2, y, { align: 'center' });
 
   return doc.output('blob');
 }
