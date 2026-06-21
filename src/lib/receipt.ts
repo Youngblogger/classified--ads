@@ -141,7 +141,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
 
   // ── Watermarks (background) ──
   const drawWatermark = (cy: number) => {
-    doc.setTextColor(240, 240, 240);
+    doc.setTextColor(200, 200, 200);
     doc.setFontSize(48);
     doc.setFont('helvetica', 'bold');
     doc.text('iList', pageW / 2, cy, { align: 'center', angle: 30 });
