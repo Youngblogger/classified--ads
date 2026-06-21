@@ -9,6 +9,10 @@ export function isFailedStatus(status: string): boolean {
   return FAILED_STATUSES.includes(status.toLowerCase());
 }
 
+export function isPendingStatus(status: string): boolean {
+  return status.toLowerCase() === 'pending';
+}
+
 export function formatTransactionDescription(type: string, status: string): string {
   const s = status ? status.toLowerCase() : '';
   const isSuccess = isSuccessStatus(s);
