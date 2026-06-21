@@ -1,3 +1,5 @@
+import { formatTransactionDescription, formatTransactionStatus } from './transaction-utils';
+
 interface ReceiptData {
   reference: string;
   type: string;
@@ -18,34 +20,6 @@ function generateReceiptReference(): string {
     .map(b => charset[b % charset.length])
     .join('');
   return `ILR-${yyyymmdd}-${random}`;
-}
-
-function getDescription(type: string, status: string, _method: string, _desc?: string): string {
-  const s = status.toLowerCase();
-  const isSuccess = ['success', 'successful', 'approved', 'confirmed', 'credited', 'completed'].includes(s);
-  const isFailed = ['failed', 'declined', 'rejected', 'expired'].includes(s);
-
-  if (type === 'deposit') {
-    if (isSuccess) return 'Wallet successfully funded';
-    if (isFailed) return 'Wallet funding failed';
-    return 'Wallet funding pending confirmation';
-  }
-  if (type === 'payment') {
-    if (isSuccess) return 'Boost payment successful';
-    if (isFailed) return 'Boost payment failed';
-    return 'Boost payment pending';
-  }
-  if (type === 'promotion') {
-    return 'Ad promotion boost';
-  }
-  if (type === 'refund') {
-    return 'Payment refund';
-  }
-  if (type === 'withdrawal') {
-    if (isSuccess) return 'Withdrawal to bank account';
-    return 'Withdrawal request pending';
-  }
-  return _desc || `${type} transaction`;
 }
 
 function formatTransactionType(type: string): string {
@@ -76,23 +50,6 @@ function formatDateForDisplay(dateStr: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatStatus(status: string): string {
-  const lower = status.toLowerCase();
-  if (['success', 'successful', 'approved', 'confirmed', 'credited', 'completed'].includes(lower)) {
-    return 'Successful';
-  }
-  if (['failed', 'declined', 'rejected'].includes(lower)) {
-    return 'Failed';
-  }
-  if (['cancelled', 'canceled'].includes(lower)) {
-    return 'Cancelled';
-  }
-  if (lower === 'refunded') return 'Refunded';
-  if (lower === 'expired') return 'Expired';
-  if (lower === 'pending') return 'Pending';
-  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 let logoDataUrl: string | null = null;
@@ -169,8 +126,8 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   const rightX = pageW - 14;
 
   const receiptId = data.receiptId || generateReceiptReference();
-  const desc = getDescription(data.type, data.status, data.payment_method, data.description);
-  const statusLabel = formatStatus(data.status);
+  const desc = formatTransactionDescription(data.type, data.status);
+  const statusLabel = formatTransactionStatus(data.status);
   const txType = formatTransactionType(data.type);
   const amt = formatAmount(data.amount);
   const txDate = formatDateForDisplay(data.created_at);

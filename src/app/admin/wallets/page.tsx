@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { formatTransactionDescription } from '@/lib/transaction-utils';
 
 interface Wallet {
   id: number;
@@ -345,7 +346,7 @@ export default function WalletsPage() {
                          <RefreshCw className="w-4 h-4 text-blue-600" />}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{tx.description}</p>
+                        <p className="text-sm font-medium text-gray-900">{formatTransactionDescription(tx.type, tx.status)}</p>
                         <p className="text-xs text-gray-500">{formatDate(tx.created_at)}</p>
                       </div>
                     </div>

@@ -19,6 +19,7 @@ import {
 import clsx from 'clsx';
 import StatusBadge from './StatusBadge';
 import toast from 'react-hot-toast';
+import { formatTransactionDescription } from '@/lib/transaction-utils';
 
 
 interface WalletTransaction {
@@ -36,30 +37,7 @@ interface WalletTransaction {
 }
 
 function getDescription(tx: WalletTransaction): string {
-  const s = tx.status ? tx.status.toLowerCase() : '';
-  const isSuccess = ['success', 'successful', 'approved', 'confirmed', 'credited', 'completed'].includes(s);
-  const isFailed = ['failed', 'declined', 'rejected', 'expired'].includes(s);
-  if (tx.type === 'deposit') {
-    if (isSuccess) return 'Wallet successfully funded';
-    if (isFailed) return 'Wallet funding failed';
-    return 'Wallet funding pending confirmation';
-  }
-  if (tx.type === 'payment') {
-    if (isSuccess) return 'Boost payment successful';
-    if (isFailed) return 'Boost payment failed';
-    return 'Boost payment pending';
-  }
-  if (tx.type === 'promotion') {
-    return 'Ad promotion boost';
-  }
-  if (tx.type === 'refund') {
-    return 'Payment refund';
-  }
-  if (tx.type === 'withdrawal') {
-    if (isSuccess) return 'Withdrawal to bank account';
-    return 'Withdrawal request pending';
-  }
-  return tx.description || `${tx.type} transaction`;
+  return formatTransactionDescription(tx.type, tx.status);
 }
 
 function formatAmount(value: string | number) {

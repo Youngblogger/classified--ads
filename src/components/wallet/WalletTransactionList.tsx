@@ -114,7 +114,6 @@ export default function WalletTransactionList({
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (tx) =>
-          tx.description?.toLowerCase().includes(q) ||
           tx.type?.toLowerCase().includes(q) ||
           tx.reference?.toLowerCase().includes(q) ||
           tx.payment_method?.toLowerCase().includes(q),
