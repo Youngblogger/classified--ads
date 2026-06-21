@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary, getOptimizedImageUrl } from '@/lib/cloudinary';
+import { RateLimiter, getClientIp } from '@/lib/rate-limiter';
+
+const uploadLimiter = new RateLimiter({ windowMs: 60000, max: 20 });
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rateCheck = await uploadLimiter.check(ip);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: uploadLimiter.getMessage() },
+      { status: uploadLimiter.getStatusCode(), headers: { 'Retry-After': String(Math.ceil((rateCheck.resetTime - Date.now()) / 1000)) } }
+    );
+  }
   try {
     const formData = await request.formData();
     const files = formData.getAll('images') as File[];

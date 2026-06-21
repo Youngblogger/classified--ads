@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { RateLimiter, getClientIp } from '@/lib/rate-limiter';
+
+const kycSubmitLimiter = new RateLimiter({ windowMs: 3600000, max: 5 });
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rateCheck = await kycSubmitLimiter.check(ip);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: kycSubmitLimiter.getMessage() },
+      { status: kycSubmitLimiter.getStatusCode(), headers: { 'Retry-After': String(Math.ceil((rateCheck.resetTime - Date.now()) / 1000)) } }
+    );
+  }
   try {
     const cookieStore = cookies();
     const supabase = createServerClient(

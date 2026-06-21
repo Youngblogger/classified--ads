@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient, supabase as anonSupabase } from '@/lib/supabase';
 import { listingLogger } from '@/lib/logger';
+import { RateLimiter, getClientIp } from '@/lib/rate-limiter';
+
+const listingLimiter = new RateLimiter({ windowMs: 60000, max: 60 });
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const rateCheck = await listingLimiter.check(ip);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: listingLimiter.getMessage() },
+        { status: listingLimiter.getStatusCode(), headers: { 'Retry-After': String(Math.ceil((rateCheck.resetTime - Date.now()) / 1000)) } }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'active';
     const page = parseInt(searchParams.get('page') || '1', 10);

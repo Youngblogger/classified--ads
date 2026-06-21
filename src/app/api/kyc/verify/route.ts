@@ -4,8 +4,19 @@ import { cookies } from 'next/headers';
 import { analyzeFraud } from '@/lib/fraud-engine';
 import { calculateTrustScore } from '@/lib/trust-engine';
 import { getClientIp, maskDocumentNumber } from '@/lib/security';
+import { RateLimiter } from '@/lib/rate-limiter';
+
+const kycVerifyLimiter = new RateLimiter({ windowMs: 3600000, max: 10 });
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rateCheck = await kycVerifyLimiter.check(ip);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: kycVerifyLimiter.getMessage() },
+      { status: kycVerifyLimiter.getStatusCode(), headers: { 'Retry-After': String(Math.ceil((rateCheck.resetTime - Date.now()) / 1000)) } }
+    );
+  }
   try {
     const cookieStore = cookies();
     const supabase = createServerClient(

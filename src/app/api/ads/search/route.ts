@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { normalizeAd, normalizeAds } from '@/lib/normalize-ad';
+import { RateLimiter, getClientIp } from '@/lib/rate-limiter';
+
+const searchLimiter = new RateLimiter({ windowMs: 60000, max: 30 });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rateCheck = await searchLimiter.check(ip);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: searchLimiter.getMessage() },
+      { status: searchLimiter.getStatusCode(), headers: { 'Retry-After': String(Math.ceil((rateCheck.resetTime - Date.now()) / 1000)) } }
+    );
+  }
   try {
     const q = request.nextUrl.searchParams.get('q')?.trim() || '';
     const page = Math.max(1, parseInt(request.nextUrl.searchParams.get('page') || '1', 10));

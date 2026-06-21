@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Services\CloudinaryService;
 use App\Services\FraudDetectionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -282,16 +283,47 @@ class WalletController extends Controller
 
         $reference = $validated['reference'];
 
-        // Check if already processed
-        $existingTransaction = Transaction::where('reference', $reference)
-            ->where('status', 'success')
-            ->first();
+        $lockKey = 'wallet_verify:' . $reference;
+        $lock = Cache::lock($lockKey, 60);
 
-        if ($existingTransaction) {
-            return response()->json(['message' => 'Transaction already processed']);
+        if (!$lock->get()) {
+            return response()->json(['message' => 'Verification already in progress'], 409);
         }
 
         try {
+            // Lock the row and check status atomically inside a transaction
+            $transactionData = DB::transaction(function () use ($reference) {
+                $tx = Transaction::where('reference', $reference)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$tx) {
+                    return ['error' => 'Transaction not found', 'code' => 404];
+                }
+
+                if ($tx->status === 'success') {
+                    return ['error' => 'Transaction already processed', 'code' => 200];
+                }
+
+                if ($tx->status !== 'pending') {
+                    return ['error' => 'Transaction cannot be processed', 'code' => 400];
+                }
+
+                return [
+                    'transaction' => $tx,
+                    'wallet_id' => $tx->wallet_id,
+                    'amount' => $tx->amount,
+                ];
+            });
+
+            if (isset($transactionData['error'])) {
+                return response()->json(
+                    ['message' => $transactionData['error']],
+                    $transactionData['code']
+                );
+            }
+
+            // Verify with Paystack (outside DB transaction — no long-held locks)
             $http = Http::withToken(config('services.paystack.secret_key') ?? env('PAYSTACK_SECRET_KEY'));
             if (!config('app.paystack_verify_ssl', true)) {
                 $http = $http->withoutVerifying();
@@ -304,41 +336,56 @@ class WalletController extends Controller
                 return response()->json(['message' => 'Payment verification failed'], 400);
             }
 
-            $transaction = Transaction::where('reference', $reference)
-                ->where('status', 'pending')
-                ->first();
+            // Re-acquire lock and credit wallet
+            $result = DB::transaction(function () use ($reference, $transactionData) {
+                $tx = Transaction::where('reference', $reference)
+                    ->lockForUpdate()
+                    ->first();
 
-            if (!$transaction) {
-                return response()->json(['message' => 'Transaction not found'], 404);
+                if (!$tx || $tx->status !== 'pending') {
+                    return ['error' => 'Transaction already processed', 'code' => 200];
+                }
+
+                $wallet = Wallet::lockForUpdate()->find($transactionData['wallet_id']);
+                if (!$wallet) {
+                    return ['error' => 'Wallet not found', 'code' => 404];
+                }
+
+                $balanceBefore = $wallet->balance;
+                $wallet->increment('balance', $transactionData['amount']);
+                $wallet->decrement('pending_balance', $transactionData['amount']);
+                $wallet->refresh();
+
+                $tx->update([
+                    'status' => 'success',
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $wallet->balance,
+                    'processed_at' => now(),
+                ]);
+
+                return [
+                    'wallet' => $wallet->fresh(),
+                    'transaction' => $tx->fresh(),
+                ];
+            });
+
+            if (isset($result['error'])) {
+                return response()->json(
+                    ['message' => $result['error']],
+                    $result['code']
+                );
             }
-
-            $wallet = Wallet::find($transaction->wallet_id);
-            if (!$wallet) {
-                return response()->json(['message' => 'Wallet not found'], 404);
-            }
-
-            // Process the payment
-            $balanceBefore = $wallet->balance;
-            $wallet->increment('balance', $transaction->amount);
-            $wallet->decrement('pending_balance', $transaction->amount);
-            $wallet->refresh();
-
-            // Update transaction
-            $transaction->update([
-                'status' => 'success',
-                'balance_before' => $balanceBefore,
-                'balance_after' => $wallet->balance,
-                'processed_at' => now(),
-            ]);
 
             return response()->json([
                 'message' => 'Wallet funded successfully',
-                'wallet' => $wallet->fresh(),
-                'transaction' => $transaction->fresh(),
+                'wallet' => $result['wallet'],
+                'transaction' => $result['transaction'],
             ]);
         } catch (\Exception $e) {
             Log::error('Paystack verification error', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Verification failed'], 500);
+        } finally {
+            $lock->release();
         }
     }
 
