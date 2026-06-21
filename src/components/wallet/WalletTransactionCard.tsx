@@ -169,7 +169,7 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
     }
     const expiresMs = transaction.expires_at
       ? new Date(transaction.expires_at).getTime()
-      : new Date(transaction.created_at).getTime() + 5 * 60 * 1000;
+      : new Date(transaction.created_at).getTime() + 15 * 60 * 1000;
     const tick = () => {
       const now = Date.now();
       const secs = Math.max(0, Math.floor((expiresMs - now) / 1000));
@@ -440,7 +440,7 @@ export default function WalletTransactionCard({ transaction, index = 0, onRefres
                         reference: txRef,
                         type: transaction.type,
                         amount: transaction.amount,
-                        status: displayStatus,
+                        status: transaction.status,
                         payment_method: transaction.payment_method,
                         created_at: transaction.created_at,
                         description: getDescription(transaction),
