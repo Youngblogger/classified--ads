@@ -182,18 +182,32 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   const currency = data.currency || 'NGN';
   const walletRef = data.reference;
 
+  // ── Watermark (background) ──
+  doc.setTextColor(240, 240, 240);
+  doc.setFontSize(48);
+  doc.setFont('helvetica', 'bold');
+  doc.text('iList', pageW / 2, pageH / 2 - 10, { align: 'center', angle: 30 });
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('classified ads marketplace', pageW / 2, pageH / 2 + 4, { align: 'center', angle: 30 });
+
   // ── Header ──
   doc.setFillColor(0, 158, 56);
   doc.rect(0, 0, pageW, 24, 'F');
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PAYMENT RECEIPT', pageW / 2, 10, { align: 'center' });
+  const logo = await loadLogo();
+  if (logo) {
+    doc.addImage(logo, 'PNG', 10, 7.5, 14, 4.7);
+  }
 
-  doc.setFontSize(7);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PAYMENT RECEIPT', pageW / 2, 11, { align: 'center' });
+
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'normal');
-  doc.text('iList Marketplace', pageW / 2, 16, { align: 'center' });
+  doc.text('iList Classified Ads Marketplace', pageW / 2, 18, { align: 'center' });
 
   let y = 34;
 
@@ -245,7 +259,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   doc.setFontSize(8);
   doc.setTextColor('#6B7280');
   doc.setFont('helvetica', 'normal');
-  doc.text('iList Marketplace \u00A9 2026', pageW / 2, y, { align: 'center' });
+  doc.text('iList Classified Ads Marketplace \u00A9 2026', pageW / 2, y, { align: 'center' });
 
   return doc.output('blob');
 }
