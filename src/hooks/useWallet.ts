@@ -10,10 +10,15 @@ export function useWalletBalance() {
     queryKey: WALLET_QUERY_KEY,
     queryFn: async () => {
       const res = await walletApi.getBalance();
+      const data = res.data?.data || res.data || {};
+      const balance = Number(data.balance ?? 0);
+      const pendingBalance = Number(data.pending_balance ?? data.pendingBalance ?? 0);
+      const availableBalance = Math.max(0, balance - pendingBalance);
       return {
-        balance: Number(res.data?.data?.balance ?? 0),
-        availableBalance: Number(res.data?.data?.balance ?? 0),
-        pendingBalance: 0,
+        balance,
+        availableBalance,
+        pendingBalance,
+        currency: String(data.currency || 'NGN'),
       };
     },
     staleTime: 30_000,

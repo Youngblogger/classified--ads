@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { Wallet } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { useQueryClient } from '@tanstack/react-query';
-import { WALLET_QUERY_KEY } from '@/hooks/useWallet';
+import { useWalletBalance, useInvalidateWallet, WALLET_QUERY_KEY } from '@/hooks/useWallet';
 import {
   WalletBalanceCard,
   WalletTransactionList,
@@ -36,6 +37,8 @@ interface Wallet {
 
 export default function WalletPage() {
   const queryClient = useQueryClient();
+  const invalidateWallet = useInvalidateWallet();
+  const { data: walletBalance, isLoading: balanceLoading, refetch: refetchBalance } = useWalletBalance();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,21 +46,57 @@ export default function WalletPage() {
 
   const fetchWallet = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
+    let fetched = false;
     try {
       const walletRes = await api.get('/wallet');
       if (walletRes?.data?.wallet) {
         setWallet(walletRes.data.wallet);
         setTransactions(walletRes.data.transactions?.data || walletRes.data.transactions || []);
+        fetched = true;
         return walletRes.data.wallet;
       }
     } catch (err) {
-      console.error('[Wallet] fetch failed:', err);
-      if (showLoader) {
-        setWallet({ id: 0, balance: '0.00', pending_balance: '0.00' });
-        setTransactions([]);
+      console.error('[Wallet] Laravel fetch failed, trying Supabase fallback:', err);
+    }
+
+    if (!fetched) {
+      try {
+        const { user: storeUser } = useAuthStore.getState();
+        const storeId: unknown = storeUser?.id;
+        if (storeId) {
+          const supabaseUserId = typeof storeId === 'string' && (storeId as string).includes('-')
+            ? storeId as string
+            : (await supabase.auth.getUser().then(r => r.data?.user?.id).catch(() => null));
+          if (supabaseUserId) {
+            const { data: txns, error } = await supabase
+              .from('transactions')
+              .select('*')
+              .eq('user_id', supabaseUserId)
+              .order('created_at', { ascending: false })
+              .limit(100);
+            if (!error && txns) {
+              const balance = txns.reduce((acc: number, t: any) =>
+                t.type === 'credit' ? acc + parseFloat(t.amount || '0') : acc - parseFloat(t.amount || '0'), 0
+              );
+              setWallet({ id: 0, balance: balance.toFixed(2), pending_balance: '0.00' });
+              setTransactions(txns.map(t => ({
+                id: 0, type: t.type, amount: t.amount, balance_before: '', balance_after: '',
+                description: t.description || '', status: t.status, payment_method: '',
+                created_at: t.created_at, reference: t.reference,
+              })));
+              fetched = true;
+              return { balance: balance.toFixed(2) };
+            }
+          }
+        }
+      } catch (supaErr) {
+        console.error('[Wallet] Supabase fallback failed:', supaErr);
       }
-    } finally {
-      if (showLoader) setLoading(false);
+    }
+
+    if (showLoader && !fetched) {
+      setWallet({ id: 0, balance: '0.00', pending_balance: '0.00' });
+      setTransactions([]);
     }
     return null;
   }, []);
@@ -70,33 +109,86 @@ export default function WalletPage() {
     if (verified === 'true' && reference) {
       window.history.replaceState({}, '', '/dashboard/wallet');
       (async () => {
-        try {
-          const initialWr = await api.get('/wallet');
-          const initialBalance = parseFloat(initialWr?.data?.wallet?.balance || '0');
-          setWallet(initialWr?.data?.wallet || { id: 0, balance: '0.00', pending_balance: '0.00' });
-          setTransactions(initialWr?.data?.transactions?.data || initialWr?.data?.transactions || []);
+        const initialWr = await fetchWallet(false);
+        const initialBalance = initialWr ? parseFloat((initialWr as any).balance || '0') : 0;
 
+        try {
           const res = await api.post('/wallet/verify', { reference });
           if (res.status >= 200 && res.status < 300) {
-            toast.success('Payment successful! Your wallet has been credited.', { duration: 5000 });
+            invalidateWallet();
             queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEY });
+
             let credited = false;
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 20; i++) {
+              await new Promise(r => setTimeout(r, 1500));
               try {
+                await refetchBalance();
+
                 const wr = await api.get('/wallet');
                 const newBalance = parseFloat(wr?.data?.wallet?.balance || '0');
+                const newTxns = wr?.data?.transactions?.data || wr?.data?.transactions || [];
+
                 if (wr?.data?.wallet && newBalance !== initialBalance) {
                   setWallet(wr.data.wallet);
-                  setTransactions(wr.data.transactions?.data || wr.data.transactions || []);
+                  if (newTxns.length > 0) setTransactions(newTxns);
+                  toast.success('Payment successful! Your wallet has been credited.', { duration: 5000 });
                   credited = true;
                   break;
                 }
+
+                const txnMatch = newTxns.find((t: any) => t.reference === reference && t.status === 'completed');
+                if (txnMatch) {
+                  setWallet(wr.data.wallet || { id: 0, balance: txnMatch.balance_after || '0.00', pending_balance: '0.00' });
+                  if (newTxns.length > 0) setTransactions(newTxns);
+                  toast.success('Payment confirmed! Your wallet has been credited.', { duration: 5000 });
+                  credited = true;
+                  break;
+                }
+
+                const storeId: unknown = useAuthStore.getState().user?.id;
+                if (storeId) {
+                  const uuid = typeof storeId === 'string' && (storeId as string).includes('-')
+                    ? storeId as string
+                    : (await supabase.auth.getUser().then(r => r.data?.user?.id).catch(() => null));
+                  if (uuid) {
+                    const { data: supTxn } = await supabase
+                      .from('transactions')
+                      .select('amount, type, status, reference')
+                      .eq('user_id', uuid)
+                      .eq('reference', reference)
+                      .maybeSingle();
+                    if (supTxn && (supTxn.status === 'completed' || supTxn.type === 'credit')) {
+                      const { data: allTxns } = await supabase
+                        .from('transactions')
+                        .select('*')
+                        .eq('user_id', uuid)
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+                      if (allTxns) {
+                        const bal = allTxns.reduce((acc: number, t: any) =>
+                          t.type === 'credit' ? acc + parseFloat(t.amount || '0') : acc - parseFloat(t.amount || '0'), 0
+                        );
+                        setWallet({ id: 0, balance: bal.toFixed(2), pending_balance: '0.00' });
+                        setTransactions(allTxns.map(t => ({
+                          id: 0, type: t.type, amount: t.amount, balance_before: '', balance_after: '',
+                          description: t.description || '', status: t.status, payment_method: '',
+                          created_at: t.created_at, reference: t.reference,
+                        })));
+                      }
+                      toast.success('Payment confirmed! Wallet updated from transactions.', { duration: 5000 });
+                      credited = true;
+                      break;
+                    }
+                  }
+                }
               } catch {}
-              await new Promise(r => setTimeout(r, 1500));
             }
+
             if (!credited) {
-              toast.error('Payment confirmed but balance may take a moment. Refresh to see updates.', { duration: 8000 });
-              fetchWallet(true);
+              await fetchWallet(true);
+              await refetchBalance();
+              invalidateWallet();
+              toast.success('Payment confirmed! Refresh to see your updated balance.', { duration: 8000 });
             }
           } else {
             throw new Error(res.data?.message || 'Verification failed');
@@ -108,9 +200,9 @@ export default function WalletPage() {
         }
       })();
     } else {
-      fetchWallet();
+      fetchWallet().then(() => setLoading(false));
     }
-  }, [fetchWallet, queryClient]);
+  }, [fetchWallet, invalidateWallet, refetchBalance, queryClient]);
 
   const handleFund = async (amount: number) => {
     setFunding(true);
@@ -141,23 +233,24 @@ export default function WalletPage() {
       if (res.data.success || res.data.status === 'success') {
         toast.success('Payment confirmed!', { duration: 3000 });
         fetchWallet();
+        invalidateWallet();
         return true;
       }
       return false;
     } catch {
       return false;
     }
-  }, [fetchWallet]);
+  }, [fetchWallet, invalidateWallet]);
 
-  const balance = parseFloat(wallet?.balance || '0') - parseFloat(wallet?.pending_balance || '0');
+  const displayBalance = walletBalance?.balance ?? parseFloat(wallet?.balance || '0') - parseFloat(wallet?.pending_balance || '0');
   const totalTransactions = transactions.length;
 
   return (
     <div className="space-y-3">
       <WalletBalanceCard
-        balance={balance}
+        balance={displayBalance}
         totalTransactions={totalTransactions}
-        loading={loading}
+        loading={loading || balanceLoading}
         title="Wallet"
         subtitle="Manage your wallet and view transactions"
       />

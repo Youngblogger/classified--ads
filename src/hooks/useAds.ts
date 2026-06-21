@@ -214,7 +214,9 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
 
     if (mapped.length > 0 && supabaseResult.data.length > 0) {
       const existingIds = new Set(mapped.map((a: any) => a.id));
-      const merged = [...mapped, ...supabaseResult.data.filter((a: any) => !existingIds.has(a.id))];
+      const merged = [...mapped, ...supabaseResult.data.filter((a: any) => !existingIds.has(a.id))].sort(
+        (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
       return { data: merged, meta: responseData.meta || supabaseResult.meta || { total: 0, current_page: 1, per_page: 20, last_page: 1 } };
     }
 
