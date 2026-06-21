@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, Plus, ArrowUp } from 'lucide-react';
 import ResponsiveHeader from '@/components/home/ResponsiveHeader';
+import RecommendationFeed from '@/components/marketplace/RecommendationFeed';
 import EnterpriseSidebar from '@/components/home/EnterpriseSidebar';
 import Footer from '@/components/layout/Footer';
 import { AdMasonrySkeleton } from '@/components/ui/Skeleton';
@@ -250,6 +251,10 @@ export default function HomePage() {
                 </div>
               )}
             </div>
+
+            <div className="hidden md:block">
+              <RecommendationFeed />
+            </div>
           </section>
 
           {/* Mobile Hero */}
@@ -314,6 +319,10 @@ export default function HomePage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="block md:hidden">
+              <RecommendationFeed />
             </div>
           </section>
 
