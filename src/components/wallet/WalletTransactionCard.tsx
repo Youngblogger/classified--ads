@@ -36,27 +36,18 @@ interface WalletTransaction {
 }
 
 function getDescription(tx: WalletTransaction): string {
-  const desc = tx.description?.toLowerCase() || '';
-  if (desc && !desc.includes('wallet funding pending') && !desc.includes('pending') && tx.status === 'success') {
-    return tx.description;
-  }
+  const s = tx.status ? tx.status.toLowerCase() : '';
+  const isSuccess = ['success', 'successful', 'approved', 'confirmed', 'credited', 'completed'].includes(s);
+  const isFailed = ['failed', 'declined', 'rejected', 'expired'].includes(s);
   if (tx.type === 'deposit') {
-    if (tx.status === 'success' || tx.status === 'completed') {
-      return 'Payment successfully';
-    }
-    if (['failed', 'expired', 'declined', 'rejected'].includes(tx.status)) {
-      return 'Wallet funding - failed';
-    }
-    return 'Wallet funding';
+    if (isSuccess) return 'Wallet successfully funded';
+    if (isFailed) return 'Wallet funding failed';
+    return 'Wallet funding pending confirmation';
   }
   if (tx.type === 'payment') {
-    if (tx.status === 'success' || tx.status === 'completed') {
-      return 'Payment successfully';
-    }
-    if (['failed', 'expired', 'declined', 'rejected'].includes(tx.status)) {
-      return 'Boosted ad payment - failed';
-    }
-    return 'Boosted ad payment';
+    if (isSuccess) return 'Boost payment successful';
+    if (isFailed) return 'Boost payment failed';
+    return 'Boost payment pending';
   }
   if (tx.type === 'promotion') {
     return 'Ad promotion boost';
@@ -65,10 +56,8 @@ function getDescription(tx: WalletTransaction): string {
     return 'Payment refund';
   }
   if (tx.type === 'withdrawal') {
-    if (tx.status === 'success' || tx.status === 'completed') {
-      return 'Withdrawal to bank account';
-    }
-    return 'Withdrawal request - pending';
+    if (isSuccess) return 'Withdrawal to bank account';
+    return 'Withdrawal request pending';
   }
   return tx.description || `${tx.type} transaction`;
 }

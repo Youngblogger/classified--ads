@@ -6,30 +6,33 @@ interface ReceiptData {
   payment_method: string;
   created_at: string;
   description?: string;
+  receiptId?: string;
 }
 
-function getDescription(type: string, status: string, method: string, desc?: string): string {
-  const d = desc?.toLowerCase() || '';
-  if (d && !d.includes('wallet funding pending') && !d.includes('pending') && (status === 'success' || status === 'completed')) {
-    return desc!;
-  }
+function generateReceiptReference(): string {
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const now = new Date();
+  const yyyymmdd = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const random = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+    .map(b => charset[b % charset.length])
+    .join('');
+  return `ILR-${yyyymmdd}-${random}`;
+}
+
+function getDescription(type: string, status: string, _method: string, _desc?: string): string {
+  const s = status.toLowerCase();
+  const isSuccess = ['success', 'successful', 'approved', 'confirmed', 'credited', 'completed'].includes(s);
+  const isFailed = ['failed', 'declined', 'rejected', 'expired'].includes(s);
+
   if (type === 'deposit') {
-    if (status === 'success' || status === 'completed') {
-      return 'Payment successfully';
-    }
-    if (['failed', 'expired', 'declined', 'rejected'].includes(status)) {
-      return 'Wallet funding - failed';
-    }
-    return 'Wallet funding';
+    if (isSuccess) return 'Wallet successfully funded';
+    if (isFailed) return 'Wallet funding failed';
+    return 'Wallet funding pending confirmation';
   }
   if (type === 'payment') {
-    if (status === 'success' || status === 'completed') {
-      return 'Payment successfully';
-    }
-    if (['failed', 'expired', 'declined', 'rejected'].includes(status)) {
-      return 'Boosted ad payment - failed';
-    }
-    return 'Boosted ad payment';
+    if (isSuccess) return 'Boost payment successful';
+    if (isFailed) return 'Boost payment failed';
+    return 'Boost payment pending';
   }
   if (type === 'promotion') {
     return 'Ad promotion boost';
@@ -38,12 +41,21 @@ function getDescription(type: string, status: string, method: string, desc?: str
     return 'Payment refund';
   }
   if (type === 'withdrawal') {
-    if (status === 'success' || status === 'completed') {
-      return 'Withdrawal to bank account';
-    }
-    return 'Withdrawal request - pending';
+    if (isSuccess) return 'Withdrawal to bank account';
+    return 'Withdrawal request pending';
   }
-  return desc || `${type} transaction`;
+  return _desc || `${type} transaction`;
+}
+
+function formatTransactionType(type: string): string {
+  const map: Record<string, string> = {
+    deposit: 'Wallet Funding',
+    payment: 'Boost Payment',
+    withdrawal: 'Withdrawal',
+    promotion: 'Ad Promotion',
+    refund: 'Refund',
+  };
+  return map[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function formatAmount(value: string | number) {
@@ -52,7 +64,17 @@ function formatAmount(value: string | number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `NGN ${formatted}`;
+  return `\u20A6${formatted}`;
+}
+
+function formatDateForDisplay(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function formatStatus(status: string): string {
@@ -102,125 +124,175 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   const dark = '#1F2937';
   const muted = '#6B7280';
 
-  doc.setFillColor(green[0], green[1], green[2]);
-  doc.rect(0, 0, pageW, 30, 'F');
+  const receiptId = data.receiptId || generateReceiptReference();
+  const desc = getDescription(data.type, data.status, data.payment_method, data.description);
+  const statusLabel = formatStatus(data.status);
+  const txType = formatTransactionType(data.type);
+  const amt = formatAmount(data.amount);
+  const txDate = formatDateForDisplay(data.created_at);
+  const issuedDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
-  const logo = await loadLogo();
-  if (logo) {
-    doc.addImage(logo, 'PNG', 14, 10, 14, 4.7);
-  } else {
-    doc.setFillColor(255, 255, 255);
-    doc.circle(21, 12, 5);
-    doc.fill();
-    doc.setTextColor(green[0], green[1], green[2]);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text('i', 21, 14.5, { align: 'center' });
-  }
+  // ── Header ──
+  doc.setFillColor(green[0], green[1], green[2]);
+  doc.rect(0, 0, pageW, 24, 'F');
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(15);
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('PAYMENT RECEIPT', pageW / 2, 18, { align: 'center' });
+  doc.text('PAYMENT RECEIPT', pageW / 2, 10, { align: 'center' });
 
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text('iList Marketplace', pageW / 2, 24, { align: 'center' });
-  doc.text(
-    `Issued: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
-    pageW / 2,
-    28,
-    { align: 'center' },
-  );
+  doc.text('iList Marketplace', pageW / 2, 16, { align: 'center' });
+  doc.text(`Issued: ${issuedDate}`, pageW / 2, 21, { align: 'center' });
 
-  doc.setTextColor(235, 235, 235);
-  doc.setFontSize(56);
-  doc.setFont('helvetica', 'bold');
-  doc.text('iList', pageW / 2, pageH - 65, { align: 'center', angle: 35 });
-  doc.setFontSize(12);
-  doc.text('classified ads marketplace', pageW / 2, pageH - 55, { align: 'center', angle: 35 });
-
-  for (let ry = pageH * 0.44; ry < pageH - 15; ry += 7) {
-    doc.setTextColor(248, 248, 248);
-    doc.setFontSize(3.5);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  ${data.reference}  |  ILIST  |  `, 0, ry, { angle: 35 });
-  }
-
-  let y = 38;
+  // ── Identifier block ──
+  let y = 32;
+  const leftX = 14;
+  const labelW = 38;
+  const gap = 4.5;
 
   doc.setTextColor(dark);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Transaction Details', pageW / 2, y, { align: 'center' });
-  y += 9;
-
-  const rows: [string, string][] = [
-    ['Reference ID', data.reference],
-    ['Type', data.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())],
-    ['Description', getDescription(data.type, data.status, data.payment_method, data.description)],
-    ['Amount', formatAmount(data.amount)],
-    ['Status', formatStatus(data.status)],
-    ['Payment Method', data.payment_method || 'Wallet'],
-    [
-      'Date',
-      new Date(data.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    ],
-  ];
-
-  const leftMargin = 14;
-  const rightMargin = 14;
-  const col1 = 48;
-  const rowH = 6.5;
-
-  doc.setFillColor(245, 247, 250);
-  doc.rect(leftMargin, y, pageW - leftMargin - rightMargin, rowH, 'F');
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(green[0], green[1], green[2]);
-  doc.text('Item', leftMargin + 3, y + 4.5);
-  doc.text('Details', leftMargin + col1 + 3, y + 4.5);
 
-  y += rowH;
-  let alt = false;
+  doc.text('Receipt ID:', leftX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(receiptId, leftX + labelW, y);
+  y += gap;
 
-  for (const [label, value] of rows) {
-    if (alt) {
-      doc.setFillColor(249, 250, 251);
-      doc.rect(leftMargin, y, pageW - leftMargin - rightMargin, rowH, 'F');
-    }
+  doc.setTextColor(dark);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Reference ID:', leftX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(data.reference, leftX + labelW, y);
+  y += gap;
 
-    doc.setFontSize(8.5);
-    doc.setTextColor(dark);
-    doc.setFont('helvetica', 'bold');
-    doc.text(label, leftMargin + 3, y + 4.5);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(75, 85, 99);
-    doc.text(value, leftMargin + col1 + 3, y + 4.5);
-
-    y += rowH;
-    alt = !alt;
-  }
-
-  y = pageH - 28;
-
-  const lineL = 14;
+  // ── Separator ──
+  y += 2;
   doc.setDrawColor(229, 231, 235);
-  doc.line(lineL, y, pageW - lineL, y);
-  y += 8;
+  doc.line(leftX, y, pageW - leftX, y);
+  y += 6;
+
+  // ── Status & Type block ──
+  doc.setTextColor(dark);
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Status:', leftX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(statusLabel, leftX + labelW, y);
+  y += gap;
+
+  doc.setTextColor(dark);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Transaction Type:', leftX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(txType, leftX + labelW, y);
+  y += gap;
+
+  doc.setTextColor(dark);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Payment Method:', leftX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(data.payment_method || 'Wallet', leftX + labelW, y);
+  y += gap;
+
+  doc.setTextColor(dark);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Description:', leftX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(desc, leftX + labelW, y);
+  y += gap;
+
+  // ── Separator ──
+  y += 2;
+  doc.setDrawColor(229, 231, 235);
+  doc.line(leftX, y, pageW - leftX, y);
+  y += 6;
+
+  // ── Payment Summary ──
+  doc.setTextColor(dark);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PAYMENT SUMMARY', pageW / 2, y, { align: 'center' });
+  y += 7;
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Amount Paid:', leftX, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(green[0], green[1], green[2]);
+  doc.text(amt, pageW - leftX, y, { align: 'right' });
+  y += gap;
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(dark);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Fees:', leftX, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(75, 85, 99);
+  doc.text('\u20A60.00', pageW - leftX, y, { align: 'right' });
+  y += gap;
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(dark);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Total Credited:', leftX, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(green[0], green[1], green[2]);
+  doc.text(amt, pageW - leftX, y, { align: 'right' });
+  y += gap;
+
+  // ── Separator ──
+  y += 2;
+  doc.setDrawColor(229, 231, 235);
+  doc.line(leftX, y, pageW - leftX, y);
+  y += 6;
+
+  // ── Timeline ──
+  doc.setTextColor(dark);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TIMELINE', pageW / 2, y, { align: 'center' });
+  y += 7;
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Transaction Date:', leftX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(txDate, leftX + labelW, y);
+  y += gap;
+
+  doc.setTextColor(dark);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Issued Date:', leftX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(issuedDate, leftX + labelW, y);
+  y += gap;
+
+  // ── Footer ──
+  y = pageH - 22;
+  doc.setDrawColor(229, 231, 235);
+  doc.line(leftX, y, pageW - leftX, y);
+  y += 6;
 
   doc.setFontSize(8);
   doc.setTextColor(muted);
   doc.setFont('helvetica', 'normal');
   doc.text('Thank you for using iList Marketplace.', pageW / 2, y, { align: 'center' });
-  y += 5;
+  y += 4.5;
   doc.text('This is a computer-generated receipt.', pageW / 2, y, { align: 'center' });
 
   return doc.output('blob');
@@ -231,7 +303,8 @@ export async function downloadReceipt(data: ReceiptData, filename?: string): Pro
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename || `receipt-${data.reference}.pdf`;
+  const receiptId = data.receiptId || generateReceiptReference();
+  a.download = filename || `receipt-${receiptId}.pdf`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
