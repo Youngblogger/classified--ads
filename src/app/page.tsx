@@ -320,6 +320,21 @@ export default function HomePage() {
 
           <RecommendationFeed />
 
+          {/* Fresh Listings Section */}
+          <section className="w-full mb-6 px-1 sm:px-3 md:px-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg bg-emerald-50">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16l-6.4 4.8L8 14l-6-4.8h7.6L12 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">Fresh Listings</h2>
+                <p className="text-[10px] text-gray-500">Latest ads from our community</p>
+              </div>
+            </div>
+          </section>
+
           {/* Unified Marketplace Feed */}
           <div className="w-full px-1 sm:px-3 md:px-4">
             {!adsError && recentAds.length === 0 && (isLoading || isValidating) ? (

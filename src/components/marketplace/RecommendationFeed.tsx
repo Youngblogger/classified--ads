@@ -10,17 +10,10 @@ import { getAdMainImage } from '@/lib/image';
 
 const fallbackImage = '/fallback-category.svg';
 
-function formatPrice(price: number, currency: string = 'NGN'): string {
-  try {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  } catch {
-    return `₦${price?.toLocaleString() || '0'}`;
-  }
+function formatPrice(price: number): string {
+  const numPrice = typeof price === 'number' ? price : Number(price);
+  if (isNaN(numPrice)) return '₦0';
+  return '₦' + numPrice.toLocaleString('en-US');
 }
 
 function getBoostConfigForDisplay(ad: any) {
@@ -72,8 +65,8 @@ function RecommendCard({ item }: { item: any }) {
           )}
         </div>
         <div className="absolute bottom-2 right-2">
-          <div className="px-2 py-0.5 bg-white/90 backdrop-blur-sm rounded-full text-[10px] font-bold text-primary-600 shadow-sm">
-            {formatPrice(item.price, item.currency)}
+          <div className="px-2 py-0.5 bg-white/90 backdrop-blur-sm rounded-[5px] text-[10px] font-bold text-primary-600 shadow-sm">
+            {formatPrice(item.price)}
           </div>
         </div>
       </div>
