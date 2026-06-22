@@ -204,6 +204,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             } as any,
             session.access_token
           );
+        } else {
+          // Store is authenticated but may be missing supabase_user_id
+          // (e.g. restored from Laravel-only login). Populate it so
+          // operations that rely on the Supabase UUID can use it.
+          const currentUser = useAuthStore.getState().user;
+          if (currentUser && !(currentUser as any).supabase_user_id) {
+            useAuthStore.setState({
+              user: { ...currentUser, supabase_user_id: session.user.id },
+            });
+          }
         }
         return;
       }

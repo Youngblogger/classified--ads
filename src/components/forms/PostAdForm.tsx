@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Upload, X, Image as ImageIcon, MapPin, Tag, FileText, Check, ChevronRight, ChevronLeft, GripVertical, Loader2, Phone, ArrowLeft, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { adsApi } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { mutate } from 'swr';
 import { useQueryClient } from '@tanstack/react-query';
 import { adKeys } from '@/lib/query-keys';
@@ -276,14 +277,12 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   useEffect(() => {
     if (images.length === 0 || !hasAnyData) return;
     const timer = setTimeout(async () => {
-      const draftImages: any[] = [];
+      const draftImages: { name: string; type: string; size: number; file: File }[] = [];
       for (const img of images) {
-        try {
-          const base64 = await fileToBase64(img.file);
-          draftImages.push({ name: img.file.name, type: img.file.type, size: img.file.size, base64 });
-        } catch {}
+        if (!(img.file instanceof Blob)) continue;
+        draftImages.push({ name: img.file.name, type: img.file.type, size: img.file.size, file: img.file });
       }
-      if (draftImages.length > 0) saveDraftImages(draftImages.map((d: any) => d as File));
+      if (draftImages.length > 0) saveDraftImages(draftImages.map(d => d.file));
     }, 1500);
     return () => clearTimeout(timer);
   }, [images, hasAnyData, saveDraftImages]);
@@ -625,7 +624,28 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const handleSubmit = async () => {
     if (isSubmitting) return;
     if (!canSubmit) { toast.error('Please fill in all required fields and wait for image uploads'); return; }
+
+    // Step 1 — Verify Supabase session before any processing
     if (!requireAuth('/post-ad')) return;
+    const { data: { user: sessionUser } } = await supabase.auth.getUser();
+    if (!sessionUser?.id) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        toast.error('Please login to post an ad.');
+        requireAuth('/post-ad');
+        return;
+      }
+    }
+
+    // Step 2 — Validate all files are actual File/Blob objects
+    for (const img of images) {
+      const f = img.file;
+      const fileName = f?.name || 'unknown';
+      if (f && !(f instanceof Blob)) {
+        toast.error(`Image "${fileName}" is not a valid file. Please re-select it.`);
+        return;
+      }
+    }
 
     const pendingUploads = images.filter(i => i.status !== 'completed');
     if (pendingUploads.length > 0) { toast.error(`Please wait for all image uploads (${pendingUploads.length} pending).`); return; }
@@ -652,6 +672,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       formData.append('whatsapp', sameAsPhone ? phone : (whatsapp || ''));
       if (Object.keys(attributes).length > 0) formData.append('attributes', JSON.stringify(attributes));
 
+      // Step 3 — Attach image URLs (already uploaded) or raw files
       const uploadedImages = images.filter(i => i.uploadedUrl);
       if (uploadedImages.length > 0) {
         formData.append('image_urls', JSON.stringify(uploadedImages.map(i => ({
@@ -660,10 +681,11 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
           image_hash: i.imageHash || null, storage_path: i.storagePath || '',
         }))));
       } else {
-        images.forEach((img) => formData.append('images[]', img.file));
+        images.forEach((img) => { if (img.file instanceof Blob) formData.append('images[]', img.file); });
       }
       formData.append('_idempotency_key', idempotencyKey);
 
+      // Step 4 — Submit
       setSubmissionStep('publishing');
       const response = await adsApi.create(formData);
       if (!response?.data?.data?.id && !(response as any)?.data?.id) throw new Error((response as any)?.statusText || 'Failed to post ad');
@@ -708,23 +730,35 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     } catch (err: any) {
       setSubmissionStep(null);
       setIsSubmitting(false);
-      let errorMsg = 'Failed to post ad. Please try again.';
-      const duration = err.response?.duration || err.duration;
-      const durationHint = duration ? ` (${Math.round(duration)}ms elapsed)` : '';
-      console.error('Post ad error:', err);
-      console.error('Full error response:', JSON.stringify(err.response?.data, null, 2));
-      if (err.response?.data?.errors) {
+      console.error('[PostAdForm] handleSubmit error:', err);
+
+      let errorMsg: string;
+      if (err instanceof Error) {
+        // Thrown Error from adsApi.create() — trust the message
+        errorMsg = err.message || 'Failed to post ad. Please try again.';
+      } else if (err.response?.data?.errors) {
         const firstError = Object.values(err.response.data.errors)[0];
-        if (Array.isArray(firstError) && firstError[0]) errorMsg = firstError[0] + durationHint;
-      } else if (err.response?.data?.message) errorMsg = err.response.data.message + durationHint;
-      else if (err.response?.data?.error) errorMsg = err.response.data.error + durationHint;
-      else if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') errorMsg = 'Cannot connect to server. Please ensure the backend is running.';
-      else if (err.code === 'ECONNABORTED') errorMsg = 'Request timed out. Please try again.';
-      else if (err.response?.status === 401) { errorMsg = 'Please login to post an ad.'; requireAuth('/post-ad'); }
-      else if (err.response?.status === 422) errorMsg = 'Validation error: Please check your input.';
-      else if (err.response?.status === 429) errorMsg = 'Posting too frequently. Please wait.';
-      else if (err.response?.status === 500) errorMsg = 'Server error. Please try again later.';
-      else if (err.message) errorMsg = err.message + durationHint;
+        errorMsg = Array.isArray(firstError) && firstError[0] ? firstError[0] : 'Validation error';
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMsg = err.response.data.error;
+      } else if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        errorMsg = 'Cannot connect to server. Please ensure the backend is running.';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMsg = 'Request timed out. Please try again.';
+      } else if (err.response?.status === 401) {
+        errorMsg = 'Your session has expired. Please login again.';
+        requireAuth('/post-ad');
+      } else if (err.response?.status === 422) {
+        errorMsg = 'Validation error: Please check your input.';
+      } else if (err.response?.status === 429) {
+        errorMsg = 'Posting too frequently. Please wait.';
+      } else if (err.response?.status === 500) {
+        errorMsg = 'Server error. Please try again later.';
+      } else {
+        errorMsg = err?.message || 'Failed to post ad. Please try again.';
+      }
       toast.error(errorMsg);
     }
   };

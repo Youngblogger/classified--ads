@@ -8,6 +8,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils';
 import { notificationsApi } from '@/lib/api';
+import {
+  syncAllCaches,
+  syncAdListCaches,
+  broadcastCacheInvalidation,
+  invalidateSwrCache,
+} from '@/lib/cache-sync';
 import type { BoostPlan, WalletBalanceData } from '@/types';
 import {
   fetchBoostPlans,
@@ -180,8 +186,15 @@ export default function BoostAdModal({
         }
 
         queryClient.invalidateQueries({ queryKey: ['wallet'] });
-        queryClient.invalidateQueries({ queryKey: ['ads'] });
         queryClient.invalidateQueries({ queryKey: ['boost', 'status'] });
+        syncAllCaches(queryClient);
+        syncAdListCaches(queryClient);
+        broadcastCacheInvalidation();
+        invalidateSwrCache(/^ads/);
+        invalidateSwrCache('homepage_data');
+        invalidateSwrCache('boosted_ads_listing');
+        invalidateSwrCache(/^search/);
+        invalidateSwrCache('search/trending');
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('ilist:cache-invalidate'));
           window.dispatchEvent(new CustomEvent('ilist:boost-activated', {

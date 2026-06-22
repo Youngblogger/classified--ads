@@ -416,22 +416,32 @@ export const adsApi = {
   },
 
   create: async (formData: FormData) => {
-    const userId = await ensureUserId();
-    if (!userId) return sbError({ message: 'Not authenticated' });
+    // Must have a valid Supabase session — store ID can be a Laravel integer
+    // which would fail RLS (auth.uid() = user_id).
+    let supabaseUuid: string | null = null;
 
-    // Check Supabase session is valid before attempting insert
-    try {
+    // 1) Validate with server — getUser() validates the JWT against the API
+    const { data: { user: supaUser }, error: supaErr } = await supabase.auth.getUser();
+    if (supaUser?.id) {
+      supabaseUuid = supaUser.id;
+    } else if (supaErr) {
+      // getUser() hit a network/server error — try session from local storage
+      // as a best-effort fallback (the JWT may still be accepted by the API)
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn('[AdsApi] No Supabase session — user may need to re-login');
-      }
-    } catch {}
+      supabaseUuid = session?.user?.id ?? null;
+    }
+
+    if (!supabaseUuid) {
+      throw new Error(supaErr
+        ? `Authentication server unreachable. Please try again.`
+        : 'Your session has expired. Please login again.');
+    }
 
     let adData: any = null;
     let adImages: any[] = [];
 
     // Build listing data from form (send all form fields as-is for Supabase compatibility)
-    const listing: any = { user_id: userId, status: 'active' };
+    const listing: any = { user_id: supabaseUuid, status: 'active' };
     for (const [key, value] of Array.from(formData.entries())) {
       if (key !== 'images[]' && key !== 'image' && key !== 'status') {
         listing[key] = value;
@@ -456,13 +466,6 @@ export const adsApi = {
         listing.specifications = listing.attributes;
       }
       delete listing.attributes;
-    }
-
-    // Use Supabase auth UUID for user_id (store ID is a Laravel integer)
-    const storeUser = useAuthStore.getState().user;
-    const supabaseUuid = storeUser?.supabase_user_id || (await supabase.auth.getUser().then(r => r.data?.user?.id).catch(() => null));
-    if (supabaseUuid) {
-      listing.user_id = supabaseUuid;
     }
 
     // Resolve integer category/subcategory IDs to Supabase UUIDs
@@ -516,7 +519,7 @@ export const adsApi = {
         listing.metadata = metadata;
       } catch (e: any) {
         console.error('[adsApi.create] UUID resolution failed:', e.message);
-        return sbError({ message: `Category mapping failed: ${e.message}` });
+        throw new Error(`Category mapping failed: ${e.message}`);
       }
     }
 
@@ -543,14 +546,14 @@ export const adsApi = {
         adData = data;
       } else if (error) {
         console.error('[adsApi.create] Supabase insert error:', error);
-        return sbError({ message: `Supabase error: ${error.message}` });
+        throw error;
       }
     } catch (e: any) {
       console.error('[adsApi.create] Supabase insert failed:', e);
-      return sbError({ message: `Failed to create listing: ${e?.message || 'Unknown error'}` });
+      throw e;
     }
 
-    if (!adData) return sbError({ message: 'Failed to create listing in Supabase' });
+    if (!adData) throw new Error('Failed to create listing in Supabase');
 
     // Process images
     const imageUrlsStr = formData.get('image_urls');

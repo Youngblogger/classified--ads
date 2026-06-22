@@ -40,6 +40,9 @@ interface PostAdDraft {
 }
 
 function fileToBase64(file: File): Promise<string> {
+  if (!(file instanceof Blob)) {
+    return Promise.reject(new TypeError(`fileToBase64: expected File/Blob, got ${typeof file}`));
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);

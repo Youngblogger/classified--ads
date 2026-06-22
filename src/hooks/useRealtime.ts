@@ -288,6 +288,69 @@ export function useRealtimeNotifications({ userId, onNotification }: UseRealtime
   });
 }
 
+// ── Boosted Listings Realtime ────────────────────────────────
+// Boost data lives in the `boosted_listings` table, which is separate from
+// `listings`.  A change in `boosted_listings` (new boost, boost expiry,
+// boost update) means the ad's boost status has changed.  Since we cannot
+// get the full ad row from this event, we invalidate all ad caches to force
+// a fresh fetch from the backend where `AdListResource` joins boost data.
+function extractBoostUpdates(row: any): Record<string, any> {
+  if (!row) return {};
+  return {
+    is_boosted: row.status === 'active',
+    boost_type: row.boost_type,
+    boost_status: row.status,
+    boost_expires_at: row.end_time || null,
+    featured_until: row.end_time || null,
+  };
+}
+
+export function useBoostedListingsRealtime() {
+  const queryClient = useQueryClient();
+
+  const handleInsert = useCallback((payload: RealtimePostgresChangesPayload<any>) => {
+    const row = payload.new as any;
+    const adId = row.ad_id as string;
+    if (!adId || adId === 'NaN') return;
+    const updates = extractBoostUpdates(row);
+    updateAdInSwrCaches(adId, updates);
+    updateAdInListCaches(queryClient, adId, updates);
+    // Force a full SWR revalidation to pick up any backend-side changes
+    invalidateSwrCache(/^ads/);
+    invalidateSwrCache(/^search/);
+  }, [queryClient]);
+
+  const handleUpdate = useCallback((payload: RealtimePostgresChangesPayload<any>) => {
+    const row = payload.new as any;
+    const adId = row.ad_id as string;
+    if (!adId || adId === 'NaN') return;
+    const updates = extractBoostUpdates(row);
+    updateAdInSwrCaches(adId, updates);
+    updateAdInListCaches(queryClient, adId, updates);
+    invalidateSwrCache(/^ads/);
+    invalidateSwrCache(/^search/);
+  }, [queryClient]);
+
+  const handleDelete = useCallback((payload: RealtimePostgresChangesPayload<any>) => {
+    const row = payload.old as any;
+    const adId = row.ad_id as string;
+    if (!adId || adId === 'NaN') return;
+    const updates = { is_boosted: false, boost_type: null, boost_status: null, boost_expires_at: null };
+    updateAdInSwrCaches(adId, updates);
+    updateAdInListCaches(queryClient, adId, updates);
+    invalidateSwrCache(/^ads/);
+    invalidateSwrCache(/^search/);
+  }, [queryClient]);
+
+  useRealtimeSubscription({
+    table: 'boosted_listings',
+    event: '*',
+    onInsert: handleInsert,
+    onUpdate: handleUpdate,
+    onDelete: handleDelete,
+  });
+}
+
 export function cleanupAllRealtimeChannels(): void {
   activeChannels.forEach((channel, key) => {
     supabase.removeChannel(channel);

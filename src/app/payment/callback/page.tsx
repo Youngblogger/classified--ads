@@ -3,10 +3,15 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, CheckCircle, XCircle, Zap, Home, ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
-import { mutate } from 'swr';
 import { useQueryClient } from '@tanstack/react-query';
-import { adKeys } from '@/lib/query-keys';
 import { verifyPayment } from '@/services/boost-service';
+import {
+  syncAllCaches,
+  syncAdListCaches,
+  broadcastCacheInvalidation,
+  notifyCacheInvalidation,
+  invalidateSwrCache,
+} from '@/lib/cache-sync';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import PendingPaymentTimer from '@/components/ui/PendingPaymentTimer';
@@ -59,9 +64,15 @@ function PaymentCallbackContent() {
           setMessage('Payment confirmed successfully!');
           if (paymentType === 'boost') {
             toast.success('Boost activated successfully!');
-            mutate('boosted_ads_listing');
-            mutate('homepage_data');
-            queryClient.invalidateQueries({ queryKey: adKeys.all });
+            syncAllCaches(queryClient);
+            syncAdListCaches(queryClient);
+            broadcastCacheInvalidation();
+            notifyCacheInvalidation();
+            invalidateSwrCache(/^ads/);
+            invalidateSwrCache('homepage_data');
+            invalidateSwrCache('boosted_ads_listing');
+            invalidateSwrCache(/^search/);
+            invalidateSwrCache('search/trending');
           } else {
             toast.success('Payment successful!');
           }

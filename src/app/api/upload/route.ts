@@ -5,6 +5,21 @@ import { getServiceRoleClient } from '@/lib/supabase';
 import { applyWatermarkSharp, applyLogoWatermarkSharp } from '@/lib/watermark-sharp';
 import type { WatermarkConfig } from '@/lib/watermark-sharp';
 
+interface WatermarkRow {
+  enabled: boolean;
+  type: string;
+  text: string;
+  logo_url: string | null;
+  text_color: string;
+  position: string;
+  opacity: number;
+  font_size: number;
+  font_family: string;
+  margin: number;
+  rotation: number;
+  show_ad_id: boolean;
+}
+
 const uploadLimiter = new RateLimiter({ windowMs: 60000, max: 20 });
 
 export const dynamic = 'force-dynamic';
@@ -42,20 +57,21 @@ export async function POST(request: NextRequest) {
         .select('*')
         .eq('id', 'default')
         .single();
-      if (data?.enabled) {
+      const wmRow = data as WatermarkRow | null;
+      if (wmRow?.enabled) {
         watermarkConfig = {
           enabled: true,
-          type: data.type,
-          text: data.text,
-          logo_url: data.logo_url,
-          text_color: data.text_color,
-          position: data.position,
-          opacity: data.opacity,
-          font_size: data.font_size,
-          font_family: data.font_family,
-          margin: data.margin,
-          rotation: data.rotation,
-          show_ad_id: data.show_ad_id,
+          type: wmRow.type,
+          text: wmRow.text,
+          logo_url: wmRow.logo_url,
+          text_color: wmRow.text_color,
+          position: wmRow.position,
+          opacity: wmRow.opacity,
+          font_size: wmRow.font_size,
+          font_family: wmRow.font_family,
+          margin: wmRow.margin,
+          rotation: wmRow.rotation,
+          show_ad_id: wmRow.show_ad_id,
         };
       }
     } catch {
@@ -65,7 +81,7 @@ export async function POST(request: NextRequest) {
     const fetchLogoFn = async (url: string) => {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Failed to fetch logo: ${res.status}`);
-      return Buffer.from(await res.arrayBuffer());
+      return Buffer.from(await res.arrayBuffer()) as unknown as Buffer;
     };
 
     const uploadPromises = files.map(async (file) => {
@@ -77,7 +93,7 @@ export async function POST(request: NextRequest) {
         throw new Error(`File ${file.name} exceeds 10MB limit`);
       }
 
-      let buffer = Buffer.from(await file.arrayBuffer());
+      let buffer = Buffer.from(await file.arrayBuffer()) as unknown as Buffer;
 
       // Apply watermark server-side BEFORE upload — irreversible after storage
       if (watermarkConfig) {

@@ -96,7 +96,12 @@ export default function GoogleOneTap() {
           const res = await http.post(`${apiUrl}/auth/google`, { credential: response.credential });
 
           if (res.status !== 200) throw new Error(res.data?.message || 'Google login failed');
-          login(res.data.user, res.data.token);
+
+          // Populate supabase_user_id so listing creation etc. can use it
+          // instead of the Laravel integer ID stored in res.data.user.id
+          const supabaseUserId = (await supabase.auth.getUser().then(r => r.data?.user?.id).catch(() => null));
+          const user = { ...res.data.user, supabase_user_id: supabaseUserId || undefined };
+          login(user, res.data.token);
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : 'Google login failed';
           console.error('Google One Tap error:', msg);

@@ -110,7 +110,20 @@ function AdCardComponent({ ad, priority = false }: AdCardProps) {
 
 const AdCard = memo(AdCardComponent, (prevProps, nextProps) => {
   if (!prevProps.ad || !nextProps.ad) return false;
-  return prevProps.ad.id === nextProps.ad.id && prevProps.priority === nextProps.priority;
+  const pa = prevProps.ad as any;
+  const na = nextProps.ad as any;
+  if (prevProps.ad.id !== nextProps.ad.id) return false;
+  if (prevProps.priority !== nextProps.priority) return false;
+  if (pa.is_boosted !== na.is_boosted) return false;
+  if (pa.boost_type !== na.boost_type) return false;
+  if (pa.boost_status !== na.boost_status) return false;
+  if (pa.boost_expires_at !== na.boost_expires_at) return false;
+  if (pa.is_featured !== na.is_featured) return false;
+  if (prevProps.ad.status !== nextProps.ad.status) return false;
+  if (prevProps.ad.price !== nextProps.ad.price) return false;
+  if (prevProps.ad.title !== nextProps.ad.title) return false;
+  if (pa.image_url !== na.image_url) return false;
+  return true;
 });
 
 AdCard.displayName = 'AdCard';

@@ -635,3 +635,45 @@ export function useSimilarAds(adId: string | number | null, limit: number = 8) {
 
   return { similarAds: data?.data || [], isLoading, isError: !!error };
 }
+
+export function useRecommendations(limit: number = 10) {
+  const { data: homepageData, error: hpError, isLoading: hpLoading } = useSWR(
+    'homepage_data',
+    fetchFromLaravel,
+    { revalidateOnFocus: false, dedupingInterval: 60000, errorRetryCount: 2 }
+  );
+
+  const { data: trendingData, error: trError, isLoading: trLoading } = useSWR(
+    'search/trending',
+    fetchFromLaravel,
+    { revalidateOnFocus: false, dedupingInterval: 120000, errorRetryCount: 2 }
+  );
+
+  const recommendations = useMemo(() => {
+    const seen = new Set<number | string>();
+    const result: any[] = [];
+
+    const pushUnique = (items: any[]) => {
+      if (!items || !Array.isArray(items)) return;
+      for (const item of items) {
+        if (!item || item.id == null) continue;
+        if (seen.has(item.id)) continue;
+        seen.add(item.id);
+        result.push(item);
+      }
+    };
+
+    // Priority order: boosted > featured > trending > latest
+    pushUnique(homepageData?.boosted);
+    pushUnique(homepageData?.featured);
+    pushUnique(trendingData?.data);
+    pushUnique(homepageData?.latest);
+
+    return result.slice(0, limit);
+  }, [homepageData, trendingData, limit]);
+
+  const isLoading = hpLoading || trLoading;
+  const isError = !!hpError || !!trError;
+
+  return { recommendations, isLoading, isError };
+}

@@ -140,7 +140,7 @@ function addWatermarkToCloudinaryUrl(url: string, _adId?: number): string {
     const marker = '/image/upload/';
     const baseUrl = url.slice(0, url.indexOf(marker) + marker.length);
 
-    const overlay = `l_${CLOUDINARY_WATERMARK_ID},w_0.15,o_70,g_south_east,x_10,y_10,fl_layer_apply`;
+    const overlay = `l_${CLOUDINARY_WATERMARK_ID.replace(/\//g, ':')},w_0.15,o_70,g_south_east,x_10,y_10,fl_layer_apply`;
 
     const transformsStr = parsed.transforms.length > 0 ? parsed.transforms.join('/') + '/' : '';
     const versionStr = parsed.version ? parsed.version + '/' : '';

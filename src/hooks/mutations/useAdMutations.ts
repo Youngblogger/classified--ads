@@ -9,6 +9,7 @@ import {
   syncAdDetailCache,
   syncAdminCaches,
   updateAdInListCaches,
+  updateAdInSwrCaches,
   removeAdFromListCaches,
   invalidateSwrCache,
   invalidateSwrExact,
@@ -389,18 +390,33 @@ export function useBoostAd() {
   return useMutation({
     mutationFn: ({ adId, boost_type, duration_days }: { adId: number; boost_type: string; duration_days: number }) =>
       growthApi.boostAd(adId, { boost_type, duration_days }),
+    onMutate: async ({ adId, boost_type }) => {
+      await queryClient.cancelQueries({ queryKey: adKeys.all });
+      const snapshot = queryClient.getQueriesData({ queryKey: adKeys.all });
+      updateAdInListCaches(queryClient, adId, { is_boosted: true, boost_type, boost_status: 'active' });
+      return { snapshot };
+    },
     onSuccess: () => {
       toast.success('Ad boosted');
       syncAllCaches(queryClient);
+      syncAdListCaches(queryClient);
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       queryClient.invalidateQueries({ queryKey: ['boost', 'status'] });
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
+      if (context?.snapshot) {
+        for (const [key, data] of context.snapshot) {
+          queryClient.setQueryData(key, data);
+        }
+      }
       handleMutationError(error);
     },
     onSettled: () => {
       invalidateSwrExact('boosted_ads_listing');
       invalidateSwrCache('homepage_data');
+      invalidateSwrCache(/^ads/);
+      invalidateSwrCache(/^search/);
+      invalidateSwrCache('search/trending');
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('ilist:cache-invalidate'));
         window.dispatchEvent(new CustomEvent('ilist:boost-activated'));

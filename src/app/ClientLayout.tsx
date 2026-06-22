@@ -14,6 +14,8 @@ import Preloader from '@/components/ui/Preloader';
 import AuthProvider from '@/components/providers/AuthProvider';
 import BottomNav from '@/components/ui/BottomNav';
 import { useUIStore } from '@/lib/store';
+import { logWatermarkDiagnostic } from '@/lib/watermark-diagnostics';
+import RealtimeBootstrapper from '@/components/providers/RealtimeBootstrapper';
 
 
 interface ClientLayoutProps {
@@ -26,6 +28,20 @@ function ClientLayoutInner({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     patchFedCmWidgetMode();
+    logWatermarkDiagnostic();
+
+    const onRejection = (event: PromiseRejectionEvent) => {
+      console.error('[Unhandled Promise Rejection]', event.reason);
+    };
+    const onError = (event: ErrorEvent) => {
+      console.error('[Uncaught Error]', event.error || event.message);
+    };
+    window.addEventListener('unhandledrejection', onRejection);
+    window.addEventListener('error', onError);
+    return () => {
+      window.removeEventListener('unhandledrejection', onRejection);
+      window.removeEventListener('error', onError);
+    };
   }, []);
 
   // Restore redirect from middleware query params (backup for localStorage)
@@ -57,6 +73,7 @@ function ClientLayoutInner({ children }: { children: React.ReactNode }) {
         <AuthProvider>
           <GoogleOneTap />
           <Preloader />
+          <RealtimeBootstrapper />
           {children}
           <div className="md:hidden h-12" />
           <BottomNav />
