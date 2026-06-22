@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { adminApi } from '@/lib/api';
 import { checkWatermarkConfiguration } from '@/lib/watermark-diagnostics';
+import { clearWatermarkCache } from '@/lib/watermark';
 import toast from 'react-hot-toast';
 import { Loader2, Upload, RefreshCw, Eye, EyeOff, Shield, Type, Image } from 'lucide-react';
 
@@ -73,14 +74,19 @@ export default function WatermarkSettingsPage() {
     setLoading(true);
     try {
       const result = await adminApi.getWatermarkSettings();
-      if (result.data) {
-        const apiData = result.data as any;
+      const apiData = result.data as any;
+      console.log('[WatermarkPage] loadSettings result:', result);
+      console.log('[WatermarkPage] apiData:', apiData);
+      if (apiData && typeof apiData === 'object' && 'enabled' in apiData) {
+        console.log('[WatermarkPage] Merging apiData into state, enabled:', apiData.enabled);
         setSettings((prev) => ({
           ...prev,
           ...apiData,
           enabled: apiData.enabled ?? prev.enabled,
           type: apiData.type || prev.type,
         }));
+      } else {
+        console.warn('[WatermarkPage] No valid apiData from getWatermarkSettings, keeping defaults');
       }
     } catch {
       toast.error('Failed to load watermark settings');
@@ -94,9 +100,12 @@ export default function WatermarkSettingsPage() {
     try {
       const payload = { ...settings };
       delete (payload as any).logo_url;
+      console.log('[WatermarkPage] Saving payload:', payload);
       const result = await adminApi.updateWatermarkSettings(payload);
+      console.log('[WatermarkPage] Save result:', result);
       if (!result.error) {
         toast.success('Watermark settings saved');
+        clearWatermarkCache();
         if (settings.enabled) {
           checkWatermarkConfiguration();
         }

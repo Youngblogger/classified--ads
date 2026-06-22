@@ -2594,12 +2594,12 @@ export const adminApi = {
       const res = await fetch('/api/admin/watermark');
       if (res.ok) {
         const json = await res.json();
-        if (json?.data) return sbResponse({ data: json.data });
+        if (json?.data) return sbResponse(json.data);
       }
     } catch {}
     try {
       const res: any = await adminGet(`/${STEALTH_PREFIX}/watermark`);
-      return sbResponse({ data: res?.data || {} });
+      return sbResponse(res?.data?.data || res?.data || {});
     } catch (e: any) { return sbError(e); }
   },
   updateWatermarkSettings: async (data: any) => {
@@ -2611,12 +2611,12 @@ export const adminApi = {
       });
       if (res.ok) {
         const json = await res.json();
-        return sbResponse({ data: json?.data || { message: 'Updated' } });
+        return sbResponse(json?.data || { message: 'Updated' });
       }
     } catch {}
     try {
       const res: any = await adminPut(`/${STEALTH_PREFIX}/watermark`, data);
-      return sbResponse({ data: res?.data || { message: 'Updated' } });
+      return sbResponse(res?.data?.data || res?.data || { message: 'Updated' });
     } catch (e: any) { return sbError(e); }
   },
   uploadWatermarkLogo: async (file: File) => {
