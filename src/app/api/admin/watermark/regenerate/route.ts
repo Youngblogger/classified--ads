@@ -1,36 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase as anonSupabase, getServiceRoleClient } from '@/lib/supabase';
 import { cloudinary } from '@/lib/cloudinary';
 import { resolveFontFamily } from '@/lib/watermark-defaults';
+import type { WatermarkConfig } from '@/lib/watermark-defaults';
+import { getActiveWatermarkSettings, getSb } from '@/lib/watermark-db';
 import { RateLimiter, getClientIp } from '@/lib/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
-interface WatermarkConfig {
-  enabled: boolean;
-  type: string;
-  text: string;
-  logo_url: string | null;
-  text_color: string;
-  position: string;
-  opacity: number;
-  font_size: number;
-  font_family: string;
-  margin: number;
-  rotation: number;
-  logo_scale: number;
-  show_ad_id: boolean;
-}
-
 const regenerateLimiter = new RateLimiter({ windowMs: 60000, max: 3 });
-
-function getSb() {
-  try {
-    return getServiceRoleClient();
-  } catch {
-    return anonSupabase;
-  }
-}
 
 function extractPublicId(url: string): string | null {
   const marker = '/image/upload/';
@@ -157,24 +134,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const sb = getSb() as any;
-
-    const { data: wmData, error: wmError } = await sb
-      .from('watermark_settings')
-      .select('*')
-      .eq('id', 'default')
-      .single();
-
-    if (wmError || !wmData?.enabled) {
-      console.log('[Watermark Regenerate] Watermark disabled or no settings found');
+    const wm = await getActiveWatermarkSettings();
+    if (!wm?.enabled) {
+      console.log('[Watermark Regenerate] Watermark disabled or no settings — no regeneration needed');
       return NextResponse.json({ message: 'Watermark is disabled. No regeneration needed.' });
     }
-
-    const wm = wmData as WatermarkConfig;
-    console.log('[Watermark Regenerate] Watermark config loaded:', JSON.stringify({
-      type: wm.type, enabled: wm.enabled, logo_scale: wm.logo_scale,
-      position: wm.position, opacity: wm.opacity,
-    }));
+    console.log('[Watermark Regenerate] WATERMARK_SETTINGS_USED:', JSON.stringify(wm));
+    const sb = getSb() as any;
 
     const { data: images, error } = await sb
       .from('listing_images')

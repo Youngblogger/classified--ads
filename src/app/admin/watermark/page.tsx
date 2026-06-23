@@ -72,10 +72,8 @@ export default function WatermarkSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = { ...settings };
-      delete (payload as any).logo_url;
-      console.log('[WatermarkPage] Saving payload:', payload);
-      const result = await adminApi.updateWatermarkSettings(payload);
+      console.log('[WatermarkPage] Saving settings:', settings);
+      const result = await adminApi.updateWatermarkSettings(settings);
       console.log('[WatermarkPage] Save result:', result);
       if (!result.error) {
         toast.success('Watermark settings saved');

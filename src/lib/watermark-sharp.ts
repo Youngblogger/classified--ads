@@ -80,10 +80,13 @@ export async function applyWatermarkSharp(
 
   const sharp = await getSharp();
   const meta = await sharp(buffer).metadata();
-  const w = meta.width || 800;
-  const h = meta.height || 600;
+  if (!meta.width || !meta.height) {
+    throw new Error(`Cannot watermark: image metadata missing width/height (got ${meta.width}x${meta.height})`);
+  }
+  const w = meta.width;
+  const h = meta.height;
 
-  let text = wm.text;
+  let text = wm.text || '';
   if (wm.show_ad_id && adId) {
     text += ` | Ad ID: ${adId}`;
   }
@@ -115,14 +118,17 @@ export async function applyLogoWatermarkSharp(
 
   const sharp = await getSharp();
   const meta = await sharp(buffer).metadata();
-  const w = meta.width || 800;
-  const h = meta.height || 600;
+  if (!meta.width || !meta.height) {
+    throw new Error(`Cannot watermark logo: image metadata missing width/height (got ${meta.width}x${meta.height})`);
+  }
+  const w = meta.width;
+  const h = meta.height;
 
   const logoBuffer = await fetchLogo(wm.logo_url);
   const logoMeta = await sharp(logoBuffer).metadata();
   const logoW = logoMeta.width || 1;
   const logoH = logoMeta.height || 1;
-  const scale = wm.logo_scale ?? 0.15;
+  const scale = wm.logo_scale;
   const maxLogoW = Math.round(w * scale);
   const maxLogoH = Math.round(h * scale);
   const logoResized = (logoW > maxLogoW || logoH > maxLogoH)

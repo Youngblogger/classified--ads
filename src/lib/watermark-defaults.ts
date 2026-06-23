@@ -110,5 +110,6 @@ const FONT_MAP: Record<string, string> = {
 };
 
 export function resolveFontFamily(value: string): string {
-  return FONT_MAP[value] || value.replace(/_/g, ' ') || 'Arial';
+  if (!value) return '';
+  return FONT_MAP[value] || value.replace(/_/g, ' ');
 }

@@ -1,35 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary, getOptimizedImageUrl } from '@/lib/cloudinary';
 import { RateLimiter, getClientIp } from '@/lib/rate-limiter';
-import { supabase as anonSupabase, getServiceRoleClient } from '@/lib/supabase';
 import { applyWatermarkSharp, applyLogoWatermarkSharp } from '@/lib/watermark-sharp';
+import { getActiveWatermarkSettings } from '@/lib/watermark-db';
 import type { WatermarkConfig } from '@/lib/watermark-defaults';
 
-interface WatermarkRow {
-  enabled: boolean;
-  type: 'text' | 'logo';
-  text: string;
-  logo_url: string | null;
-  text_color: string;
-  position: string;
-  opacity: number;
-  font_size: number;
-  font_family: string;
-  margin: number;
-  rotation: number;
-  logo_scale: number;
-  show_ad_id: boolean;
-}
-
 const uploadLimiter = new RateLimiter({ windowMs: 60000, max: 20 });
-
-function getSb() {
-  try {
-    return getServiceRoleClient();
-  } catch {
-    return anonSupabase;
-  }
-}
 
 export const dynamic = 'force-dynamic';
 
@@ -57,41 +33,28 @@ export async function POST(request: NextRequest) {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const maxSize = 10 * 1024 * 1024;
 
-    // Fetch watermark settings once (server-side, bypasses RLS)
+    // Fetch watermark settings — always fresh from DB, never stale
     let watermarkConfig: WatermarkConfig | null = null;
-    try {
-      const sb = getSb() as any;
-      const { data, error } = await sb
-        .from('watermark_settings')
-        .select('*')
-        .eq('id', 'default')
-        .single();
-      if (error) {
-        console.warn('[Upload] Watermark settings DB error:', error.code, error.message);
-      }
-      const wmRow = data as WatermarkRow | null;
-      if (wmRow?.enabled) {
-        watermarkConfig = {
-          enabled: true,
-          type: wmRow.type,
-          text: wmRow.text,
-          logo_url: wmRow.logo_url,
-          text_color: wmRow.text_color,
-          position: wmRow.position,
-          opacity: wmRow.opacity,
-          font_size: wmRow.font_size,
-          font_family: wmRow.font_family,
-          margin: wmRow.margin,
-          rotation: wmRow.rotation,
-          logo_scale: wmRow.logo_scale ?? 0.15,
-          show_ad_id: wmRow.show_ad_id,
-        };
-        console.log(`[Upload] Watermark settings loaded: type=${wmRow.type}, enabled=true, logo_url=${wmRow.logo_url ? 'set' : 'null'}`);
-      } else {
-        console.log(`[Upload] Watermark settings: enabled=${wmRow?.enabled ?? 'N/A'}, skipping Sharp compositing`);
-      }
-    } catch (e) {
-      console.warn('[Upload] Watermark settings unavailable — uploading originals without watermark:', (e as Error)?.message || e);
+    const wmSettings = await getActiveWatermarkSettings();
+    if (wmSettings?.enabled) {
+      watermarkConfig = {
+        enabled: true,
+        type: wmSettings.type,
+        text: wmSettings.text,
+        logo_url: wmSettings.logo_url,
+        text_color: wmSettings.text_color,
+        position: wmSettings.position,
+        opacity: wmSettings.opacity,
+        font_size: wmSettings.font_size,
+        font_family: wmSettings.font_family,
+        margin: wmSettings.margin,
+        rotation: wmSettings.rotation,
+        logo_scale: wmSettings.logo_scale,
+        show_ad_id: wmSettings.show_ad_id,
+      };
+      console.log('[Upload] WATERMARK_SETTINGS_USED:', JSON.stringify(watermarkConfig));
+    } else {
+      console.log('[Upload] Watermark disabled or no settings — skipping Sharp compositing');
     }
 
     const fetchLogoFn = async (url: string) => {
