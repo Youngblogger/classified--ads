@@ -1,29 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase as anonSupabase, getServiceRoleClient } from '@/lib/supabase';
 import { uploadToCloudinary } from '@/lib/cloudinary';
+import { DEFAULT_WATERMARK_SETTINGS } from '@/lib/watermark-defaults';
 
 export const dynamic = 'force-dynamic';
-
-const DEFAULT_SETTINGS = {
-  enabled: false,
-  type: 'text',
-  text: 'iList',
-  logo_url: null,
-  text_color: '#FFFFFF',
-  shadow_color: '#000000',
-  shadow_opacity: 50,
-  position: 'bottom_right',
-  opacity: 80,
-  font_size: 36,
-  font_family: 'arial',
-  font_path: null,
-  margin: 20,
-  rotation: 0,
-  show_ad_id: true,
-  apply_to_original: true,
-  apply_to_medium: true,
-  apply_to_thumbnail: false,
-};
 
 function getSb() {
   try {
@@ -44,16 +24,16 @@ export async function GET() {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json({ data: DEFAULT_SETTINGS });
+        return NextResponse.json({ data: DEFAULT_WATERMARK_SETTINGS });
       }
       console.error('[Watermark API] Fetch error:', error);
-      return NextResponse.json({ data: DEFAULT_SETTINGS });
+      return NextResponse.json({ error: 'Failed to fetch watermark settings' }, { status: 500 });
     }
 
     return NextResponse.json({ data });
   } catch (e) {
     console.error('[Watermark API] GET error:', e);
-    return NextResponse.json({ data: DEFAULT_SETTINGS });
+    return NextResponse.json({ error: 'Failed to fetch watermark settings' }, { status: 500 });
   }
 }
 
@@ -73,10 +53,11 @@ export async function PUT(request: NextRequest) {
       position: String(body.position || 'bottom_right'),
       opacity: Number(body.opacity) ?? 80,
       font_size: Number(body.font_size) || 36,
-      font_family: body.font_family || 'arial',
+      font_family: String(body.font_family || 'Arial'),
       font_path: body.font_path || null,
       margin: Number(body.margin) || 20,
       rotation: Number(body.rotation) || 0,
+      logo_scale: Number(body.logo_scale) || 0.15,
       show_ad_id: Boolean(body.show_ad_id),
       apply_to_original: Boolean(body.apply_to_original),
       apply_to_medium: Boolean(body.apply_to_medium),
@@ -122,6 +103,7 @@ export async function POST(request: NextRequest) {
     const result = await uploadToCloudinary(buffer, {
       folder: 'watermarks',
       public_id: publicId,
+      transformation: [],
     });
 
     return NextResponse.json({

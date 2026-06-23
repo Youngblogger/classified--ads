@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
@@ -22,6 +22,7 @@ import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 import toast from 'react-hot-toast';
 import { formatPrice, getAdGalleryUrls, getAdImageUrl, FALLBACK_IMAGE } from '@/lib/utils';
+import { subscribeWatermark } from '@/lib/image';
 import { normalizeAd } from '@/lib/normalize-ad';
 import type { NormalizedAd } from '@/lib/normalize-ad';
 import { favoritesApi } from '@/lib/api';
@@ -214,7 +215,9 @@ export default function AdDetailPage() {
     }
   }, []);
 
-  const images = useMemo(() => getImageUrls(ad), [ad]);
+  const [, forceRender] = useState(0);
+  useEffect(() => subscribeWatermark(() => forceRender(n => n + 1)), []);
+  const images = getImageUrls(ad);
   const showArrows = images.length > 1;
 
   const currentImageUrl = currentImageError ? FALLBACK_IMAGE : (images[currentImageIndex] || images[0] || FALLBACK_IMAGE);

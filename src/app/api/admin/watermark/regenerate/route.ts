@@ -1,6 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase as anonSupabase, getServiceRoleClient } from '@/lib/supabase';
 import { cloudinary } from '@/lib/cloudinary';
+import { resolveFontFamily } from '@/lib/watermark-defaults';
+import { RateLimiter, getClientIp } from '@/lib/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,32 +18,11 @@ interface WatermarkConfig {
   font_family: string;
   margin: number;
   rotation: number;
+  logo_scale: number;
   show_ad_id: boolean;
 }
 
-const FONT_FAMILY_MAP: Record<string, string> = {
-  arial: 'Arial',
-  arial_black: 'Arial Black',
-  algerian: 'Algerian',
-  castellar: 'Castellar',
-  gill_sans_ultra: 'Gill Sans Ultra Bold',
-  imprint_mt_shadow: 'Imprint MT Shadow',
-  century_gothic: 'Century Gothic',
-  rockwell: 'Rockwell',
-  copperplate: 'Copperplate',
-  impact: 'Impact',
-  georgia: 'Georgia',
-  times_new_roman: 'Times New Roman',
-  verdana: 'Verdana',
-  tahoma: 'Tahoma',
-  trebuchet_ms: 'Trebuchet MS',
-  courier_new: 'Courier New',
-  comic_sans_ms: 'Comic Sans MS',
-  lucida_console: 'Lucida Console',
-  palatino: 'Palatino Linotype',
-  book_antiqua: 'Book Antiqua',
-  garamond: 'Garamond',
-};
+const regenerateLimiter = new RateLimiter({ windowMs: 60000, max: 3 });
 
 function getSb() {
   try {
@@ -61,10 +42,6 @@ function extractPublicId(url: string): string | null {
   const startIdx = versionIdx >= 0 ? versionIdx + 1 : 0;
   const pidParts = parts.slice(startIdx);
   return pidParts.join('/').replace(/\.[^.]+$/, '');
-}
-
-function resolveFontFamily(value: string): string {
-  return FONT_FAMILY_MAP[value] || value.replace(/_/g, ' ') || 'Arial';
 }
 
 function extractLogoOverlay(logoUrl: string): string | null {
@@ -100,16 +77,16 @@ function buildRegenerateEagerTransform(wm: WatermarkConfig, listingId: number | 
       fetch_format: 'auto',
       overlay: {
         text: {
-          font_family: resolveFontFamily(wm.font_family || 'arial'),
-          font_size: wm.font_size || 36,
+          font_family: resolveFontFamily(wm.font_family),
+          font_size: wm.font_size,
           text: textStr,
         },
       },
-      color: wm.text_color || '#FFFFFF',
+      color: wm.text_color,
       opacity,
       gravity,
-      x: wm.margin || 20,
-      y: wm.margin || 20,
+      x: wm.margin,
+      y: wm.margin,
     };
     if (wm.rotation) {
       transform.angle = wm.rotation;
@@ -124,10 +101,11 @@ function buildRegenerateEagerTransform(wm: WatermarkConfig, listingId: number | 
       quality: 'auto',
       fetch_format: 'auto',
       overlay: logoOverlay,
+      width: wm.logo_scale ?? 0.15,
       opacity,
       gravity,
-      x: wm.margin || 20,
-      y: wm.margin || 20,
+      x: wm.margin,
+      y: wm.margin,
     };
     if (wm.rotation) {
       transform.angle = wm.rotation;
@@ -138,7 +116,46 @@ function buildRegenerateEagerTransform(wm: WatermarkConfig, listingId: number | 
   return null;
 }
 
-export async function POST() {
+async function verifyAdminAuth(request: NextRequest): Promise<boolean> {
+  const token = request.cookies.get('admin_token')?.value;
+  if (!token) return false;
+  const backends = [
+    process.env.NEXT_PUBLIC_API_URL,
+    'http://localhost:8000/api',
+  ].filter(Boolean) as string[];
+  for (const base of backends) {
+    try {
+      const res = await fetch(`${base}/secure-control-9ja/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(3000),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return json?.data?.role === 'admin' || json?.role === 'admin';
+      }
+    } catch {}
+  }
+  return false;
+}
+
+export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  console.log('[Watermark Regenerate] WATERMARK_REGENERATE_START');
+
+  const rateCheck = await regenerateLimiter.check(getClientIp(request));
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: regenerateLimiter.getMessage() },
+      { status: regenerateLimiter.getStatusCode(), headers: { 'Retry-After': String(Math.ceil((rateCheck.resetTime - Date.now()) / 1000)) } }
+    );
+  }
+
+  const isAdmin = await verifyAdminAuth(request);
+  if (!isAdmin) {
+    console.warn('[Watermark Regenerate] Unauthorized access attempt');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const sb = getSb() as any;
 
@@ -149,10 +166,15 @@ export async function POST() {
       .single();
 
     if (wmError || !wmData?.enabled) {
+      console.log('[Watermark Regenerate] Watermark disabled or no settings found');
       return NextResponse.json({ message: 'Watermark is disabled. No regeneration needed.' });
     }
 
     const wm = wmData as WatermarkConfig;
+    console.log('[Watermark Regenerate] Watermark config loaded:', JSON.stringify({
+      type: wm.type, enabled: wm.enabled, logo_scale: wm.logo_scale,
+      position: wm.position, opacity: wm.opacity,
+    }));
 
     const { data: images, error } = await sb
       .from('listing_images')
@@ -160,23 +182,40 @@ export async function POST() {
       .not('url', 'is', null);
 
     if (error) {
+      console.error('[Watermark Regenerate] Failed to fetch listing images:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const results: { id: string; status: string; error?: string }[] = [];
+    console.log('[Watermark Regenerate] Fetched', images?.length || 0, 'images to process');
+
+    const results: { id: string; status: string; error?: string; listing_id?: string; processing_time_ms?: number }[] = [];
     let processed = 0;
     let failed = 0;
+    let skipped = 0;
 
     for (const img of images || []) {
-      const publicId = extractPublicId(img.url);
+      const imageStartTime = Date.now();
+      const imgId = img.id;
+      const listingId = img.listing_id || '';
+      const imgUrl = img.url || '';
+
+      console.log('[Watermark Regenerate] WATERMARK_REGENERATE_IMAGE_START:', JSON.stringify({
+        image_id: imgId, listing_id: listingId, image_url: imgUrl,
+      }));
+
+      const publicId = extractPublicId(imgUrl);
       if (!publicId) {
-        results.push({ id: img.id, status: 'skipped', error: 'Not a Cloudinary URL' });
+        console.log('[Watermark Regenerate] Skipped (not Cloudinary URL):', imgId);
+        results.push({ id: imgId, status: 'skipped', error: 'Not a Cloudinary URL', listing_id: String(listingId) });
+        skipped++;
         continue;
       }
 
-      const eagerTransform = buildRegenerateEagerTransform(wm, img.listing_id || '');
+      const eagerTransform = buildRegenerateEagerTransform(wm, listingId);
       if (!eagerTransform) {
-        results.push({ id: img.id, status: 'skipped', error: 'No watermark transform' });
+        console.log('[Watermark Regenerate] Skipped (no transform):', imgId);
+        results.push({ id: imgId, status: 'skipped', error: 'No watermark transform', listing_id: String(listingId) });
+        skipped++;
         continue;
       }
 
@@ -195,23 +234,49 @@ export async function POST() {
             }
           );
         });
-        results.push({ id: img.id, status: 'regenerated' });
+
+        const processingTime = Date.now() - imageStartTime;
+        console.log('[Watermark Regenerate] Success:', JSON.stringify({
+          image_id: imgId, listing_id: String(listingId), processing_time_ms: processingTime,
+        }));
+        console.log('[Watermark Regenerate] WATERMARK_REGENERATE_IMAGE_SUCCESS:', imgId);
+        results.push({ id: imgId, status: 'regenerated', listing_id: String(listingId), processing_time_ms: processingTime });
         processed++;
       } catch (e: any) {
-        results.push({ id: img.id, status: 'failed', error: e?.message });
+        const processingTime = Date.now() - imageStartTime;
+        console.error('[Watermark Regenerate] Failed:', JSON.stringify({
+          image_id: imgId, listing_id: String(listingId), error: e?.message, processing_time_ms: processingTime,
+        }));
+        console.error('[Watermark Regenerate] WATERMARK_REGENERATE_IMAGE_FAILED:', imgId, e?.message);
+        results.push({ id: imgId, status: 'failed', error: e?.message, listing_id: String(listingId), processing_time_ms: processingTime });
         failed++;
       }
     }
 
-    return NextResponse.json({
-      message: `Regenerated ${processed} images${failed ? `, ${failed} failed` : ''}`,
+    const totalTime = Date.now() - startTime;
+    console.log('[Watermark Regenerate] WATERMARK_REGENERATE_SUCCESS:', JSON.stringify({
       total: images?.length || 0,
       processed,
       failed,
+      skipped,
+      total_time_ms: totalTime,
+    }));
+
+    return NextResponse.json({
+      message: `Regenerated ${processed} images${failed ? `, ${failed} failed` : ''}${skipped ? `, ${skipped} skipped` : ''}`,
+      total: images?.length || 0,
+      processed,
+      failed,
+      skipped,
+      duration_ms: totalTime,
       results,
     });
   } catch (e: any) {
-    console.error('[Watermark Regenerate] Error:', e);
+    const totalTime = Date.now() - startTime;
+    console.error('[Watermark Regenerate] WATERMARK_REGENERATE_FAILED:', JSON.stringify({
+      error: e?.message || 'Unknown error',
+      total_time_ms: totalTime,
+    }));
     return NextResponse.json({ error: e?.message || 'Regeneration failed' }, { status: 500 });
   }
 }

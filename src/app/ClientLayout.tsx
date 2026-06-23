@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { SWRConfig } from 'swr';
 import { patchFedCmWidgetMode } from '@/lib/fedcm-patch';
@@ -15,6 +15,7 @@ import AuthProvider from '@/components/providers/AuthProvider';
 import BottomNav from '@/components/ui/BottomNav';
 import { useUIStore } from '@/lib/store';
 import { logWatermarkDiagnostic } from '@/lib/watermark-diagnostics';
+import { setWatermarkSettings } from '@/lib/image';
 import RealtimeBootstrapper from '@/components/providers/RealtimeBootstrapper';
 
 
@@ -25,10 +26,23 @@ interface ClientLayoutProps {
 function ClientLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [watermarkReady, setWatermarkReady] = useState(false);
 
   useEffect(() => {
     patchFedCmWidgetMode();
     logWatermarkDiagnostic();
+    fetch('/api/admin/watermark').then(r => r.ok ? r.json() : null).then(j => {
+      if (j?.data) {
+        console.log('[Watermark] Settings loaded from API:', JSON.stringify({ enabled: j.data.enabled, type: j.data.type, hasLogo: !!j.data.logo_url }));
+        setWatermarkSettings(j.data);
+      } else {
+        console.warn('[Watermark] API returned no data');
+      }
+    }).catch((err) => {
+      console.warn('[Watermark] Failed to load settings — no watermark will be applied:', err);
+    }).finally(() => {
+      setWatermarkReady(true);
+    });
 
     const onRejection = (event: PromiseRejectionEvent) => {
       console.error('[Unhandled Promise Rejection]', event.reason);

@@ -52,6 +52,13 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
 });
 
+// Watermark settings (public GET — used by Next.js client-side load)
+// These routes match what the frontend calls at fetch('/api/admin/watermark')
+// and work both when routed through Next.js (dev) or directly to Laravel (production).
+Route::get('/admin/watermark', [WatermarkController::class, 'index']);
+Route::put('/admin/watermark', [WatermarkController::class, 'update']);
+Route::post('/admin/watermark/logo', [WatermarkController::class, 'uploadLogo']);
+
 // Public auth routes
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('register');

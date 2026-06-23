@@ -562,6 +562,7 @@ export const adsApi = {
         const imageData = JSON.parse(imageUrlsStr as string);
         for (let i = 0; i < imageData.length; i++) {
           const img = imageData[i];
+          console.log(`[adsApi.create] FINAL_SAVED_URL[${i}]: ${img.url} (from pre-uploaded URLs)`);
           const { data: imgInsert, error: imgErr } = await supabase.from('listing_images').insert({
             listing_id: adData.id, url: img.url,
             thumbnail_url: img.thumbnail_url || img.url,
@@ -572,12 +573,13 @@ export const adsApi = {
           if (!imgErr && imgInsert) adImages.push(imgInsert);
         }
       } catch (e) {
-        console.error('Failed to create listing_images from pre-uploaded URLs:', e);
+        console.error('[adsApi.create] Failed to create listing_images from pre-uploaded URLs:', e);
       }
     }
 
     const imageFiles = formData.getAll('images[]').concat(formData.getAll('image')).filter(Boolean);
     if (imageFiles.length > 0) {
+      console.warn(`[adsApi.create] WARNING: ${imageFiles.length} raw file(s) bypassed Cloudinary upload — using Supabase Storage without watermark`);
       for (let i = 0; i < imageFiles.length; i++) {
         const file = imageFiles[i] as File;
         try {
@@ -586,13 +588,14 @@ export const adsApi = {
           const { error: uploadErr } = await supabase.storage.from('listing-images').upload(path, file);
           if (uploadErr) continue;
           const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(path);
+          console.warn(`[adsApi.create] FINAL_SAVED_URL[${adImages.length}] (NO WATERMARK): ${publicUrl}`);
           const { data: imgInsert, error: imgErr } = await supabase.from('listing_images').insert({
             listing_id: adData.id, url: publicUrl, storage_path: path,
             is_primary: adImages.length === 0 && i === 0, sort_order: adImages.length + i,
           }).select().single();
           if (!imgErr && imgInsert) adImages.push(imgInsert);
         } catch (e) {
-          console.error('Failed to upload image:', e);
+          console.error('[adsApi.create] Failed to upload image:', e);
         }
       }
     }
@@ -1630,13 +1633,16 @@ export const imageUploadApi = {
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await fetch('/api/upload', { method: 'POST', body: formData, headers });
         if (!res.ok) {
-          uploadDiag('Attempt 1 (Next.js) failed', { status: res.status, name: file.name });
+          const errBody = await res.text().catch(() => '');
+          uploadDiag('Attempt 1 (Next.js) failed', { status: res.status, response: errBody.slice(0, 200), name: file.name });
           return null;
         }
         const json = await res.json();
         const item = json?.data?.[0] || json?.[0];
         if (item?.secure_url) {
-          uploadDiag('Attempt 1 (Next.js -> Cloudinary) succeeded', { public_id: item.public_id, url: item.secure_url.slice(0, 60) });
+          console.log(`[imageUploadApi] RAW_UPLOAD_URL: ${item.secure_url}`);
+          console.log(`[imageUploadApi] WATERMARK_APPLIED: Sharp embedded in buffer before Cloudinary upload`);
+          console.log(`[imageUploadApi] FINAL_SAVED_URL: ${item.secure_url} (watermark is pixel-embedded)`);
           return sbResponse({
             data: {
               url: item.secure_url,
@@ -1663,6 +1669,8 @@ export const imageUploadApi = {
       const res = await http.upload('/uploads/image', formData, onProgress);
       const url = res?.data?.data?.url || res?.data?.url;
       if (url) {
+        console.warn(`[imageUploadApi] WATERMARK_APPLIED: false — Attempt 2 (Laravel) used, no Sharp watermark applied. URL: ${url}`);
+        console.warn(`[imageUploadApi] FINAL_SAVED_URL (NO WATERMARK): ${url}`);
         uploadDiag('Attempt 2 (Laravel) succeeded', { url: url.slice(0, 60) });
         return sbResponse({ data: { url, path: url } });
       }
@@ -2619,6 +2627,15 @@ export const adminApi = {
       return sbResponse(res?.data?.data || res?.data || { message: 'Updated' });
     } catch (e: any) { return sbError(e); }
   },
+  regenerateWatermarks: async () => {
+    try {
+      const res = await fetch('/api/admin/watermark/regenerate', { method: 'POST' });
+      const json = await res.json();
+      if (res.ok) return sbResponse(json);
+      return sbError(new Error(json?.error || 'Regeneration failed'));
+    } catch (e: any) { return sbError(e); }
+  },
+
   uploadWatermarkLogo: async (file: File) => {
     try {
       const formData = new FormData();

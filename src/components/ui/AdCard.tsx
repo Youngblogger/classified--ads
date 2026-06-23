@@ -1,8 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import { Ad } from '@/types';
 import { formatPrice, getAdMainImage } from '@/lib/utils';
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
+import { subscribeWatermark } from '@/lib/image';
 import { SafeImage } from './SafeImage';
 import PremiumBadge from './PremiumBadge';
 import PromotedBadge from './PromotedBadge';
@@ -16,6 +19,9 @@ interface AdCardProps {
 
 function AdCardComponent({ ad, priority = false }: AdCardProps) {
   const fallbackImage = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image';
+  const [, forceRender] = useState(0);
+
+  useEffect(() => subscribeWatermark(() => forceRender(n => n + 1)), []);
 
   if (!ad || typeof ad !== 'object') {
     if (process.env.NODE_ENV === 'development') {

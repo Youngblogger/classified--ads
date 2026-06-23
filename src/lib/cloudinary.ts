@@ -35,8 +35,8 @@ export async function uploadToCloudinary(
     { fetch_format: 'auto' },
   ];
 
-  const allTransforms = options?.transformation
-    ? [...baseTransforms, ...options.transformation]
+  const allTransforms = options?.transformation !== undefined
+    ? options.transformation
     : baseTransforms;
 
   return new Promise((resolve, reject) => {

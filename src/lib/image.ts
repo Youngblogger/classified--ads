@@ -1,6 +1,38 @@
-import { FALLBACK_IMAGE, CLOUDINARY_WATERMARK_ID } from './config';
+import { FALLBACK_IMAGE } from './config';
+import {
+  WatermarkSettings,
+  POSITION_MAP,
+  DEFAULT_WATERMARK_SETTINGS,
+} from './watermark-defaults';
 
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
+
+// =====================================================
+//  WATERMARK SETTINGS (from admin DB, reactive client state)
+// =====================================================
+
+let clientWatermark: WatermarkSettings | null = null;
+let watermarkListeners: Set<() => void> = new Set();
+
+export function subscribeWatermark(cb: () => void): () => void {
+  watermarkListeners.add(cb);
+  return () => watermarkListeners.delete(cb);
+}
+
+export function setWatermarkSettings(settings: Partial<WatermarkSettings> | null): void {
+  if (settings) {
+    clientWatermark = { ...DEFAULT_WATERMARK_SETTINGS, ...settings };
+  } else {
+    clientWatermark = null;
+  }
+  urlCache = new LruCache(500);
+  adMainCache = new LruCache(300);
+  watermarkListeners.forEach(fn => fn());
+}
+
+export function getWatermarkSettings(): WatermarkSettings | null {
+  return clientWatermark;
+}
 
 // =====================================================
 //  CACHING LAYER
@@ -57,7 +89,7 @@ class LruCache {
   }
 }
 
-const urlCache = new LruCache(500);
+let urlCache = new LruCache(500);
 
 function cacheKey(img: unknown, adId?: number): string {
   if (typeof img === 'string') return `s:${img}|${adId ?? ''}`;
@@ -113,34 +145,41 @@ function parseCloudinaryUrl(url: string): { transforms: string[]; version: strin
   return { transforms, version, publicId: publicIdParts.join('/') };
 }
 
-/**
- * Add watermark overlay to a Cloudinary image URL using a pre-uploaded image asset.
- *
- * Architecture (Image-Based Watermark — Option A):
- *   - A watermark PNG is uploaded to Cloudinary once (public ID via WATERMARK_ID env var)
- *   - Every image URL gets an l_{publicId} overlay appended to the transformation chain
- *   - The overlay is scaled to 15% of image width, 70% opacity, bottom-right position
- *   - NO l_text, NO fonts, NO text encoding — eliminates 400 errors entirely
- *
- * Failsafe:
- *   - If WATERMARK_ID is empty, no watermark is applied (graceful skip)
- *   - If URL is not parseable, original URL is returned
- *   - If overlay insertion fails, original URL is returned
- *   - Already-watermarked URLs (containing fl_layer_apply) are skipped
- */
 function addWatermarkToCloudinaryUrl(url: string, _adId?: number): string {
-  if (!CLOUD_NAME) return url;
-  if (!CLOUDINARY_WATERMARK_ID) return url;
+  if (!CLOUD_NAME || !clientWatermark || !clientWatermark.enabled) return url;
   if (url.includes('fl_layer_apply')) return url;
+
+  // Only apply client-side overlays for LOGO type watermarks.
+  // Text watermarks are applied server-side (Sharp) during upload — adding
+  // a client-side text overlay (l_text:) duplicates the watermark and can
+  // trigger 400 errors from Cloudinary's text renderer.
+  if (clientWatermark.type !== 'logo' || !clientWatermark.logo_url) return url;
 
   const parsed = parseCloudinaryUrl(url);
   if (!parsed) return url;
+
+  if (typeof clientWatermark.opacity !== 'number' || typeof clientWatermark.margin !== 'number') {
+    return url;
+  }
+
+  const gravity = POSITION_MAP[clientWatermark.position];
+  if (!gravity) return url;
 
   try {
     const marker = '/image/upload/';
     const baseUrl = url.slice(0, url.indexOf(marker) + marker.length);
 
-    const overlay = `l_${CLOUDINARY_WATERMARK_ID.replace(/\//g, ':')},w_0.15,o_70,g_south_east,x_10,y_10,fl_layer_apply`;
+    const opacity = Math.max(0, Math.min(100, clientWatermark.opacity));
+    const margin = clientWatermark.margin;
+
+    const parts = clientWatermark.logo_url.split('/');
+    const uploadIdx = parts.indexOf('upload');
+    if (uploadIdx === -1 || uploadIdx + 1 >= parts.length) return url;
+    const pathParts = parts.slice(uploadIdx + 1);
+    const filtered = pathParts.filter(p => !/^v\d+$/.test(p));
+    const overlayId = filtered.join('/').replace(/\.[^.]+$/, '');
+    if (!overlayId) return url;
+    const overlay = `l_${overlayId.replace(/\//g, ':')},w_${clientWatermark.logo_scale},o_${opacity},${gravity},x_${margin},y_${margin},fl_layer_apply`;
 
     const transformsStr = parsed.transforms.length > 0 ? parsed.transforms.join('/') + '/' : '';
     const versionStr = parsed.version ? parsed.version + '/' : '';
@@ -253,7 +292,7 @@ export function getAdThumbnailUrl(img: unknown, adId?: number): string {
   return url;
 }
 
-const adMainCache = new LruCache(300);
+let adMainCache = new LruCache(300);
 
 export function getAdMainImage(ad: unknown, adId?: number): string {
   if (!ad || typeof ad !== 'object') return FALLBACK_IMAGE;
@@ -429,7 +468,9 @@ export function getAspectRatioStyle(dimensions: ImageDimensions): string {
 // =====================================================
 
 export function isWatermarkConfigured(): boolean {
-  return !!(CLOUD_NAME && CLOUDINARY_WATERMARK_ID);
+  if (!clientWatermark || !clientWatermark.enabled) return false;
+  if (clientWatermark.type === 'logo') return !!clientWatermark.logo_url;
+  return clientWatermark.type === 'text' && !!clientWatermark.text;
 }
 
 export { FALLBACK_IMAGE };

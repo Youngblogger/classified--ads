@@ -3,51 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { adminApi } from '@/lib/api';
 import { checkWatermarkConfiguration } from '@/lib/watermark-diagnostics';
-import { clearWatermarkCache } from '@/lib/watermark';
+import { setWatermarkSettings } from '@/lib/image';
 import toast from 'react-hot-toast';
 import { Loader2, Upload, RefreshCw, Eye, EyeOff, Shield, Type, Image } from 'lucide-react';
-
-interface WatermarkSettings {
-  enabled: boolean;
-  type: 'text' | 'logo';
-  text: string;
-  logo_url: string | null;
-  text_color: string;
-  shadow_color: string;
-  shadow_opacity: number;
-  position: string;
-  opacity: number;
-  font_size: number;
-  font_family: string;
-  font_path: string | null;
-  margin: number;
-  rotation: number;
-  show_ad_id: boolean;
-  apply_to_original: boolean;
-  apply_to_medium: boolean;
-  apply_to_thumbnail: boolean;
-}
-
-const DEFAULT_SETTINGS: WatermarkSettings = {
-  enabled: false,
-  type: 'text',
-  text: 'iList',
-  logo_url: null,
-  text_color: '#FFFFFF',
-  shadow_color: '#000000',
-  shadow_opacity: 50,
-  position: 'bottom_right',
-  opacity: 80,
-  font_size: 36,
-  font_family: 'Arial',
-  font_path: null,
-  margin: 20,
-  rotation: -45,
-  show_ad_id: true,
-  apply_to_original: true,
-  apply_to_medium: true,
-  apply_to_thumbnail: false,
-};
+import type { WatermarkSettings } from '@/lib/watermark-defaults';
+import { DEFAULT_WATERMARK_SETTINGS } from '@/lib/watermark-defaults';
 
 const POSITION_LABELS: Record<string, string> = {
   bottom_right: 'Bottom Right',
@@ -58,7 +18,7 @@ const POSITION_LABELS: Record<string, string> = {
 };
 
 export default function WatermarkSettingsPage() {
-  const [settings, setSettings] = useState<WatermarkSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<WatermarkSettings>(DEFAULT_WATERMARK_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -85,6 +45,20 @@ export default function WatermarkSettingsPage() {
           enabled: apiData.enabled ?? prev.enabled,
           type: apiData.type || prev.type,
         }));
+        setWatermarkSettings({
+          enabled: apiData.enabled,
+          type: apiData.type,
+          logo_url: apiData.logo_url,
+          text: apiData.text,
+          text_color: apiData.text_color,
+          font_size: apiData.font_size,
+          font_family: apiData.font_family,
+          opacity: apiData.opacity,
+          position: apiData.position,
+          margin: apiData.margin,
+          rotation: apiData.rotation,
+          logo_scale: apiData.logo_scale,
+        });
       } else {
         console.warn('[WatermarkPage] No valid apiData from getWatermarkSettings, keeping defaults');
       }
@@ -105,7 +79,20 @@ export default function WatermarkSettingsPage() {
       console.log('[WatermarkPage] Save result:', result);
       if (!result.error) {
         toast.success('Watermark settings saved');
-        clearWatermarkCache();
+        setWatermarkSettings({
+          enabled: settings.enabled,
+          type: settings.type,
+          logo_url: settings.logo_url,
+          text: settings.text,
+          text_color: settings.text_color,
+          font_size: settings.font_size,
+          font_family: settings.font_family,
+          opacity: settings.opacity,
+          position: settings.position,
+          margin: settings.margin,
+          rotation: settings.rotation,
+          logo_scale: settings.logo_scale,
+        });
         if (settings.enabled) {
           checkWatermarkConfiguration();
         }
@@ -145,12 +132,16 @@ export default function WatermarkSettingsPage() {
   const handleRegenerate = async () => {
     setRegenerating(true);
     try {
-      const result = await adminApi.updateWatermarkSettings({ regenerate_all: true, ...settings });
+      const result = await adminApi.regenerateWatermarks();
       if (!result.error) {
-        toast.success('Watermark regeneration queued for all images');
+        const data = result.data as any;
+        const msg = data?.message || 'Watermarks regenerated';
+        toast.success(msg);
+      } else {
+        toast.error(result.error || 'Failed to regenerate');
       }
     } catch {
-      toast.error('Failed to queue regeneration');
+      toast.error('Failed to regenerate watermarks');
     } finally {
       setRegenerating(false);
     }
@@ -377,6 +368,24 @@ export default function WatermarkSettingsPage() {
                     className="w-full"
                   />
                 </div>
+                {settings.type === 'logo' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Logo Scale ({Math.round(settings.logo_scale * 100)}%)
+                    </label>
+                    <input
+                      type="range"
+                      min={5}
+                      max={50}
+                      value={Math.round(settings.logo_scale * 100)}
+                      onChange={(e) => {
+                        const pct = Number(e.target.value);
+                        update('logo_scale', Math.round(pct) / 100);
+                      }}
+                      className="w-full"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 

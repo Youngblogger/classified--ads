@@ -1,57 +1,5 @@
-const FONT_MAP: Record<string, string> = {
-  arial: 'Arial',
-  arial_black: 'Arial Black',
-  algerian: 'Algerian',
-  castellar: 'Castellar',
-  gill_sans_ultra: 'Gill Sans Ultra Bold',
-  imprint_mt_shadow: 'Imprint MT Shadow',
-  century_gothic: 'Century Gothic',
-  rockwell: 'Rockwell',
-  copperplate: 'Copperplate',
-  impact: 'Impact',
-  georgia: 'Georgia',
-  times_new_roman: 'Times New Roman',
-  verdana: 'Verdana',
-  tahoma: 'Tahoma',
-  trebuchet_ms: 'Trebuchet MS',
-  courier_new: 'Courier New',
-  comic_sans_ms: 'Comic Sans MS',
-  lucida_console: 'Lucida Console',
-  palatino: 'Palatino Linotype',
-  book_antiqua: 'Book Antiqua',
-  garamond: 'Garamond',
-};
-
-export interface WatermarkConfig {
-  enabled: boolean;
-  type: string;
-  text: string;
-  logo_url: string | null;
-  text_color: string;
-  position: string;
-  opacity: number;
-  font_size: number;
-  font_family: string;
-  margin: number;
-  rotation: number;
-  show_ad_id: boolean;
-}
-
-let _sharp: any = null;
-
-async function getSharp(): Promise<any> {
-  if (_sharp) return _sharp;
-  try {
-    _sharp = (await import('sharp')).default;
-    return _sharp;
-  } catch {
-    throw new Error('sharp module not available');
-  }
-}
-
-function resolveFont(value: string): string {
-  return FONT_MAP[value] || value.replace(/_/g, ' ') || 'Arial';
-}
+import { resolveFontFamily } from '@/lib/watermark-defaults';
+import type { WatermarkConfig } from '@/lib/watermark-defaults';
 
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -111,6 +59,18 @@ function buildTextOverlaySvg(
 </svg>`;
 }
 
+let _sharp: any = null;
+
+async function getSharp(): Promise<any> {
+  if (_sharp) return _sharp;
+  try {
+    _sharp = (await import('sharp')).default;
+    return _sharp;
+  } catch {
+    throw new Error('sharp module not available');
+  }
+}
+
 export async function applyWatermarkSharp(
   buffer: Buffer,
   wm: WatermarkConfig,
@@ -130,13 +90,13 @@ export async function applyWatermarkSharp(
 
   const svg = buildTextOverlaySvg(
     text,
-    resolveFont(wm.font_family || 'arial'),
-    wm.font_size || 36,
-    wm.text_color || '#FFFFFF',
+    resolveFontFamily(wm.font_family),
+    wm.font_size,
+    wm.text_color,
     wm.opacity / 100,
-    wm.position || 'bottom_right',
-    wm.margin || 20,
-    wm.rotation || 0,
+    wm.position,
+    wm.margin,
+    wm.rotation,
     w,
     h,
   );
@@ -160,21 +120,29 @@ export async function applyLogoWatermarkSharp(
 
   const logoBuffer = await fetchLogo(wm.logo_url);
   const logoMeta = await sharp(logoBuffer).metadata();
-  const maxLogoW = Math.round(w * 0.2);
-  const logoResized = (logoMeta.width || 0) > maxLogoW
-    ? await sharp(logoBuffer).resize(maxLogoW).toBuffer()
+  const logoW = logoMeta.width || 1;
+  const logoH = logoMeta.height || 1;
+  const scale = wm.logo_scale ?? 0.15;
+  const maxLogoW = Math.round(w * scale);
+  const maxLogoH = Math.round(h * scale);
+  const logoResized = (logoW > maxLogoW || logoH > maxLogoH)
+    ? await sharp(logoBuffer).resize(maxLogoW, maxLogoH, { fit: 'outside', withoutEnlargement: true, kernel: 'lanczos3' }).toBuffer()
     : logoBuffer;
 
-  const margin = wm.margin || 20;
+  const resizedMeta = await sharp(logoResized).metadata();
+  const resizedW = resizedMeta.width || logoW;
+  const resizedH = resizedMeta.height || logoH;
+
+  const margin = wm.margin;
   let left: number, top: number;
 
-  switch (wm.position || 'bottom_right') {
+  switch (wm.position) {
     case 'bottom_left':
       left = margin;
-      top = h - margin - (logoMeta.height || 100);
+      top = h - margin - resizedH;
       break;
     case 'top_right':
-      left = w - margin - maxLogoW;
+      left = w - margin - resizedW;
       top = margin;
       break;
     case 'top_left':
@@ -182,12 +150,12 @@ export async function applyLogoWatermarkSharp(
       top = margin;
       break;
     case 'center':
-      left = (w - maxLogoW) / 2;
-      top = (h - (logoMeta.height || 100)) / 2;
+      left = (w - resizedW) / 2;
+      top = (h - resizedH) / 2;
       break;
     default:
-      left = w - margin - maxLogoW;
-      top = h - margin - (logoMeta.height || 100);
+      left = w - margin - resizedW;
+      top = h - margin - resizedH;
   }
 
   const logoWithAlpha = await applyOpacity(sharp, logoResized, wm.opacity / 100);
