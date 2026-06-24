@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!accessToken) {
-      const cookie = request.cookies.get('ilist-supabase-auth-token');
+      const cookie = request.cookies.get('ilist-supabase-auth');
       if (cookie?.value) {
         try {
           const parsed = JSON.parse(cookie.value);
@@ -60,16 +60,6 @@ export async function POST(request: NextRequest) {
 
     if (user.id !== follower_id) {
       return NextResponse.json({ error: 'follower_id must match authenticated user' }, { status: 403 });
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', following_id)
-      .maybeSingle();
-
-    if (!profile) {
-      return NextResponse.json({ error: 'User to follow not found' }, { status: 404 });
     }
 
     const { data: existing } = await supabase

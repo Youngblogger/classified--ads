@@ -66,17 +66,9 @@ class FollowController extends Controller
 
     public function follow(Request $request)
     {
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'following_id' => 'required|integer|exists:users,id',
+        $request->validate([
+            'following_id' => 'required',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         $followerId = $this->getAuthUserId($request);
         
@@ -87,7 +79,17 @@ class FollowController extends Controller
             ], 401);
         }
 
-        $followingId = (int) $request->following_id;
+        $rawFollowingId = $request->following_id;
+        $resolvedFollowingId = $this->resolveUserId($rawFollowingId);
+
+        if (!$resolvedFollowingId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid following_id'
+            ], 400);
+        }
+
+        $followingId = (int) $resolvedFollowingId;
 
         // Cannot follow yourself
         if ($followerId === $followingId) {
@@ -103,7 +105,6 @@ class FollowController extends Controller
             ->first();
 
         if ($existingFollow) {
-            // Already following - just return success
             return response()->json([
                 'success' => true,
                 'is_following' => true,
@@ -137,7 +138,7 @@ class FollowController extends Controller
     public function unfollow(Request $request)
     {
         $request->validate([
-            'following_id' => 'required|integer|exists:users,id',
+            'following_id' => 'required',
         ]);
 
         $followerId = $this->getAuthUserId($request);
@@ -145,7 +146,14 @@ class FollowController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
         }
 
-        $followingId = $request->following_id;
+        $rawFollowingId = $request->following_id;
+        $resolvedFollowingId = $this->resolveUserId($rawFollowingId);
+
+        if (!$resolvedFollowingId) {
+            return response()->json(['success' => false, 'message' => 'Invalid following_id'], 400);
+        }
+
+        $followingId = (int) $resolvedFollowingId;
 
         $follow = Follow::where('follower_id', $followerId)
             ->where('following_id', $followingId)
@@ -171,16 +179,22 @@ class FollowController extends Controller
 
     public function checkFollow(Request $request)
     {
-        $request->validate([
-            'following_id' => 'required|integer|exists:users,id',
-        ]);
-
         $followerId = $this->getAuthUserId($request);
         if (!$followerId) {
             return response()->json(['is_following' => false], 200);
         }
 
-        $followingId = $request->following_id;
+        $rawFollowingId = $request->input('following_id');
+        if (!$rawFollowingId) {
+            return response()->json(['is_following' => false, 'followers_count' => 0, 'following_count' => 0], 200);
+        }
+
+        $resolvedFollowingId = $this->resolveUserId($rawFollowingId);
+        if (!$resolvedFollowingId) {
+            return response()->json(['is_following' => false, 'followers_count' => 0, 'following_count' => 0], 200);
+        }
+
+        $followingId = (int) $resolvedFollowingId;
 
         $isFollowing = Follow::isFollowing($followerId, $followingId);
 

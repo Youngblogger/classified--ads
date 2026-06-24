@@ -28,8 +28,10 @@ function getUserId(): string | null {
 }
 
 async function ensureUserId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user?.id) return user.id;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.id) return user.id;
+  } catch {}
   const storeId = useAuthStore.getState().user?.id;
   if (storeId) return String(storeId);
   return null;
@@ -38,14 +40,18 @@ async function ensureUserId(): Promise<string | null> {
 // Always returns Supabase auth UUID — never a numeric ID.
 // Wallet and payment operations MUST use this instead of getUserId/ensureUserId.
 async function getSupabaseUserId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user?.id) return user.id;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.id) return user.id;
+  } catch {}
   const storeUser = useAuthStore.getState().user;
   const storeId: unknown = storeUser?.id;
   if (typeof storeId === 'string' && storeId.includes('-')) return storeId;
-  // Last resort: try session
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.user?.id || null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) return session.user.id;
+  } catch {}
+  return null;
 }
 
 function transformListing(listing: any): any {
@@ -1040,10 +1046,20 @@ export const messagesApi = {
 };
 
 // ==============================
-//  FOLLOW API (Supabase-first, UUID-only, toggle-based)
+//  FOLLOW API — tries Next.js API route, then Supabase direct, then Laravel
 // ==============================
 const FOLLOWS_TABLE = 'follows';
 const IS_UUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
+function getStoreToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('authToken');
+}
+
+function invalidateFollowCache() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('ilist:cache-invalidate'));
+}
 
 export const followApi = {
   toggleFollow: async (followingId: string) => {
@@ -1052,11 +1068,12 @@ export const followApi = {
     const followerId = supabaseId || fallbackId;
     if (!followerId) return sbError({ message: 'Not authenticated' });
 
-    const useSupabase = !!(supabaseId && IS_UUID(followingId));
+    const isUuidOp = IS_UUID(followingId) && IS_UUID(followerId);
 
-    if (useSupabase) {
+    // 1. Try Next.js API route with whatever token we have
+    if (isUuidOp) {
       const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = session?.access_token || getStoreToken();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
       try {
@@ -1067,9 +1084,13 @@ export const followApi = {
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.status) return sbResponse({ data: { status: data.status } });
+          if (data.status) { invalidateFollowCache(); return sbResponse({ status: data.status }); }
         }
       } catch {}
+    }
+
+    // 2. Try Supabase direct (RLS must allow)
+    if (isUuidOp) {
       try {
         const { data: existing } = await supabase
           .from(FOLLOWS_TABLE)
@@ -1079,23 +1100,24 @@ export const followApi = {
           .maybeSingle();
         if (existing) {
           const { error } = await supabase.from(FOLLOWS_TABLE).delete().eq('id', existing.id);
-          if (!error) return sbResponse({ data: { status: 'unfollowed' } });
+          if (!error) { invalidateFollowCache(); return sbResponse({ status: 'unfollowed' }); }
         } else {
           const { error } = await supabase.from(FOLLOWS_TABLE).insert({ follower_id: followerId, following_id: followingId });
-          if (!error) return sbResponse({ data: { status: 'followed' } });
+          if (!error) { invalidateFollowCache(); return sbResponse({ status: 'followed' }); }
         }
       } catch {}
     }
 
+    // 3. Try Laravel backend (handles both UUID and numeric IDs)
     try {
       const was = await http.get('/follow/check', { params: { following_id: followingId, user_id: followerId } } as any);
-      const isFollowing = was?.data?.data?.is_following ?? was?.data?.is_following ?? false;
+      const isFollowing = was?.data?.is_following ?? was?.data?.data?.is_following ?? false;
       if (isFollowing) {
         await http.delete('/unfollow', { data: { following_id: followingId, user_id: followerId } } as any);
-        return sbResponse({ data: { status: 'unfollowed' } });
+        invalidateFollowCache(); return sbResponse({ status: 'unfollowed' });
       }
       await http.post('/follow', { following_id: followingId, user_id: followerId });
-      return sbResponse({ data: { status: 'followed' } });
+      invalidateFollowCache(); return sbResponse({ status: 'followed' });
     } catch {}
 
     return sbError({ message: 'Follow action failed. Ensure the follows table exists in Supabase or the Laravel backend is reachable.' });
@@ -1104,9 +1126,12 @@ export const followApi = {
     const supabaseId = await getSupabaseUserId();
     const fallbackId = await ensureUserId();
     const followerId = supabaseId || fallbackId;
-    if (!followerId) return sbResponse({ data: { is_following: false } });
+    if (!followerId) return sbResponse({ is_following: false });
 
-    if (supabaseId && IS_UUID(followingId)) {
+    const isUuidOp = IS_UUID(followingId) && IS_UUID(followerId);
+
+    // 1. Try Supabase direct
+    if (isUuidOp) {
       try {
         const { data } = await supabase
           .from(FOLLOWS_TABLE)
@@ -1114,16 +1139,17 @@ export const followApi = {
           .eq('follower_id', followerId)
           .eq('following_id', followingId)
           .maybeSingle();
-        if (data !== undefined) return sbResponse({ data: { is_following: !!data } });
+        if (data !== undefined) return sbResponse({ is_following: !!data });
       } catch {}
     }
 
+    // 2. Try Laravel backend
     try {
       const res = await http.get('/follow/check', { params: { following_id: followingId, user_id: followerId } } as any);
-      const is_following = res?.data?.data?.is_following ?? res?.data?.is_following;
-      if (is_following !== undefined) return sbResponse({ data: { is_following } });
+      const is_following = res?.data?.is_following ?? res?.data?.data?.is_following;
+      if (is_following !== undefined) return sbResponse({ is_following });
     } catch {}
-    return sbResponse({ data: { is_following: false } });
+    return sbResponse({ is_following: false });
   },
   getFollowers: async (userId: string, page = 1) => {
     try {
@@ -2016,16 +2042,14 @@ export const storeApi = {
     return sbResponse({ data: { url: publicUrl } });
   },
   follow: async (storeId: number) => {
-    try {
-      const res = await http.post(`/stores/${storeId}/follow`);
-      return sbResponse({ data: res?.data?.data || { message: 'Followed' } });
-    } catch { return sbResponse({ data: { message: 'Followed' } }); }
+    const res = await http.post(`/stores/${storeId}/follow`);
+    if (!res.data || res.status >= 400) throw new Error(res?.data?.message || 'Follow failed');
+    return sbResponse({ data: res?.data?.data || { message: 'Followed' } });
   },
   unfollow: async (storeId: number) => {
-    try {
-      const res = await http.delete(`/stores/${storeId}/unfollow`);
-      return sbResponse({ data: res?.data?.data || { message: 'Unfollowed' } });
-    } catch { return sbResponse({ data: { message: 'Unfollowed' } }); }
+    const res = await http.delete(`/stores/${storeId}/unfollow`);
+    if (!res.data || res.status >= 400) throw new Error(res?.data?.message || 'Unfollow failed');
+    return sbResponse({ data: res?.data?.data || { message: 'Unfollowed' } });
   },
   checkFollow: async (storeId: number) => {
     try {

@@ -189,10 +189,19 @@ export default function SellerProfileCard({
       setIsInitializing(false);
       return;
     }
-    const res = await followApi.checkFollow(sellerId);
-    const data = res.data as any;
-    setIsFollowing(data?.is_following ?? false);
-    setIsInitializing(false);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const res = await followApi.checkFollow(sellerId);
+      clearTimeout(timeoutId);
+      const data = res.data as any;
+      setIsFollowing(data?.is_following ?? false);
+      if (data?.followers_count !== undefined) setFollowersCount(data.followers_count);
+    } catch {
+      // Follow status check failed — keep default state
+    } finally {
+      setIsInitializing(false);
+    }
   }, [sellerId, isAuthenticated, isOwnProfile]);
 
   useEffect(() => {

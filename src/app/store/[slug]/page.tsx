@@ -120,20 +120,22 @@ export default function StoreProfilePage() {
 
   const handleFollowToggle = async () => {
     if (!store || followLoading) return;
+    const prevFollowing = isFollowing;
+    const prevCount = followerCount;
+    setIsFollowing(!isFollowing);
+    setFollowerCount(c => isFollowing ? Math.max(0, c - 1) : c + 1);
     setFollowLoading(true);
     try {
       if (isFollowing) {
         await storeApi.unfollow(store.id);
-        setIsFollowing(false);
-        setFollowerCount(c => Math.max(0, c - 1));
         toast.success('Unfollowed store', { id: 'follow-toast' });
       } else {
         await storeApi.follow(store.id);
-        setIsFollowing(true);
-        setFollowerCount(c => c + 1);
         toast.success('Following store', { id: 'follow-toast' });
       }
     } catch (err: any) {
+      setIsFollowing(prevFollowing);
+      setFollowerCount(prevCount);
       const msg = err?.response?.data?.message || 'Action failed';
       toast.error(msg, { id: 'follow-toast' });
     } finally {
