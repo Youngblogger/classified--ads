@@ -262,13 +262,12 @@ async function fetchFromLaravel(endpoint: string): Promise<any> {
   if (endpoint.startsWith('ads/')) {
     const slug = endpoint.replace('ads/', '');
     if (slug && slug.length > 0 && !slug.includes('?')) {
+      const supabaseAd = await fetchSupabaseAdDetail(slug);
+      if (supabaseAd) return { data: supabaseAd };
       const res = await http.get(`/ads/${slug}`);
       const raw = res?.data?.data || res?.data || null;
       const ad = raw?.id ? raw : null;
       if (ad) return { data: normalizeAd(ad, true) };
-      console.debug('[AdsFetch] Laravel ad detail returned null — falling back to Supabase', slug);
-      const supabaseAd = await fetchSupabaseAdDetail(slug);
-      if (supabaseAd) return { data: supabaseAd };
       return { data: null };
     }
     const params = Object.fromEntries(new URLSearchParams(slug));
@@ -444,7 +443,7 @@ export function useAdDetail(slug: string) {
       revalidateOnFocus: false,
       dedupingInterval: 60000,
       refreshInterval: 120000,
-      errorRetryCount: 2,
+      errorRetryCount: 0,
     }
   );
 

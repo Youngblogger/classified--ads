@@ -5,6 +5,13 @@ export const dynamic = 'force-dynamic';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Supabase request timed out')), ms)),
+  ]);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -22,8 +29,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid UUID format' }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
+    }
 
     let accessToken: string | null = null;
 
@@ -53,7 +63,10 @@ export async function POST(request: NextRequest) {
       global: { headers: { Authorization: `Bearer ${accessToken}` } },
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken);
+    const { data: { user }, error: userError } = await withTimeout(
+      supabase.auth.getUser(accessToken) as Promise<any>,
+      5000
+    );
     if (userError || !user?.id) {
       return NextResponse.json({ error: 'Not authenticated - invalid token' }, { status: 401 });
     }
@@ -62,12 +75,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'follower_id must match authenticated user' }, { status: 403 });
     }
 
-    const { data: existing } = await supabase
-      .from('follows')
-      .select('id')
-      .eq('follower_id', follower_id)
-      .eq('following_id', following_id)
-      .maybeSingle();
+    const existingResult: any = await withTimeout(
+      (supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', follower_id)
+        .eq('following_id', following_id)
+        .maybeSingle() as any) as Promise<any>,
+      5000
+    );
+    const existing = existingResult?.data ?? null;
 
     if (existing) {
       const { error: deleteError } = await supabase
@@ -92,7 +109,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ status: 'followed' });
   } catch (error: any) {
-    console.error('Follow toggle error:', error?.message || error);
-    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
+    const message = error?.message || 'Internal server error';
+    if (message.includes('timed out') || message.includes('fetch failed')) {
+      return NextResponse.json({ error: 'Supabase is currently unavailable, try again later' }, { status: 503 });
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

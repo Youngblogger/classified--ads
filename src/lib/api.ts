@@ -1089,22 +1089,29 @@ export const followApi = {
       } catch {}
     }
 
-    // 2. Try Supabase direct (RLS must allow)
+    // 2. Try Supabase direct (RLS must allow) — with 3-second timeout
     if (isUuidOp) {
       try {
-        const { data: existing } = await supabase
-          .from(FOLLOWS_TABLE)
-          .select('id')
-          .eq('follower_id', followerId)
-          .eq('following_id', followingId)
-          .maybeSingle();
-        if (existing) {
-          const { error } = await supabase.from(FOLLOWS_TABLE).delete().eq('id', existing.id);
-          if (!error) { invalidateFollowCache(); return sbResponse({ status: 'unfollowed' }); }
-        } else {
-          const { error } = await supabase.from(FOLLOWS_TABLE).insert({ follower_id: followerId, following_id: followingId });
-          if (!error) { invalidateFollowCache(); return sbResponse({ status: 'followed' }); }
-        }
+        const result = await Promise.race([
+          (async () => {
+            const { data: existing } = await supabase
+              .from(FOLLOWS_TABLE)
+              .select('id')
+              .eq('follower_id', followerId)
+              .eq('following_id', followingId)
+              .maybeSingle();
+            if (existing) {
+              const { error } = await supabase.from(FOLLOWS_TABLE).delete().eq('id', existing.id);
+              if (!error) { invalidateFollowCache(); return sbResponse({ status: 'unfollowed' }); }
+            } else {
+              const { error } = await supabase.from(FOLLOWS_TABLE).insert({ follower_id: followerId, following_id: followingId });
+              if (!error) { invalidateFollowCache(); return sbResponse({ status: 'followed' }); }
+            }
+            throw new Error('Supabase operation did not complete');
+          })(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Supabase timeout')), 3000)),
+        ]);
+        return result;
       } catch {}
     }
 
