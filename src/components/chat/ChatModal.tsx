@@ -85,7 +85,7 @@ interface ChatModalProps {
   onClose: () => void;
   adId: number;
   adTitle: string;
-  sellerId: number;
+  sellerId: number | string;
   sellerName: string;
   sellerAvatar?: string;
   sellerVerified?: boolean;
@@ -121,6 +121,9 @@ export default function ChatModal({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastSentAtRef = useRef<number>(0);
+  const isFetchingRef = useRef(false);
+  const isSendingRef = useRef(false);
 
   // Process seller avatar URL
   const processedSellerAvatar = sellerAvatar ? getImageUrl(sellerAvatar) : null;
@@ -152,38 +155,35 @@ export default function ChatModal({
   const handleNewMessage = useCallback((message: Message) => {
     if (!message || !message.conversation_id) return;
     
-    // Only process if the message belongs to this conversation
     if (conversationId && message.conversation_id !== conversationId) return;
     
-    // Check if this is a message sent by the current user (from socket broadcast)
-    // If so, don't add it as a new message - it's already been added optimistically
-    if (currentUserIdStr && String(message.sender_id) === currentUserIdStr) {
-      // This is our own message coming back from socket - ignore it
+    const senderId = String(message.sender_id).trim();
+    if (currentUserIdStr && senderId === currentUserIdStr) {
       setIsTyping(false);
       return;
     }
     
-    // Check if message already exists to prevent duplicates
+    const msgTime = getDateMs(message.created_at);
+    if (msgTime > 0 && msgTime < lastSentAtRef.current) return;
+    
     setMessages((prev) => {
-      // Check by ID (only if ID is valid)
       if (message.id > 0) {
         const existsById = prev.some(msg => msg.id === message.id);
         if (existsById) return prev;
       }
       
-      // Also check by content + sender + timestamp to catch duplicates from socket
       const existsByContent = prev.some(
         msg => 
-          msg.sender_id === message.sender_id && 
+          String(msg.sender_id) === senderId && 
           msg.content === message.content &&
-          Math.abs(getDateMs(msg.created_at) - getDateMs(message.created_at)) < 3000
+          Math.abs(getDateMs(msg.created_at) - msgTime) < 3000
       );
       if (existsByContent) return prev;
       
       return [...prev, message];
     });
     setIsTyping(false);
-  }, [conversationId, currentUserId]);
+  }, [conversationId, currentUserId, currentUserIdStr]);
 
   const handleTyping = useCallback((data: { conversationId: string; userId: number }) => {
     if (data.conversationId === conversationId?.toString() && data.userId !== currentUserId) {
@@ -238,16 +238,18 @@ export default function ChatModal({
 
   const fetchMessages = useCallback(async () => {
     if (!conversationId) return;
+    if (isFetchingRef.current) return;
+    if (isSendingRef.current) return;
+    isFetchingRef.current = true;
     setIsLoading(true);
     try {
       const response = await messagesApi.getMessages(conversationId);
       const fetchedMessages = (response.data as any)?.data ?? [];
       
-      // Deduplicate messages based on ID and content
       const deduplicated = fetchedMessages.reduce((acc: Message[], msg: any) => {
         const exists = acc.some(existing => 
           (existing.id && msg.id && existing.id === msg.id) ||
-          (existing.sender_id === msg.sender_id && 
+          (String(existing.sender_id) === String(msg.sender_id) && 
            existing.content === msg.content &&
            Math.abs(getDateMs(existing.created_at) - getDateMs(msg.created_at)) < 5000)
         );
@@ -257,11 +259,25 @@ export default function ChatModal({
         return acc;
       }, []);
       
-      setMessages(deduplicated);
+      setMessages(prev => {
+        if (prev.length === 0) return deduplicated;
+        const merged = [...prev];
+        for (const msg of deduplicated) {
+          const exists = merged.some(m => 
+            (m.id && msg.id && m.id === msg.id) ||
+            (String(m.sender_id) === String(msg.sender_id) && 
+             m.content && msg.content && m.content === msg.content &&
+             Math.abs(getDateMs(m.created_at) - getDateMs(msg.created_at)) < 3000)
+          );
+          if (!exists) merged.push(msg);
+        }
+        return merged;
+      });
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
   }, [conversationId]);
 
@@ -283,13 +299,13 @@ export default function ChatModal({
   // Deduplicate messages whenever they change
   useEffect(() => {
     if (messages.length <= 1) return;
+    if (messages.some(m => m.status === 'sending')) return;
     
     const uniqueMessages = messages.reduce((acc: Message[], msg, index) => {
-      // Keep the message if it's the first occurrence
       const firstIndex = messages.findIndex(m => 
         (m.id && msg.id && m.id === msg.id) ||
-        (m.sender_id === msg.sender_id && 
-         m.content === msg.content &&
+        (String(m.sender_id) === String(msg.sender_id) && 
+         m.content && msg.content && m.content === msg.content &&
          Math.abs(getDateMs(m.created_at) - getDateMs(msg.created_at)) < 3000)
       );
       
@@ -299,7 +315,7 @@ export default function ChatModal({
       return acc;
     }, []);
     
-    if (uniqueMessages.length !== messages.length) {
+    if (uniqueMessages.length !== messages.length && uniqueMessages.length > 0) {
       setMessages(uniqueMessages);
     }
   }, [messages]);
@@ -379,6 +395,9 @@ export default function ChatModal({
       toast.error('No recording to send');
       return;
     }
+    if (isSendingRef.current) return;
+
+    isSendingRef.current = true;
 
     // Keep a reference to the audio URL for the optimistic message
     const audioUrlToSend = recordedAudioUrl;
@@ -397,6 +416,7 @@ export default function ChatModal({
     };
 
     setMessages(prev => [...prev, optimisticMessage]);
+    lastSentAtRef.current = tempId;
     
     // Keep duration before clearing state
     const durationToSend = recordingDuration;
@@ -482,6 +502,8 @@ export default function ChatModal({
       // Revoke URL on error too
       URL.revokeObjectURL(audioUrlToSend);
       setMessages(prev => prev.filter(msg => msg.id !== tempId));
+    } finally {
+      isSendingRef.current = false;
     }
   };
 
@@ -557,6 +579,7 @@ export default function ChatModal({
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
+    if (isSendingRef.current) return;
     
     // Prevent messaging yourself
     if (currentUserIdStr && String(sellerId) === currentUserIdStr) {
@@ -564,6 +587,7 @@ export default function ChatModal({
       return;
     }
 
+    isSendingRef.current = true;
     const tempId = Date.now();
     const tempConversationId = conversationId || -1; // Temporary ID for optimistic message
     
@@ -579,6 +603,7 @@ export default function ChatModal({
 
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
+    lastSentAtRef.current = tempId;
 
     // Stop typing indicator
     if (typingTimeout) clearTimeout(typingTimeout);
@@ -628,6 +653,8 @@ export default function ChatModal({
       console.error('Error sending message:', error);
       toast.error(error.response?.data?.message || 'Failed to send message');
       setMessages(prev => prev.filter(msg => msg.id !== tempId));
+    } finally {
+      isSendingRef.current = false;
     }
   };
 

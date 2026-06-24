@@ -191,15 +191,19 @@ export default function AdDetailPage() {
       setLoading(false);
       setError(adFetchError?.message || 'Ad not found');
     } else if (!fetchedAd) {
-      setLoading(false);
-      setError('Ad not found');
+      if (isValidSlug) {
+        setLoading(false);
+        setError('Ad not found');
+      } else {
+        setLoading(true);
+      }
     } else if (fetchedAd) {
       const normalized = normalizeAd(fetchedAd, true);
       setAd(normalized);
       setLoading(false);
       setError(null);
     }
-  }, [fetchedAd, adLoading, adError, adFetchError]);
+  }, [fetchedAd, adLoading, adError, adFetchError, isValidSlug]);
 
   useEffect(() => {
     document.title = 'iList - Your Trusted Classified Marketplace';
@@ -697,31 +701,36 @@ export default function AdDetailPage() {
               </div>
 
               {/* Seller Card */}
-              {ad.user?.id || ad.user?.name ? (
-                <SellerProfileCard
-                  seller={{
-                    id: ad.user?.id && typeof ad.user.id === 'number' ? ad.user.id : 0,
-                    name: ad.user?.name || ad.sellerName || 'Unknown Seller',
-                    avatar: ad.user?.avatar || null,
-                    full_avatar_url: ad.user?.full_avatar_url || null,
-                    google_avatar: ad.user?.google_avatar || null,
-                    facebook_avatar: ad.user?.facebook_avatar || null,
-                    verified: ad.user?.verified || false,
-                    created_at: ad.user?.created_at || ad.createdAt,
-                    phone: ad.user?.phone || ad.sellerPhone,
-                    location: ad.user?.location,
-                    is_verified: ad.user?.is_verified || false,
-                    rating: ad.user?.rating_avg || undefined,
-                  }}
-                  showFollowButton={true}
-                  showLocation={false}
-                  showPhone={false}
-                />
-              ) : null}
+              {(() => {
+                const sellerId = ad?.user?.id ?? ad?.user_id ?? (ad as any)?.owner_id ?? null;
+                const sellerName = ad?.user?.name || ad?.sellerName || ad?.seller || (ad as any)?.owner_name || 'Unknown Seller';
+                if (!sellerId && !sellerName) return null;
+                return (
+                  <SellerProfileCard
+                    seller={{
+                      id: sellerId,
+                      name: sellerName,
+                      avatar: ad.user?.avatar || null,
+                      full_avatar_url: ad.user?.full_avatar_url || null,
+                      google_avatar: ad.user?.google_avatar || null,
+                      facebook_avatar: ad.user?.facebook_avatar || null,
+                      verified: ad.user?.verified || false,
+                      created_at: ad.user?.created_at || ad.createdAt,
+                      phone: ad.user?.phone || ad.sellerPhone,
+                      location: ad.user?.location,
+                      is_verified: ad.user?.is_verified || false,
+                      rating: ad.user?.rating_avg || undefined,
+                    }}
+                    showFollowButton={true}
+                    showLocation={false}
+                    showPhone={false}
+                  />
+                );
+              })()}
 
               {/* Latest Reviews */}
               <div className="bg-white rounded-2xl shadow-sm p-4">
-                <LatestReviews adId={Number(ad.id)} adSlug={ad.slug} sellerId={ad.user?.id ? Number(ad.user.id) : undefined} />
+                <LatestReviews adId={Number(ad.id)} adSlug={ad.slug} sellerId={ad.user?.id && typeof ad.user.id === 'number' ? ad.user.id : (ad.user_id as number || undefined)} />
               </div>
 
               {/* Safety Tips */}
@@ -764,7 +773,7 @@ export default function AdDetailPage() {
           onClose={() => setShowChat(false)}
           adId={Number(ad.id)}
           adTitle={ad.title}
-          sellerId={ad.user.id ? Number(ad.user.id) : 0}
+          sellerId={ad.user?.id ?? ad.user_id ?? 0}
           sellerName={ad.user.name || ad.sellerName || 'Seller'}
           sellerVerified={ad.user.verified || false}
           isVerifiedSeller={ad.user.is_verified_seller || false}

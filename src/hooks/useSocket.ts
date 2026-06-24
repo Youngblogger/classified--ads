@@ -67,7 +67,7 @@ export function useSocket(options: {
     }
   }, []);
 
-  const sendMessage = useCallback((data: { conversationId: string; message: any; receiverId: number; senderId: number }) => {
+  const sendMessage = useCallback((data: { conversationId: string; message: any; receiverId: number | string; senderId: number }) => {
     // Messages are already persisted via API; realtime handles the broadcast
   }, []);
 

@@ -21,7 +21,7 @@ import type { SellerProfile, SellerReview } from '@/types';
 
 export default function SellerProfilePage() {
   const params = useParams();
-  const sellerId = parseInt(params.userId as string);
+  const sellerId = params.userId as string;
   const { isAuthenticated } = useAuthStore();
 
   const [seller, setSeller] = useState<SellerProfile | null>(null);
@@ -43,7 +43,7 @@ export default function SellerProfilePage() {
 
   const fetchSellerProfile = useCallback(async () => {
     try {
-      const profileRes = await sellerReviewsApi.getSellerProfile(sellerId);
+      const profileRes = await sellerReviewsApi.getSellerProfile(Number(sellerId));
       setSeller((profileRes.data as any)?.data ?? null);
       
       const adsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/ads?user_id=${sellerId}&status=active`);
@@ -64,7 +64,7 @@ export default function SellerProfilePage() {
   const fetchReviews = useCallback(async () => {
     setReviewsLoading(true);
     try {
-      const response = await sellerReviewsApi.getReviews(sellerId, { sort: reviewSort });
+      const response = await sellerReviewsApi.getReviews(Number(sellerId), { sort: reviewSort });
       setReviews((response.data as any)?.data ?? []);
       setReviewsMeta((response.data as any)?.meta ?? {});
     } catch (error: any) {
@@ -81,9 +81,10 @@ export default function SellerProfilePage() {
     if (!isAuthenticated) return;
     try {
       const response = await followApi.getUserStats(sellerId);
-      setIsFollowing((response.data as any)?.data?.is_following ?? false);
-      setFollowersCount((response.data as any)?.data?.followers_count ?? 0);
-      setFollowingCount((response.data as any)?.data?.following_count ?? 0);
+      const d = (response.data as any)?.data ?? {};
+      setIsFollowing(d.is_following ?? false);
+      setFollowersCount(d.followers_count ?? 0);
+      setFollowingCount(d.following_count ?? 0);
     } catch (error) {
       console.error('Error fetching follow status:', error);
     }
@@ -118,17 +119,31 @@ export default function SellerProfilePage() {
     }
     
     setFollowLoading(true);
+    const prevFollowing = isFollowing;
+    const prevCount = followersCount;
+    setIsFollowing(!isFollowing);
+    setFollowersCount(c => isFollowing ? Math.max(0, c - 1) : c + 1);
+    
     try {
-      const response = await followApi.follow(sellerId);
-      setIsFollowing((response.data as any)?.data?.is_following ?? false);
-      setFollowersCount((response.data as any)?.data?.followers_count ?? 0);
-      if ((response.data as any)?.data?.is_following) {
+      const response = await followApi.toggleFollow(sellerId);
+      const result = (response.data as any)?.status;
+      if (result === 'followed') {
+        setIsFollowing(true);
+        setFollowersCount(c => Math.max(c, 1));
         toast.success(`You're now following ${seller?.seller?.name}`);
-      } else {
+      } else if (result === 'unfollowed') {
+        setIsFollowing(false);
+        setFollowersCount(c => Math.max(0, c - 1));
         toast.success(`Unfollowed ${seller?.seller?.name}`);
+      } else {
+        setIsFollowing(prevFollowing);
+        setFollowersCount(prevCount);
+        toast.error('Failed to update follow status');
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update follow status');
+    } catch {
+      setIsFollowing(prevFollowing);
+      setFollowersCount(prevCount);
+      toast.error('Failed to update follow status');
     } finally {
       setFollowLoading(false);
     }
@@ -282,7 +297,7 @@ export default function SellerProfilePage() {
                 </div>
 
                 <div className="mt-6 space-y-3">
-                  {user && user.id !== sellerId && (
+                  {user && String(user.id) !== String(sellerId) && (
                     <button
                       onClick={handleFollow}
                       disabled={followLoading}
@@ -439,7 +454,7 @@ export default function SellerProfilePage() {
       <SellerReviewModal
         isOpen={showReviewModal}
         onClose={() => setShowReviewModal(false)}
-        sellerId={sellerId}
+        sellerId={Number(sellerId)}
         sellerName={seller?.seller?.name || 'this seller'}
         onSuccess={() => setRefreshKey(k => k + 1)}
       />

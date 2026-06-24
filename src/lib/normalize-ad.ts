@@ -399,8 +399,9 @@ function extractUser(ad: Record<string, unknown>): NormalizedAdUser | undefined 
 
   if (ad.user && typeof ad.user === 'object' && Object.keys(ad.user as Record<string, unknown>).length > 0) {
     const u = ad.user as Record<string, unknown>;
+    const userId = (u.id as number | string | null) ?? (u.user_id as number | string | null) ?? (u.userId as number | string | null) ?? (u.seller_id as number | string | null) ?? (u.sellerId as number | string | null) ?? null;
     return {
-      id: (u.id as number | string | null) ?? null,
+      id: userId,
       name: String(u.name || u.full_name || u.username || ''),
       full_name: String(u.full_name || u.name || ''),
       username: String(u.username || ''),
@@ -425,8 +426,9 @@ function extractUser(ad: Record<string, unknown>): NormalizedAdUser | undefined 
 
   if (ad.profiles && typeof ad.profiles === 'object') {
     const p = ad.profiles as Record<string, unknown>;
+    const profileId = (p.id as number | string | null) ?? (p.user_id as number | string | null) ?? (p.userId as number | string | null) ?? (p.seller_id as number | string | null) ?? (p.sellerId as number | string | null) ?? null;
     return {
-      id: (p.id as number | string | null) ?? null,
+      id: profileId,
       name: String(p.full_name || p.username || ''),
       full_name: String(p.full_name || ''),
       username: String(p.username || ''),
@@ -449,20 +451,26 @@ function extractUser(ad: Record<string, unknown>): NormalizedAdUser | undefined 
     };
   }
 
-  if (ad.sellerName || ad.seller) {
+
+
+  // Final fallback: if we have NO user object but have ANY potential ID or name field
+  const fallbackId = (ad.user_id as number | string | null) ?? (ad.userId as number | string | null) ?? (ad.seller_id as number | string | null) ?? (ad.sellerId as number | string | null) ?? (ad.author_id as number | string | null) ?? null;
+  const fallbackName = String(ad.sellerName || ad.seller || ad.name || ad.full_name || ad.username || '');
+
+  if (fallbackId || fallbackName) {
     return {
-      id: (ad.user_id as number | string | null) ?? (ad.id as number | string | null) ?? null,
-      name: String(ad.sellerName || ad.seller || 'Unknown Seller'),
-      full_name: String(ad.sellerName || ad.seller || ''),
-      username: '',
-      email: '',
-      phone: String(ad.sellerPhone || ad.phone || ''),
-      avatar: '',
-      avatar_url: '',
-      full_avatar_url: '',
+      id: fallbackId,
+      name: fallbackName || 'Unknown Seller',
+      full_name: String(ad.full_name || fallbackName || ''),
+      username: String(ad.username || ''),
+      email: String(ad.email || ''),
+      phone: String(ad.sellerPhone || ad.phone || ad.phone_number || ''),
+      avatar: ensureAbs(String(ad.avatar_url || ad.avatar || '')),
+      avatar_url: ensureAbs(String(ad.avatar_url || '')),
+      full_avatar_url: ensureAbs(String(ad.avatar_url || '')),
       google_avatar: '',
       facebook_avatar: '',
-      location: '',
+      location: String(ad.location || ''),
       created_at: null,
       verified: !!ad.is_verified,
       is_verified: !!ad.is_verified,
@@ -574,7 +582,7 @@ export function normalizeAd(ad: unknown, isDetail = false): NormalizedAd | null 
     category_slug: String(a.category_slug || (a.category as Record<string, unknown>)?.slug || extractCategory(a)?.slug || ''),
     subcategory_id: (a.subcategory_id as number) || ((a.subcategory as Record<string, unknown>)?.id as number) || null,
     subcategory_slug: String(a.subcategory_slug || (a.subcategory as Record<string, unknown>)?.slug || ''),
-    user_id: (a.user_id as number | string) || ((a.user as Record<string, unknown>)?.id as number | string) || null,
+    user_id: (a.user_id as number | string) || (a.userId as number | string) || (a.seller_id as number | string) || (a.sellerId as number | string) || ((a.user as Record<string, unknown>)?.id as number | string) || null,
     category: extractCategory(a),
     subcategory: a.subcategory || null,
     user: extractUser(a),

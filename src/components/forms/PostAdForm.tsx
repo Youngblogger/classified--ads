@@ -694,6 +694,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       if (!adId) throw new Error(response.statusText || 'Failed to post ad');
 
       setSubmissionStep('success');
+      toast.success('Your ad has been posted successfully!');
       const adSlug = (response.data as any)?.data?.slug || (response.data as any)?.slug;
 
       // Reset form
@@ -766,7 +767,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
   const conditionLabels: Record<string, string> = { new: 'New', good: 'Used', fair: 'Refurbished' };
 
   return (
-    <div ref={formRef} className="space-y-4 relative">
+    <div ref={formRef} className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 space-y-4 relative max-w-2xl mx-auto">
       {/* Draft Restore Modal */}
       <DraftRestoreModal
         isOpen={showDraftModal}
@@ -782,7 +783,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {/* Back button */}
       <button
         onClick={prevStep}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors group"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700  transition-colors group"
       >
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200" />
         <span>Back</span>
@@ -792,23 +793,23 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {step === 1 && (
         <div className="space-y-5 pt-2 animate-fadeIn">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Choose your category</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Select the category that best fits your listing</p>
+            <h2 className="text-lg font-bold text-gray-900  mb-1">Choose your category</h2>
+            <p className="text-sm text-gray-500  mb-4">Select the category that best fits your listing</p>
           </div>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-800  mb-2">
                 Category <span className="text-red-500">*</span>
               </label>
               <button
                 onClick={() => setShowCategorySelector(true)}
-                className="w-full flex items-center justify-between py-3.5 px-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-primary-500 dark:hover:border-primary-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/40"
+                className="w-full flex items-center justify-between py-3.5 px-4 border-2 border-gray-200  rounded-xl hover:border-primary-500  hover:shadow-md transition-all bg-white  focus:outline-none focus:ring-4 focus:ring-primary-100 "
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${categoryBreadcrumb ? 'bg-primary-50 dark:bg-primary-900/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
-                    <Tag className={`w-4 h-4 ${categoryBreadcrumb ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`} />
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${categoryBreadcrumb ? 'bg-primary-50 ' : 'bg-gray-100 '}`}>
+                    <Tag className={`w-4 h-4 ${categoryBreadcrumb ? 'text-primary-600 ' : 'text-gray-400'}`} />
                   </div>
-                  <span className={`text-base font-medium ${categoryBreadcrumb ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
+                  <span className={`text-base font-medium ${categoryBreadcrumb ? 'text-gray-900 ' : 'text-gray-400 '}`}>
                     {categoryBreadcrumb || 'Select Category'}
                   </span>
                 </div>
@@ -817,18 +818,18 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-800  mb-2">
                 Location <span className="text-red-500">*</span>
               </label>
               <button
                 onClick={() => setShowLocationSelector(true)}
-                className="w-full flex items-center justify-between py-3.5 px-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-primary-500 dark:hover:border-primary-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/40"
+                className="w-full flex items-center justify-between py-3.5 px-4 border-2 border-gray-200  rounded-xl hover:border-primary-500  hover:shadow-md transition-all bg-white  focus:outline-none focus:ring-4 focus:ring-primary-100 "
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${locationBreadcrumb ? 'bg-primary-50 dark:bg-primary-900/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
-                    <MapPin className={`w-4 h-4 ${locationBreadcrumb ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`} />
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${locationBreadcrumb ? 'bg-primary-50 ' : 'bg-gray-100 '}`}>
+                    <MapPin className={`w-4 h-4 ${locationBreadcrumb ? 'text-primary-600 ' : 'text-gray-400'}`} />
                   </div>
-                  <span className={`text-base font-medium ${locationBreadcrumb ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
+                  <span className={`text-base font-medium ${locationBreadcrumb ? 'text-gray-900 ' : 'text-gray-400 '}`}>
                     {locationBreadcrumb || 'Select Location'}
                   </span>
                 </div>
@@ -841,7 +842,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             <button
               onClick={nextStep}
               disabled={!canProceedStep1}
-              className="w-full py-3.5 bg-primary-600 hover:bg-primary-700 active:scale-[0.98] text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
+              className="w-full py-3.5 bg-primary-600 hover:bg-primary-700 active:scale-[0.98] text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md disabled:bg-gray-300  disabled:cursor-not-allowed"
             >
               Continue to Details
               <ChevronRight className="w-4 h-4" />
@@ -854,28 +855,28 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {step === 2 && (
         <div className="space-y-5 animate-fadeIn">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Listing details</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Provide detailed information about your item</p>
+            <h2 className="text-lg font-bold text-gray-900  mb-1">Listing details</h2>
+            <p className="text-sm text-gray-500 ">Provide detailed information about your item</p>
           </div>
 
           {/* Title */}
           <div>
-            <label className="block text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">
+            <label className="block text-base font-semibold text-gray-800  mb-3">
               Title <span className="text-red-500">*</span>
             </label>
             <input
               type="text" value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. iPhone 14 Pro Max 256GB"
-              className="w-full px-4 py-3 text-base font-bold border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-primary-500 dark:focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              className="w-full px-4 py-3 text-base font-bold border-2 border-gray-200  rounded-xl focus:border-primary-500  focus:outline-none focus:ring-4 focus:ring-primary-100  transition-all bg-white  text-gray-900  placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 "
               maxLength={100}
             />
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2 text-right">{title.length}/100</p>
+            <p className="text-sm text-gray-400  mt-2 text-right">{title.length}/100</p>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">
+            <label className="block text-base font-semibold text-gray-800  mb-3">
               Description <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -883,25 +884,25 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your item in detail. Include features, condition, and any other relevant information..."
               rows={6}
-              className="w-full px-4 py-3 text-sm font-medium border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-primary-500 dark:focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/30 transition-all resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              className="w-full px-4 py-3 text-sm font-medium border-2 border-gray-200  rounded-xl focus:border-primary-500  focus:outline-none focus:ring-4 focus:ring-primary-100  transition-all resize-none bg-white  text-gray-900  placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 "
               maxLength={2000}
             />
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2 text-right">{description.length}/2000</p>
+            <p className="text-sm text-gray-400  mt-2 text-right">{description.length}/2000</p>
           </div>
 
           {/* Condition & Price */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700  mb-2">
                 Condition <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-1.5">
                 {([{ key: 'new', label: 'New', color: 'emerald' }, { key: 'good', label: 'Used', color: 'amber' }, { key: 'fair', label: 'Refurbished', color: 'yellow' }] as const).map(({ key, label, color }) => {
                   const isSelected = condition === key;
                   const colorClasses = {
-                    emerald: isSelected ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-emerald-300 dark:hover:border-emerald-600 hover:text-emerald-600 dark:hover:text-emerald-400',
-                    amber: isSelected ? 'bg-amber-500 text-white border-amber-500' : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-amber-300 dark:hover:border-amber-600 hover:text-amber-600 dark:hover:text-amber-400',
-                    yellow: isSelected ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-yellow-300 dark:hover:border-yellow-600 hover:text-yellow-600 dark:hover:text-yellow-400',
+                    emerald: isSelected ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white  text-gray-600  border-gray-200  hover:border-emerald-300  hover:text-emerald-600 ',
+                    amber: isSelected ? 'bg-amber-500 text-white border-amber-500' : 'bg-white  text-gray-600  border-gray-200  hover:border-amber-300  hover:text-amber-600 ',
+                    yellow: isSelected ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white  text-gray-600  border-gray-200  hover:border-yellow-300  hover:text-yellow-600 ',
                   };
                   return (
                     <button key={key} onClick={() => setCondition(key)} className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${colorClasses[color]}`}>
@@ -913,7 +914,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             </div>
 
             <div>
-              <label className="block text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">
+              <label className="block text-base font-semibold text-gray-800  mb-3">
                 Price <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -921,32 +922,32 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 <input
                   type="text" value={formatPriceDisplay(price)} onChange={handlePriceChange}
                   placeholder="Enter price" inputMode="numeric"
-                  className="w-full pl-9 pr-4 py-3 text-base border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-primary-500 dark:focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/30 transition-all font-semibold bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-base placeholder:font-normal placeholder:text-gray-300 dark:placeholder:text-gray-500"
+                  className="w-full pl-9 pr-4 py-3 text-base border-2 border-gray-200  rounded-xl focus:border-primary-500  focus:outline-none focus:ring-4 focus:ring-primary-100  transition-all font-semibold bg-white  text-gray-900  placeholder:text-base placeholder:font-normal placeholder:text-gray-300 "
                 />
               </div>
               <label className="flex items-center gap-3 cursor-pointer mt-3">
-                <input type="checkbox" checked={negotiable} onChange={(e) => setNegotiable(e.target.checked)} className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-700" />
-                <span className="text-gray-700 dark:text-gray-300">Price is negotiable</span>
+                <input type="checkbox" checked={negotiable} onChange={(e) => setNegotiable(e.target.checked)} className="w-5 h-5 rounded border-gray-300  text-primary-600 focus:ring-primary-500 " />
+                <span className="text-gray-700 ">Price is negotiable</span>
               </label>
             </div>
           </div>
 
           {/* Photos */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700  mb-2">
               Photos <span className="text-red-500">*</span>
-              <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(up to {MAX_IMAGES})</span>
+              <span className="text-gray-400  font-normal ml-1">(up to {MAX_IMAGES})</span>
             </label>
             <div
               ref={dropZoneRef} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onClick={handleImageClick}
-              className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors bg-white dark:bg-gray-800 ${
-                isDragging ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400'
+              className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors bg-white  ${
+                isDragging ? 'border-primary-500 bg-primary-50 ' : 'border-gray-300  hover:border-primary-500 '
               }`}
             >
               <input ref={fileInputRef} type="file" accept={ACCEPTED_FORMATS.join(',')} multiple onChange={handleFileChange} className="hidden" />
-              <Upload className="w-10 h-10 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
-              <p className="text-gray-600 dark:text-gray-400 font-medium">Click or drag photos here</p>
-              <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">JPG, PNG, WebP, GIF, HEIC - Max 5MB</p>
+              <Upload className="w-10 h-10 text-gray-400  mx-auto mb-3" />
+              <p className="text-gray-600  font-medium">Click or drag photos here</p>
+              <p className="text-gray-400  text-sm mt-1">JPG, PNG, WebP, GIF, HEIC - Max 5MB</p>
             </div>
             {images.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mt-4">
@@ -956,8 +957,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                     onDragOver={(e) => handleImageDragOver(e, index)} onRemove={removeImage} onRetry={handleRetryUpload} />
                 ))}
                 {images.length < MAX_IMAGES && (
-                  <div onClick={handleImageClick} className="aspect-square rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <ImageIcon className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                  <div onClick={handleImageClick} className="aspect-square rounded-lg border-2 border-dashed border-gray-300  flex items-center justify-center cursor-pointer hover:border-primary-500  hover:bg-gray-50 ">
+                    <ImageIcon className="w-6 h-6 text-gray-400 " />
                   </div>
                 )}
               </div>
@@ -969,16 +970,16 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Brand</label>
-                  <select value={selectedBrand} onChange={(e) => handleBrandChange(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-700">
+                  <label className="block text-sm font-medium text-gray-700 ">Brand</label>
+                  <select value={selectedBrand} onChange={(e) => handleBrandChange(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200  rounded-xl bg-white  text-gray-900  appearance-none cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary-200 ">
                     <option value="">Select Brand</option>
                     {getAvailableBrands().map((brand) => (<option key={brand} value={brand}>{brand}</option>))}
                   </select>
                 </div>
                 {selectedBrand && (
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
-                    <select value={selectedModel} onChange={(e) => handleModelChange(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-700">
+                    <label className="block text-sm font-medium text-gray-700 ">Model</label>
+                    <select value={selectedModel} onChange={(e) => handleModelChange(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200  rounded-xl bg-white  text-gray-900  appearance-none cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary-200 ">
                       <option value="">Select Model</option>
                       {getAvailableModels().map((model) => (<option key={model} value={model}>{model}</option>))}
                     </select>
@@ -986,8 +987,8 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                 )}
                 {selectedModel && modelPresets.length > 0 && (
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Configuration</label>
-                    <select value={selectedConfig} onChange={(e) => handleConfigChange(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-700">
+                    <label className="block text-sm font-medium text-gray-700 ">Configuration</label>
+                    <select value={selectedConfig} onChange={(e) => handleConfigChange(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200  rounded-xl bg-white  text-gray-900  appearance-none cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary-200 ">
                       <option value="">Select Configuration</option>
                       {modelPresets.map((preset) => (<option key={preset} value={preset}>{preset}</option>))}
                     </select>
@@ -1002,31 +1003,31 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-6 bg-primary-500 rounded-full" />
-                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Specifications</h3>
+                <h3 className="text-base font-bold text-gray-900 ">Specifications</h3>
               </div>
               <DynamicSpecFields fields={displayFields} values={attributes} onChange={handleAttributeChange} />
             </div>
           )}
 
           {/* Contact Info */}
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-800/30 rounded-xl p-5 space-y-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
-              <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-                <Phone className="w-4 h-4 text-green-600 dark:text-green-400" />
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100   rounded-xl p-5 space-y-4 border border-gray-200 ">
+            <div className="flex items-center gap-2 pb-3 border-b border-gray-200 ">
+              <div className="w-8 h-8 rounded-lg bg-green-100  flex items-center justify-center">
+                <Phone className="w-4 h-4 text-green-600 " />
               </div>
-              <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">Contact Information</h4>
+              <h4 className="text-base font-bold text-gray-900 ">Contact Information</h4>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <label className="block text-sm font-semibold text-gray-800 ">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel" value={phone}
                   onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 11); setPhone(val); setPhoneError(val.length === 11 ? getPhoneValidationError(val) : null); }}
                   placeholder="e.g. 08034567890"
-                  className={`w-full px-4 py-3 text-base font-semibold border-2 rounded-lg focus:outline-none focus:ring-4 transition-all bg-white dark:bg-gray-800 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 dark:placeholder:text-gray-500 ${
-                    phoneError ? 'border-red-400 dark:border-red-500 focus:border-red-500 focus:ring-red-100 dark:focus:ring-red-900/40' : 'border-gray-200 dark:border-gray-600 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-primary-100 dark:focus:ring-primary-900/30'
+                  className={`w-full px-4 py-3 text-base font-semibold border-2 rounded-lg focus:outline-none focus:ring-4 transition-all bg-white  placeholder:text-sm placeholder:font-normal placeholder:text-gray-400  ${
+                    phoneError ? 'border-red-400  focus:border-red-500 focus:ring-red-100 ' : 'border-gray-200  focus:border-primary-500  focus:ring-primary-100 '
                   }`}
                   maxLength={11}
                 />
@@ -1035,21 +1036,21 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
               {!sameAsPhone && (
                 <div className="space-y-2 animate-fadeIn">
-                  <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200">WhatsApp Number</label>
+                  <label className="block text-sm font-semibold text-gray-800 ">WhatsApp Number</label>
                   <input type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
                     placeholder="e.g. 08034567890"
-                    className="w-full px-4 py-3 text-base font-semibold border-2 border-gray-200 dark:border-gray-600 rounded-lg focus:border-green-500 focus:outline-none focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/40 transition-all bg-white dark:bg-gray-800 placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    className="w-full px-4 py-3 text-base font-semibold border-2 border-gray-200  rounded-lg focus:border-green-500 focus:outline-none focus:ring-4 focus:ring-green-100  transition-all bg-white  placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 "
                     maxLength={11}
                   />
                 </div>
               )}
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-2.5 border border-gray-100 dark:border-gray-700">
+            <div className="bg-white  rounded-lg p-2.5 border border-gray-100 ">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Is this your WhatsApp contact?</span>
-                <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-0.5">
-                  <button onClick={() => setSameAsPhone(true)} className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${sameAsPhone ? 'bg-green-500 text-white shadow-sm' : 'bg-transparent text-gray-500 dark:text-gray-400'}`}>Yes</button>
-                  <button onClick={() => setSameAsPhone(false)} className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${!sameAsPhone ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-gray-500 dark:text-gray-400'}`}>No</button>
+                <span className="text-xs font-medium text-gray-700 ">Is this your WhatsApp contact?</span>
+                <div className="flex items-center bg-gray-200  rounded-full p-0.5">
+                  <button onClick={() => setSameAsPhone(true)} className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${sameAsPhone ? 'bg-green-500 text-white shadow-sm' : 'bg-transparent text-gray-500 '}`}>Yes</button>
+                  <button onClick={() => setSameAsPhone(false)} className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${!sameAsPhone ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-gray-500 '}`}>No</button>
                 </div>
               </div>
             </div>
@@ -1057,7 +1058,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
 
           {/* Navigation */}
           <div className="flex items-center justify-between pt-4">
-            <button onClick={prevStep} className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <button onClick={prevStep} className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600  transition-colors">
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button onClick={nextStep} className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 active:scale-[0.98] text-white font-semibold text-sm rounded-lg transition-all flex items-center gap-2 shadow-sm hover:shadow-md">
@@ -1137,22 +1138,22 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
       {/* Submission progress overlay */}
       {isSubmitting && (
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center">
+          <div className="bg-white  rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center">
             {submissionStep === 'success' ? (
               <>
                 <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-green-200">
                   <Check className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Ad Posted Successfully!</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center">Your listing is now live and visible to buyers.</p>
+                <h3 className="text-lg font-bold text-gray-900  mb-2">Ad Posted Successfully!</h3>
+                <p className="text-sm text-gray-500  text-center">Your listing is now live and visible to buyers.</p>
               </>
             ) : (
               <>
                 <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-primary-200">
                   <Loader2 className="w-8 h-8 text-white animate-spin" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Posting your ad</h3>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3 overflow-hidden">
+                <h3 className="text-lg font-bold text-gray-900  mb-2">Posting your ad</h3>
+                <div className="w-full bg-gray-200  rounded-full h-2 mb-3 overflow-hidden">
                   <div
                     className="bg-gradient-to-r from-primary-400 to-primary-600 h-full rounded-full transition-all duration-500"
                     style={{
@@ -1161,7 +1162,7 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
                     }}
                   />
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                <p className="text-sm text-gray-500  text-center">
                   {SUBMISSION_STEPS.find(s => s.key === submissionStep)?.label || 'Please wait...'}
                 </p>
               </>
@@ -1172,3 +1173,4 @@ export default function PostAdForm({ onSuccess, isStandalone = true }: PostAdFor
     </div>
   );
 }
+

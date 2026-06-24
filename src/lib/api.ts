@@ -976,7 +976,7 @@ export const messagesApi = {
     return error ? sbError(error) : sbResponse({ data });
   },
 
-  sendMessageNew: async (receiverId: number, adId: number | null, content: string, _messageType?: string, _attachment?: File | Blob, _duration?: number) => {
+  sendMessageNew: async (receiverId: number | string, adId: number | null, content: string, _messageType?: string, _attachment?: File | Blob, _duration?: number) => {
     const userId = await ensureUserId();
     if (!userId) return sbError({ message: 'Not authenticated' });
     try {
@@ -1040,64 +1040,168 @@ export const messagesApi = {
 };
 
 // ==============================
-//  FOLLOW API
+//  FOLLOW API (Supabase-first, UUID-only, toggle-based)
 // ==============================
+const FOLLOWS_TABLE = 'follows';
+const IS_UUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
 export const followApi = {
-  follow: async (followingId: number) => {
-    const userId = await ensureUserId();
-    if (!userId) return sbError({ message: 'Not authenticated' });
+  toggleFollow: async (followingId: string) => {
+    const supabaseId = await getSupabaseUserId();
+    const fallbackId = await ensureUserId();
+    const followerId = supabaseId || fallbackId;
+    if (!followerId) return sbError({ message: 'Not authenticated' });
+
+    const useSupabase = !!(supabaseId && IS_UUID(followingId));
+
+    if (useSupabase) {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      try {
+        const res = await fetch('/api/follow-toggle', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ follower_id: followerId, following_id: followingId }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status) return sbResponse({ data: { status: data.status } });
+        }
+      } catch {}
+      try {
+        const { data: existing } = await supabase
+          .from(FOLLOWS_TABLE)
+          .select('id')
+          .eq('follower_id', followerId)
+          .eq('following_id', followingId)
+          .maybeSingle();
+        if (existing) {
+          const { error } = await supabase.from(FOLLOWS_TABLE).delete().eq('id', existing.id);
+          if (!error) return sbResponse({ data: { status: 'unfollowed' } });
+        } else {
+          const { error } = await supabase.from(FOLLOWS_TABLE).insert({ follower_id: followerId, following_id: followingId });
+          if (!error) return sbResponse({ data: { status: 'followed' } });
+        }
+      } catch {}
+    }
+
     try {
-      const res = await http.post('/follow', { following_id: followingId });
-      if (res?.data) return sbResponse({ data: { message: 'Followed' } });
+      const was = await http.get('/follow/check', { params: { following_id: followingId, user_id: followerId } } as any);
+      const isFollowing = was?.data?.data?.is_following ?? was?.data?.is_following ?? false;
+      if (isFollowing) {
+        await http.delete('/unfollow', { data: { following_id: followingId, user_id: followerId } } as any);
+        return sbResponse({ data: { status: 'unfollowed' } });
+      }
+      await http.post('/follow', { following_id: followingId, user_id: followerId });
+      return sbResponse({ data: { status: 'followed' } });
     } catch {}
-    const { error } = await supabase.from('follows' as any).insert({ follower_id: userId, following_id: String(followingId) } as any);
-    return error ? sbError(error) : sbResponse({ data: { message: 'Followed' } });
+
+    return sbError({ message: 'Follow action failed. Ensure the follows table exists in Supabase or the Laravel backend is reachable.' });
   },
-  unfollow: async (followingId: number) => {
-    const userId = await ensureUserId();
-    if (!userId) return sbError({ message: 'Not authenticated' });
+  checkFollow: async (followingId: string) => {
+    const supabaseId = await getSupabaseUserId();
+    const fallbackId = await ensureUserId();
+    const followerId = supabaseId || fallbackId;
+    if (!followerId) return sbResponse({ data: { is_following: false } });
+
+    if (supabaseId && IS_UUID(followingId)) {
+      try {
+        const { data } = await supabase
+          .from(FOLLOWS_TABLE)
+          .select('id')
+          .eq('follower_id', followerId)
+          .eq('following_id', followingId)
+          .maybeSingle();
+        if (data !== undefined) return sbResponse({ data: { is_following: !!data } });
+      } catch {}
+    }
+
     try {
-      const res = await http.delete('/unfollow', { data: { following_id: followingId } } as any);
-      if (res?.data) return sbResponse({ data: { message: 'Unfollowed' } });
-    } catch {}
-    const { error } = await supabase.from('follows' as any).delete().eq('follower_id', userId).eq('following_id', String(followingId)) as any;
-    return error ? sbError(error) : sbResponse({ data: { message: 'Unfollowed' } });
-  },
-  checkFollow: async (followingId: number) => {
-    const userId = await ensureUserId();
-    if (!userId) return sbResponse({ data: { is_following: false } });
-    try {
-      const res = await http.get('/follow/check', { params: { following_id: followingId } as any });
+      const res = await http.get('/follow/check', { params: { following_id: followingId, user_id: followerId } } as any);
       const is_following = res?.data?.data?.is_following ?? res?.data?.is_following;
       if (is_following !== undefined) return sbResponse({ data: { is_following } });
     } catch {}
-    const { data } = await supabase.from('follows' as any).select('id').eq('follower_id', userId).eq('following_id', String(followingId)).maybeSingle() as any;
-    return sbResponse({ data: { is_following: !!data } });
+    return sbResponse({ data: { is_following: false } });
   },
-  getFollowers: async (userId: number, page = 1) => {
+  getFollowers: async (userId: string, page = 1) => {
     try {
       const res = await http.get(`/users/${userId}/followers`, { params: { page } as any });
       return sbResponse({ data: res?.data?.data || [] });
-    } catch { return sbResponse({ data: [] }); }
+    } catch {
+      const from = (page - 1) * 20;
+      const to = from + 19;
+      const { data } = await supabase
+        .from('follows')
+        .select('*, follower:profiles!follower_id(*)')
+        .eq('following_id', userId)
+        .range(from, to)
+        .order('created_at', { ascending: false });
+      return sbResponse({ data: (data || []).map((f: any) => f.follower) });
+    }
   },
-  getFollowing: async (userId: number, page = 1) => {
+  getFollowing: async (userId: string, page = 1) => {
     try {
       const res = await http.get(`/users/${userId}/following`, { params: { page } as any });
       return sbResponse({ data: res?.data?.data || [] });
-    } catch { return sbResponse({ data: [] }); }
+    } catch {
+      const from = (page - 1) * 20;
+      const to = from + 19;
+      const { data } = await supabase
+        .from('follows')
+        .select('*, following:profiles!following_id(*)')
+        .eq('follower_id', userId)
+        .range(from, to)
+        .order('created_at', { ascending: false });
+      return sbResponse({ data: (data || []).map((f: any) => f.following) });
+    }
   },
-  getUserStats: async (userId: number) => {
+  getUserStats: async (userId: string) => {
     try {
       const res = await http.get(`/users/${userId}/stats`);
-      return sbResponse({ data: res?.data?.data || { followers_count: 0, following_count: 0 } });
-    } catch { return sbResponse({ data: { followers_count: 0, following_count: 0 } }); }
+      const d = res?.data?.data || res?.data;
+      if (d) return sbResponse({ data: { followers_count: d.followers_count || 0, following_count: d.following_count || 0, is_following: d.is_following || false } });
+    } catch {}
+    const currentUserId = await getSupabaseUserId();
+    const [followersRes, followingRes, isFollowRes] = await Promise.all([
+      supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', userId),
+      supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', userId),
+      currentUserId
+        ? supabase.from('follows').select('id').eq('follower_id', currentUserId).eq('following_id', userId).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    return sbResponse({
+      data: {
+        followers_count: followersRes.count ?? 0,
+        following_count: followingRes.count ?? 0,
+        is_following: !!isFollowRes.data,
+      },
+    });
   },
   getFollowingFeed: async (page = 1) => {
     try {
       const res = await http.get('/feed/following', { params: { page } as any });
       const data = res?.data?.data || [];
       return sbResponse({ data: normalizeAds(data) });
-    } catch { return sbResponse({ data: [] }); }
+    } catch {
+      const currentUserId = await getSupabaseUserId();
+      if (!currentUserId) return sbResponse({ data: [] });
+      const { data: following } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', currentUserId);
+      if (!following || following.length === 0) return sbResponse({ data: [] });
+      const ids = following.map((f: any) => f.following_id);
+      const { data: listings } = await supabase
+        .from('listings')
+        .select('*, listing_images(*)')
+        .in('user_id', ids)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .range((page - 1) * 20, page * 20 - 1);
+      return sbResponse({ data: normalizeAds(listings || []) });
+    }
   },
   getSuggestedSellers: async () => {
     try {

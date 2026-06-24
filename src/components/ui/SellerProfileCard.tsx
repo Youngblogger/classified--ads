@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { CheckCircle, UserPlus, Loader2 } from 'lucide-react';
+import { CheckCircle, UserPlus, Loader2, UserMinus } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
-import { API_URL, BACKEND_URL } from '@/lib/config';
+import { BACKEND_URL } from '@/lib/config';
+import { followApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import VerifiedSellerBadge from '@/components/verification/VerifiedSellerBadge';
 import BusinessVerifiedBadge from '@/components/verification/BusinessVerifiedBadge';
 
 interface SellerProfileCardProps {
   seller: {
-    id: number;
+    id: number | string;
     name: string;
     avatar?: string | null;
     full_avatar_url?: string | null;
@@ -164,8 +165,10 @@ export default function SellerProfileCard({
   const [isInitializing, setIsInitializing] = useState(true);
   const [imgError, setImgError] = useState(false);
   
-    const sellerAny = seller as any;
-  const isOwnProfile = user?.id === seller.id;
+  const sellerAny = seller as any;
+  const sellerId = seller.id != null && seller.id !== '' ? String(seller.id) : null;
+  const currentUserId = user?.id != null ? String(user.id) : null;
+  const isOwnProfile = currentUserId !== null && sellerId !== null && currentUserId === sellerId;
   const profileImage = getProfileImage(seller);
   const joinedDate = sellerAny.joined_date || formatDate(sellerAny.created_at || sellerAny.member_since);
   
@@ -177,89 +180,65 @@ export default function SellerProfileCard({
   
   const currentSizes = sizes[size];
 
-  useEffect(() => {
-    if (seller.id && isAuthenticated) {
-      const currentUser = useAuthStore.getState().user;
-      const currentUserId = currentUser?.id;
-      
-      const params = new URLSearchParams();
-      if (currentUserId) params.set('user_id', String(currentUserId));
-      
-      fetch(`${API_URL}/users/${seller.id}/stats?${params.toString()}`)
-        .then(res => res.json())
-        .then(data => {
-          setIsFollowing(data.is_following);
-          setFollowersCount(data.followers_count);
-        })
-        .catch(console.error)
-        .finally(() => setIsInitializing(false));
-    } else {
+  const fetchFollowState = useCallback(async () => {
+    if (!sellerId || !isAuthenticated) {
       setIsInitializing(false);
+      return;
     }
-  }, [seller.id, isAuthenticated]);
+    if (isOwnProfile) {
+      setIsInitializing(false);
+      return;
+    }
+    const res = await followApi.checkFollow(sellerId);
+    const data = res.data as any;
+    setIsFollowing(data?.is_following ?? false);
+    setIsInitializing(false);
+  }, [sellerId, isAuthenticated, isOwnProfile]);
+
+  useEffect(() => {
+    fetchFollowState();
+  }, [fetchFollowState]);
 
   const handleFollow = async () => {
     if (!isAuthenticated) {
       toast.error('Please login to follow sellers');
       return;
     }
-    
-    if (!seller.id || seller.id === 0) {
+    if (!sellerId) {
       toast.error('Invalid seller');
       return;
     }
-    
     if (isOwnProfile) {
       toast.error("You can't follow yourself");
       return;
     }
-    
-    // If already following, do nothing (cannot unfollow)
-    if (isFollowing) {
-      return;
-    }
 
     setIsLoading(true);
-    
+    const previousState = isFollowing;
+    const previousCount = followersCount;
+
+    setIsFollowing(!isFollowing);
+    setFollowersCount(c => isFollowing ? Math.max(0, c - 1) : c + 1);
+
     try {
-      const currentUser = useAuthStore.getState().user;
-      const currentUserId = currentUser?.id;
-      
-      if (!currentUserId) {
-        toast.error('Session expired. Please login again.');
-        setIsLoading(false);
-        return;
+      const res = await followApi.toggleFollow(sellerId);
+      const resultData = res.data as any;
+      if (resultData?.status === 'followed') {
+        setIsFollowing(true);
+        setFollowersCount(prev => Math.max(prev, 1));
+        toast.success(`Following ${seller.name}`);
+      } else if (resultData?.status === 'unfollowed') {
+        setIsFollowing(false);
+        setFollowersCount(prev => Math.max(0, prev - 1));
+        toast.success(`Unfollowed ${seller.name}`);
+      } else {
+        setIsFollowing(previousState);
+        setFollowersCount(previousCount);
       }
-      
-      console.log('Following seller:', seller.id, seller.name);
-      
-      const response = await fetch(`${API_URL}/follow`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          following_id: seller.id,
-          user_id: currentUserId,
-        }),
-      });
-      
-      console.log('Follow response status:', response.status);
-      const data = await response.json();
-      console.log('Follow response data:', data);
-      
-      if (!response.ok) {
-        throw new Error(data.message || data.error || `Failed to follow (${response.status})`);
-      }
-      
-      setIsFollowing(true);
-      setFollowersCount(data.followers_count ?? 0);
-      toast.success(data.message || `You're now following ${seller.name}`);
-    } catch (error: any) {
-      console.error('Follow error:', error);
-      const errorMsg = error.message || 'Failed to follow';
-      toast.error(errorMsg);
+    } catch {
+      setIsFollowing(previousState);
+      setFollowersCount(previousCount);
+      toast.error('Failed to update follow status');
     } finally {
       setIsLoading(false);
     }
@@ -307,25 +286,27 @@ export default function SellerProfileCard({
             </div>
             
             {/* Follow Button - inline with name */}
-            {showFollowButton && seller.id && (
+            {showFollowButton && sellerId && !isOwnProfile && (
               <button
                 onClick={handleFollow}
-                disabled={isLoading || isInitializing || isOwnProfile}
+                disabled={isLoading || isInitializing}
                 className={`
                   flex items-center gap-1 px-2.5 py-1 rounded-[7px] text-[11px] font-bold transition-all duration-300 shadow-sm hover:shadow-md flex-shrink-0
                   ${isFollowing 
-                    ? 'bg-accent-600 text-white border border-accent-600 cursor-default' 
+                    ? 'bg-accent-600 text-white border border-accent-600 hover:bg-red-500 hover:border-red-500 group' 
                     : 'bg-gray-100 text-gray-700 hover:bg-accent-600 hover:text-white border border-gray-300'
                   }
-                  ${(isLoading || isInitializing) ? 'opacity-70 cursor-wait' : isFollowing ? '' : 'cursor-pointer'}
+                  ${(isLoading || isInitializing) ? 'opacity-70 cursor-wait' : 'cursor-pointer'}
                 `}
               >
                 {isLoading ? (
                   <Loader2 className="w-2.5 h-2.5 animate-spin" />
                 ) : isFollowing ? (
                   <>
-                    <CheckCircle className="w-2.5 h-2.5" />
-                    <span>Following</span>
+                    <UserMinus className="w-2.5 h-2.5 group-hover:block hidden" />
+                    <CheckCircle className="w-2.5 h-2.5 block group-hover:hidden" />
+                    <span className="group-hover:hidden">Following</span>
+                    <span className="hidden group-hover:inline">Unfollow</span>
                   </>
                 ) : (
                   <>
